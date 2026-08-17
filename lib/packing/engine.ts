@@ -9,8 +9,13 @@ import type {
   SetLoadSummary,
   ValidationReport,
 } from "./types";
+import {
+  collectSetGroups,
+  normalizedSetCode as setCode,
+  normalizedUnitsPerSet as unitsPerSet,
+} from "./set-utils";
 
-export const ENGINE_VERSION = "0.5.0";
+export const ENGINE_VERSION = "0.6.0";
 
 type Orientation = {
   dx: number;
@@ -48,25 +53,6 @@ function maxStackLayers(product: ProductInput) {
 
 function mustLoad(product: ProductInput) {
   return product.mustLoad !== false;
-}
-
-function setCode(product: ProductInput) {
-  return product.setCode?.trim() ?? "";
-}
-
-function unitsPerSet(product: ProductInput) {
-  const value = Math.floor(product.unitsPerSet || 1);
-  return Number.isFinite(value) && value > 0 ? value : 1;
-}
-
-function collectSetGroups(products: ProductInput[]) {
-  const groups = new Map<string, ProductInput[]>();
-  for (const product of products) {
-    const code = setCode(product);
-    if (!code) continue;
-    groups.set(code, [...(groups.get(code) ?? []), product]);
-  }
-  return groups;
 }
 
 function compareRequired(a: ProductInput, b: ProductInput) {
@@ -372,6 +358,7 @@ const strategies: SortStrategy[] = [
 type ItemBatch = {
   items: ProductInput[];
   setCode?: string;
+  setNumber?: number;
 };
 
 function buildItemBatches(request: PackingRequest, sort: SortStrategy) {
@@ -389,7 +376,7 @@ function buildItemBatches(request: PackingRequest, sort: SortStrategy) {
       Array.from({ length: unitsPerSet(product) }, () => product),
     );
     for (let index = 0; index < requestedSets && itemCount + bundle.length <= MAX_VISIBLE_PLACEMENTS; index += 1) {
-      batches.push({ items: [...bundle], setCode: code });
+      batches.push({ items: [...bundle], setCode: code, setNumber: index + 1 });
       itemCount += bundle.length;
     }
   }
@@ -505,7 +492,14 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
     const totalWeightBefore = totalWeight;
     const placementIndexBefore = placementIndex;
     const complete = batch.items.every((product) => placeProduct(product));
-    if (complete) continue;
+    if (complete) {
+      placements.slice(placementCountBefore).forEach((box, itemIndex) => {
+        box.setCode = batch.setCode;
+        box.setNumber = batch.setNumber;
+        box.setItemNumber = itemIndex + 1;
+      });
+      continue;
+    }
 
     placements.splice(placementCountBefore);
     points = pointsBefore;
@@ -648,6 +642,25 @@ export function validatePacking(
       if (setCounts.some((count) => !Number.isInteger(count) || Math.abs(count - first) > EPS)) {
         errors.push(`套装 ${code} 的组成箱数量不完整，不能按完整套数交付。`);
       }
+      const setPlacements = placements.filter((box) => box.setCode === code);
+      if (setPlacements.length) {
+        const cartonsPerSet = group.reduce((sum, product) => sum + unitsPerSet(product), 0);
+        const bySetNumber = new Map<number, PlacedBox[]>();
+        for (const box of setPlacements) {
+          if (!box.setNumber || !box.setItemNumber) {
+            errors.push(`套装 ${code} 存在缺少套号或套内序号的箱体。`);
+            continue;
+          }
+          bySetNumber.set(box.setNumber, [...(bySetNumber.get(box.setNumber) ?? []), box]);
+        }
+        for (const [number, boxes] of bySetNumber) {
+          const itemNumbers = boxes.map((box) => box.setItemNumber).sort((a, b) => (a ?? 0) - (b ?? 0));
+          const expected = Array.from({ length: cartonsPerSet }, (_, index) => index + 1);
+          if (boxes.length !== cartonsPerSet || itemNumbers.some((item, index) => item !== expected[index])) {
+            errors.push(`套装 ${code} 第 ${number} 套的套内追踪序号不完整。`);
+          }
+        }
+      }
     }
   }
   return { valid: errors.length === 0, errors };
@@ -692,6 +705,10 @@ function buildSetSummaries(request: PackingRequest, summaries: ProductSummary[])
     const loadedSets = Math.max(0, Math.min(...loadedSetCounts));
     return {
       setCode: code,
+      componentCount: items.length,
+      cartonsPerSet: items.reduce((sum, item) => sum + item.unitsPerSet, 0),
+      requestedCartons: items.reduce((sum, item) => sum + item.requestedQuantity, 0),
+      loadedCartons: items.reduce((sum, item) => sum + item.loadedQuantity, 0),
       requestedSets,
       loadedSets,
       unloadedSets: Math.max(0, requestedSets - loadedSets),

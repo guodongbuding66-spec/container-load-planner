@@ -53,3 +53,16 @@ test("prints three-view diagrams as undistorted vector artwork", async () => {
   assert.match(styles, /\.viewer-projections \.projection-print-svg \{ display: block;/);
   assert.match(styles, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\) !important;/);
 });
+
+test("includes arbitrary multi-carton set creation and traceability", async () => {
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+  const engine = await readFile(new URL("../lib/packing/engine.ts", import.meta.url), "utf8");
+
+  assert.match(source, /多箱套装助手/);
+  assert.match(source, /\[2, 3, 4, 5\]/);
+  assert.match(source, /增加箱型/);
+  assert.match(source, /向下对齐/);
+  assert.match(source, /套装编码,套号,套内序号/);
+  assert.match(engine, /box\.setNumber = batch\.setNumber/);
+  assert.match(engine, /box\.setItemNumber = itemIndex \+ 1/);
+});

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calculateReverseCounts, pack, validatePacking } from "./engine";
-import { DIMENSION_TEST_PRODUCTS, TWO_CARTON_SET_PRODUCTS } from "./presets";
+import { DIMENSION_TEST_PRODUCTS, MULTI_CARTON_SET_PRODUCTS, TWO_CARTON_SET_PRODUCTS } from "./presets";
 import type { ContainerSpec, PackingRequest, ProductInput } from "./types";
 
 const container: ContainerSpec = {
@@ -253,6 +253,86 @@ describe("packing engine", () => {
     expect(result.validation.valid).toBe(true);
   });
 
+  it.each([3, 4, 5])("keeps a %s-carton multi-SKU set atomic and assigns traceable set numbers", (cartonCount) => {
+    const setContainer = {
+      ...container,
+      length: cartonCount * 500,
+      width: 500,
+      height: 500,
+      doorWidth: 500,
+      doorHeight: 500,
+    };
+    const products = Array.from({ length: cartonCount }, (_, index) => product({
+      id: `kit-${cartonCount}-${index}`,
+      sku: `KIT-${cartonCount}-${index + 1}`,
+      length: 500,
+      width: 500,
+      height: 500,
+      weight: 10,
+      quantity: 2,
+      setCode: `KIT-${cartonCount}BOX`,
+      unitsPerSet: 1,
+      rotationPolicy: "fixed",
+    }));
+
+    const result = pack(request({ container: setContainer, products }));
+
+    expect(result.metrics.loadedCount).toBe(cartonCount);
+    expect(result.summaries.map((summary) => summary.loaded)).toEqual(Array.from({ length: cartonCount }, () => 1));
+    expect(result.setSummaries[0]).toMatchObject({
+      componentCount: cartonCount,
+      cartonsPerSet: cartonCount,
+      requestedSets: 2,
+      loadedSets: 1,
+      unloadedSets: 1,
+      loadedCartons: cartonCount,
+    });
+    expect(result.placements.every((box) => box.setCode === `KIT-${cartonCount}BOX` && box.setNumber === 1)).toBe(true);
+    expect(result.placements.map((box) => box.setItemNumber).sort((a, b) => (a ?? 0) - (b ?? 0))).toEqual(
+      Array.from({ length: cartonCount }, (_, index) => index + 1),
+    );
+    expect(result.validation.valid).toBe(true);
+  });
+
+  it("supports a five-carton set expressed as a 1:2:2 ratio", () => {
+    const setContainer = { ...container, length: 2500, width: 500, height: 500, doorWidth: 500, doorHeight: 500 };
+    const products = [
+      product({ id: "ratio-a", sku: "RATIO-A", length: 500, width: 500, height: 500, weight: 10, quantity: 2, setCode: "RATIO-122", unitsPerSet: 1, rotationPolicy: "fixed" }),
+      product({ id: "ratio-b", sku: "RATIO-B", length: 500, width: 500, height: 500, weight: 10, quantity: 4, setCode: "RATIO-122", unitsPerSet: 2, rotationPolicy: "fixed" }),
+      product({ id: "ratio-c", sku: "RATIO-C", length: 500, width: 500, height: 500, weight: 10, quantity: 4, setCode: "RATIO-122", unitsPerSet: 2, rotationPolicy: "fixed" }),
+    ];
+
+    const result = pack(request({ container: setContainer, products }));
+
+    expect(result.summaries.map((summary) => summary.loaded)).toEqual([1, 2, 2]);
+    expect(result.setSummaries[0]).toMatchObject({ componentCount: 3, cartonsPerSet: 5, requestedSets: 2, loadedSets: 1 });
+    expect(result.placements.map((box) => box.setItemNumber).sort((a, b) => (a ?? 0) - (b ?? 0))).toEqual([1, 2, 3, 4, 5]);
+    expect(result.validation.valid).toBe(true);
+  });
+
+  it("independently rejects an incomplete set trace sequence", () => {
+    const setContainer = { ...container, length: 1500, width: 500, height: 500, doorWidth: 500, doorHeight: 500 };
+    const products = Array.from({ length: 3 }, (_, index) => product({
+      id: `trace-${index}`,
+      sku: `TRACE-${index + 1}`,
+      length: 500,
+      width: 500,
+      height: 500,
+      weight: 10,
+      quantity: 1,
+      setCode: "TRACE-3BOX",
+      unitsPerSet: 1,
+      rotationPolicy: "fixed",
+    }));
+    const result = pack(request({ container: setContainer, products }));
+    const corrupted = result.placements.map((box, index) => index === 1 ? { ...box, setItemNumber: undefined } : box);
+
+    const validation = validatePacking(corrupted, setContainer, 0, products);
+
+    expect(validation.valid).toBe(false);
+    expect(validation.errors.join(" ")).toContain("套号或套内序号");
+  });
+
   it("aligns reverse-calculated quantities to complete set ratios", () => {
     const products = [
       product({ id: "kit-a", sku: "KIT-A", quantity: 10, setCode: "KIT", unitsPerSet: 1 }),
@@ -279,6 +359,8 @@ describe("packing engine", () => {
     });
     expect((TWO_CARTON_SET_PRODUCTS[1].length * TWO_CARTON_SET_PRODUCTS[1].width * TWO_CARTON_SET_PRODUCTS[1].height) / 1_000_000_000).toBeCloseTo(0.040392, 6);
     expect(TWO_CARTON_SET_PRODUCTS.every((item) => item.setCode === "SET-2BOX" && item.unitsPerSet === 1)).toBe(true);
+    expect(MULTI_CARTON_SET_PRODUCTS).toHaveLength(5);
+    expect(MULTI_CARTON_SET_PRODUCTS.every((item) => item.setCode === "SET-5BOX" && item.unitsPerSet === 1)).toBe(true);
   });
 
   it("produces validated 40HQ plans for both supplied test scenarios", () => {

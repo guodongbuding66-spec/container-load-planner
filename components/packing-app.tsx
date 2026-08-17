@@ -37,9 +37,11 @@ import { calculateReverseCounts, ENGINE_VERSION, pack } from "../lib/packing/eng
 import {
   CONTAINER_PRESETS,
   DIMENSION_TEST_PRODUCTS,
+  MULTI_CARTON_SET_PRODUCTS,
   SAMPLE_PRODUCTS,
   TWO_CARTON_SET_PRODUCTS,
 } from "../lib/packing/presets";
+import { alignSetQuantities, summarizeSetInputs } from "../lib/packing/set-utils";
 import type {
   ContainerSpec,
   PackingMode,
@@ -105,6 +107,31 @@ function createProduct(index: number): ProductInput {
     declaredVolumeCbm: 0,
     color: COLORS[index % COLORS.length],
   };
+}
+
+function createSetComponent(index: number, setCode: string, componentIndex: number, cartonCount: number): ProductInput {
+  return {
+    ...createProduct(index),
+    id: `set-${Date.now()}-${index}-${componentIndex}`,
+    sku: `${setCode}-${String(componentIndex + 1).padStart(2, "0")}`,
+    name: `${cartonCount} 箱套装 · 第 ${componentIndex + 1} 箱（请填写）`,
+    quantity: 100,
+    priority: 100,
+    setCode,
+    unitsPerSet: 1,
+    mustLoad: true,
+  };
+}
+
+function nextSetCode(products: ProductInput[], cartonCount: number) {
+  const existing = new Set(products.map((product) => product.setCode?.trim()).filter(Boolean));
+  let index = 1;
+  let candidate = "";
+  do {
+    candidate = `SET-${cartonCount}BOX-${String(index).padStart(2, "0")}`;
+    index += 1;
+  } while (existing.has(candidate));
+  return candidate;
 }
 
 function normalizeProductDraft(product: Partial<ProductInput>, index: number): ProductInput {
@@ -321,6 +348,7 @@ export function PackingApp() {
   }, [status]);
 
   const activeProducts = useMemo(() => (mode === "single" ? products.slice(0, 1) : products), [mode, products]);
+  const setInputSummaries = useMemo(() => summarizeSetInputs(activeProducts), [activeProducts]);
   const inputVolume = useMemo(
     () => activeProducts.reduce((sum, item) => sum + item.length * item.width * item.height * (mode === "single" ? 1 : item.quantity), 0) / 1_000_000_000,
     [activeProducts, mode],
@@ -402,6 +430,48 @@ export function PackingApp() {
     markDirty();
   };
 
+  const addCartonSet = (cartonCount: number) => {
+    const safeCount = Math.min(20, Math.max(2, Math.floor(cartonCount)));
+    setMode("mixed");
+    setProducts((current) => {
+      const setCode = nextSetCode(current, safeCount);
+      const components = Array.from({ length: safeCount }, (_, componentIndex) =>
+        createSetComponent(current.length + componentIndex, setCode, componentIndex, safeCount),
+      );
+      return [...current, ...components];
+    });
+    setResult(null);
+    setDirty(true);
+    setStatus("idle");
+    setMessage(`已新增 1 套 ${safeCount} 箱结构；请逐箱填写尺寸、重量和需求套数。`);
+  };
+
+  const addComponentToSet = (code: string) => {
+    setProducts((current) => {
+      const members = current.filter((product) => product.setCode?.trim() === code);
+      const completeSets = summarizeSetInputs(members)[0]?.completeSets || 100;
+      const component = createSetComponent(current.length, code, members.length, members.length + 1);
+      return [...current, { ...component, quantity: Math.max(1, completeSets) }];
+    });
+    markDirty();
+    setMessage(`已向套装 ${code} 增加一个箱型；套装箱数不设 5 箱上限。`);
+  };
+
+  const alignSet = (code: string) => {
+    const summary = setInputSummaries.find((item) => item.setCode === code);
+    setProducts((current) => alignSetQuantities(current, code));
+    markDirty();
+    setMessage(`套装 ${code} 已安全向下对齐为 ${summary?.completeSets ?? 0} 个完整套，未擅自增加订单数量。`);
+  };
+
+  const ungroupSet = (code: string) => {
+    setProducts((current) => current.map((product) =>
+      product.setCode?.trim() === code ? { ...product, setCode: "", unitsPerSet: 1 } : product,
+    ));
+    markDirty();
+    setMessage(`已取消 ${code} 的成套约束，相关 SKU 将按散箱计算。`);
+  };
+
   const removeProduct = (id: string) => {
     setProducts((current) => (current.length <= 1 ? current : current.filter((item) => item.id !== id)));
     markDirty();
@@ -443,6 +513,19 @@ export function PackingApp() {
     setDirty(true);
     setStatus("idle");
     setMessage("已载入 1 套 2 箱测试：算法只允许输出完整套数");
+  };
+
+  const loadMultiCartonSetTest = () => {
+    setMode("mixed");
+    setContainer({ ...CONTAINER_PRESETS[2] });
+    setClearance(10);
+    setProducts(MULTI_CARTON_SET_PRODUCTS.map((item) => ({ ...item })));
+    setResult(null);
+    setCameraView("perspective");
+    setCameraProjection("perspective");
+    setDirty(true);
+    setStatus("idle");
+    setMessage("已载入 1 套 5 箱测试；3 箱、4 箱及更多箱型使用同一通用算法。");
   };
 
   const validateInputs = () => {
@@ -538,9 +621,9 @@ export function PackingApp() {
 
   const exportCsv = () => {
     if (!result) return;
-    const header = "序号,SKU,品名,X(mm),Y(mm),Z(mm),长(mm),宽(mm),高(mm),方向,层级,重量(kg)";
+    const header = "序号,SKU,品名,套装编码,套号,套内序号,X(mm),Y(mm),Z(mm),长(mm),宽(mm),高(mm),方向,层级,重量(kg)";
     const rows = result.placements.map((box, index) =>
-      [index + 1, box.sku, `"${box.name.replaceAll('"', '""')}"`, box.x, box.y, box.z, box.dx, box.dy, box.dz, box.orientation, box.layer, box.weight].join(","),
+      [index + 1, box.sku, `"${box.name.replaceAll('"', '""')}"`, box.setCode ?? "", box.setNumber ?? "", box.setItemNumber ?? "", box.x, box.y, box.z, box.dx, box.dy, box.dz, box.orientation, box.layer, box.weight].join(","),
     );
     downloadFile(`装柜坐标_${result.container.id}.csv`, `\uFEFF${[header, ...rows].join("\n")}`, "text/csv;charset=utf-8");
   };
@@ -548,8 +631,11 @@ export function PackingApp() {
   const downloadTemplate = () => {
     const lines = [
       "sku,name,length,width,height,declaredVolumeCbm,weight,quantity,priority,setCode,unitsPerSet,rotationPolicy,stackable,maxStackLayers,mustLoad,bottomOnly,color",
-      "SET-A-128,双箱套装A箱,1280,540,110,0.08,40,400,100,SET-2BOX,1,upright,true,22,true,false,#2f7f89",
-      "SET-B-068,双箱套装B箱,680,540,110,0.04,14,400,100,SET-2BOX,1,upright,true,22,true,false,#a95e78",
+      "SET5-A-128,五箱套装A箱,1280,540,110,0.08,40,120,100,SET-5BOX,1,upright,true,22,true,false,#2f7f89",
+      "SET5-B-068,五箱套装B箱,680,540,110,0.04,14,120,100,SET-5BOX,1,upright,true,22,true,false,#a95e78",
+      "SET5-C-103,五箱套装C箱,1030,620,120,0.08,30,120,100,SET-5BOX,1,upright,true,20,true,false,#d5a72f",
+      "SET5-D-052,五箱套装D箱,520,350,180,0.033,12,120,100,SET-5BOX,1,upright,true,15,true,false,#6b72a9",
+      "SET5-E-090,五箱套装E箱,900,420,140,0.053,18,120,100,SET-5BOX,1,upright,true,18,true,false,#609d62",
     ];
     downloadFile("拼柜导入模板.csv", `\uFEFF${lines.join("\n")}`, "text/csv;charset=utf-8");
   };
@@ -785,7 +871,7 @@ export function PackingApp() {
                 </div>
                 <div className="timeline-current" aria-live="polite">
                   {packingProgress > 0 && result.placements[packingProgress - 1]
-                    ? <><span>当前第 {formatNumber(packingProgress)} 箱</span><strong>{result.placements[packingProgress - 1].sku}</strong><b>坐标 {formatNumber(result.placements[packingProgress - 1].x)} / {formatNumber(result.placements[packingProgress - 1].y)} / {formatNumber(result.placements[packingProgress - 1].z)} mm · 第 {result.placements[packingProgress - 1].layer} 层</b></>
+                    ? <><span>当前第 {formatNumber(packingProgress)} 箱</span><strong>{result.placements[packingProgress - 1].sku}{result.placements[packingProgress - 1].setCode ? ` · ${result.placements[packingProgress - 1].setCode} 第 ${result.placements[packingProgress - 1].setNumber} 套 / 套内第 ${result.placements[packingProgress - 1].setItemNumber} 箱` : ""}</strong><b>坐标 {formatNumber(result.placements[packingProgress - 1].x)} / {formatNumber(result.placements[packingProgress - 1].y)} / {formatNumber(result.placements[packingProgress - 1].z)} mm · 第 {result.placements[packingProgress - 1].layer} 层</b></>
                     : <><span>准备开始</span><strong>尚未装入箱体</strong><b>点击播放或下一步查看装柜顺序</b></>}
                 </div>
                 <section className="viewer-projections" aria-label="三视图相机控制">
@@ -833,11 +919,50 @@ export function PackingApp() {
               <input ref={fileInputRef} hidden type="file" accept=".csv,text/csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importCsv(file); event.currentTarget.value = ""; }} />
               <button className="button ghost small" onClick={loadDimensionTest}><PackageOpen size={15} />载入尺寸测试</button>
               <button className="button ghost small" onClick={loadTwoCartonSetTest}><Boxes size={15} />载入 1 套 2 箱</button>
+              <button className="button ghost small" onClick={loadMultiCartonSetTest}><Boxes size={15} />载入 1 套 5 箱</button>
               <button className="button ghost small" onClick={downloadTemplate}><Download size={15} />下载模板</button>
               <button className="button ghost small" onClick={() => fileInputRef.current?.click()}><Upload size={15} />导入 CSV</button>
               {mode === "mixed" ? <button className="button primary small" onClick={addProduct}><Plus size={15} />添加 SKU</button> : null}
             </div>
           </div>
+          {mode === "mixed" ? (
+            <section className="set-builder" aria-label="多箱套装助手">
+              <div className="set-builder-head">
+                <div>
+                  <span className="section-kicker">MULTI-CARTON KIT</span>
+                  <strong>多箱套装助手</strong>
+                  <small>按整套原子装载；支持不同箱规、1:n 比例、多个套装同时拼柜</small>
+                </div>
+                <div className="set-quick-actions" aria-label="新建套装箱数">
+                  {[2, 3, 4, 5].map((count) => <button key={count} onClick={() => addCartonSet(count)}><Plus size={13} />{count} 箱套装</button>)}
+                </div>
+              </div>
+              {setInputSummaries.length ? (
+                <div className="set-builder-grid">
+                  {setInputSummaries.map((summary) => (
+                    <article key={summary.setCode} className={summary.quantitiesAligned ? "aligned" : "misaligned"}>
+                      <div className="set-builder-card-main">
+                        <span>{summary.setCode}</span>
+                        <strong>{summary.componentCount} 种箱规 · {summary.cartonsPerSet} 箱/套</strong>
+                        <small>当前可完整组成 {formatNumber(summary.completeSets)} 套{summary.looseCartons ? ` · 另有 ${formatNumber(summary.looseCartons)} 个比例外箱` : ""}</small>
+                      </div>
+                      <div className="set-ratio-list" aria-label={`${summary.setCode} 套内比例`}>
+                        {summary.items.map((item) => <span key={item.productId}><b>{item.sku}</b>× {item.unitsPerSet}</span>)}
+                      </div>
+                      <div className="set-builder-card-actions">
+                        <b className={summary.quantitiesAligned ? "status-ok" : "status-warning"}>{summary.quantitiesAligned ? "数量比例已对齐" : "需求比例未对齐"}</b>
+                        {!summary.quantitiesAligned ? <button onClick={() => alignSet(summary.setCode)}><CheckCircle2 size={13} />向下对齐</button> : null}
+                        <button onClick={() => addComponentToSet(summary.setCode)}><Plus size={13} />增加箱型</button>
+                        <button className="danger" onClick={() => ungroupSet(summary.setCode)}>取消套装</button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="set-builder-empty">尚未设置套装。可一键创建 2–5 箱结构，也可在创建后继续增加第 6 箱及更多箱型。</div>
+              )}
+            </section>
+          ) : null}
           <div className="product-table-wrap">
             <table className="product-table">
               <thead><tr><th>标识</th><th>SKU / 品名</th><th>外箱长</th><th>外箱宽</th><th>外箱高</th><th>CBM 核对</th><th>毛重</th>{mode === "mixed" ? <><th>需求</th><th>套装编码</th><th>每套箱数</th><th>装载优先级</th><th>必装</th></> : null}<th>方向规则</th><th>可承托</th><th>必须底置</th><th>层数上限</th><th aria-label="操作" /></tr></thead>
@@ -872,7 +997,7 @@ export function PackingApp() {
               </tbody>
             </table>
           </div>
-          <div className="table-note"><CircleAlert size={16} /><span>相同“套装编码”的 SKU 会按“每套箱数”作为原子批次装入：任一组成箱放不下就整套回滚，不会输出半套；几何测算使用尺寸换算 CBM，标称 CBM 用于商务数据核对。</span></div>
+          <div className="table-note"><CircleAlert size={16} /><span>相同“套装编码”的任意数量 SKU 会按“每套箱数”组成原子批次：支持 2/3/4/5 箱及更多箱型，也支持 1:4、1:2:2 等比例；任一组成箱放不下即整套回滚。</span></div>
         </section>
 
         {result ? (
@@ -891,7 +1016,7 @@ export function PackingApp() {
                 <div className="set-summary-grid">
                   {result.setSummaries.map((setSummary) => (
                     <article key={setSummary.setCode} className={setSummary.unloadedSets ? "incomplete" : "complete"}>
-                      <div className="set-summary-main"><span>{setSummary.setCode}</span><strong>{formatNumber(setSummary.loadedSets)} <small>/ {formatNumber(setSummary.requestedSets)} 套</small></strong><b>{setSummary.unloadedSets ? `未装 ${formatNumber(setSummary.unloadedSets)} 套` : "全部成套"}</b></div>
+                      <div className="set-summary-main"><span>{setSummary.setCode} · {setSummary.componentCount} 种箱规 · {setSummary.cartonsPerSet} 箱/套</span><strong>{formatNumber(setSummary.loadedSets)} <small>/ {formatNumber(setSummary.requestedSets)} 套</small></strong><b>{setSummary.unloadedSets ? `未装 ${formatNumber(setSummary.unloadedSets)} 套` : `全部成套 · 共 ${formatNumber(setSummary.loadedCartons)} 箱`}</b></div>
                       <div className="set-component-list">
                         {setSummary.items.map((item) => <span key={item.productId}><b>{item.sku}</b>{item.loadedQuantity} 箱 · {item.unitsPerSet} 箱/套</span>)}
                       </div>
@@ -949,8 +1074,8 @@ export function PackingApp() {
               </div>
               <div className="coordinate-wrap">
                 <table className="coordinate-table">
-                  <thead><tr><th>#</th><th>SKU</th><th>X</th><th>Y</th><th>Z</th><th>摆放尺寸（长×宽×高）</th><th>方向</th><th>层级</th><th>重量</th></tr></thead>
-                  <tbody>{result.placements.slice(0, 80).map((box, index) => <tr key={box.id}><td>{index + 1}</td><td><i style={{ background: box.color }} />{box.sku}</td><td>{formatNumber(box.x)}</td><td>{formatNumber(box.y)}</td><td>{formatNumber(box.z)}</td><td>{formatNumber(box.dx)} × {formatNumber(box.dy)} × {formatNumber(box.dz)} mm</td><td>{box.orientation}</td><td>第 {box.layer} 层</td><td>{box.weight} kg</td></tr>)}</tbody>
+                  <thead><tr><th>#</th><th>SKU</th><th>套装 / 套号</th><th>X</th><th>Y</th><th>Z</th><th>摆放尺寸（长×宽×高）</th><th>方向</th><th>层级</th><th>重量</th></tr></thead>
+                  <tbody>{result.placements.slice(0, 80).map((box, index) => <tr key={box.id}><td>{index + 1}</td><td><i style={{ background: box.color }} />{box.sku}</td><td>{box.setCode ? `${box.setCode} · 第 ${box.setNumber} 套 · ${box.setItemNumber}/${result.setSummaries.find((item) => item.setCode === box.setCode)?.cartonsPerSet ?? ""}` : "散箱"}</td><td>{formatNumber(box.x)}</td><td>{formatNumber(box.y)}</td><td>{formatNumber(box.z)}</td><td>{formatNumber(box.dx)} × {formatNumber(box.dy)} × {formatNumber(box.dz)} mm</td><td>{box.orientation}</td><td>第 {box.layer} 层</td><td>{box.weight} kg</td></tr>)}</tbody>
                 </table>
               </div>
             </article>

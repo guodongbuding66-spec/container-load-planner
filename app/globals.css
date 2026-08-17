@@ -229,6 +229,30 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
 .icon-button:hover:not(:disabled) { background: #f1f5f5; }
 .icon-button.danger:hover:not(:disabled) { color: var(--danger); background: #fff2f2; }
 .table-note { display: flex; align-items: center; gap: 7px; margin-top: 10px; color: #87979b; font-size: 9px; }
+.set-builder { margin-bottom: 13px; border: 1px solid #d8e6e8; border-radius: 12px; padding: 13px; background: linear-gradient(135deg, #f8fbfb, #eef7f7); }
+.set-builder-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.set-builder-head strong, .set-builder-head small { display: block; }
+.set-builder-head strong { margin-top: 4px; color: #29464e; font-size: 12px; }
+.set-builder-head small { margin-top: 3px; color: #7b8e93; font-size: 8px; }
+.set-quick-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.set-quick-actions button, .set-builder-card-actions button { min-height: 29px; border: 1px solid #cfe0e2; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 8px; color: #3c676f; background: #fff; font-size: 8px; font-weight: 800; }
+.set-quick-actions button:hover, .set-builder-card-actions button:hover { border-color: #8fbdc2; color: #245b64; }
+.set-builder-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 11px; }
+.set-builder-grid article { min-width: 0; border: 1px solid #dce7e8; border-left: 4px solid #4a956d; border-radius: 9px; padding: 10px; background: rgba(255,255,255,.9); }
+.set-builder-grid article.misaligned { border-left-color: #c18a36; }
+.set-builder-card-main span, .set-builder-card-main strong, .set-builder-card-main small { display: block; }
+.set-builder-card-main span { overflow: hidden; color: #4f737a; font-size: 9px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
+.set-builder-card-main strong { margin-top: 4px; color: #243f47; font-size: 11px; }
+.set-builder-card-main small { margin-top: 3px; color: #7d9095; font-size: 8px; line-height: 1.45; }
+.set-ratio-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.set-ratio-list span { border: 1px solid #e0e8e9; border-radius: 999px; padding: 3px 6px; color: #71878c; background: #f8fafb; font-size: 7px; }
+.set-ratio-list b { margin-right: 4px; color: #355c64; }
+.set-builder-card-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 9px; padding-top: 8px; border-top: 1px dashed #dfe8e9; }
+.set-builder-card-actions > b { margin-right: auto; font-size: 7px; }
+.set-builder-card-actions .status-ok { color: #3f8761; }
+.set-builder-card-actions .status-warning { color: #aa7e22; }
+.set-builder-card-actions button.danger { border-color: transparent; color: #a55451; background: transparent; }
+.set-builder-empty { margin-top: 10px; border: 1px dashed #cbdadd; border-radius: 8px; padding: 10px; color: #778b90; background: rgba(255,255,255,.62); font-size: 8px; text-align: center; }
 
 .result-section { margin-top: 20px; }
 .result-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 0 2px 12px; }
@@ -355,6 +379,7 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
   .viewer-projections .projection-card { flex: initial; }
   .projection-card:last-child { grid-column: 1 / -1; }
   .set-summary-grid { grid-template-columns: 1fr; }
+  .set-builder-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 680px) {
@@ -388,6 +413,8 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
   .scene-view-controls button { min-width: 42px; }
   .set-summary-heading { align-items: flex-start; flex-direction: column; }
   .set-summary-grid article { grid-template-columns: 1fr; }
+  .set-builder-head { align-items: flex-start; flex-direction: column; }
+  .set-quick-actions { justify-content: flex-start; }
 }
 
 @media print {
@@ -417,8 +444,11 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
   .projection-card { break-inside: avoid; }
   .result-section { margin-top: 8mm; }
   .metric-card { min-height: 22mm; padding: 3mm; box-shadow: none; }
+  .set-summary-panel { break-inside: avoid; box-shadow: none; }
   .result-grid, .coordinate-panel { break-inside: avoid; }
   .coordinate-panel { margin-top: 5mm; }
+  .coordinate-table { width: 100%; min-width: 0; table-layout: fixed; }
+  .coordinate-table th, .coordinate-table td { overflow-wrap: anywhere; padding-left: 1.2mm; padding-right: 1.2mm; white-space: normal; }
   .button, button { box-shadow: none !important; }
 }
 

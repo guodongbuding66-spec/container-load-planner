@@ -76,6 +76,9 @@ export type PlacedBox = {
   weight: number;
   orientation: string;
   layer: number;
+  setCode?: string;
+  setNumber?: number;
+  setItemNumber?: number;
 };
 
 export type ProductSummary = {
@@ -100,6 +103,10 @@ export type SetLoadItem = {
 
 export type SetLoadSummary = {
   setCode: string;
+  componentCount: number;
+  cartonsPerSet: number;
+  requestedCartons: number;
+  loadedCartons: number;
   requestedSets: number;
   loadedSets: number;
   unloadedSets: number;
