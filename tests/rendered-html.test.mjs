@@ -66,3 +66,14 @@ test("includes arbitrary multi-carton set creation and traceability", async () =
   assert.match(engine, /box\.setNumber = batch\.setNumber/);
   assert.match(engine, /box\.setItemNumber = itemIndex \+ 1/);
 });
+
+test("keeps the two-column workspace contained and provides Liquid Glass fallbacks", async () => {
+  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  assert.match(styles, /\.workspace-grid \{[^}]*minmax\(0, 1fr\)/s);
+  assert.match(styles, /\.workspace-grid > \*, \.config-column, \.viewer-column \{ min-width: 0; max-width: 100%; \}/);
+  assert.match(styles, /\.target-control \{[^}]*grid-template-columns: minmax\(0, \.95fr\) minmax\(0, 1\.05fr\)/s);
+  assert.match(styles, /@media \(max-width: 1100px\) \{[^}]*\.workspace-grid \{ grid-template-columns: minmax\(0, 1fr\); \}/s);
+  assert.match(styles, /backdrop-filter: blur\(24px\) saturate\(155%\)/);
+  assert.match(styles, /@supports not \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\)/);
+});
