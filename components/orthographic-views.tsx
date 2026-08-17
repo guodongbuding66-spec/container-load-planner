@@ -27,6 +27,113 @@ function projectBox(box: PlacedBox, kind: ViewKind) {
   return { x: box.y, y: box.z, width: box.dy, height: box.dz, depth: box.x };
 }
 
+function ProjectionPrintSvg({
+  kind,
+  boxes,
+  horizontalSize,
+  verticalSize,
+}: {
+  kind: ViewKind;
+  boxes: PlacedBox[];
+  horizontalSize: number;
+  verticalSize: number;
+}) {
+  const width = 1000;
+  const height = 560;
+  const left = 70;
+  const right = 55;
+  const top = 52;
+  const bottom = 78;
+  const scale = Math.min(
+    (width - left - right) / Math.max(1, horizontalSize),
+    (height - top - bottom) / Math.max(1, verticalSize),
+  );
+  const plotWidth = horizontalSize * scale;
+  const plotHeight = verticalSize * scale;
+  const plotX = left + Math.max(0, (width - left - right - plotWidth) / 2);
+  const plotY = top + Math.max(0, (height - top - bottom - plotHeight) / 2);
+  const projected = boxes
+    .map((box) => ({ box, projection: projectBox(box, kind) }))
+    .sort((a, b) => a.projection.depth - b.projection.depth);
+  const fontFamily = '"Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", Arial, sans-serif';
+
+  return (
+    <svg
+      className="projection-print-svg"
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="xMidYMid meet"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect x={plotX} y={plotY} width={plotWidth} height={plotHeight} fill="#f8fbfb" />
+      {Array.from({ length: 9 }, (_, index) => {
+        const step = index + 1;
+        const x = plotX + (plotWidth * step) / 10;
+        const y = plotY + (plotHeight * step) / 10;
+        return (
+          <g key={`grid-${step}`} stroke="#dfe8e9" strokeWidth="1.4">
+            <line x1={x} y1={plotY} x2={x} y2={plotY + plotHeight} />
+            <line x1={plotX} y1={y} x2={plotX + plotWidth} y2={y} />
+          </g>
+        );
+      })}
+      {projected.map(({ box, projection }) => {
+        const x = plotX + projection.x * scale;
+        const y = kind === "top"
+          ? plotY + projection.y * scale
+          : plotY + (verticalSize - projection.y - projection.height) * scale;
+        return (
+          <rect
+            key={`${kind}-${box.id}`}
+            x={x}
+            y={y}
+            width={Math.max(1, projection.width * scale)}
+            height={Math.max(1, projection.height * scale)}
+            fill={box.color}
+            fillOpacity="0.82"
+            stroke="#ffffff"
+            strokeOpacity="0.82"
+            strokeWidth="1.2"
+          />
+        );
+      })}
+      <rect x={plotX} y={plotY} width={plotWidth} height={plotHeight} fill="none" stroke="#597b83" strokeWidth="3" />
+      <text
+        x={plotX + plotWidth / 2}
+        y={plotY + plotHeight + 46}
+        fill="#71858a"
+        fontFamily={fontFamily}
+        fontSize="22"
+        fontWeight="600"
+        textAnchor="middle"
+      >
+        {Math.round(horizontalSize).toLocaleString()} mm
+      </text>
+      <text
+        transform={`translate(${plotX - 34} ${plotY + plotHeight / 2}) rotate(-90)`}
+        fill="#71858a"
+        fontFamily={fontFamily}
+        fontSize="22"
+        fontWeight="600"
+        textAnchor="middle"
+      >
+        {Math.round(verticalSize).toLocaleString()} mm
+      </text>
+      <text
+        x={plotX + plotWidth}
+        y={plotY - 18}
+        fill="#9a7932"
+        fontFamily={fontFamily}
+        fontSize="20"
+        fontWeight="700"
+        textAnchor="end"
+      >
+        {kind === "door" ? "正对箱门" : "箱门 →"}
+      </text>
+    </svg>
+  );
+}
+
 function ProjectionCanvas({
   kind,
   boxes,
@@ -142,7 +249,12 @@ function ProjectionCanvas({
     };
   }, [boxes, horizontalSize, kind, verticalSize]);
 
-  return <canvas ref={canvasRef} className="projection-canvas" role="img" aria-label={`${VIEW_COPY[kind].title}，当前显示 ${boxes.length} 箱`} />;
+  return (
+    <>
+      <canvas ref={canvasRef} className="projection-canvas" role="img" aria-label={`${VIEW_COPY[kind].title}，当前显示 ${boxes.length} 箱`} />
+      <ProjectionPrintSvg kind={kind} boxes={boxes} horizontalSize={horizontalSize} verticalSize={verticalSize} />
+    </>
+  );
 }
 
 function occupiedExtent(boxes: PlacedBox[], kind: ViewKind) {

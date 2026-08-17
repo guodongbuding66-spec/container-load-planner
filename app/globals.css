@@ -260,6 +260,7 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
 .projection-card-meta > span { display: inline-flex !important; align-items: center; gap: 3px; margin: 0 !important; color: #5f7d83 !important; font-size: 7px !important; }
 .projection-card-action.active .projection-card-meta > span { color: #27727b !important; font-weight: 800; }
 .projection-canvas { width: 100%; height: 220px; display: block; background: linear-gradient(180deg, #f4f8f8, #f9fbfb); }
+.projection-print-svg { display: none; }
 .projection-card footer { min-height: 30px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 10px; border-top: 1px solid #e7edef; color: #829399; background: #fff; font-size: 7px; }
 .result-grid { display: grid; grid-template-columns: 1.25fr .75fr; gap: 12px; margin-top: 12px; }
 .summary-panel, .warning-panel, .coordinate-panel { padding: 17px; }
@@ -409,7 +410,10 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
   .packing-timeline > input { display: none; }
   .timeline-current { padding: 2mm 0; }
   .viewer-projections { padding: 4mm 0; border-bottom: 0; background: #fff; }
-  .viewer-projections .projection-canvas { height: 46mm; }
+  .viewer-projections .projection-grid { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 3mm !important; overflow: visible !important; padding-bottom: 0 !important; }
+  .viewer-projections .projection-card { flex: initial !important; min-width: 0 !important; }
+  .viewer-projections .projection-canvas { display: none !important; }
+  .viewer-projections .projection-print-svg { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #f8fbfb; }
   .projection-card { break-inside: avoid; }
   .result-section { margin-top: 8mm; }
   .metric-card { min-height: 22mm; padding: 3mm; box-shadow: none; }

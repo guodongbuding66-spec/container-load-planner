@@ -42,3 +42,14 @@ test("includes result-only progress and three-view interfaces", async () => {
   assert.match(source, /三视图同步复核/);
   assert.match(source, /OrthographicViews/);
 });
+
+test("prints three-view diagrams as undistorted vector artwork", async () => {
+  const source = await readFile(new URL("../components/orthographic-views.tsx", import.meta.url), "utf8");
+  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  assert.match(source, /className="projection-print-svg"/);
+  assert.match(source, /preserveAspectRatio="xMidYMid meet"/);
+  assert.match(styles, /\.viewer-projections \.projection-canvas \{ display: none !important; \}/);
+  assert.match(styles, /\.viewer-projections \.projection-print-svg \{ display: block;/);
+  assert.match(styles, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\) !important;/);
+});
