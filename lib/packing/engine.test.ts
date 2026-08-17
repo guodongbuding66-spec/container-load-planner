@@ -1,0 +1,296 @@
+import { describe, expect, it } from "vitest";
+import { calculateReverseCounts, pack, validatePacking } from "./engine";
+import { DIMENSION_TEST_PRODUCTS, TWO_CARTON_SET_PRODUCTS } from "./presets";
+import type { ContainerSpec, PackingRequest, ProductInput } from "./types";
+
+const container: ContainerSpec = {
+  id: "test-20gp",
+  name: "测试 20GP",
+  length: 5900,
+  width: 2352,
+  height: 2395,
+  doorWidth: 2340,
+  doorHeight: 2292,
+  maxWeight: 28000,
+};
+
+function product(overrides: Partial<ProductInput> = {}): ProductInput {
+  return {
+    id: "box-a",
+    sku: "BOX-A",
+    name: "测试外箱",
+    length: 1000,
+    width: 1000,
+    height: 1000,
+    weight: 100,
+    quantity: 20,
+    priority: 50,
+    rotationPolicy: "any",
+    stackable: true,
+    maxStackLayers: 0,
+    color: "#2f7f89",
+    ...overrides,
+  };
+}
+
+function request(overrides: Partial<PackingRequest> = {}): PackingRequest {
+  return {
+    mode: "mixed",
+    container,
+    clearance: 0,
+    products: [product()],
+    ...overrides,
+  };
+}
+
+describe("packing engine", () => {
+  it("calculates the deterministic rule-grid maximum for a single SKU", () => {
+    const result = pack(request({ mode: "single" }));
+
+    expect(result.metrics.loadedCount).toBe(20);
+    expect(result.placements).toHaveLength(20);
+    expect(result.validation.valid).toBe(true);
+    expect(result.metrics.grossWeight).toBe(2000);
+  });
+
+  it("rejects a carton when no allowed orientation fits through the door", () => {
+    const tall = product({
+      id: "too-large",
+      sku: "TOO-LARGE",
+      length: 3000,
+      width: 2500,
+      height: 2400,
+      rotationPolicy: "fixed",
+    });
+    const result = pack(request({ mode: "single", products: [tall] }));
+
+    expect(result.metrics.loadedCount).toBe(0);
+    expect(result.placements).toHaveLength(0);
+    expect(result.warnings.join(" ")).toContain("门洞");
+  });
+
+  it("creates a mixed-SKU plan without overlap, overflow, or excess payload", () => {
+    const products = [
+      product({ id: "a", sku: "A", length: 1200, width: 600, height: 400, weight: 50, quantity: 18, priority: 100 }),
+      product({ id: "b", sku: "B", length: 900, width: 550, height: 500, weight: 35, quantity: 20, priority: 80 }),
+    ];
+    const result = pack(request({ products }));
+
+    expect(result.placements.length).toBeGreaterThan(0);
+    expect(result.metrics.loadedCount).toBe(result.placements.length);
+    expect(result.metrics.grossWeight).toBeLessThanOrEqual(container.maxWeight);
+    expect(validatePacking(result.placements, container, 0, products).valid).toBe(true);
+  });
+
+  it("honors the payload limit", () => {
+    const lightContainer = { ...container, maxWeight: 250 };
+    const result = pack(
+      request({
+        container: lightContainer,
+        products: [product({ weight: 100, quantity: 10 })],
+      }),
+    );
+
+    expect(result.metrics.loadedCount).toBe(2);
+    expect(result.metrics.grossWeight).toBe(200);
+    expect(result.validation.valid).toBe(true);
+  });
+
+  it("keeps cartons upright when the rotation policy forbids tipping", () => {
+    const lowContainer = { ...container, length: 1200, width: 1000, height: 500, doorHeight: 500 };
+    const uprightOnly = product({
+      length: 700,
+      width: 400,
+      height: 600,
+      quantity: 1,
+      rotationPolicy: "upright",
+    });
+    const anyDirection = { ...uprightOnly, rotationPolicy: "any" as const };
+
+    expect(pack(request({ mode: "single", container: lowContainer, products: [uprightOnly] })).metrics.loadedCount).toBe(0);
+    expect(pack(request({ mode: "single", container: lowContainer, products: [anyDirection] })).metrics.loadedCount).toBeGreaterThan(0);
+  });
+
+  it("honors the configured stack-layer limit", () => {
+    const cubeContainer = { ...container, length: 1000, width: 1000, height: 1000 };
+    const limited = product({ length: 500, width: 500, height: 200, rotationPolicy: "fixed", maxStackLayers: 2 });
+    const result = pack(request({ mode: "single", container: cubeContainer, products: [limited] }));
+
+    expect(result.metrics.loadedCount).toBe(8);
+    expect(Math.max(...result.placements.map((box) => box.layer))).toBe(2);
+  });
+
+  it("keeps bottom-only cargo on the container floor", () => {
+    const cubeContainer = { ...container, length: 1000, width: 1000, height: 1000 };
+    const bottomOnly = product({
+      length: 500,
+      width: 500,
+      height: 200,
+      rotationPolicy: "fixed",
+      bottomOnly: true,
+    });
+    const result = pack(request({ mode: "single", container: cubeContainer, products: [bottomOnly] }));
+
+    expect(result.metrics.loadedCount).toBe(4);
+    expect(result.placements.every((box) => box.z === 0)).toBe(true);
+    expect(result.validation.valid).toBe(true);
+  });
+
+  it("loads mandatory cargo before higher-priority filler cargo", () => {
+    const oneBoxContainer = { ...container, length: 500, width: 500, height: 500 };
+    const mandatory = product({ id: "must", sku: "MUST", length: 500, width: 500, height: 500, quantity: 1, priority: 0, mustLoad: true });
+    const filler = product({ id: "fill", sku: "FILL", length: 500, width: 500, height: 500, quantity: 1, priority: 100, mustLoad: false });
+    const result = pack(request({ container: oneBoxContainer, products: [filler, mandatory] }));
+
+    expect(result.placements).toHaveLength(1);
+    expect(result.placements[0].sku).toBe("MUST");
+    expect(result.warnings.join(" ")).not.toContain("必装货物 MUST");
+  });
+
+  it("does not place cartons on top of a non-stackable product", () => {
+    const narrowContainer = { ...container, length: 500, width: 500, height: 1500 };
+    const nonStackable = product({
+      length: 500,
+      width: 500,
+      height: 500,
+      quantity: 3,
+      rotationPolicy: "fixed",
+      stackable: false,
+    });
+    const result = pack(request({ container: narrowContainer, products: [nonStackable] }));
+
+    expect(result.metrics.loadedCount).toBe(1);
+    expect(result.validation.valid).toBe(true);
+  });
+
+  it("reports a normalized center of gravity for every populated plan", () => {
+    const result = pack(request());
+    const center = result.metrics.centerOfGravity;
+
+    expect(center.longitudinalRatio).toBeGreaterThan(0);
+    expect(center.longitudinalRatio).toBeLessThanOrEqual(1);
+    expect(center.lateralRatio).toBeGreaterThan(0);
+    expect(center.lateralRatio).toBeLessThanOrEqual(1);
+  });
+
+  it("reverse-calculates volume and payload counts for a single carton", () => {
+    const simpleContainer = { ...container, length: 1000, width: 1000, height: 1000, maxWeight: 1000 };
+    const estimate = calculateReverseCounts(
+      request({
+        mode: "single",
+        container: simpleContainer,
+        products: [product({ length: 500, width: 500, height: 500, weight: 100 })],
+      }),
+      0.75,
+      0.8,
+    );
+
+    expect(estimate.volumeLimitedTotal).toBe(6);
+    expect(estimate.weightLimitedTotal).toBe(8);
+    expect(estimate.recommendedTotal).toBe(6);
+    expect(estimate.limitingFactor).toBe("volume");
+    expect(estimate.quantities[0].suggestedQuantity).toBe(6);
+  });
+
+  it("preserves the current mixed-SKU ratio when distributing a reverse plan", () => {
+    const products = [
+      product({ id: "ratio-a", sku: "A", quantity: 1, length: 100, width: 100, height: 100, weight: 1 }),
+      product({ id: "ratio-b", sku: "B", quantity: 3, length: 100, width: 100, height: 100, weight: 1 }),
+    ];
+    const estimate = calculateReverseCounts(
+      request({ container: { ...container, length: 1000, width: 1000, height: 1000, maxWeight: 10000 }, products }),
+      0.01,
+      1,
+    );
+
+    expect(estimate.recommendedTotal).toBe(10);
+    expect(estimate.quantities.map((item) => item.suggestedQuantity)).toEqual([3, 7]);
+    expect(estimate.quantities.reduce((sum, item) => sum + item.suggestedQuantity, 0)).toBe(10);
+  });
+
+  it("uses volume as the fallback when carton weight is not supplied", () => {
+    const estimate = calculateReverseCounts(
+      request({ mode: "single", products: [product({ weight: 0 })] }),
+      0.8,
+      0.8,
+    );
+
+    expect(estimate.weightLimitedTotal).toBeNull();
+    expect(estimate.recommendedTotal).toBe(estimate.volumeLimitedTotal);
+  });
+
+  it("keeps a two-carton product set atomic when only one complete set fits", () => {
+    const setContainer = { ...container, length: 1300, width: 500, height: 500, doorWidth: 500, doorHeight: 500 };
+    const products = [
+      product({ id: "set-a", sku: "SET-A", length: 600, width: 500, height: 500, quantity: 3, setCode: "KIT-01", unitsPerSet: 1, rotationPolicy: "fixed" }),
+      product({ id: "set-b", sku: "SET-B", length: 600, width: 500, height: 500, quantity: 3, setCode: "KIT-01", unitsPerSet: 1, rotationPolicy: "fixed" }),
+    ];
+    const result = pack(request({ container: setContainer, products }));
+
+    expect(result.summaries.map((summary) => summary.loaded)).toEqual([1, 1]);
+    expect(result.setSummaries).toHaveLength(1);
+    expect(result.setSummaries[0]).toMatchObject({ setCode: "KIT-01", requestedSets: 3, loadedSets: 1, unloadedSets: 2 });
+    expect(result.validation.valid).toBe(true);
+  });
+
+  it("supports multiple cartons of the same SKU per set", () => {
+    const setContainer = { ...container, length: 1500, width: 500, height: 500, doorWidth: 500, doorHeight: 500 };
+    const component = product({
+      id: "pair",
+      sku: "PAIR",
+      length: 500,
+      width: 500,
+      height: 500,
+      quantity: 3,
+      setCode: "PAIR-SET",
+      unitsPerSet: 2,
+      rotationPolicy: "fixed",
+    });
+    const result = pack(request({ container: setContainer, products: [component] }));
+
+    expect(result.metrics.loadedCount).toBe(2);
+    expect(result.setSummaries[0].loadedSets).toBe(1);
+    expect(result.validation.valid).toBe(true);
+  });
+
+  it("aligns reverse-calculated quantities to complete set ratios", () => {
+    const products = [
+      product({ id: "kit-a", sku: "KIT-A", quantity: 10, setCode: "KIT", unitsPerSet: 1 }),
+      product({ id: "kit-b", sku: "KIT-B", quantity: 20, setCode: "KIT", unitsPerSet: 2 }),
+    ];
+    const estimate = calculateReverseCounts(request({ products }), 0.8, 0.8);
+
+    expect(estimate.quantities[1].suggestedQuantity).toBe(estimate.quantities[0].suggestedQuantity * 2);
+    expect(estimate.recommendedTotal).toBe(estimate.quantities.reduce((sum, item) => sum + item.suggestedQuantity, 0));
+  });
+
+  it("preserves the supplied test dimensions, rounded CBM, and gross weights", () => {
+    const expected = [
+      { dimensions: [1280, 540, 130], calculatedCbm: 0.089856, declaredCbm: 0.09, weight: 49 },
+      { dimensions: [1280, 540, 110], calculatedCbm: 0.076032, declaredCbm: 0.08, weight: 40 },
+      { dimensions: [1030, 620, 120], calculatedCbm: 0.076632, declaredCbm: 0.08, weight: 30 },
+    ];
+
+    DIMENSION_TEST_PRODUCTS.forEach((item, index) => {
+      expect([item.length, item.width, item.height]).toEqual(expected[index].dimensions);
+      expect((item.length * item.width * item.height) / 1_000_000_000).toBeCloseTo(expected[index].calculatedCbm, 6);
+      expect(item.declaredVolumeCbm).toBe(expected[index].declaredCbm);
+      expect(item.weight).toBe(expected[index].weight);
+    });
+    expect((TWO_CARTON_SET_PRODUCTS[1].length * TWO_CARTON_SET_PRODUCTS[1].width * TWO_CARTON_SET_PRODUCTS[1].height) / 1_000_000_000).toBeCloseTo(0.040392, 6);
+    expect(TWO_CARTON_SET_PRODUCTS.every((item) => item.setCode === "SET-2BOX" && item.unitsPerSet === 1)).toBe(true);
+  });
+
+  it("produces validated 40HQ plans for both supplied test scenarios", () => {
+    const common = { mode: "mixed" as const, container: { ...container, ...{ id: "40hq-test", length: 12032, width: 2350, height: 2700, doorWidth: 2340, doorHeight: 2597, maxWeight: 28600 } }, clearance: 10 };
+    const dimensions = pack({ ...common, products: DIMENSION_TEST_PRODUCTS });
+    const twoCartonSet = pack({ ...common, products: TWO_CARTON_SET_PRODUCTS });
+
+    expect(dimensions.validation.valid).toBe(true);
+    expect(dimensions.metrics.loadedCount).toBe(690);
+    expect(dimensions.metrics.grossWeight).toBe(27660);
+    expect(twoCartonSet.validation.valid).toBe(true);
+    expect(twoCartonSet.setSummaries[0]).toMatchObject({ requestedSets: 400, loadedSets: 400, unloadedSets: 0 });
+    expect(twoCartonSet.metrics.loadedCount).toBe(800);
+  });
+});
