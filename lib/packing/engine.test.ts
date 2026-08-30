@@ -233,6 +233,24 @@ describe("packing engine", () => {
     expect(result.validation.valid).toBe(true);
   });
 
+  it("maximizes a multi-carton product without changing single-product mode", () => {
+    const setContainer = { ...container, length: 1300, width: 500, height: 500, doorWidth: 500, doorHeight: 500 };
+    const products = [
+      product({ id: "single-set-a", sku: "SET-A", length: 600, width: 500, height: 500, quantity: 999, setCode: "ONE-PRODUCT", unitsPerSet: 1, rotationPolicy: "fixed" }),
+      product({ id: "single-set-b", sku: "SET-B", length: 600, width: 500, height: 500, quantity: 1, setCode: "ONE-PRODUCT", unitsPerSet: 1, rotationPolicy: "fixed" }),
+      product({ id: "unrelated", sku: "OTHER", length: 100, width: 100, height: 100, quantity: 999, setCode: "OTHER-PRODUCT", unitsPerSet: 1 }),
+    ];
+    const result = pack(request({ mode: "single", container: setContainer, products }));
+
+    expect(result.mode).toBe("single");
+    expect(result.summaries.map((summary) => summary.productId)).toEqual(["single-set-a", "single-set-b"]);
+    expect(result.metrics.loadedCount).toBe(2);
+    expect(result.metrics.requestedCount).toBe(2);
+    expect(result.setSummaries[0]).toMatchObject({ setCode: "ONE-PRODUCT", loadedSets: 1, requestedSets: 1, unloadedSets: 0 });
+    expect(result.placements.every((box) => box.setCode === "ONE-PRODUCT" && box.setNumber === 1)).toBe(true);
+    expect(result.validation.valid).toBe(true);
+  });
+
   it("supports multiple cartons of the same SKU per set", () => {
     const setContainer = { ...container, length: 1500, width: 500, height: 500, doorWidth: 500, doorHeight: 500 };
     const component = product({
@@ -374,5 +392,25 @@ describe("packing engine", () => {
     expect(twoCartonSet.validation.valid).toBe(true);
     expect(twoCartonSet.setSummaries[0]).toMatchObject({ requestedSets: 400, loadedSets: 400, unloadedSets: 0 });
     expect(twoCartonSet.metrics.loadedCount).toBe(800);
+  });
+
+  it("calculates the supplied two-carton product as a single-product maximum", () => {
+    const result = pack({
+      mode: "single",
+      container: { ...container, id: "40hq-single-set", length: 12032, width: 2350, height: 2700, doorWidth: 2340, doorHeight: 2597, maxWeight: 28600 },
+      clearance: 10,
+      products: TWO_CARTON_SET_PRODUCTS,
+    });
+
+    expect(result.mode).toBe("single");
+    expect(result.validation.valid).toBe(true);
+    expect(result.setSummaries).toHaveLength(1);
+    expect(result.setSummaries[0].loadedSets).toBeGreaterThan(0);
+    expect(result.setSummaries[0].requestedSets).toBe(result.setSummaries[0].loadedSets);
+    expect(result.setSummaries[0].items.map((item) => item.loadedQuantity)).toEqual([
+      result.setSummaries[0].loadedSets,
+      result.setSummaries[0].loadedSets,
+    ]);
+    expect(result.metrics.grossWeight).toBeLessThanOrEqual(28600);
   });
 });

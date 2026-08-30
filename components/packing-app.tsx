@@ -41,7 +41,12 @@ import {
   SAMPLE_PRODUCTS,
   TWO_CARTON_SET_PRODUCTS,
 } from "../lib/packing/presets";
-import { alignSetQuantities, summarizeSetInputs } from "../lib/packing/set-utils";
+import {
+  alignSetQuantities,
+  normalizedUnitsPerSet,
+  selectProductsForMode,
+  summarizeSetInputs,
+} from "../lib/packing/set-utils";
 import type {
   ContainerSpec,
   PackingMode,
@@ -347,15 +352,27 @@ export function PackingApp() {
     if (status === "done") setMessage("输入已修改，请重新计算");
   }, [status]);
 
-  const activeProducts = useMemo(() => (mode === "single" ? products.slice(0, 1) : products), [mode, products]);
+  const activeProducts = useMemo(() => selectProductsForMode(products, mode), [mode, products]);
   const setInputSummaries = useMemo(() => summarizeSetInputs(activeProducts), [activeProducts]);
+  const singleSetSummary = mode === "single" ? setInputSummaries[0] : undefined;
+  const isSingleProductSet = Boolean(singleSetSummary);
   const inputVolume = useMemo(
-    () => activeProducts.reduce((sum, item) => sum + item.length * item.width * item.height * (mode === "single" ? 1 : item.quantity), 0) / 1_000_000_000,
-    [activeProducts, mode],
+    () => activeProducts.reduce(
+      (sum, item) => sum + item.length * item.width * item.height * (
+        mode === "single" ? isSingleProductSet ? normalizedUnitsPerSet(item) : 1 : item.quantity
+      ),
+      0,
+    ) / 1_000_000_000,
+    [activeProducts, isSingleProductSet, mode],
   );
   const inputWeight = useMemo(
-    () => activeProducts.reduce((sum, item) => sum + item.weight * (mode === "single" ? 1 : item.quantity), 0),
-    [activeProducts, mode],
+    () => activeProducts.reduce(
+      (sum, item) => sum + item.weight * (
+        mode === "single" ? isSingleProductSet ? normalizedUnitsPerSet(item) : 1 : item.quantity
+      ),
+      0,
+    ),
+    [activeProducts, isSingleProductSet, mode],
   );
 
   const reversePlan = useMemo(
@@ -432,18 +449,20 @@ export function PackingApp() {
 
   const addCartonSet = (cartonCount: number) => {
     const safeCount = Math.min(20, Math.max(2, Math.floor(cartonCount)));
-    setMode("mixed");
     setProducts((current) => {
-      const setCode = nextSetCode(current, safeCount);
+      const existing = mode === "single" ? [] : current;
+      const setCode = nextSetCode(existing, safeCount);
       const components = Array.from({ length: safeCount }, (_, componentIndex) =>
-        createSetComponent(current.length + componentIndex, setCode, componentIndex, safeCount),
+        createSetComponent(existing.length + componentIndex, setCode, componentIndex, safeCount),
       );
-      return [...current, ...components];
+      return mode === "single" ? components : [...existing, ...components];
     });
     setResult(null);
     setDirty(true);
     setStatus("idle");
-    setMessage(`已新增 1 套 ${safeCount} 箱结构；请逐箱填写尺寸、重量和需求套数。`);
+    setMessage(mode === "single"
+      ? `已将当前单品设为 1 套 ${safeCount} 箱；请逐箱填写参数，系统会自动计算最大完整套数。`
+      : `已新增 1 套 ${safeCount} 箱结构；请逐箱填写尺寸、重量和需求套数。`);
   };
 
   const addComponentToSet = (code: string) => {
@@ -465,11 +484,19 @@ export function PackingApp() {
   };
 
   const ungroupSet = (code: string) => {
-    setProducts((current) => current.map((product) =>
-      product.setCode?.trim() === code ? { ...product, setCode: "", unitsPerSet: 1 } : product,
-    ));
+    setProducts((current) => {
+      if (mode === "single") {
+        const first = current.find((product) => product.setCode?.trim() === code);
+        return first ? [{ ...first, setCode: "", unitsPerSet: 1 }] : current;
+      }
+      return current.map((product) =>
+        product.setCode?.trim() === code ? { ...product, setCode: "", unitsPerSet: 1 } : product,
+      );
+    });
     markDirty();
-    setMessage(`已取消 ${code} 的成套约束，相关 SKU 将按散箱计算。`);
+    setMessage(mode === "single"
+      ? `已将 ${code} 恢复为单箱产品。`
+      : `已取消 ${code} 的成套约束，相关 SKU 将按散箱计算。`);
   };
 
   const removeProduct = (id: string) => {
@@ -503,7 +530,7 @@ export function PackingApp() {
   };
 
   const loadTwoCartonSetTest = () => {
-    setMode("mixed");
+    setMode("single");
     setContainer({ ...CONTAINER_PRESETS[2] });
     setClearance(10);
     setProducts(TWO_CARTON_SET_PRODUCTS.map((item) => ({ ...item })));
@@ -512,11 +539,11 @@ export function PackingApp() {
     setCameraProjection("perspective");
     setDirty(true);
     setStatus("idle");
-    setMessage("已载入 1 套 2 箱测试：算法只允许输出完整套数");
+    setMessage("已载入单品 1 套 2 箱：保持单品模式，自动计算最大完整套数，无需填写需求箱数");
   };
 
   const loadMultiCartonSetTest = () => {
-    setMode("mixed");
+    setMode("single");
     setContainer({ ...CONTAINER_PRESETS[2] });
     setClearance(10);
     setProducts(MULTI_CARTON_SET_PRODUCTS.map((item) => ({ ...item })));
@@ -525,7 +552,7 @@ export function PackingApp() {
     setCameraProjection("perspective");
     setDirty(true);
     setStatus("idle");
-    setMessage("已载入 1 套 5 箱测试；3 箱、4 箱及更多箱型使用同一通用算法。");
+    setMessage("已载入单品 1 套 5 箱；保持单品模式，3 箱、4 箱及更多箱型使用同一通用算法。");
   };
 
   const validateInputs = () => {
@@ -571,6 +598,15 @@ export function PackingApp() {
   };
 
   const applyReversePlan = () => {
+    if (mode === "single") {
+      submitPacking(
+        { mode: "single", container, clearance, products: activeProducts },
+        isSingleProductSet
+          ? "单品多箱结构无需填写需求箱数，正在计算最大完整套数…"
+          : "单品模式无需填写需求数量，正在计算最大可装箱数…",
+      );
+      return;
+    }
     if (reversePlan.recommendedTotal <= 0) {
       setStatus("error");
       setMessage("当前目标利用率无法倒推出有效箱数，请检查产品尺寸、重量与柜型。");
@@ -765,7 +801,11 @@ export function PackingApp() {
                 <button className={mode === "single" ? "active" : ""} onClick={() => { setMode("single"); markDirty(); }}><Box size={17} />单品最大装柜</button>
                 <button className={mode === "mixed" ? "active" : ""} onClick={() => { setMode("mixed"); markDirty(); }}><Boxes size={17} />多 SKU 拼柜</button>
               </div>
-              <p className="helper-text">{mode === "single" ? "比较允许方向，自动计算规则排布的最大可装量。" : "按订单数量、优先级、门洞与载重生成可校验的混装方案。"}</p>
+              <p className="helper-text">{mode === "single"
+                ? isSingleProductSet
+                  ? `这是一个 ${singleSetSummary?.cartonsPerSet ?? 0} 箱/套的单品包装，自动计算最大完整套数，不需要填写需求箱数。`
+                  : "单箱或多箱都属于单品最大装柜，系统自动计算可装量，不需要填写需求数量。"
+                : "按订单数量、优先级、门洞与载重生成可校验的混装方案。"}</p>
             </article>
 
             <article className="panel">
@@ -828,17 +868,19 @@ export function PackingApp() {
               <div className="ratio-chips" aria-label="各 SKU 建议箱数">
                 {reversePlan.quantities.map((item) => <span key={item.productId}><b>{item.sku}</b>{formatNumber(item.suggestedQuantity)}</span>)}
               </div>
-              <button className="reverse-apply-button" onClick={applyReversePlan} disabled={status === "working" || reversePlan.recommendedTotal <= 0}><Rotate3D size={17} />应用建议数量并验证真实装载</button>
-              <p className="reverse-note">倒推先保持当前 SKU 数量比例；箱型方向、门洞和碎片空间会影响最终实际利用率，应用后将用装箱算法重新验证。</p>
+              <button className="reverse-apply-button" onClick={applyReversePlan} disabled={status === "working" || reversePlan.recommendedTotal <= 0}><Rotate3D size={17} />{mode === "single" ? isSingleProductSet ? "计算最大完整套数" : "计算最大可装箱数" : "应用建议数量并验证真实装载"}</button>
+              <p className="reverse-note">{mode === "single"
+                ? "单品模式不会转为拼柜，也不会要求订单箱数；目标利用率仅作为容量参考，实际结果按柜型、门洞、方向、载重和整套约束求最大值。"
+                : "倒推先保持当前 SKU 数量比例；箱型方向、门洞和碎片空间会影响最终实际利用率，应用后将用装箱算法重新验证。"}</p>
             </article>
 
             <article className="panel order-overview">
               <div className="panel-head compact"><div><span className="section-kicker">04</span><h2>输入概览</h2></div></div>
               <div className="overview-grid">
-                <div><span>SKU</span><strong>{activeProducts.length}</strong></div>
-                <div><span>{mode === "single" ? "测算方式" : "需求件数"}</span><strong>{mode === "single" ? "自动最大" : formatNumber(activeProducts.reduce((sum, item) => sum + item.quantity, 0))}</strong></div>
-                <div><span>{mode === "single" ? "单件 CBM" : "需求 CBM"}</span><strong>{inputVolume.toFixed(2)}</strong></div>
-                <div><span>{mode === "single" ? "单件毛重" : "需求毛重"}</span><strong>{formatNumber(inputWeight, 1)} kg</strong></div>
+                <div><span>{isSingleProductSet ? "包装箱型" : "SKU"}</span><strong>{activeProducts.length}</strong></div>
+                <div><span>{mode === "single" ? "测算方式" : "需求件数"}</span><strong>{mode === "single" ? isSingleProductSet ? "整套自动最大" : "自动最大" : formatNumber(activeProducts.reduce((sum, item) => sum + item.quantity, 0))}</strong></div>
+                <div><span>{mode === "single" ? isSingleProductSet ? "每套 CBM" : "单件 CBM" : "需求 CBM"}</span><strong>{inputVolume.toFixed(2)}</strong></div>
+                <div><span>{mode === "single" ? isSingleProductSet ? "每套毛重" : "单件毛重" : "需求毛重"}</span><strong>{formatNumber(inputWeight, 1)} kg</strong></div>
               </div>
               <button className="calculate-button" onClick={calculate} disabled={status === "working"}>
                 {status === "working" ? <LoaderCircle className="spin" size={19} /> : <Rotate3D size={19} />}
@@ -914,7 +956,7 @@ export function PackingApp() {
 
         <section id="products" className="panel product-panel">
           <div className="panel-head">
-            <div><span className="section-kicker">PRODUCTS</span><h2>{mode === "single" ? "单品包装参数" : "产品与拼柜订单"}</h2></div>
+            <div><span className="section-kicker">PRODUCTS</span><h2>{mode === "single" ? isSingleProductSet ? "单品多箱包装参数" : "单品包装参数" : "产品与拼柜订单"}</h2></div>
             <div className="panel-actions">
               <input ref={fileInputRef} hidden type="file" accept=".csv,text/csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importCsv(file); event.currentTarget.value = ""; }} />
               <button className="button ghost small" onClick={loadDimensionTest}><PackageOpen size={15} />载入尺寸测试</button>
@@ -925,13 +967,14 @@ export function PackingApp() {
               {mode === "mixed" ? <button className="button primary small" onClick={addProduct}><Plus size={15} />添加 SKU</button> : null}
             </div>
           </div>
-          {mode === "mixed" ? (
-            <section className="set-builder" aria-label="多箱套装助手">
+          <section className="set-builder" aria-label={mode === "single" ? "单品多箱包装助手" : "多箱套装助手"}>
               <div className="set-builder-head">
                 <div>
                   <span className="section-kicker">MULTI-CARTON KIT</span>
-                  <strong>多箱套装助手</strong>
-                  <small>按整套原子装载；支持不同箱规、1:n 比例、多个套装同时拼柜</small>
+                  <strong>{mode === "single" ? "单品多箱包装" : "多箱套装助手"}</strong>
+                  <small>{mode === "single"
+                    ? "一个产品可由 2 箱、3 箱或更多箱组成；仍按单品最大装柜计算，不会进入拼柜模式"
+                    : "按整套原子装载；支持不同箱规、1:n 比例、多个套装同时拼柜"}</small>
                 </div>
                 <div className="set-quick-actions" aria-label="新建套装箱数">
                   {[2, 3, 4, 5].map((count) => <button key={count} onClick={() => addCartonSet(count)}><Plus size={13} />{count} 箱套装</button>)}
@@ -940,32 +983,35 @@ export function PackingApp() {
               {setInputSummaries.length ? (
                 <div className="set-builder-grid">
                   {setInputSummaries.map((summary) => (
-                    <article key={summary.setCode} className={summary.quantitiesAligned ? "aligned" : "misaligned"}>
+                    <article key={summary.setCode} className={mode === "single" || summary.quantitiesAligned ? "aligned" : "misaligned"}>
                       <div className="set-builder-card-main">
                         <span>{summary.setCode}</span>
                         <strong>{summary.componentCount} 种箱规 · {summary.cartonsPerSet} 箱/套</strong>
-                        <small>当前可完整组成 {formatNumber(summary.completeSets)} 套{summary.looseCartons ? ` · 另有 ${formatNumber(summary.looseCartons)} 个比例外箱` : ""}</small>
+                        <small>{mode === "single"
+                          ? "单品最大装柜会自动求完整套数，无需录入需求箱数"
+                          : `当前可完整组成 ${formatNumber(summary.completeSets)} 套${summary.looseCartons ? ` · 另有 ${formatNumber(summary.looseCartons)} 个比例外箱` : ""}`}</small>
                       </div>
                       <div className="set-ratio-list" aria-label={`${summary.setCode} 套内比例`}>
                         {summary.items.map((item) => <span key={item.productId}><b>{item.sku}</b>× {item.unitsPerSet}</span>)}
                       </div>
                       <div className="set-builder-card-actions">
-                        <b className={summary.quantitiesAligned ? "status-ok" : "status-warning"}>{summary.quantitiesAligned ? "数量比例已对齐" : "需求比例未对齐"}</b>
-                        {!summary.quantitiesAligned ? <button onClick={() => alignSet(summary.setCode)}><CheckCircle2 size={13} />向下对齐</button> : null}
+                        <b className={mode === "single" || summary.quantitiesAligned ? "status-ok" : "status-warning"}>{mode === "single" ? "单品整套测算" : summary.quantitiesAligned ? "数量比例已对齐" : "需求比例未对齐"}</b>
+                        {mode === "mixed" && !summary.quantitiesAligned ? <button onClick={() => alignSet(summary.setCode)}><CheckCircle2 size={13} />向下对齐</button> : null}
                         <button onClick={() => addComponentToSet(summary.setCode)}><Plus size={13} />增加箱型</button>
-                        <button className="danger" onClick={() => ungroupSet(summary.setCode)}>取消套装</button>
+                        <button className="danger" onClick={() => ungroupSet(summary.setCode)}>{mode === "single" ? "恢复单箱" : "取消套装"}</button>
                       </div>
                     </article>
                   ))}
                 </div>
               ) : (
-                <div className="set-builder-empty">尚未设置套装。可一键创建 2–5 箱结构，也可在创建后继续增加第 6 箱及更多箱型。</div>
+                <div className="set-builder-empty">{mode === "single"
+                  ? "当前为单箱产品。若一个产品分成多箱包装，可一键改为 2–5 箱，并继续增加第 6 箱及更多箱型。"
+                  : "尚未设置套装。可一键创建 2–5 箱结构，也可在创建后继续增加第 6 箱及更多箱型。"}</div>
               )}
-            </section>
-          ) : null}
+          </section>
           <div className="product-table-wrap">
             <table className="product-table">
-              <thead><tr><th>标识</th><th>SKU / 品名</th><th>外箱长</th><th>外箱宽</th><th>外箱高</th><th>CBM 核对</th><th>毛重</th>{mode === "mixed" ? <><th>需求</th><th>套装编码</th><th>每套箱数</th><th>装载优先级</th><th>必装</th></> : null}<th>方向规则</th><th>可承托</th><th>必须底置</th><th>层数上限</th><th aria-label="操作" /></tr></thead>
+              <thead><tr><th>标识</th><th>SKU / 品名</th><th>外箱长</th><th>外箱宽</th><th>外箱高</th><th>CBM 核对</th><th>毛重</th>{mode === "mixed" ? <th>需求箱数</th> : null}{mode === "mixed" || isSingleProductSet ? <><th>套装编码</th><th>套内数量</th></> : null}{mode === "mixed" ? <><th>装载优先级</th><th>必装</th></> : null}<th>方向规则</th><th>可承托</th><th>必须底置</th><th>层数上限</th><th aria-label="操作" /></tr></thead>
               <tbody>
                 {activeProducts.map((product) => {
                   const calculatedCbm = (product.length * product.width * product.height) / 1_000_000_000;
@@ -980,7 +1026,9 @@ export function PackingApp() {
                     <td><input type="number" value={product.height} onChange={(event) => updateProduct(product.id, "height", event.target.value)} /><small>mm</small></td>
                     <td className="cbm-cell"><input aria-label={`${product.sku} 标称 CBM`} type="number" step="0.001" min="0" value={product.declaredVolumeCbm || ""} placeholder="可选" onChange={(event) => updateProduct(product.id, "declaredVolumeCbm", event.target.value)} /><small>尺寸换算 {calculatedCbm.toFixed(4)}{product.declaredVolumeCbm ? ` · 差异 ${declaredDifference >= 0 ? "+" : ""}${declaredDifference.toFixed(1)}%` : ""}</small></td>
                     <td><input type="number" step="0.1" value={product.weight} onChange={(event) => updateProduct(product.id, "weight", event.target.value)} /><small>kg</small></td>
-                    {mode === "mixed" ? <><td><input type="number" value={product.quantity} onChange={(event) => updateProduct(product.id, "quantity", event.target.value)} /><small>箱</small></td><td><input className="set-code-input" aria-label={`${product.sku} 套装编码`} value={product.setCode ?? ""} placeholder="留空=散箱" onChange={(event) => updateProduct(product.id, "setCode", event.target.value)} /><small>同编码组成一套</small></td><td><input type="number" min="1" max="99" value={product.unitsPerSet || 1} onChange={(event) => updateProduct(product.id, "unitsPerSet", event.target.value)} /><small>箱 / 套</small></td><td><input type="number" min="0" max="100" value={product.priority} onChange={(event) => updateProduct(product.id, "priority", event.target.value)} /><small>数值越高越先装</small></td><td><label className="switch" title="必装货物优先于塞货，并在缺装时单独告警"><input aria-label={`${product.sku} 必装`} type="checkbox" checked={product.mustLoad !== false} onChange={(event) => updateProduct(product.id, "mustLoad", event.target.checked)} /><span /></label></td></> : null}
+                    {mode === "mixed" ? <td><input type="number" value={product.quantity} onChange={(event) => updateProduct(product.id, "quantity", event.target.value)} /><small>箱</small></td> : null}
+                    {mode === "mixed" || isSingleProductSet ? <><td><input className="set-code-input" aria-label={`${product.sku} 套装编码`} value={product.setCode ?? ""} placeholder="留空=散箱" readOnly={mode === "single"} onChange={(event) => updateProduct(product.id, "setCode", event.target.value)} /><small>{mode === "single" ? "同一产品包装" : "同编码组成一套"}</small></td><td><input type="number" min="1" max="99" value={product.unitsPerSet || 1} onChange={(event) => updateProduct(product.id, "unitsPerSet", event.target.value)} /><small>箱 / 套</small></td></> : null}
+                    {mode === "mixed" ? <><td><input type="number" min="0" max="100" value={product.priority} onChange={(event) => updateProduct(product.id, "priority", event.target.value)} /><small>数值越高越先装</small></td><td><label className="switch" title="必装货物优先于塞货，并在缺装时单独告警"><input aria-label={`${product.sku} 必装`} type="checkbox" checked={product.mustLoad !== false} onChange={(event) => updateProduct(product.id, "mustLoad", event.target.checked)} /><span /></label></td></> : null}
                     <td>
                       <select className="constraint-select" aria-label={`${product.sku} 方向规则`} value={product.rotationPolicy} onChange={(event) => updateProduct(product.id, "rotationPolicy", event.target.value)}>
                         <option value="fixed">固定方向</option>
@@ -991,20 +1039,31 @@ export function PackingApp() {
                     <td><label className="switch" title="关闭后，其他箱体不能放在此产品上方"><input aria-label={`${product.sku} 可承托`} type="checkbox" checked={product.stackable} onChange={(event) => updateProduct(product.id, "stackable", event.target.checked)} /><span /></label></td>
                     <td><label className="switch" title="开启后该产品只允许摆放在集装箱地板"><input aria-label={`${product.sku} 必须底置`} type="checkbox" checked={product.bottomOnly === true} onChange={(event) => updateProduct(product.id, "bottomOnly", event.target.checked)} /><span /></label></td>
                     <td><input type="number" min="0" max="99" value={product.maxStackLayers} onChange={(event) => updateProduct(product.id, "maxStackLayers", event.target.value)} /><small>0 = 不限</small></td>
-                    <td>{mode === "mixed" ? <button className="icon-button danger" aria-label={`删除 ${product.sku}`} onClick={() => removeProduct(product.id)} disabled={products.length <= 1}><Trash2 size={16} /></button> : null}</td>
+                    <td>{mode === "mixed" || isSingleProductSet ? <button className="icon-button danger" aria-label={`删除 ${product.sku}`} onClick={() => removeProduct(product.id)} disabled={activeProducts.length <= 1}><Trash2 size={16} /></button> : null}</td>
                   </tr>
                 })}
               </tbody>
             </table>
           </div>
-          <div className="table-note"><CircleAlert size={16} /><span>相同“套装编码”的任意数量 SKU 会按“每套箱数”组成原子批次：支持 2/3/4/5 箱及更多箱型，也支持 1:4、1:2:2 等比例；任一组成箱放不下即整套回滚。</span></div>
+          <div className="table-note"><CircleAlert size={16} /><span>{mode === "single"
+            ? "这里每一行代表同一个产品的一种外箱，不代表多个产品拼柜。系统按完整套数装载，任一组成箱放不下即整套回滚。"
+            : "相同“套装编码”的任意数量 SKU 会按“套内数量”组成原子批次：支持 2/3/4/5 箱及更多箱型，也支持 1:4、1:2:2 等比例；任一组成箱放不下即整套回滚。"}</span></div>
         </section>
 
         {result ? (
           <section className="result-section">
             <div className="result-title"><div><span className="section-kicker">CALCULATED PLAN</span><h2>方案结果</h2></div><span className="run-meta">算法 {result.engineVersion} · {formatNumber(result.metrics.solveTimeMs, 1)} ms</span></div>
             <div className="metrics-grid">
-              <MetricCard icon={<PackageOpen size={21} />} label={result.mode === "single" ? "最大可装" : "已装件数"} value={`${formatNumber(result.metrics.loadedCount)} 件`} detail={result.mode === "single" ? "规则排布可执行数量" : `需求 ${formatNumber(result.metrics.requestedCount)} 件`} />
+              <MetricCard
+                icon={<PackageOpen size={21} />}
+                label={result.mode === "single" ? result.setSummaries.length ? "最大可装套数" : "最大可装" : "已装件数"}
+                value={result.mode === "single" && result.setSummaries.length
+                  ? `${formatNumber(result.setSummaries[0].loadedSets)} 套`
+                  : `${formatNumber(result.metrics.loadedCount)} 件`}
+                detail={result.mode === "single"
+                  ? result.setSummaries.length ? `完整装入 ${formatNumber(result.metrics.loadedCount)} 箱` : "规则排布可执行数量"
+                  : `需求 ${formatNumber(result.metrics.requestedCount)} 件`}
+              />
               <MetricCard icon={<Layers3 size={21} />} label="体积利用率" value={formatPercent(result.metrics.volumeUtilization)} detail={`${(result.metrics.loadedVolume / 1_000_000_000).toFixed(2)} CBM`} tone="blue" />
               <MetricCard icon={<Weight size={21} />} label="已装毛重" value={`${formatNumber(result.metrics.grossWeight, 1)} kg`} detail={`载重利用 ${formatPercent(result.metrics.weightUtilization)}`} tone="amber" />
               <MetricCard icon={<ShieldCheck size={21} />} label="独立校验" value={result.validation.valid ? "全部通过" : `${result.validation.errors.length} 项异常`} detail="边界 · 重叠 · 堆叠 · 载重" tone={result.validation.valid ? "green" : "red"} />

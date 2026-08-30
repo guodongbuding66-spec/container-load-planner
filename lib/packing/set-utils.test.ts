@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alignSetQuantities, summarizeSetInputs } from "./set-utils";
+import { alignSetQuantities, selectProductsForMode, summarizeSetInputs } from "./set-utils";
 import type { ProductInput } from "./types";
 
 function component(id: string, quantity: number, unitsPerSet: number): ProductInput {
@@ -55,5 +55,13 @@ describe("multi-carton set helpers", () => {
     expect(aligned.map((item) => item.quantity)).toEqual([9, 18, 18]);
     expect(after).toMatchObject({ completeSets: 9, looseCartons: 0, quantitiesAligned: true });
     aligned.forEach((item, index) => expect(item.quantity).toBeLessThanOrEqual(products[index].quantity));
+  });
+
+  it("treats every carton in one set as one product in single-product mode", () => {
+    const firstKit = [component("a", 10, 1), component("b", 10, 1)];
+    const unrelated = { ...component("c", 10, 1), id: "other", setCode: "OTHER-KIT" };
+
+    expect(selectProductsForMode([...firstKit, unrelated], "single").map((item) => item.id)).toEqual(["a", "b"]);
+    expect(selectProductsForMode([...firstKit, unrelated], "mixed")).toHaveLength(3);
   });
 });

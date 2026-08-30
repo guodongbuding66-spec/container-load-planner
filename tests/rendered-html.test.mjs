@@ -67,6 +67,18 @@ test("includes arbitrary multi-carton set creation and traceability", async () =
   assert.match(engine, /box\.setItemNumber = itemIndex \+ 1/);
 });
 
+test("keeps a multi-carton product in single-product mode without carton demand input", async () => {
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+  const engine = await readFile(new URL("../lib/packing/engine.ts", import.meta.url), "utf8");
+
+  assert.match(source, /loadTwoCartonSetTest[\s\S]*?setMode\("single"\)/);
+  assert.match(source, /单品多箱结构无需填写需求箱数/);
+  assert.match(source, /mode === "mixed" \? <th>需求箱数<\/th> : null/);
+  assert.doesNotMatch(source, /const addCartonSet[\s\S]{0,160}setMode\("mixed"\)/);
+  assert.match(engine, /function packSingleSet/);
+  assert.match(engine, /products: selectProductsForMode\(normalizedProducts, request\.mode\)/);
+});
+
 test("keeps the two-column workspace contained and provides Liquid Glass fallbacks", async () => {
   const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 

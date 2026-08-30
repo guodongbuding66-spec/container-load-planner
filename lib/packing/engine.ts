@@ -13,9 +13,10 @@ import {
   collectSetGroups,
   normalizedSetCode as setCode,
   normalizedUnitsPerSet as unitsPerSet,
+  selectProductsForMode,
 } from "./set-utils";
 
-export const ENGINE_VERSION = "0.6.0";
+export const ENGINE_VERSION = "0.6.1";
 
 type Orientation = {
   dx: number;
@@ -92,9 +93,12 @@ export function calculateReverseCounts(
   targetVolumeUtilization: number,
   targetWeightUtilization: number,
 ): ReverseCountResult {
-  const activeProducts = request.mode === "single" ? request.products.slice(0, 1) : request.products;
+  const activeProducts = selectProductsForMode(request.products, request.mode);
+  const singleSetCode = request.mode === "single" && activeProducts[0] ? setCode(activeProducts[0]) : "";
   const sourceQuantities = activeProducts.map((product) =>
-    request.mode === "single" ? 1 : Math.max(1, Math.floor(product.quantity || 0)),
+    request.mode === "single"
+      ? singleSetCode ? unitsPerSet(product) : 1
+      : Math.max(1, Math.floor(product.quantity || 0)),
   );
   const sourceTotal = sourceQuantities.reduce((sum, quantity) => sum + quantity, 0);
   const targetVolume = Math.min(1, Math.max(0, targetVolumeUtilization));
@@ -292,9 +296,52 @@ function makePlacement(product: ProductInput, index: number, point: Point, orien
   };
 }
 
+function packSingleSet(request: PackingRequest, container: EffectiveContainer, products: ProductInput[]) {
+  const cartonsPerSet = products.reduce((sum, product) => sum + unitsPerSet(product), 0);
+  const setVolume = products.reduce(
+    (sum, product) => sum + product.length * product.width * product.height * unitsPerSet(product),
+    0,
+  );
+  const setWeight = products.reduce((sum, product) => sum + product.weight * unitsPerSet(product), 0);
+  const containerVolume = container.length * container.width * container.height;
+  const volumeBound = setVolume > 0 ? Math.floor(containerVolume / setVolume) : 0;
+  const weightBound = setWeight > EPS ? Math.floor(request.container.maxWeight / setWeight) : volumeBound;
+  const visibleBound = cartonsPerSet > 0 ? Math.floor(MAX_VISIBLE_PLACEMENTS / cartonsPerSet) : 0;
+  const requestedSets = Math.max(0, Math.min(volumeBound, weightBound, visibleBound));
+
+  if (requestedSets <= 0) {
+    return { placements: [] as PlacedBox[], warnings: ["当前柜型无法装入一套完整的多箱产品。"] };
+  }
+
+  const candidateRequest: PackingRequest = {
+    ...request,
+    mode: "mixed",
+    products: products.map((product) => ({
+      ...product,
+      quantity: requestedSets * unitsPerSet(product),
+    })),
+  };
+  const output = packMixed(candidateRequest, container);
+  const warnings = [...output.warnings];
+  const loadedSets = Math.min(
+    ...products.map((product) =>
+      Math.floor(output.placements.filter((box) => box.productId === product.id).length / unitsPerSet(product)),
+    ),
+  );
+  if (requestedSets === visibleBound && loadedSets === visibleBound) {
+    warnings.push(`可视化已达到 ${MAX_VISIBLE_PLACEMENTS.toLocaleString()} 箱上限；实际最大套数可能更高。`);
+  }
+  return { placements: output.placements, warnings };
+}
+
 function packSingle(request: PackingRequest, container: EffectiveContainer) {
   const product = request.products[0];
   if (!product) return { placements: [] as PlacedBox[], warnings: ["请至少添加一个产品。"] };
+
+  const productSet = setCode(product)
+    ? request.products.filter((item) => setCode(item) === setCode(product))
+    : [];
+  if (productSet.length) return packSingleSet(request, container, productSet);
 
   let best:
     | { orientation: Orientation; nx: number; ny: number; nz: number; count: number }
@@ -721,6 +768,23 @@ function buildSetSummaries(request: PackingRequest, summaries: ProductSummary[])
 
 export function pack(request: PackingRequest): PackingResult {
   const started = performance.now();
+  const normalizedProducts = request.products.map((product) => ({
+    ...product,
+    length: positive(product.length),
+    width: positive(product.width),
+    height: positive(product.height),
+    weight: positive(product.weight, 0),
+    quantity: Math.max(0, Math.floor(product.quantity || 0)),
+    priority: Number.isFinite(product.priority) ? product.priority : 0,
+    rotationPolicy: rotationPolicy(product),
+    stackable: product.stackable !== false,
+    maxStackLayers: maxStackLayers(product),
+    mustLoad: mustLoad(product),
+    bottomOnly: product.bottomOnly === true,
+    setCode: setCode(product),
+    unitsPerSet: unitsPerSet(product),
+    declaredVolumeCbm: Math.max(0, product.declaredVolumeCbm || 0),
+  }));
   const normalized: PackingRequest = {
     ...request,
     clearance: Math.max(0, request.clearance || 0),
@@ -733,23 +797,7 @@ export function pack(request: PackingRequest): PackingResult {
       doorHeight: positive(request.container.doorHeight),
       maxWeight: positive(request.container.maxWeight),
     },
-    products: request.products.map((product) => ({
-      ...product,
-      length: positive(product.length),
-      width: positive(product.width),
-      height: positive(product.height),
-      weight: positive(product.weight, 0),
-      quantity: Math.max(0, Math.floor(product.quantity || 0)),
-      priority: Number.isFinite(product.priority) ? product.priority : 0,
-      rotationPolicy: rotationPolicy(product),
-      stackable: product.stackable !== false,
-      maxStackLayers: maxStackLayers(product),
-      mustLoad: mustLoad(product),
-      bottomOnly: product.bottomOnly === true,
-      setCode: setCode(product),
-      unitsPerSet: unitsPerSet(product),
-      declaredVolumeCbm: Math.max(0, product.declaredVolumeCbm || 0),
-    })),
+    products: selectProductsForMode(normalizedProducts, request.mode),
   };
   const effective = effectiveContainer(normalized.container, normalized.clearance);
   const output = normalized.mode === "single" ? packSingle(normalized, effective) : packMixed(normalized, effective);
@@ -757,7 +805,7 @@ export function pack(request: PackingRequest): PackingResult {
   const theoreticalCount =
     "theoreticalCount" in output && typeof output.theoreticalCount === "number" ? output.theoreticalCount : undefined;
   const summaries = buildSummaries(normalized, output.placements, theoreticalCount);
-  const setSummaries = normalized.mode === "mixed" ? buildSetSummaries(normalized, summaries) : [];
+  const setSummaries = buildSetSummaries(normalized, summaries);
   const loadedVolume = summaries.reduce((sum, item) => sum + item.loadedVolume, 0);
   const grossWeight = summaries.reduce((sum, item) => sum + item.loadedWeight, 0);
   const effectiveVolume = effective.length * effective.width * effective.height;

@@ -1,4 +1,4 @@
-import type { ProductInput } from "./types";
+import type { PackingMode, ProductInput } from "./types";
 
 export type SetInputItem = {
   productId: string;
@@ -37,6 +37,20 @@ export function collectSetGroups(products: ProductInput[]) {
     groups.set(code, [...(groups.get(code) ?? []), product]);
   }
   return groups;
+}
+
+/**
+ * A single sellable product can be packed in one carton or in several cartons.
+ * In single-product mode, keep every carton component that belongs to the first
+ * product's set instead of confusing those components with a mixed-SKU order.
+ */
+export function selectProductsForMode(products: ProductInput[], mode: PackingMode) {
+  if (mode === "mixed") return products;
+  const first = products[0];
+  if (!first) return [];
+  const firstSetCode = normalizedSetCode(first);
+  if (!firstSetCode) return [first];
+  return products.filter((product) => normalizedSetCode(product) === firstSetCode);
 }
 
 export function summarizeSetInputs(products: ProductInput[]): SetInputSummary[] {
