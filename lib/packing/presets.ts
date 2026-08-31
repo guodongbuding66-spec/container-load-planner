@@ -181,6 +181,60 @@ export const TWO_CARTON_SET_PRODUCTS: ProductInput[] = [
   },
 ];
 
+/**
+ * 2026-08-30 报价表中的 SLM-A64M 真实包装数据。
+ * 若把 40HQ 的 396 按“套”理解，外箱体积会达到约 126.7 m³，物理上不可能。
+ * 因此校准时按物理可行口径解释为 396 箱 = 198 套，并在界面提示复核源表单位。
+ */
+export const REAL_WORLD_A64M_PRODUCTS: ProductInput[] = [
+  {
+    id: "real-slm-a64m-a",
+    sku: "SLM-A64M-A",
+    name: "SLM-A64M 第 1 箱",
+    length: 1270,
+    width: 550,
+    height: 270,
+    declaredVolumeCbm: 0.19,
+    weight: 30,
+    quantity: 500,
+    priority: 100,
+    rotationPolicy: "upright",
+    stackable: true,
+    maxStackLayers: 0,
+    mustLoad: true,
+    bottomOnly: false,
+    setCode: "SLM-A64M",
+    unitsPerSet: 1,
+    color: "#257f8b",
+  },
+  {
+    id: "real-slm-a64m-b",
+    sku: "SLM-A64M-B",
+    name: "SLM-A64M 第 2 箱",
+    length: 1850,
+    width: 550,
+    height: 130,
+    declaredVolumeCbm: 0.13,
+    weight: 35,
+    quantity: 500,
+    priority: 100,
+    rotationPolicy: "upright",
+    stackable: true,
+    maxStackLayers: 0,
+    mustLoad: true,
+    bottomOnly: false,
+    setCode: "SLM-A64M",
+    unitsPerSet: 1,
+    color: "#c56c43",
+  },
+];
+
+export const REAL_WORLD_A64M_LOADING: Record<string, { cartons: number; sets: number }> = {
+  "20gp": { cartons: 170, sets: 85 },
+  "40gp": { cartons: 350, sets: 175 },
+  "40hq": { cartons: 396, sets: 198 },
+};
+
 export const MULTI_CARTON_SET_PRODUCTS: ProductInput[] = [
   {
     id: "set5-a-128-54-11",

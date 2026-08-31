@@ -249,7 +249,7 @@ export function ContainerScene({
   const webglSupported = useMemo(() => supportsWebGL(), []);
   const containerSize = useMemo<SceneSize>(() => (result ? normalizedSceneSize(result) : [5.6, 1.25, 1.1]), [result]);
   return (
-    <div className="scene-shell" aria-label="可交互三维装柜视图">
+    <div className="scene-shell" role="region" aria-label="可交互三维装柜视图">
       {!result ? (
         <div className="scene-empty">
           <div className="scene-empty-cube" aria-hidden="true" />

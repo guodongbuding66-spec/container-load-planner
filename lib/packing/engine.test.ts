@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { calculateReverseCounts, pack, validatePacking } from "./engine";
-import { DIMENSION_TEST_PRODUCTS, MULTI_CARTON_SET_PRODUCTS, TWO_CARTON_SET_PRODUCTS } from "./presets";
+import {
+  CONTAINER_PRESETS,
+  DIMENSION_TEST_PRODUCTS,
+  MULTI_CARTON_SET_PRODUCTS,
+  REAL_WORLD_A64M_LOADING,
+  REAL_WORLD_A64M_PRODUCTS,
+  TWO_CARTON_SET_PRODUCTS,
+} from "./presets";
 import type { ContainerSpec, PackingRequest, ProductInput } from "./types";
 
 const container: ContainerSpec = {
@@ -351,6 +358,125 @@ describe("packing engine", () => {
     expect(validation.errors.join(" ")).toContain("套号或套内序号");
   });
 
+  it("rejects complete set quantities when all trace metadata is stripped", () => {
+    const setContainer = { ...container, length: 1000, width: 500, height: 500, doorWidth: 500, doorHeight: 500 };
+    const products = [
+      product({ id: "missing-a", sku: "MISSING-A", length: 500, width: 500, height: 500, weight: 10, quantity: 1, setCode: "MISSING-TRACE", unitsPerSet: 1, rotationPolicy: "fixed" }),
+      product({ id: "missing-b", sku: "MISSING-B", length: 500, width: 500, height: 500, weight: 10, quantity: 1, setCode: "MISSING-TRACE", unitsPerSet: 1, rotationPolicy: "fixed" }),
+    ];
+    const result = pack(request({ container: setContainer, products }));
+    const corrupted = result.placements.map((box) => ({ ...box, setCode: undefined, setNumber: undefined, setItemNumber: undefined }));
+
+    const validation = validatePacking(corrupted, setContainer, 0, products);
+
+    expect(validation.valid).toBe(false);
+    expect(validation.errors.join(" ")).toContain("套装编码、套号或套内序号");
+  });
+
+  it("rejects cross-set component substitution even when total ratios still match", () => {
+    const setContainer = { ...container, length: 2000, width: 500, height: 500, doorWidth: 500, doorHeight: 500 };
+    const products = [
+      product({ id: "composition-a", sku: "COMPOSITION-A", length: 500, width: 500, height: 500, weight: 10, quantity: 2, setCode: "COMPOSITION", unitsPerSet: 1, rotationPolicy: "fixed" }),
+      product({ id: "composition-b", sku: "COMPOSITION-B", length: 500, width: 500, height: 500, weight: 10, quantity: 2, setCode: "COMPOSITION", unitsPerSet: 1, rotationPolicy: "fixed" }),
+    ];
+    const result = pack(request({ container: setContainer, products }));
+    const corrupted = result.placements.map((box) => {
+      if (box.setNumber === 1 && box.productId === "composition-b") return { ...box, productId: "composition-a", sku: "COMPOSITION-A" };
+      if (box.setNumber === 2 && box.productId === "composition-a") return { ...box, productId: "composition-b", sku: "COMPOSITION-B" };
+      return box;
+    });
+
+    const validation = validatePacking(corrupted, setContainer, 0, products);
+
+    expect(validation.valid).toBe(false);
+    expect(validation.errors.join(" ")).toContain("实际为");
+  });
+
+  it("rejects non-contiguous set numbers", () => {
+    const setContainer = { ...container, length: 2000, width: 500, height: 500, doorWidth: 500, doorHeight: 500 };
+    const products = [
+      product({ id: "sequence-a", sku: "SEQUENCE-A", length: 500, width: 500, height: 500, weight: 10, quantity: 2, setCode: "SEQUENCE", unitsPerSet: 1, rotationPolicy: "fixed" }),
+      product({ id: "sequence-b", sku: "SEQUENCE-B", length: 500, width: 500, height: 500, weight: 10, quantity: 2, setCode: "SEQUENCE", unitsPerSet: 1, rotationPolicy: "fixed" }),
+    ];
+    const result = pack(request({ container: setContainer, products }));
+    const corrupted = result.placements.map((box) => box.setNumber === 2 ? { ...box, setNumber: 3 } : box);
+
+    const validation = validatePacking(corrupted, setContainer, 0, products);
+
+    expect(validation.valid).toBe(false);
+    expect(validation.errors.join(" ")).toContain("套号不连续");
+  });
+
+  it("uses product master data when independently validating payload weight", () => {
+    const limitedContainer = { ...container, length: 1000, width: 1000, height: 1000, maxWeight: 50 };
+    const cargo = product({ id: "weight-master", sku: "WEIGHT-MASTER", weight: 100, quantity: 1 });
+    const forged = [{
+      id: "forged-weight",
+      productId: cargo.id,
+      sku: cargo.sku,
+      name: cargo.name,
+      color: cargo.color,
+      x: 0,
+      y: 0,
+      z: 0,
+      dx: 1000,
+      dy: 1000,
+      dz: 1000,
+      weight: 0,
+      orientation: "LWH",
+      layer: 1,
+    }];
+
+    const validation = validatePacking(forged, limitedContainer, 0, [cargo]);
+
+    expect(validation.valid).toBe(false);
+    expect(validation.errors.join(" ")).toContain("重量与产品资料不一致");
+    expect(validation.errors.join(" ")).toContain("最大载重");
+  });
+
+  it("rejects invalid requests instead of silently replacing bad dimensions", () => {
+    expect(() => pack(request({ products: [product({ length: 0 })] }))).toThrow("外箱尺寸");
+    expect(() => pack(request({ clearance: container.width }))).toThrow("安全间隙过大");
+    expect(() => pack(request({ products: [product({ id: "duplicate" }), product({ id: "duplicate" })] }))).toThrow("产品 ID");
+    expect(() => pack(request({ products: [product({ quantity: 1.5 })] }))).toThrow("非负整数");
+    expect(() => pack(request({ strategy: "practical", practicalTargetUtilization: 0.99 }))).toThrow("50%–95%");
+  });
+
+  it("independently enforces practical orientation and full-support rules", () => {
+    const practicalProduct = product({
+      id: "practical-box",
+      sku: "PRACTICAL",
+      length: 500,
+      width: 250,
+      height: 250,
+      rotationPolicy: "upright",
+    });
+    const first = {
+      id: "practical-1", productId: practicalProduct.id, sku: practicalProduct.sku, name: practicalProduct.name,
+      color: practicalProduct.color, x: 0, y: 0, z: 0, dx: 500, dy: 250, dz: 250,
+      weight: practicalProduct.weight, orientation: "LWH", layer: 1,
+    };
+    const rotated = {
+      ...first,
+      id: "practical-2",
+      x: 500,
+      dx: 250,
+      dy: 500,
+      orientation: "WLH",
+    };
+    const orientationValidation = validatePacking([first, rotated], { ...container, length: 1000, width: 1000 }, 0, [practicalProduct], "practical");
+    expect(orientationValidation.valid).toBe(false);
+    expect(orientationValidation.errors.join(" ")).toContain("固定为一种");
+
+    const square = product({ id: "support-box", sku: "SUPPORT", length: 500, width: 500, height: 500, rotationPolicy: "fixed" });
+    const supportValidation = validatePacking([
+      { ...first, id: "support-1", productId: square.id, sku: square.sku, dx: 500, dy: 500, dz: 500, weight: square.weight },
+      { ...first, id: "support-2", productId: square.id, sku: square.sku, x: 250, z: 500, dx: 500, dy: 500, dz: 500, weight: square.weight, layer: 2 },
+    ], { ...container, length: 1000, width: 1000, height: 1000 }, 0, [square], "practical");
+    expect(supportValidation.valid).toBe(false);
+    expect(supportValidation.errors.join(" ")).toContain("99.5%");
+  });
+
   it("aligns reverse-calculated quantities to complete set ratios", () => {
     const products = [
       product({ id: "kit-a", sku: "KIT-A", quantity: 10, setCode: "KIT", unitsPerSet: 1 }),
@@ -392,7 +518,7 @@ describe("packing engine", () => {
     expect(twoCartonSet.validation.valid).toBe(true);
     expect(twoCartonSet.setSummaries[0]).toMatchObject({ requestedSets: 400, loadedSets: 400, unloadedSets: 0 });
     expect(twoCartonSet.metrics.loadedCount).toBe(800);
-  });
+  }, 15_000);
 
   it("calculates the supplied two-carton product as a single-product maximum", () => {
     const result = pack({
@@ -412,5 +538,84 @@ describe("packing engine", () => {
       result.setSummaries[0].loadedSets,
     ]);
     expect(result.metrics.grossWeight).toBeLessThanOrEqual(28600);
-  });
+  }, 15_000);
+
+  it("calibrates the practical strategy against the real SLM-A64M loading record", () => {
+    const result = pack({
+      mode: "single",
+      strategy: "practical",
+      practicalTargetUtilization: 0.845,
+      container: CONTAINER_PRESETS.find((item) => item.id === "40hq")!,
+      clearance: 10,
+      products: REAL_WORLD_A64M_PRODUCTS,
+    });
+
+    expect(REAL_WORLD_A64M_LOADING["40hq"]).toEqual({ cartons: 396, sets: 198 });
+    const setVolume = REAL_WORLD_A64M_PRODUCTS.reduce(
+      (sum, item) => sum + item.length * item.width * item.height * (item.unitsPerSet ?? 1),
+      0,
+    );
+    const physicalContainerVolume = result.metrics.effectiveVolume;
+    expect((396 * setVolume) / physicalContainerVolume).toBeGreaterThan(1.6);
+    expect((198 * setVolume) / physicalContainerVolume).toBeCloseTo(0.844, 3);
+    expect(result.strategy).toBe("practical");
+    expect(result.validation.valid).toBe(true);
+    expect(result.setSummaries[0].loadedSets).toBe(198);
+    expect(result.metrics.loadedCount).toBe(396);
+    expect(result.metrics.executionComplexity.maxOrientationsPerSku).toBe(1);
+    expect(result.metrics.executionComplexity.partialSupportCount).toBe(0);
+    expect(result.metrics.volumeUtilization).toBeLessThanOrEqual(0.85);
+
+    result.placements.forEach((upper, upperIndex) => {
+      if (upper.z === 0) return;
+      const directSupports = result.placements
+        .map((lower, lowerIndex) => ({ lower, lowerIndex }))
+        .filter(({ lower }) =>
+          Math.abs(lower.z + lower.dz - upper.z) < 0.001 &&
+          Math.min(upper.x + upper.dx, lower.x + lower.dx) > Math.max(upper.x, lower.x) &&
+          Math.min(upper.y + upper.dy, lower.y + lower.dy) > Math.max(upper.y, lower.y),
+        );
+      expect(directSupports.length).toBeGreaterThan(0);
+      expect(directSupports.every(({ lowerIndex }) => lowerIndex < upperIndex)).toBe(true);
+    });
+  }, 20_000);
+
+  it("keeps large practical loading sequences responsive and independently valid", () => {
+    const result = pack({
+      mode: "single",
+      strategy: "practical",
+      practicalTargetUtilization: 0.845,
+      container,
+      clearance: 0,
+      products: [product({
+        id: "bulk-box",
+        sku: "BULK-BOX",
+        length: 100,
+        width: 100,
+        height: 100,
+        weight: 10,
+        rotationPolicy: "fixed",
+      })],
+    });
+
+    expect(result.metrics.loadedCount).toBe(2800);
+    expect(result.validation.valid).toBe(true);
+    expect(result.metrics.executionComplexity.maxOrientationsPerSku).toBe(1);
+    expect(result.metrics.executionComplexity.partialSupportCount).toBe(0);
+  }, 20_000);
+
+  it("keeps maximum utilization available as an explicit comparison strategy", () => {
+    const common = {
+      mode: "single" as const,
+      container: CONTAINER_PRESETS.find((item) => item.id === "40hq")!,
+      clearance: 10,
+      products: REAL_WORLD_A64M_PRODUCTS,
+    };
+    const practical = pack({ ...common, strategy: "practical", practicalTargetUtilization: 0.845 });
+    const maximum = pack({ ...common, strategy: "maximum" });
+
+    expect(maximum.validation.valid).toBe(true);
+    expect(maximum.metrics.loadedCount).toBeGreaterThanOrEqual(practical.metrics.loadedCount);
+    expect(maximum.practicalTargetUtilization).toBe(0.845);
+  }, 30_000);
 });

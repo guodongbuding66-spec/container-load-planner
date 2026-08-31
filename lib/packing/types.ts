@@ -1,4 +1,5 @@
 export type PackingMode = "single" | "mixed";
+export type PackingStrategy = "practical" | "maximum";
 export type RotationPolicy = "fixed" | "upright" | "any";
 
 export type ContainerSpec = {
@@ -36,6 +37,8 @@ export type ProductInput = {
 
 export type PackingRequest = {
   mode: PackingMode;
+  strategy?: PackingStrategy;
+  practicalTargetUtilization?: number;
   container: ContainerSpec;
   clearance: number;
   products: ProductInput[];
@@ -131,6 +134,11 @@ export type PackingMetrics = {
     heightRatio: number;
     balanced: boolean;
   };
+  executionComplexity: {
+    orientationVariants: number;
+    maxOrientationsPerSku: number;
+    partialSupportCount: number;
+  };
   solveTimeMs: number;
 };
 
@@ -142,6 +150,8 @@ export type ValidationReport = {
 export type PackingResult = {
   id: string;
   mode: PackingMode;
+  strategy: PackingStrategy;
+  practicalTargetUtilization: number;
   engineVersion: string;
   container: ContainerSpec;
   clearance: number;

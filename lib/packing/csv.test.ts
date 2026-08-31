@@ -1,0 +1,82 @@
+import { describe, expect, it } from "vitest";
+import { buildPlacementCsv, MAX_CSV_ROWS, parseCsvRecords, parseProductsCsv, toCsvCell } from "./csv";
+import type { PackingResult } from "./types";
+
+const colors = ["#2f7f89", "#c66a3d"];
+
+describe("CSV utilities", () => {
+  it("escapes separators, quotes, newlines, and spreadsheet formulas", () => {
+    expect(toCsvCell("普通文本")).toBe("普通文本");
+    expect(toCsvCell('箱体,"A"\n第二行')).toBe('"箱体,""A""\n第二行"');
+    expect(toCsvCell("=HYPERLINK(\"https://example.com\")")).toBe('"\'=HYPERLINK(""https://example.com"")"');
+    expect(toCsvCell("  +SUM(1,2)")).toBe('"\'  +SUM(1,2)"');
+    expect(toCsvCell(-12.5)).toBe("-12.5");
+  });
+
+  it("parses quoted commas, escaped quotes, and multiline cells", () => {
+    expect(parseCsvRecords('sku,name\r\nA-1,"主箱,""加固""\n第二行"\r\n')).toEqual([
+      ["sku", "name"],
+      ["A-1", '主箱,"加固"\n第二行'],
+    ]);
+    expect(() => parseCsvRecords('sku,name\nA,"未闭合')).toThrow("未闭合");
+  });
+
+  it("normalizes imported rows and replaces invalid colors", () => {
+    const parsed = parseProductsCsv(
+      "sku,name,length,width,height,weight,quantity,priority,setCode,unitsPerSet,rotationPolicy,maxStackLayers,color\n" +
+      " A-1 , 测试主箱 ,1000,500,300,20,3.9,999, SET-A ,2.8,upright,120,not-a-color",
+      colors,
+      123,
+    );
+
+    expect(parsed[0]).toMatchObject({
+      id: "import-123-0",
+      sku: "A-1",
+      name: "测试主箱",
+      quantity: 3,
+      priority: 100,
+      unitsPerSet: 2,
+      maxStackLayers: 99,
+      color: colors[0],
+    });
+  });
+
+  it("rejects missing columns, empty files, and excessive rows", () => {
+    expect(() => parseProductsCsv("sku,name\nA,测试", colors)).toThrow("缺少必要字段");
+    expect(() => parseProductsCsv("", colors)).toThrow("文件为空");
+    const header = "sku,name,length,width,height,weight,quantity";
+    const excessive = Array.from({ length: MAX_CSV_ROWS + 1 }, (_, index) => `A-${index},测试,1,1,1,1,1`);
+    expect(() => parseProductsCsv([header, ...excessive].join("\n"), colors)).toThrow("最多支持");
+  });
+
+  it("builds safe placement exports without breaking columns", () => {
+    const result = {
+      container: { id: "test" },
+      placements: [{
+        id: "box-1",
+        productId: "product-1",
+        sku: "=2+2",
+        name: '主箱,"加固"\n第二行',
+        setCode: "@SET",
+        setNumber: 1,
+        setItemNumber: 1,
+        x: 0,
+        y: 0,
+        z: 0,
+        dx: 100,
+        dy: 100,
+        dz: 100,
+        weight: 10,
+        orientation: "LWH",
+        layer: 1,
+        color: "#2f7f89",
+      }],
+    } as PackingResult;
+
+    const csv = buildPlacementCsv(result);
+    expect(csv).toContain("'=2+2");
+    expect(csv).toContain("'@SET");
+    expect(csv).toContain('"主箱,""加固""\n第二行"');
+    expect(parseCsvRecords(csv)[1]).toHaveLength(15);
+  });
+});

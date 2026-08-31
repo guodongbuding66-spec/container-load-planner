@@ -18,6 +18,13 @@ if [[ ! -x "${vinext}" ]]; then
   exit 69
 fi
 
+artifact_dir="${SITES_PROJECT_ROOT}/dist"
+if [[ "${artifact_dir}" != "${SITES_PROJECT_ROOT}/dist" || "${artifact_dir}" == "/dist" ]]; then
+  echo "Refusing to clean an unexpected artifact directory: ${artifact_dir}" >&2
+  exit 78
+fi
+rm -rf -- "${artifact_dir}"
+
 echo "Running bounded vinext build..."
 timeout \
   --signal=TERM \

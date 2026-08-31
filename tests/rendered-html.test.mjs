@@ -34,6 +34,7 @@ test("renders development preview metadata", async () => {
   assert.match(html, developmentPreviewMeta);
   assert.match(html, /目标利用率倒推/);
   assert.match(html, /另存为自定义柜型/);
+  assert.doesNotMatch(html, /container-scene/);
 });
 
 test("includes result-only progress and three-view interfaces", async () => {
@@ -57,14 +58,45 @@ test("prints three-view diagrams as undistorted vector artwork", async () => {
 test("includes arbitrary multi-carton set creation and traceability", async () => {
   const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
   const engine = await readFile(new URL("../lib/packing/engine.ts", import.meta.url), "utf8");
+  const csv = await readFile(new URL("../lib/packing/csv.ts", import.meta.url), "utf8");
 
   assert.match(source, /多箱套装助手/);
   assert.match(source, /\[2, 3, 4, 5\]/);
   assert.match(source, /增加箱型/);
   assert.match(source, /向下对齐/);
-  assert.match(source, /套装编码,套号,套内序号/);
+  assert.match(csv, /套装编码,套号,套内序号/);
   assert.match(engine, /box\.setNumber = batch\.setNumber/);
   assert.match(engine, /box\.setItemNumber = itemIndex \+ 1/);
+});
+
+test("blocks stale or invalid exports and discards obsolete worker results", async () => {
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /const canExport = Boolean\(result\?\.validation\.valid && !dirty/);
+  assert.match(source, /disabled=\{!canExport\}/);
+  assert.match(source, /activeRevisionRef\.current !== inputRevisionRef\.current/);
+  assert.match(source, /旧结果已安全丢弃/);
+});
+
+test("defers the heavy 3D bundle until a result exists and isolates render failures", async () => {
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+  const boundary = await readFile(new URL("../components/scene-error-boundary.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /\{result \? \([\s\S]*?<SceneErrorBoundary[\s\S]*?<ContainerScene/);
+  assert.match(source, /等待计算方案/);
+  assert.match(boundary, /getDerivedStateFromError/);
+  assert.match(boundary, /重新加载三维视图/);
+});
+
+test("provides accessible names for mode, ranges, and product data fields", async () => {
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /role="group" aria-label="计算模式"/);
+  assert.match(source, /aria-pressed=\{mode === "single"\}/);
+  assert.match(source, /aria-label="安全间隙"/);
+  assert.match(source, /aria-label="目标体积利用率滑块"/);
+  assert.match(source, /aria-label=\{`\$\{product\.sku\} 外箱长`\}/);
+  assert.match(source, /aria-label=\{`\$\{product\.sku\} 层数上限`\}/);
 });
 
 test("keeps a multi-carton product in single-product mode without carton demand input", async () => {
@@ -88,4 +120,21 @@ test("keeps the two-column workspace contained and provides Liquid Glass fallbac
   assert.match(styles, /@media \(max-width: 1100px\) \{[^}]*\.workspace-grid \{ grid-template-columns: minmax\(0, 1fr\); \}/s);
   assert.match(styles, /backdrop-filter: blur\(24px\) saturate\(155%\)/);
   assert.match(styles, /@supports not \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\)/);
+});
+
+test("offers a worker-executable strategy and a unit-safe real loading benchmark", async () => {
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+  const engine = await readFile(new URL("../lib/packing/engine.ts", import.meta.url), "utf8");
+  const presets = await readFile(new URL("../lib/packing/presets.ts", import.meta.url), "utf8");
+
+  assert.match(source, /aria-label="装柜执行策略"/);
+  assert.match(source, /现场易执行/);
+  assert.match(source, /极限利用率/);
+  assert.match(source, /载入真实 A64M/);
+  assert.match(source, /396 箱 = 198 套/);
+  assert.match(source, /局部支撑箱体/);
+  assert.match(engine, /function buildPracticalLayeredSet/);
+  assert.match(engine, /function orderForPracticalLoading/);
+  assert.match(engine, /PRACTICAL_SUPPORT_RATIO = 0\.995/);
+  assert.match(presets, /"40hq": \{ cartons: 396, sets: 198 \}/);
 });

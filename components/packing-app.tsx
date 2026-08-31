@@ -33,11 +33,14 @@ import {
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CameraProjection, CameraView } from "../lib/packing/camera-fit";
-import { calculateReverseCounts, ENGINE_VERSION, pack } from "../lib/packing/engine";
+import { buildPlacementCsv, MAX_CSV_BYTES, MAX_CSV_ROWS, parseProductsCsv } from "../lib/packing/csv";
+import { calculateReverseCounts, DEFAULT_PRACTICAL_TARGET, ENGINE_VERSION, pack } from "../lib/packing/engine";
 import {
   CONTAINER_PRESETS,
   DIMENSION_TEST_PRODUCTS,
   MULTI_CARTON_SET_PRODUCTS,
+  REAL_WORLD_A64M_LOADING,
+  REAL_WORLD_A64M_PRODUCTS,
   SAMPLE_PRODUCTS,
   TWO_CARTON_SET_PRODUCTS,
 } from "../lib/packing/presets";
@@ -52,11 +55,12 @@ import type {
   PackingMode,
   PackingRequest,
   PackingResult,
+  PackingStrategy,
   ProductInput,
-  RotationPolicy,
   WorkerResponse,
 } from "../lib/packing/types";
 import { OrthographicViews } from "./orthographic-views";
+import { SceneErrorBoundary } from "./scene-error-boundary";
 
 const ContainerScene = dynamic(() => import("./container-scene").then((module) => module.ContainerScene), {
   ssr: false,
@@ -65,12 +69,26 @@ const ContainerScene = dynamic(() => import("./container-scene").then((module) =
 
 const STORAGE_KEY = "cargo-fit-workspace-v1";
 const COLORS = ["#2f7f89", "#c66a3d", "#d5a72f", "#6b72a9", "#609d62", "#a95e78", "#447ca8"];
+const VALID_COLOR = /^#[0-9a-f]{6}$/i;
 
 type CalcStatus = "idle" | "working" | "done" | "error";
 
 function numberValue(value: string) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function clampNumber(value: unknown, fallback: number, min: number, max = Number.MAX_SAFE_INTEGER) {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Math.min(max, Math.max(min, Number.isFinite(parsed) ? parsed : fallback));
+}
+
+function clampInteger(value: unknown, fallback: number, min: number, max: number) {
+  return Math.floor(clampNumber(value, fallback, min, max));
+}
+
+function safeText(value: unknown, fallback: string, maxLength: number) {
+  return (typeof value === "string" ? value : fallback).slice(0, maxLength);
 }
 
 function formatNumber(value: number, digits = 0) {
@@ -87,8 +105,11 @@ function downloadFile(filename: string, content: string, type: string) {
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = filename;
+  anchor.hidden = true;
+  document.body.appendChild(anchor);
   anchor.click();
-  URL.revokeObjectURL(url);
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function createProduct(index: number): ProductInput {
@@ -141,47 +162,63 @@ function nextSetCode(products: ProductInput[], cartonCount: number) {
 
 function normalizeProductDraft(product: Partial<ProductInput>, index: number): ProductInput {
   const fallback = createProduct(index);
-  const rotationPolicy: RotationPolicy = ["fixed", "upright", "any"].includes(product.rotationPolicy ?? "")
-    ? (product.rotationPolicy as RotationPolicy)
+  const rotationPolicy = ["fixed", "upright", "any"].includes(product.rotationPolicy ?? "")
+    ? product.rotationPolicy as ProductInput["rotationPolicy"]
     : product.allowRotate === false
       ? "fixed"
       : "any";
   return {
     ...fallback,
     ...product,
+    id: safeText(product.id, fallback.id, 120),
+    sku: safeText(product.sku, fallback.sku, 80),
+    name: safeText(product.name, fallback.name, 200),
+    length: clampNumber(product.length, 0, 0),
+    width: clampNumber(product.width, 0, 0),
+    height: clampNumber(product.height, 0, 0),
+    weight: clampNumber(product.weight, 0, 0),
+    quantity: clampInteger(product.quantity, 0, 0, 1_000_000),
+    priority: clampInteger(product.priority, 50, 0, 100),
     rotationPolicy,
     stackable: product.stackable !== false,
-    maxStackLayers: Math.max(0, Math.floor(product.maxStackLayers || 0)),
+    maxStackLayers: clampInteger(product.maxStackLayers, 0, 0, 99),
     mustLoad: product.mustLoad !== false,
     bottomOnly: product.bottomOnly === true,
-    setCode: product.setCode?.trim() ?? "",
-    unitsPerSet: Math.max(1, Math.floor(product.unitsPerSet || 1)),
-    declaredVolumeCbm: Math.max(0, product.declaredVolumeCbm || 0),
+    setCode: safeText(product.setCode, "", 80).trim(),
+    unitsPerSet: clampInteger(product.unitsPerSet, 1, 1, 99),
+    declaredVolumeCbm: clampNumber(product.declaredVolumeCbm, 0, 0),
+    color: typeof product.color === "string" && VALID_COLOR.test(product.color) ? product.color : fallback.color,
   };
 }
 
-function parseCsvLine(line: string) {
-  const values: string[] = [];
-  let value = "";
-  let quoted = false;
-  for (let index = 0; index < line.length; index += 1) {
-    const character = line[index];
-    if (character === '"') {
-      if (quoted && line[index + 1] === '"') {
-        value += '"';
-        index += 1;
-      } else {
-        quoted = !quoted;
-      }
-    } else if (character === "," && !quoted) {
-      values.push(value.trim());
-      value = "";
-    } else {
-      value += character;
+function normalizeContainerDraft(value: unknown, fallback: ContainerSpec): ContainerSpec {
+  const candidate = value && typeof value === "object" ? value as Partial<ContainerSpec> : {};
+  return {
+    id: safeText(candidate.id, fallback.id, 120),
+    name: safeText(candidate.name, fallback.name, 120),
+    length: clampNumber(candidate.length, fallback.length, 0),
+    width: clampNumber(candidate.width, fallback.width, 0),
+    height: clampNumber(candidate.height, fallback.height, 0),
+    doorWidth: clampNumber(candidate.doorWidth, fallback.doorWidth, 0),
+    doorHeight: clampNumber(candidate.doorHeight, fallback.doorHeight, 0),
+    maxWeight: clampNumber(candidate.maxWeight, fallback.maxWeight, 0),
+  };
+}
+
+function normalizeProductList(products: ProductInput[]) {
+  const seen = new Set<string>();
+  return products.slice(0, MAX_CSV_ROWS).map((product, index) => {
+    const normalized = normalizeProductDraft(product, index);
+    const baseId = normalized.id || `restored-${index}`;
+    let id = baseId;
+    let suffix = 1;
+    while (seen.has(id)) {
+      id = `${baseId}-${suffix}`;
+      suffix += 1;
     }
-  }
-  values.push(value.trim());
-  return values;
+    seen.add(id);
+    return { ...normalized, id };
+  });
 }
 
 function Field({ label, unit, children }: { label: string; unit?: string; children: React.ReactNode }) {
@@ -211,6 +248,8 @@ function MetricCard({ icon, label, value, detail, tone = "teal" }: { icon: React
 
 export function PackingApp() {
   const [mode, setMode] = useState<PackingMode>("mixed");
+  const [strategy, setStrategy] = useState<PackingStrategy>("practical");
+  const [practicalTargetPercent, setPracticalTargetPercent] = useState(DEFAULT_PRACTICAL_TARGET * 100);
   const [container, setContainer] = useState<ContainerSpec>({ ...CONTAINER_PRESETS[2] });
   const [clearance, setClearance] = useState(10);
   const [products, setProducts] = useState<ProductInput[]>(SAMPLE_PRODUCTS.map((item) => ({ ...item })));
@@ -230,22 +269,38 @@ export function PackingApp() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [cameraView, setCameraView] = useState<CameraView>("perspective");
   const [cameraProjection, setCameraProjection] = useState<CameraProjection>("perspective");
+  const [storageError, setStorageError] = useState(false);
   const workerRef = useRef<Worker | null>(null);
   const activeRequestRef = useRef<string | null>(null);
+  const activeRevisionRef = useRef<number | null>(null);
+  const inputRevisionRef = useRef(0);
   const pendingPayloadRef = useRef<PackingRequest | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const acceptResult = useCallback((nextResult: PackingResult, successMessage: string) => {
+    if (activeRevisionRef.current !== inputRevisionRef.current) {
+      activeRequestRef.current = null;
+      activeRevisionRef.current = null;
+      pendingPayloadRef.current = null;
+      setIsPlaying(false);
+      setStatus("idle");
+      setMessage("计算期间输入已变化，旧结果已安全丢弃；请按当前参数重新计算");
+      return;
+    }
     setResult(nextResult);
     setVisibleProducts(new Set(nextResult.summaries.map((item) => item.productId)));
     setPackingProgress(nextResult.placements.length);
     setIsPlaying(false);
     setCameraView("perspective");
     setCameraProjection("perspective");
-    setStatus("done");
+    setStatus(nextResult.validation.valid ? "done" : "error");
     setDirty(false);
+    activeRequestRef.current = null;
+    activeRevisionRef.current = null;
     pendingPayloadRef.current = null;
-    setMessage(successMessage);
+    setMessage(nextResult.validation.valid
+      ? successMessage
+      : `方案未通过独立校验，已阻止打印与导出：${nextResult.validation.errors[0] ?? "请检查异常明细"}`);
   }, []);
 
   const runFallback = useCallback(
@@ -254,6 +309,8 @@ export function PackingApp() {
         try {
           acceptResult(pack(payload), "方案已在兼容模式下生成并完成校验");
         } catch (fallbackError) {
+          activeRequestRef.current = null;
+          activeRevisionRef.current = null;
           pendingPayloadRef.current = null;
           setStatus("error");
           setMessage(fallbackError instanceof Error ? fallbackError.message : "计算失败");
@@ -270,6 +327,8 @@ export function PackingApp() {
         if (saved) {
           const data = JSON.parse(saved) as {
             mode?: PackingMode;
+            strategy?: PackingStrategy;
+            practicalTargetPercent?: number;
             container?: ContainerSpec;
             clearance?: number;
             products?: ProductInput[];
@@ -277,15 +336,23 @@ export function PackingApp() {
             targetVolumePercent?: number;
             targetWeightPercent?: number;
           };
-          if (data.mode) setMode(data.mode);
-          if (data.container) setContainer(data.container);
-          if (typeof data.clearance === "number") setClearance(data.clearance);
-          if (Array.isArray(data.products) && data.products.length) {
-            setProducts(data.products.map((product, index) => normalizeProductDraft(product, index)));
+          if (data.mode === "single" || data.mode === "mixed") setMode(data.mode);
+          if (data.strategy === "practical" || data.strategy === "maximum") setStrategy(data.strategy);
+          if (typeof data.practicalTargetPercent === "number") {
+            setPracticalTargetPercent(clampNumber(data.practicalTargetPercent, DEFAULT_PRACTICAL_TARGET * 100, 50, 95));
           }
-          if (Array.isArray(data.customContainers)) setCustomContainers(data.customContainers);
-          if (typeof data.targetVolumePercent === "number") setTargetVolumePercent(data.targetVolumePercent);
-          if (typeof data.targetWeightPercent === "number") setTargetWeightPercent(data.targetWeightPercent);
+          if (data.container) setContainer(normalizeContainerDraft(data.container, CONTAINER_PRESETS[2]));
+          if (typeof data.clearance === "number") setClearance(clampNumber(data.clearance, 10, 0, 50));
+          if (Array.isArray(data.products) && data.products.length) {
+            setProducts(normalizeProductList(data.products));
+          }
+          if (Array.isArray(data.customContainers)) {
+            setCustomContainers(data.customContainers.slice(0, 100).map((item, index) =>
+              normalizeContainerDraft(item, { ...CONTAINER_PRESETS[2], id: `custom-restored-${index}`, name: `自定义柜型 ${index + 1}` }),
+            ));
+          }
+          if (typeof data.targetVolumePercent === "number") setTargetVolumePercent(clampInteger(data.targetVolumePercent, 85, 1, 100));
+          if (typeof data.targetWeightPercent === "number") setTargetWeightPercent(clampInteger(data.targetWeightPercent, 90, 1, 100));
           setMessage("已恢复本机草稿");
         }
       } catch {
@@ -299,11 +366,23 @@ export function PackingApp() {
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ mode, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent }),
-    );
-  }, [clearance, container, customContainers, hydrated, mode, products, targetVolumePercent, targetWeightPercent]);
+    let feedbackTimer: number | undefined;
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent }),
+      );
+      feedbackTimer = window.setTimeout(() => setStorageError(false), 0);
+    } catch {
+      feedbackTimer = window.setTimeout(() => {
+        setStorageError(true);
+        setMessage("本机草稿保存失败：浏览器存储不可用或空间不足");
+      }, 0);
+    }
+    return () => {
+      if (feedbackTimer !== undefined) window.clearTimeout(feedbackTimer);
+    };
+  }, [clearance, container, customContainers, hydrated, mode, practicalTargetPercent, products, strategy, targetVolumePercent, targetWeightPercent]);
 
   useEffect(() => {
     let worker: Worker;
@@ -317,6 +396,9 @@ export function PackingApp() {
       const response = event.data;
       if (response.requestId !== activeRequestRef.current) return;
       if (response.type === "error") {
+        activeRequestRef.current = null;
+        activeRevisionRef.current = null;
+        pendingPayloadRef.current = null;
         setStatus("error");
         setMessage(response.message);
         return;
@@ -328,6 +410,10 @@ export function PackingApp() {
       workerRef.current = null;
       const pendingPayload = pendingPayloadRef.current;
       if (pendingPayload) runFallback(pendingPayload);
+      else {
+        activeRequestRef.current = null;
+        activeRevisionRef.current = null;
+      }
     };
     workerRef.current = worker;
     return () => worker.terminate();
@@ -348,14 +434,27 @@ export function PackingApp() {
   }, [isPlaying, playbackSpeed, result]);
 
   const markDirty = useCallback(() => {
+    inputRevisionRef.current += 1;
     setDirty(true);
-    if (status === "done") setMessage("输入已修改，请重新计算");
+    setIsPlaying(false);
+    if (status === "working") setMessage("输入已修改；当前旧参数计算完成后将自动丢弃");
+    else if (status === "done") setMessage("输入已修改，请重新计算；旧方案已禁止导出");
   }, [status]);
 
   const activeProducts = useMemo(() => selectProductsForMode(products, mode), [mode, products]);
   const setInputSummaries = useMemo(() => summarizeSetInputs(activeProducts), [activeProducts]);
   const singleSetSummary = mode === "single" ? setInputSummaries[0] : undefined;
   const isSingleProductSet = Boolean(singleSetSummary);
+  const isRealA64M = activeProducts.length === REAL_WORLD_A64M_PRODUCTS.length && activeProducts.every((product) => {
+    const benchmark = REAL_WORLD_A64M_PRODUCTS.find((item) => item.id === product.id);
+    return Boolean(benchmark) &&
+      product.length === benchmark!.length &&
+      product.width === benchmark!.width &&
+      product.height === benchmark!.height &&
+      product.weight === benchmark!.weight &&
+      product.setCode?.trim() === benchmark!.setCode;
+  });
+  const realA64MBenchmark = isRealA64M ? REAL_WORLD_A64M_LOADING[container.id] : undefined;
   const inputVolume = useMemo(
     () => activeProducts.reduce(
       (sum, item) => sum + item.length * item.width * item.height * (
@@ -377,11 +476,11 @@ export function PackingApp() {
 
   const reversePlan = useMemo(
     () => calculateReverseCounts(
-      { mode, container, clearance, products: activeProducts },
+      { mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts },
       targetVolumePercent / 100,
       targetWeightPercent / 100,
     ),
-    [activeProducts, clearance, container, mode, targetVolumePercent, targetWeightPercent],
+    [activeProducts, clearance, container, mode, practicalTargetPercent, strategy, targetVolumePercent, targetWeightPercent],
   );
 
   const containerChoices = useMemo(() => [...CONTAINER_PRESETS, ...customContainers], [customContainers]);
@@ -416,7 +515,7 @@ export function PackingApp() {
     setContainer(saved);
     setShowContainerSave(false);
     setCustomContainerName("");
-    setDirty(true);
+    markDirty();
     setStatus("idle");
     setMessage(`已将“${name}”保存到本机柜型列表`);
   };
@@ -426,7 +525,7 @@ export function PackingApp() {
     if (!window.confirm(`确认删除本机柜型“${container.name}”吗？`)) return;
     setCustomContainers((current) => current.filter((item) => item.id !== container.id));
     setContainer({ ...CONTAINER_PRESETS[2] });
-    setDirty(true);
+    markDirty();
     setMessage("自定义柜型已删除，已切换到 40HQ 高柜");
   };
 
@@ -434,8 +533,26 @@ export function PackingApp() {
     setProducts((current) =>
       current.map((product) => {
         if (product.id !== id) return product;
-        const numericFields: (keyof ProductInput)[] = ["length", "width", "height", "weight", "quantity", "priority", "maxStackLayers", "unitsPerSet", "declaredVolumeCbm"];
-        const nextValue = numericFields.includes(field) && typeof value === "string" ? numberValue(value) : value;
+        let nextValue: string | number | boolean = value;
+        if (typeof value === "string") {
+          if (["length", "width", "height", "weight", "declaredVolumeCbm"].includes(field)) {
+            nextValue = clampNumber(value, 0, 0);
+          } else if (field === "quantity") {
+            nextValue = clampInteger(value, 0, 0, 1_000_000);
+          } else if (field === "priority") {
+            nextValue = clampInteger(value, 50, 0, 100);
+          } else if (field === "maxStackLayers") {
+            nextValue = clampInteger(value, 0, 0, 99);
+          } else if (field === "unitsPerSet") {
+            nextValue = clampInteger(value, 1, 1, 99);
+          } else if (field === "sku") {
+            nextValue = value.slice(0, 80);
+          } else if (field === "name") {
+            nextValue = value.slice(0, 200);
+          } else if (field === "setCode") {
+            nextValue = value.slice(0, 80);
+          }
+        }
         return { ...product, [field]: nextValue };
       }),
     );
@@ -458,7 +575,7 @@ export function PackingApp() {
       return mode === "single" ? components : [...existing, ...components];
     });
     setResult(null);
-    setDirty(true);
+    markDirty();
     setStatus("idle");
     setMessage(mode === "single"
       ? `已将当前单品设为 1 套 ${safeCount} 箱；请逐箱填写参数，系统会自动计算最大完整套数。`
@@ -512,7 +629,8 @@ export function PackingApp() {
     setResult(null);
     setCameraView("perspective");
     setCameraProjection("perspective");
-    setDirty(true);
+    markDirty();
+    setStatus("idle");
     setMessage("已载入户外产品拼柜示例");
   };
 
@@ -524,7 +642,7 @@ export function PackingApp() {
     setResult(null);
     setCameraView("perspective");
     setCameraProjection("perspective");
-    setDirty(true);
+    markDirty();
     setStatus("idle");
     setMessage("已载入你提供的 3 组 CM 尺寸，系统已换算为 mm 并保留标称 CBM");
   };
@@ -537,7 +655,7 @@ export function PackingApp() {
     setResult(null);
     setCameraView("perspective");
     setCameraProjection("perspective");
-    setDirty(true);
+    markDirty();
     setStatus("idle");
     setMessage("已载入单品 1 套 2 箱：保持单品模式，自动计算最大完整套数，无需填写需求箱数");
   };
@@ -550,19 +668,46 @@ export function PackingApp() {
     setResult(null);
     setCameraView("perspective");
     setCameraProjection("perspective");
-    setDirty(true);
+    markDirty();
     setStatus("idle");
     setMessage("已载入单品 1 套 5 箱；保持单品模式，3 箱、4 箱及更多箱型使用同一通用算法。");
   };
 
+  const loadRealA64M = () => {
+    setMode("single");
+    setStrategy("practical");
+    setPracticalTargetPercent(DEFAULT_PRACTICAL_TARGET * 100);
+    setContainer({ ...CONTAINER_PRESETS[2] });
+    setClearance(10);
+    setProducts(REAL_WORLD_A64M_PRODUCTS.map((item) => ({ ...item })));
+    setResult(null);
+    setCameraView("perspective");
+    setCameraProjection("perspective");
+    markDirty();
+    setStatus("idle");
+    setMessage("已载入真实 SLM-A64M：40HQ 报价表口径 396 箱 = 198 套，默认用现场易执行策略复算");
+  };
+
   const validateInputs = () => {
     if (!activeProducts.length) return "请至少添加一个产品。";
-    if ([container.length, container.width, container.height, container.doorWidth, container.doorHeight, container.maxWeight].some((value) => value <= 0)) {
+    if ([container.length, container.width, container.height, container.doorWidth, container.doorHeight, container.maxWeight].some((value) => !Number.isFinite(value) || value <= 0)) {
       return "柜型尺寸、门洞和载重必须大于 0。";
+    }
+    if (
+      !Number.isFinite(clearance) ||
+      clearance < 0 ||
+      clearance * 2 >= container.length ||
+      clearance * 2 >= container.width ||
+      clearance >= container.height ||
+      clearance * 2 >= container.doorWidth ||
+      clearance >= container.doorHeight
+    ) {
+      return "安全间隙过大，已占满柜内空间或门洞。";
     }
     const invalid = activeProducts.find(
       (item) =>
         !item.sku.trim() ||
+        ![item.length, item.width, item.height, item.weight, item.quantity, item.priority, item.maxStackLayers, item.unitsPerSet].every(Number.isFinite) ||
         item.length <= 0 ||
         item.width <= 0 ||
         item.height <= 0 ||
@@ -577,6 +722,7 @@ export function PackingApp() {
   const submitPacking = (payload: PackingRequest, workingMessage = "正在生成可行摆放并执行边界、重叠与载重校验…") => {
     const requestId = `request-${Date.now()}`;
     activeRequestRef.current = requestId;
+    activeRevisionRef.current = inputRevisionRef.current;
     pendingPayloadRef.current = payload;
     setStatus("working");
     setMessage(workingMessage);
@@ -594,13 +740,26 @@ export function PackingApp() {
       setMessage(error);
       return;
     }
-    submitPacking({ mode, container, clearance, products: activeProducts });
+    submitPacking({
+      mode,
+      strategy,
+      practicalTargetUtilization: practicalTargetPercent / 100,
+      container,
+      clearance,
+      products: activeProducts,
+    });
   };
 
   const applyReversePlan = () => {
     if (mode === "single") {
+      const error = validateInputs();
+      if (error) {
+        setStatus("error");
+        setMessage(error);
+        return;
+      }
       submitPacking(
-        { mode: "single", container, clearance, products: activeProducts },
+        { mode: "single", strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts },
         isSingleProductSet
           ? "单品多箱结构无需填写需求箱数，正在计算最大完整套数…"
           : "单品模式无需填写需求数量，正在计算最大可装箱数…",
@@ -619,9 +778,9 @@ export function PackingApp() {
     }));
     setProducts(nextProducts);
     setMode("mixed");
-    setDirty(true);
+    markDirty();
     submitPacking(
-      { mode: "mixed", container, clearance, products: nextProducts },
+      { mode: "mixed", strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: nextProducts },
       `已按当前 SKU 比例倒推 ${reversePlan.recommendedTotal.toLocaleString()} 箱，正在验证真实摆放…`,
     );
   };
@@ -645,23 +804,19 @@ export function PackingApp() {
   };
 
   const printPlan = () => {
-    if (!result) return;
+    if (!result?.validation.valid || dirty) return;
     setIsPlaying(false);
     window.print();
   };
 
   const exportJson = () => {
-    if (!result) return;
+    if (!result?.validation.valid || dirty) return;
     downloadFile(`装柜方案_${result.container.id}_${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(result, null, 2), "application/json");
   };
 
   const exportCsv = () => {
-    if (!result) return;
-    const header = "序号,SKU,品名,套装编码,套号,套内序号,X(mm),Y(mm),Z(mm),长(mm),宽(mm),高(mm),方向,层级,重量(kg)";
-    const rows = result.placements.map((box, index) =>
-      [index + 1, box.sku, `"${box.name.replaceAll('"', '""')}"`, box.setCode ?? "", box.setNumber ?? "", box.setItemNumber ?? "", box.x, box.y, box.z, box.dx, box.dy, box.dz, box.orientation, box.layer, box.weight].join(","),
-    );
-    downloadFile(`装柜坐标_${result.container.id}.csv`, `\uFEFF${[header, ...rows].join("\n")}`, "text/csv;charset=utf-8");
+    if (!result?.validation.valid || dirty) return;
+    downloadFile(`装柜坐标_${result.container.id}.csv`, `\uFEFF${buildPlacementCsv(result)}`, "text/csv;charset=utf-8");
   };
 
   const downloadTemplate = () => {
@@ -677,57 +832,23 @@ export function PackingApp() {
   };
 
   const importCsv = async (file: File) => {
-    const text = (await file.text()).replace(/^\uFEFF/, "");
-    const rows = text.split(/\r?\n/).filter(Boolean);
-    const headerRow = rows.shift();
-    const headers = headerRow ? parseCsvLine(headerRow) : [];
-    const required = ["sku", "name", "length", "width", "height", "weight", "quantity"];
-    if (!required.every((key) => headers.includes(key))) {
+    if (file.size > MAX_CSV_BYTES) {
       setStatus("error");
-      setMessage("CSV 缺少必要字段，请先下载模板。");
+      setMessage(`CSV 文件不能超过 ${Math.round(MAX_CSV_BYTES / 1024 / 1024)} MB。`);
       return;
     }
-    const parsed = rows.map((row, index) => {
-      const values = parseCsvLine(row);
-      const get = (key: string) => values[headers.indexOf(key)]?.trim() ?? "";
-      const rawRotation = get("rotationPolicy").toLowerCase();
-      const rotationPolicy: RotationPolicy = ["fixed", "upright", "any"].includes(rawRotation)
-        ? (rawRotation as RotationPolicy)
-        : get("allowRotate").toLowerCase() === "false"
-          ? "fixed"
-          : "any";
-      return {
-        id: `import-${Date.now()}-${index}`,
-        sku: get("sku"),
-        name: get("name"),
-        length: numberValue(get("length")),
-        width: numberValue(get("width")),
-        height: numberValue(get("height")),
-        declaredVolumeCbm: Math.max(0, numberValue(get("declaredVolumeCbm"))),
-        weight: numberValue(get("weight")),
-        quantity: numberValue(get("quantity")),
-        priority: numberValue(get("priority") || "50"),
-        rotationPolicy,
-        stackable: get("stackable").toLowerCase() !== "false",
-        maxStackLayers: Math.max(0, Math.floor(numberValue(get("maxStackLayers") || "0"))),
-        mustLoad: get("mustLoad").toLowerCase() !== "false",
-        bottomOnly: get("bottomOnly").toLowerCase() === "true",
-        setCode: get("setCode"),
-        unitsPerSet: Math.max(1, Math.floor(numberValue(get("unitsPerSet") || "1"))),
-        color: get("color") || COLORS[index % COLORS.length],
-      } satisfies ProductInput;
-    });
-    if (!parsed.length) {
+    try {
+      const parsed = parseProductsCsv(await file.text(), COLORS);
+      setProducts(parsed);
+      setMode("mixed");
+      setResult(null);
+      markDirty();
+      setStatus("idle");
+      setMessage(`已导入 ${parsed.length} 个 SKU，请检查后计算`);
+    } catch (error) {
       setStatus("error");
-      setMessage("CSV 中没有可导入的数据行。");
-      return;
+      setMessage(error instanceof Error ? error.message : "CSV 读取失败，请检查文件后重试。");
     }
-    setProducts(parsed);
-    setMode("mixed");
-    setResult(null);
-    setDirty(true);
-    setStatus("idle");
-    setMessage(`已导入 ${parsed.length} 个 SKU，请检查后计算`);
   };
 
   const toggleProductVisibility = (id: string) => {
@@ -745,6 +866,7 @@ export function PackingApp() {
   };
 
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const canExport = Boolean(result?.validation.valid && !dirty && status !== "working");
 
   return (
     <main className="app-shell">
@@ -773,10 +895,10 @@ export function PackingApp() {
             <h1>新建装柜测算</h1>
           </div>
           <div className="top-actions">
-            <span className={`save-state ${dirty ? "is-dirty" : ""}`}><Save size={15} />{dirty ? "草稿已保存 · 待重算" : "本机草稿已保存"}</span>
+            <span className={`save-state ${dirty ? "is-dirty" : ""} ${storageError ? "is-error" : ""}`}><Save size={15} />{storageError ? "草稿未能保存" : dirty ? "草稿已保存 · 待重算" : "本机草稿已保存"}</span>
             <button className="button ghost" onClick={loadSample}><Sparkles size={16} />载入示例</button>
-            <button className="button ghost" onClick={printPlan} disabled={!result}><Printer size={16} />现场指导书</button>
-            <button className="button ghost" onClick={exportJson} disabled={!result}><FileJson size={16} />导出方案</button>
+            <button className="button ghost" onClick={printPlan} disabled={!canExport}><Printer size={16} />现场指导书</button>
+            <button className="button ghost" onClick={exportJson} disabled={!canExport}><FileJson size={16} />导出方案</button>
           </div>
         </header>
 
@@ -797,15 +919,27 @@ export function PackingApp() {
           <div className="config-column">
             <article className="panel mode-panel">
               <div className="panel-head compact"><div><span className="section-kicker">01</span><h2>计算模式</h2></div></div>
-              <div className="segmented" role="tablist" aria-label="计算模式">
-                <button className={mode === "single" ? "active" : ""} onClick={() => { setMode("single"); markDirty(); }}><Box size={17} />单品最大装柜</button>
-                <button className={mode === "mixed" ? "active" : ""} onClick={() => { setMode("mixed"); markDirty(); }}><Boxes size={17} />多 SKU 拼柜</button>
+              <div className="segmented" role="group" aria-label="计算模式">
+                <button aria-pressed={mode === "single"} className={mode === "single" ? "active" : ""} onClick={() => { if (mode !== "single") { setMode("single"); markDirty(); } }}><Box size={17} />单品最大装柜</button>
+                <button aria-pressed={mode === "mixed"} className={mode === "mixed" ? "active" : ""} onClick={() => { if (mode !== "mixed") { setMode("mixed"); markDirty(); } }}><Boxes size={17} />多 SKU 拼柜</button>
               </div>
               <p className="helper-text">{mode === "single"
                 ? isSingleProductSet
                   ? `这是一个 ${singleSetSummary?.cartonsPerSet ?? 0} 箱/套的单品包装，自动计算最大完整套数，不需要填写需求箱数。`
                   : "单箱或多箱都属于单品最大装柜，系统自动计算可装量，不需要填写需求数量。"
                 : "按订单数量、优先级、门洞与载重生成可校验的混装方案。"}</p>
+              <div className="strategy-divider" />
+              <div className="strategy-heading"><strong>执行策略</strong><span>{strategy === "practical" ? "推荐给现场工人" : "用于理论上限对比"}</span></div>
+              <div className="segmented strategy-segmented" role="group" aria-label="装柜执行策略">
+                <button aria-pressed={strategy === "practical"} className={strategy === "practical" ? "active" : ""} onClick={() => { if (strategy !== "practical") { setStrategy("practical"); markDirty(); } }}><ShieldCheck size={16} />现场易执行</button>
+                <button aria-pressed={strategy === "maximum"} className={strategy === "maximum" ? "active" : ""} onClick={() => { if (strategy !== "maximum") { setStrategy("maximum"); markDirty(); } }}><Gauge size={16} />极限利用率</button>
+              </div>
+              {strategy === "practical" ? (
+                <div className="practical-target">
+                  <div><strong>现场经验装载率</strong><span>整层模块 · 固定方向 · 完整支撑</span></div>
+                  <div className="target-input"><input aria-label="现场经验装载率滑块" type="range" min="50" max="95" step="0.5" value={practicalTargetPercent} onChange={(event) => { setPracticalTargetPercent(clampNumber(event.target.value, DEFAULT_PRACTICAL_TARGET * 100, 50, 95)); markDirty(); }} /><input aria-label="现场经验装载率" type="number" min="50" max="95" step="0.5" value={practicalTargetPercent} onChange={(event) => { setPracticalTargetPercent(clampNumber(event.target.value, DEFAULT_PRACTICAL_TARGET * 100, 50, 95)); markDirty(); }} /><b>%</b></div>
+                </div>
+              ) : <p className="strategy-warning">允许更多方向与局部支撑组合；数量可能更高，但必须由现场主管逐层复核。</p>}
             </article>
 
             <article className="panel">
@@ -835,7 +969,7 @@ export function PackingApp() {
               </div>
               <div className="clearance-row">
                 <div><strong>安全间隙</strong><span>自动从有效柜内空间扣除</span></div>
-                <div className="range-control"><input type="range" min="0" max="50" step="5" value={clearance} onChange={(event) => { setClearance(numberValue(event.target.value)); markDirty(); }} /><output>{clearance} mm</output></div>
+                <div className="range-control"><input aria-label="安全间隙" type="range" min="0" max="50" step="5" value={clearance} onChange={(event) => { setClearance(numberValue(event.target.value)); markDirty(); }} /><output>{clearance} mm</output></div>
               </div>
               <div className="container-save-actions">
                 <button className="button ghost small" onClick={() => { setShowContainerSave((current) => !current); setCustomContainerName(container.name.includes("未保存") ? "" : container.name); }}><Save size={14} />另存为自定义柜型</button>
@@ -854,11 +988,11 @@ export function PackingApp() {
               <div className="panel-head"><div><span className="section-kicker">03</span><h2>目标利用率倒推</h2></div><span className="pill">按当前 SKU 比例</span></div>
               <div className="target-control">
                 <div><Layers3 size={16} /><span><strong>目标体积利用率</strong><small>按有效柜内容积倒推</small></span></div>
-                <div className="target-input"><input type="range" min="1" max="100" value={targetVolumePercent} onChange={(event) => setTargetVolumePercent(numberValue(event.target.value))} /><input aria-label="目标体积利用率" type="number" min="1" max="100" value={targetVolumePercent} onChange={(event) => setTargetVolumePercent(Math.min(100, Math.max(1, numberValue(event.target.value))))} /><b>%</b></div>
+                <div className="target-input"><input aria-label="目标体积利用率滑块" type="range" min="1" max="100" value={targetVolumePercent} onChange={(event) => setTargetVolumePercent(numberValue(event.target.value))} /><input aria-label="目标体积利用率" type="number" min="1" max="100" value={targetVolumePercent} onChange={(event) => setTargetVolumePercent(Math.min(100, Math.max(1, numberValue(event.target.value))))} /><b>%</b></div>
               </div>
               <div className="target-control">
                 <div><Weight size={16} /><span><strong>目标载重利用率</strong><small>按柜型最大载重倒推</small></span></div>
-                <div className="target-input"><input type="range" min="1" max="100" value={targetWeightPercent} onChange={(event) => setTargetWeightPercent(numberValue(event.target.value))} /><input aria-label="目标载重利用率" type="number" min="1" max="100" value={targetWeightPercent} onChange={(event) => setTargetWeightPercent(Math.min(100, Math.max(1, numberValue(event.target.value))))} /><b>%</b></div>
+                <div className="target-input"><input aria-label="目标载重利用率滑块" type="range" min="1" max="100" value={targetWeightPercent} onChange={(event) => setTargetWeightPercent(numberValue(event.target.value))} /><input aria-label="目标载重利用率" type="number" min="1" max="100" value={targetWeightPercent} onChange={(event) => setTargetWeightPercent(Math.min(100, Math.max(1, numberValue(event.target.value))))} /><b>%</b></div>
               </div>
               <div className="reverse-count-grid">
                 <div><span>体积倒推</span><strong>{formatNumber(reversePlan.volumeLimitedTotal)} 箱</strong><small>目标 {targetVolumePercent}%</small></div>
@@ -892,7 +1026,7 @@ export function PackingApp() {
           <section id="result" className="viewer-column">
             <div className="viewer-head">
               <div><span className="section-kicker">2D + LIVE 3D</span><h2>装柜方案联动复核</h2></div>
-              <div className="validation-chip">{result?.validation.valid ? <CheckCircle2 size={16} /> : <ShieldCheck size={16} />}{result ? (result.validation.valid ? "布局校验通过" : "发现异常") : "等待计算"}</div>
+              <div className="validation-chip">{result?.validation.valid && !dirty ? <CheckCircle2 size={16} /> : <ShieldCheck size={16} />}{result ? dirty ? "结果已过期" : result.validation.valid ? "布局校验通过" : "发现异常" : "等待计算"}</div>
             </div>
             {result ? (
               <>
@@ -931,15 +1065,27 @@ export function PackingApp() {
                 </section>
               </>
             ) : null}
-            <ContainerScene
-              result={result}
-              visibleProducts={visibleProducts}
-              visibleCount={packingProgress}
-              cameraView={cameraView}
-              projectionMode={cameraProjection}
-              onCameraViewChange={setCameraView}
-              onProjectionModeChange={setCameraProjection}
-            />
+            {result ? (
+              <SceneErrorBoundary resetKey={result.id}>
+                <ContainerScene
+                  result={result}
+                  visibleProducts={visibleProducts}
+                  visibleCount={packingProgress}
+                  cameraView={cameraView}
+                  projectionMode={cameraProjection}
+                  onCameraViewChange={setCameraView}
+                  onProjectionModeChange={setCameraProjection}
+                />
+              </SceneErrorBoundary>
+            ) : (
+              <div className="scene-shell" role="region" aria-label="可交互三维装柜视图">
+                <div className="scene-empty">
+                  <div className="scene-empty-cube" aria-hidden="true" />
+                  <strong>等待计算方案</strong>
+                  <span>填写左侧参数后，柜内真实摆放会显示在这里</span>
+                </div>
+              </div>
+            )}
             {result ? (
               <div className="legend-row">
                 {result.summaries.map((item) => (
@@ -959,6 +1105,7 @@ export function PackingApp() {
             <div><span className="section-kicker">PRODUCTS</span><h2>{mode === "single" ? isSingleProductSet ? "单品多箱包装参数" : "单品包装参数" : "产品与拼柜订单"}</h2></div>
             <div className="panel-actions">
               <input ref={fileInputRef} hidden type="file" accept=".csv,text/csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importCsv(file); event.currentTarget.value = ""; }} />
+              <button className="button ghost small real-data-button" onClick={loadRealA64M}><CheckCircle2 size={15} />载入真实 A64M</button>
               <button className="button ghost small" onClick={loadDimensionTest}><PackageOpen size={15} />载入尺寸测试</button>
               <button className="button ghost small" onClick={loadTwoCartonSetTest}><Boxes size={15} />载入 1 套 2 箱</button>
               <button className="button ghost small" onClick={loadMultiCartonSetTest}><Boxes size={15} />载入 1 套 5 箱</button>
@@ -1020,15 +1167,15 @@ export function PackingApp() {
                     : 0;
                   return <tr key={product.id}>
                     <td><input className="color-input" aria-label={`${product.sku} 颜色`} type="color" value={product.color} onChange={(event) => updateProduct(product.id, "color", event.target.value)} /></td>
-                    <td><input className="sku-input" value={product.sku} onChange={(event) => updateProduct(product.id, "sku", event.target.value)} /><input className="name-input" value={product.name} onChange={(event) => updateProduct(product.id, "name", event.target.value)} /></td>
-                    <td><input type="number" value={product.length} onChange={(event) => updateProduct(product.id, "length", event.target.value)} /><small>mm</small></td>
-                    <td><input type="number" value={product.width} onChange={(event) => updateProduct(product.id, "width", event.target.value)} /><small>mm</small></td>
-                    <td><input type="number" value={product.height} onChange={(event) => updateProduct(product.id, "height", event.target.value)} /><small>mm</small></td>
+                    <td><input aria-label={`${product.sku} SKU`} maxLength={80} className="sku-input" value={product.sku} onChange={(event) => updateProduct(product.id, "sku", event.target.value)} /><input aria-label={`${product.sku} 品名`} maxLength={200} className="name-input" value={product.name} onChange={(event) => updateProduct(product.id, "name", event.target.value)} /></td>
+                    <td><input aria-label={`${product.sku} 外箱长`} type="number" min="0" value={product.length} onChange={(event) => updateProduct(product.id, "length", event.target.value)} /><small>mm</small></td>
+                    <td><input aria-label={`${product.sku} 外箱宽`} type="number" min="0" value={product.width} onChange={(event) => updateProduct(product.id, "width", event.target.value)} /><small>mm</small></td>
+                    <td><input aria-label={`${product.sku} 外箱高`} type="number" min="0" value={product.height} onChange={(event) => updateProduct(product.id, "height", event.target.value)} /><small>mm</small></td>
                     <td className="cbm-cell"><input aria-label={`${product.sku} 标称 CBM`} type="number" step="0.001" min="0" value={product.declaredVolumeCbm || ""} placeholder="可选" onChange={(event) => updateProduct(product.id, "declaredVolumeCbm", event.target.value)} /><small>尺寸换算 {calculatedCbm.toFixed(4)}{product.declaredVolumeCbm ? ` · 差异 ${declaredDifference >= 0 ? "+" : ""}${declaredDifference.toFixed(1)}%` : ""}</small></td>
-                    <td><input type="number" step="0.1" value={product.weight} onChange={(event) => updateProduct(product.id, "weight", event.target.value)} /><small>kg</small></td>
-                    {mode === "mixed" ? <td><input type="number" value={product.quantity} onChange={(event) => updateProduct(product.id, "quantity", event.target.value)} /><small>箱</small></td> : null}
-                    {mode === "mixed" || isSingleProductSet ? <><td><input className="set-code-input" aria-label={`${product.sku} 套装编码`} value={product.setCode ?? ""} placeholder="留空=散箱" readOnly={mode === "single"} onChange={(event) => updateProduct(product.id, "setCode", event.target.value)} /><small>{mode === "single" ? "同一产品包装" : "同编码组成一套"}</small></td><td><input type="number" min="1" max="99" value={product.unitsPerSet || 1} onChange={(event) => updateProduct(product.id, "unitsPerSet", event.target.value)} /><small>箱 / 套</small></td></> : null}
-                    {mode === "mixed" ? <><td><input type="number" min="0" max="100" value={product.priority} onChange={(event) => updateProduct(product.id, "priority", event.target.value)} /><small>数值越高越先装</small></td><td><label className="switch" title="必装货物优先于塞货，并在缺装时单独告警"><input aria-label={`${product.sku} 必装`} type="checkbox" checked={product.mustLoad !== false} onChange={(event) => updateProduct(product.id, "mustLoad", event.target.checked)} /><span /></label></td></> : null}
+                    <td><input aria-label={`${product.sku} 毛重`} type="number" min="0" step="0.1" value={product.weight} onChange={(event) => updateProduct(product.id, "weight", event.target.value)} /><small>kg</small></td>
+                    {mode === "mixed" ? <td><input aria-label={`${product.sku} 需求箱数`} type="number" min="0" max="1000000" step="1" value={product.quantity} onChange={(event) => updateProduct(product.id, "quantity", event.target.value)} /><small>箱</small></td> : null}
+                    {mode === "mixed" || isSingleProductSet ? <><td><input className="set-code-input" aria-label={`${product.sku} 套装编码`} maxLength={80} value={product.setCode ?? ""} placeholder="留空=散箱" readOnly={mode === "single"} onChange={(event) => updateProduct(product.id, "setCode", event.target.value)} /><small>{mode === "single" ? "同一产品包装" : "同编码组成一套"}</small></td><td><input aria-label={`${product.sku} 套内数量`} type="number" min="1" max="99" step="1" value={product.unitsPerSet || 1} onChange={(event) => updateProduct(product.id, "unitsPerSet", event.target.value)} /><small>箱 / 套</small></td></> : null}
+                    {mode === "mixed" ? <><td><input aria-label={`${product.sku} 装载优先级`} type="number" min="0" max="100" step="1" value={product.priority} onChange={(event) => updateProduct(product.id, "priority", event.target.value)} /><small>数值越高越先装</small></td><td><label className="switch" title="必装货物优先于塞货，并在缺装时单独告警"><input aria-label={`${product.sku} 必装`} type="checkbox" checked={product.mustLoad !== false} onChange={(event) => updateProduct(product.id, "mustLoad", event.target.checked)} /><span /></label></td></> : null}
                     <td>
                       <select className="constraint-select" aria-label={`${product.sku} 方向规则`} value={product.rotationPolicy} onChange={(event) => updateProduct(product.id, "rotationPolicy", event.target.value)}>
                         <option value="fixed">固定方向</option>
@@ -1038,7 +1185,7 @@ export function PackingApp() {
                     </td>
                     <td><label className="switch" title="关闭后，其他箱体不能放在此产品上方"><input aria-label={`${product.sku} 可承托`} type="checkbox" checked={product.stackable} onChange={(event) => updateProduct(product.id, "stackable", event.target.checked)} /><span /></label></td>
                     <td><label className="switch" title="开启后该产品只允许摆放在集装箱地板"><input aria-label={`${product.sku} 必须底置`} type="checkbox" checked={product.bottomOnly === true} onChange={(event) => updateProduct(product.id, "bottomOnly", event.target.checked)} /><span /></label></td>
-                    <td><input type="number" min="0" max="99" value={product.maxStackLayers} onChange={(event) => updateProduct(product.id, "maxStackLayers", event.target.value)} /><small>0 = 不限</small></td>
+                    <td><input aria-label={`${product.sku} 层数上限`} type="number" min="0" max="99" step="1" value={product.maxStackLayers} onChange={(event) => updateProduct(product.id, "maxStackLayers", event.target.value)} /><small>0 = 不限</small></td>
                     <td>{mode === "mixed" || isSingleProductSet ? <button className="icon-button danger" aria-label={`删除 ${product.sku}`} onClick={() => removeProduct(product.id)} disabled={activeProducts.length <= 1}><Trash2 size={16} /></button> : null}</td>
                   </tr>
                 })}
@@ -1052,7 +1199,7 @@ export function PackingApp() {
 
         {result ? (
           <section className="result-section">
-            <div className="result-title"><div><span className="section-kicker">CALCULATED PLAN</span><h2>方案结果</h2></div><span className="run-meta">算法 {result.engineVersion} · {formatNumber(result.metrics.solveTimeMs, 1)} ms</span></div>
+            <div className="result-title"><div><span className="section-kicker">CALCULATED PLAN</span><h2>方案结果</h2></div><span className="run-meta">{result.strategy === "practical" ? `现场易执行 · 经验上限 ${(result.practicalTargetUtilization * 100).toFixed(1)}%` : "极限利用率"} · 算法 {result.engineVersion} · {formatNumber(result.metrics.solveTimeMs, 1)} ms</span></div>
             <div className="metrics-grid">
               <MetricCard
                 icon={<PackageOpen size={21} />}
@@ -1067,6 +1214,22 @@ export function PackingApp() {
               <MetricCard icon={<Layers3 size={21} />} label="体积利用率" value={formatPercent(result.metrics.volumeUtilization)} detail={`${(result.metrics.loadedVolume / 1_000_000_000).toFixed(2)} CBM`} tone="blue" />
               <MetricCard icon={<Weight size={21} />} label="已装毛重" value={`${formatNumber(result.metrics.grossWeight, 1)} kg`} detail={`载重利用 ${formatPercent(result.metrics.weightUtilization)}`} tone="amber" />
               <MetricCard icon={<ShieldCheck size={21} />} label="独立校验" value={result.validation.valid ? "全部通过" : `${result.validation.errors.length} 项异常`} detail="边界 · 重叠 · 堆叠 · 载重" tone={result.validation.valid ? "green" : "red"} />
+            </div>
+
+            {realA64MBenchmark && !dirty && result.setSummaries[0] ? (
+              <section className="real-benchmark" aria-label="SLM-A64M 真实装柜数据对比">
+                <div className="real-benchmark-copy"><span className="section-kicker">REAL LOADING BENCHMARK</span><strong>SLM-A64M 真实装柜校准</strong><small>若把表中 396 按套计算需约 126.7 CBM，超过 40HQ 物理柜容；系统按可行口径解释为 396 箱 = 198 套，请向工厂确认源表单位。</small></div>
+                <div><span>报价表实际</span><strong>{formatNumber(realA64MBenchmark.cartons)} 箱</strong><small>= {formatNumber(realA64MBenchmark.sets)} 套</small></div>
+                <div><span>当前方案</span><strong>{formatNumber(result.setSummaries[0].loadedCartons)} 箱</strong><small>= {formatNumber(result.setSummaries[0].loadedSets)} 套</small></div>
+                <div className={result.setSummaries[0].loadedSets === realA64MBenchmark.sets ? "matched" : "different"}><span>与现场差异</span><strong>{result.setSummaries[0].loadedSets === realA64MBenchmark.sets ? "完全一致" : `${result.setSummaries[0].loadedSets > realA64MBenchmark.sets ? "+" : ""}${formatNumber(result.setSummaries[0].loadedSets - realA64MBenchmark.sets)} 套`}</strong><small>{result.strategy === "practical" ? "按现场策略复算" : "理论方案仅作比较"}</small></div>
+              </section>
+            ) : null}
+
+            <div className="execution-summary" aria-label="现场执行复杂度">
+              <span><b>{result.metrics.executionComplexity.maxOrientationsPerSku}</b> 单 SKU 最大方向数</span>
+              <span><b>{result.metrics.executionComplexity.orientationVariants}</b> 全方案方向组合</span>
+              <span className={result.metrics.executionComplexity.partialSupportCount ? "attention" : "safe"}><b>{result.metrics.executionComplexity.partialSupportCount}</b> 局部支撑箱体</span>
+              <small>{result.strategy === "practical" ? "装载顺序已按支撑依赖和柜头→柜门重排" : "极限模式可能增加现场操作复杂度"}</small>
             </div>
 
             {result.setSummaries.length ? (
@@ -1129,7 +1292,7 @@ export function PackingApp() {
             <article id="coordinates" className="panel coordinate-panel">
               <div className="panel-head">
                 <div><span className="section-kicker">PLACEMENT DATA</span><h2>三维坐标与装载清单</h2><p>预览前 80 条；导出包含全部 {formatNumber(result.placements.length)} 条可视化摆放记录。</p></div>
-                <div className="panel-actions"><button className="button ghost small" onClick={printPlan}><Printer size={15} />打印指导书</button><button className="button ghost small" onClick={exportJson}><FileJson size={15} />方案 JSON</button><button className="button primary small" onClick={exportCsv}><FileSpreadsheet size={15} />导出坐标 CSV</button></div>
+                <div className="panel-actions"><button className="button ghost small" onClick={printPlan} disabled={!canExport}><Printer size={15} />打印指导书</button><button className="button ghost small" onClick={exportJson} disabled={!canExport}><FileJson size={15} />方案 JSON</button><button className="button primary small" onClick={exportCsv} disabled={!canExport}><FileSpreadsheet size={15} />导出坐标 CSV</button></div>
               </div>
               <div className="coordinate-wrap">
                 <table className="coordinate-table">
