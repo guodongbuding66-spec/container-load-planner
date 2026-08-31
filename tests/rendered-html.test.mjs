@@ -157,6 +157,7 @@ test("runs two independent solvers and exposes actionable strategy guidance", as
   assert.match(source, /className="strategy-comparison"/);
   assert.match(source, /现场算法 × 极限理论算法/);
   assert.match(source, /每次计算都会分别运行两套算法/);
+  assert.match(source, /主动调高现场目标 1% 后才解除硬封顶/);
   assert.match(source, /tippedCartonCount/);
   assert.match(views, /<button[\s\S]*?className=\{`projection-card/);
   assert.doesNotMatch(views, /role="button"/);

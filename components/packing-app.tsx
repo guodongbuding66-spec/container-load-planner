@@ -987,7 +987,7 @@ export function PackingApp() {
                 <button aria-pressed={strategy === "practical"} className={strategy === "practical" ? "active" : ""} onClick={() => { if (strategy !== "practical") { setStrategy("practical"); markDirty(); } }}><ShieldCheck size={16} />现场易执行</button>
                 <button aria-pressed={strategy === "maximum"} className={strategy === "maximum" ? "active" : ""} onClick={() => { if (strategy !== "maximum") { setStrategy("maximum"); markDirty(); } }}><Gauge size={16} />极限理论</button>
               </div>
-              <p className="strategy-help">每次计算都会分别运行两套算法并显示数量差距；这里选择本次三视图、3D、坐标和指导书采用哪一套布局。极限结果是高密度搜索参考，不是数学最优证明。</p>
+              <p className="strategy-help">每次计算都会分别运行两套算法并显示数量差距；这里选择本次三视图、3D、坐标和指导书采用哪一套布局。命中历史实装时，默认值守住旧基准；主动调高现场目标 1% 后才解除硬封顶。极限结果是高密度搜索参考，不是数学最优证明。</p>
               {strategy === "practical" ? (
                 <div className="practical-target">
                   <div><strong>现场经验装载率</strong><span>整层模块 · 固定方向 · 完整支撑</span></div>

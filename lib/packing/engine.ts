@@ -1781,7 +1781,10 @@ export function pack(request: PackingRequest): PackingResult {
   const effective = effectiveContainer(normalized.container, normalized.clearance);
   const effectiveVolume = effective.length * effective.width * effective.height;
   const preliminaryQuoteEstimate = estimateQuoteLoading(normalized, effectiveVolume, 0);
+  const defaultPracticalTarget = recommendedPracticalTarget(normalized.container);
+  const challengesHistoricalBaseline = normalized.practicalTargetUtilization! >= defaultPracticalTarget + 0.01 - EPS;
   const fieldPracticalSetLimit = normalized.strategy === "practical" &&
+    !challengesHistoricalBaseline &&
     preliminaryQuoteEstimate?.source === "historical-exact" &&
     preliminaryQuoteEstimate.physicallyPossibleByBounds
     ? preliminaryQuoteEstimate.predictedSets
@@ -1812,7 +1815,7 @@ export function pack(request: PackingRequest): PackingResult {
   const quoteEstimate = estimateQuoteLoading(normalized, effectiveVolume, physicalLoadedSets);
   const warnings = [...output.warnings];
   if (fieldPracticalSetLimit !== undefined && physicalLoadedSets >= fieldPracticalSetLimit) {
-    warnings.push(`现场模式已按相同包装的历史实装记录封顶为 ${fieldPracticalSetLimit.toLocaleString()} 套，避免输出虽能几何塞入、但超出现有工人作业基准的复杂方案。`);
+    warnings.push(`现场模式已按相同包装的历史实装记录封顶为 ${fieldPracticalSetLimit.toLocaleString()} 套；如需挑战理论搜索发现的安全增量，可将现场经验装载率主动调高到 ${(defaultPracticalTarget * 100 + 1).toFixed(1)}% 或以上后重新计算。`);
   }
 
   const normalizedProductMap = new Map(normalized.products.map((product) => [product.id, product]));
@@ -1970,10 +1973,16 @@ function buildStrategyComparison(practical: PackingResult, maximum: PackingResul
       maximumSnapshot.executionComplexity.partialSupportCount === 0 &&
       maximumSnapshot.executionComplexity.maxOrientationsPerSku <= 2
     ) {
+      const defaultTarget = recommendedPracticalTarget(practical.container);
+      const historicalBaselineActive = practical.quoteEstimate?.source === "historical-exact" &&
+        practical.quoteEstimate.physicallyPossibleByBounds &&
+        practical.practicalTargetUtilization <= defaultTarget + EPS;
       guidance.push({
         level: "review",
-        title: "可作为下一轮现场试装目标",
-        detail: "剩余差距主要来自经验装载率或历史实装封顶；建议每次提高 1–2 个百分点试装，确认门口操作空间后再保存为新的现场基准。",
+        title: historicalBaselineActive ? "可解除旧基准后进行现场试装" : "可作为下一轮现场试装目标",
+        detail: historicalBaselineActive
+          ? `当前按历史实装 ${practical.quoteEstimate!.predictedSets.toLocaleString()} ${displayUnit === "set" ? "套" : "箱"}封顶；将现场经验装载率从 ${(defaultTarget * 100).toFixed(1)}% 主动调高到 ${(defaultTarget * 100 + 1).toFixed(1)}% 或以上后，系统会解除旧基准硬封顶，并继续只输出不侧翻、完整承托的现场候选。`
+          : "剩余差距没有侧翻、局部承托或多方向风险；建议每次提高 1–2 个百分点试装，并在确认门口操作空间后记录新的实装数量。",
       });
     }
   }

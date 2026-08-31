@@ -97,4 +97,33 @@ describe("supplied real loading regression", () => {
       }
     }
   }, 60_000);
+
+  it("lets an explicit higher field target challenge a safe theoretical gain instead of staying hard-capped", () => {
+    const record = suppliedRecords.find((item) => item.models[0].includes("双箱"))!;
+    const container = CONTAINER_PRESETS.find((item) => item.id === "40hq")!;
+    const baseline = packWithComparison({
+      mode: "single",
+      strategy: "practical",
+      practicalTargetUtilization: recommendedPracticalTarget(container),
+      container,
+      clearance: 10,
+      products: productsForRecord(record),
+    });
+    const challenged = packWithComparison({
+      mode: "single",
+      strategy: "practical",
+      practicalTargetUtilization: recommendedPracticalTarget(container) + 0.01,
+      container,
+      clearance: 10,
+      products: productsForRecord(record),
+    });
+
+    expect(baseline.setSummaries[0].loadedSets).toBe(275);
+    expect(challenged.validation.valid).toBe(true);
+    expect(challenged.setSummaries[0].loadedSets).toBeGreaterThan(275);
+    expect(challenged.metrics.executionComplexity.tippedCartonCount).toBe(0);
+    expect(challenged.metrics.executionComplexity.partialSupportCount).toBe(0);
+    expect(challenged.strategyComparison!.maximum.displayQuantity)
+      .toBeGreaterThanOrEqual(challenged.strategyComparison!.practical.displayQuantity);
+  }, 60_000);
 });
