@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { GalaxyEcosystemMenu } from "../components/galaxy-ecosystem-menu";
 
 export const metadata: Metadata = {
   title: "外贸装柜智算",
@@ -20,8 +21,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <GalaxyEcosystemMenu />
+        {children}
+      </body>
     </html>
   );
 }
-
