@@ -20,7 +20,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.11.1";
+export const ENGINE_VERSION = "0.11.2";
 
 type Orientation = {
   dx: number;
@@ -2052,7 +2052,7 @@ function buildStrategyComparison(practical: PackingResult, maximum: PackingResul
  */
 export function packWithComparison(request: PackingRequest): PackingResult {
   const practical = pack({ ...request, strategy: "practical" });
-  let maximum = pack({
+  let maximumCapacity = pack({
     ...request,
     strategy: "maximum",
     // A single-product planning target limits the field instruction only. The
@@ -2060,8 +2060,8 @@ export function packWithComparison(request: PackingRequest): PackingResult {
     // actual capacity ceiling instead of repeating the same planning number.
     singleCartonLimit: request.mode === "single" ? undefined : request.singleCartonLimit,
   });
-  if (strategyDisplayQuantity(maximum) < strategyDisplayQuantity(practical)) {
-    maximum = {
+  if (strategyDisplayQuantity(maximumCapacity) < strategyDisplayQuantity(practical)) {
+    maximumCapacity = {
       ...practical,
       id: `plan-${Date.now()}-maximum-lower-bound`,
       strategy: "maximum",
@@ -2071,7 +2071,13 @@ export function packWithComparison(request: PackingRequest): PackingResult {
       ],
     };
   }
-  const comparison = buildStrategyComparison(practical, maximum);
-  const selected = packingStrategy(request) === "practical" ? practical : maximum;
-  return { ...selected, strategyComparison: comparison };
+  const comparison = buildStrategyComparison(practical, maximumCapacity);
+  const practicalPlan = { ...practical, strategyComparison: comparison };
+  const maximumPlan = { ...maximumCapacity, strategyComparison: comparison };
+  const strategyPlans: NonNullable<PackingResult["strategyPlans"]> = {
+    practical: practicalPlan,
+    maximum: maximumPlan,
+  };
+  const selected = packingStrategy(request) === "practical" ? practicalPlan : maximumPlan;
+  return { ...selected, strategyPlans };
 }

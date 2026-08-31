@@ -111,6 +111,9 @@ button:disabled { cursor: not-allowed; opacity: 0.48; }
 .strategy-heading strong { color: #31515a; font-size: 10px; }
 .strategy-heading span { color: #789096; font-size: 8px; }
 .strategy-segmented button { min-height: 42px; }
+.strategy-segmented button > span { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; line-height: 1.2; }
+.strategy-count { color: #84979c; font-size: 8px; font-weight: 650; }
+.strategy-segmented button.active .strategy-count { color: #3f7f87; }
 .strategy-help { margin: 8px 2px 0; color: #6d858c; font-size: 9px; line-height: 1.55; }
 .practical-target { min-width: 0; display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: center; gap: 10px; margin-top: 9px; padding: 10px; border: 1px solid rgba(75, 147, 156, .2); border-radius: 11px; background: rgba(231, 246, 247, .64); }
 .practical-target > div { min-width: 0; }
@@ -167,6 +170,9 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
 .overview-grid span { display: block; color: #7c8d92; font-size: 8px; }
 .overview-grid strong { display: block; margin-top: 4px; color: #28434b; font-size: 13px; }
 .calculate-button { width: 100%; height: 43px; margin-top: 12px; border: 0; border-radius: 9px; display: flex; align-items: center; justify-content: center; gap: 8px; color: #fff; background: linear-gradient(100deg, #2d7983, #3c939b); box-shadow: 0 8px 20px rgba(47,127,137,.2); font-size: 12px; font-weight: 800; }
+.calculation-actions { display: grid; gap: 8px; margin-top: 12px; }
+.calculation-actions .calculate-button { margin-top: 0; }
+.capacity-button { width: 100%; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(79, 126, 137, .2); border-radius: 10px; color: #5e777e; background: rgba(255, 255, 255, .58); font-size: 10px; font-weight: 750; }
 
 .viewer-column { width: 100%; min-width: 0; max-width: 100%; min-height: 626px; display: flex; flex-direction: column; border: 1px solid #dce6e8; border-radius: 14px; overflow: hidden; background: #fff; box-shadow: var(--shadow); scroll-margin-top: 112px; }
 .viewer-head { min-height: 64px; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid #e4ebec; }
@@ -369,6 +375,7 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
 .projection-card header span { margin-top: 3px; overflow: hidden; color: #84959a; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }
 .projection-card header b { min-width: max-content; border-radius: 999px; padding: 4px 6px; color: #3d747b; background: #eaf5f5; font-size: 8px; }
 .projection-card-meta { min-width: max-content; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.projection-card-meta > small { color: #789096; font-size: 7px; font-weight: 650; }
 .projection-card-meta > span { display: inline-flex !important; align-items: center; gap: 3px; margin: 0 !important; color: #5f7d83 !important; font-size: 7px !important; }
 .projection-card-action.active .projection-card-meta > span { color: #27727b !important; font-weight: 800; }
 .projection-canvas { width: 100%; height: 220px; display: block; background: linear-gradient(180deg, #f4f8f8, #f9fbfb); }
@@ -621,6 +628,7 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
   transition: transform 160ms var(--ease-out), border-color 180ms ease, background-color 180ms ease, box-shadow 180ms var(--ease-out);
 }
 .calculate-button { border: 1px solid rgba(38, 117, 128, 0.6); border-radius: 12px; transition: transform 160ms var(--ease-out), filter 180ms ease, box-shadow 180ms var(--ease-out); }
+.capacity-button { box-shadow: inset 0 1px rgba(255, 255, 255, .82); transition: transform 140ms var(--ease-out), border-color 160ms ease, background 160ms ease; }
 
 .viewer-column {
   position: relative;
@@ -768,6 +776,7 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
   .step-nav button:hover { color: #fff; background: rgba(255, 255, 255, 0.07); transform: translateX(2px); }
   .button:hover:not(:disabled) { border-color: rgba(75, 142, 152, 0.42); transform: translateY(-1px); box-shadow: 0 10px 24px rgba(29, 74, 85, 0.12), inset 0 1px rgba(255, 255, 255, 0.96); }
   .button.primary:hover:not(:disabled), .calculate-button:hover:not(:disabled) { filter: brightness(1.03); box-shadow: inset 0 1px rgba(255, 255, 255, 0.3), 0 15px 32px rgba(39, 119, 130, 0.28); }
+  .capacity-button:hover:not(:disabled) { border-color: rgba(53, 128, 139, .42); background: rgba(255, 255, 255, .82); transform: translateY(-1px); }
   .button.text-danger:hover:not(:disabled) { border-color: #f0d4d2; color: #9d4644; background: rgba(255, 245, 244, 0.88); box-shadow: none; }
   .reverse-apply-button:hover:not(:disabled) { border-color: rgba(46, 132, 143, 0.56); transform: translateY(-1px); box-shadow: 0 10px 24px rgba(40, 105, 114, 0.12), inset 0 1px rgba(255, 255, 255, 0.94); }
   .timeline-step-controls button:hover:not(:disabled) { border-color: rgba(75, 142, 152, 0.42); color: #27717a; background: #edf7f7; }

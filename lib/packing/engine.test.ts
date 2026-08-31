@@ -626,6 +626,19 @@ describe("packing engine", () => {
       sameQuantity: false,
     });
     expect(planned.validation.valid).toBe(true);
+    expect(planned.strategyPlans?.practical).toMatchObject({
+      strategy: "practical",
+      singleCartonLimit: 952,
+      metrics: { loadedCount: 952 },
+    });
+    expect(planned.strategyPlans?.maximum).toMatchObject({
+      strategy: "maximum",
+      metrics: { loadedCount: 1056 },
+    });
+    expect(planned.strategyPlans?.practical?.setSummaries[0].loadedSets).toBe(476);
+    expect(planned.strategyPlans?.maximum?.setSummaries[0].loadedSets).toBe(528);
+    expect(planned.strategyPlans?.practical?.validation.valid).toBe(true);
+    expect(planned.strategyPlans?.maximum?.validation.valid).toBe(true);
   }, 45_000);
 
   it("separates the confirmed A64M quotation quantity from the physical 3D plan", () => {

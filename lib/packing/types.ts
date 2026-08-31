@@ -228,6 +228,12 @@ export type PackingResult = {
   setSummaries: SetLoadSummary[];
   quoteEstimate?: QuoteEstimate;
   strategyComparison?: StrategyComparison;
+  /**
+   * Full independently solved coordinate plans cached by the worker. Nested
+   * plans intentionally omit their own strategyPlans value, so the payload is
+   * finite and switching tabs never triggers another solve.
+   */
+  strategyPlans?: Partial<Record<PackingStrategy, PackingResult>>;
   metrics: PackingMetrics;
   validation: ValidationReport;
   warnings: string[];

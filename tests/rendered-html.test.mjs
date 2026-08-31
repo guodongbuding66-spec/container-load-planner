@@ -156,9 +156,14 @@ test("runs two independent solvers and exposes actionable strategy guidance", as
   assert.match(engine, /function maximumMultiplierBySlabDp/);
   assert.match(source, /className="strategy-comparison"/);
   assert.match(source, /现场算法 × 极限理论算法/);
-  assert.match(source, /每次计算都会分别运行两套算法/);
-  assert.match(source, /主动调高现场目标 1% 后才解除硬封顶/);
+  assert.match(source, /计算一次会缓存两套完整坐标/);
+  assert.match(source, /switchStrategy\("practical"\)/);
+  assert.match(source, /switchStrategy\("maximum"\)/);
+  assert.match(source, /result\?\.strategyPlans\?\./);
   assert.match(source, /tippedCartonCount/);
+  assert.match(engine, /const strategyPlans/);
+  assert.match(engine, /practical: practicalPlan/);
+  assert.match(engine, /maximum: maximumPlan/);
   assert.match(views, /<button[\s\S]*?className=\{`projection-card/);
   assert.doesNotMatch(views, /role="button"/);
 });
@@ -171,16 +176,31 @@ test("separates utilization planning from the selected strategy capacity ceiling
   assert.match(source, /计划目标与装载上限/);
   assert.match(source, /计划量 ≠ 最大量/);
   assert.match(source, /按目标生成 \$\{formatNumber\(reversePlan\.recommendedDisplay\)\}/);
-  assert.match(source, /计算现场可执行上限/);
-  assert.match(source, /计算极限理论上限/);
+  assert.match(source, /singleCartonLimit: mode === "single" \? reversePlan\.recommendedTotal/);
+  assert.match(source, /现场方案预测/);
+  assert.match(source, /极限理论预测/);
   assert.match(source, /className="planning-comparison"/);
   assert.match(source, /className=\{`plan-context-chip/);
-  assert.match(source, /装载上限方案/);
+  assert.match(source, /极限理论方案/);
   assert.match(source, /实际体积 \{formatPercent\(result\.metrics\.volumeUtilization\)\} · 实际载重/);
   assert.match(source, /setTargetWeightPercent[\s\S]{0,180}markDirty\(\)/);
   assert.match(types, /singleCartonLimit\?: number/);
   assert.match(engine, /planningSetBound/);
   assert.match(engine, /singleCartonLimit: request\.mode === "single" \? undefined/);
+});
+
+test("uses sets as the primary visualization unit for a single multi-carton product", async () => {
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+  const views = await readFile(new URL("../components/orthographic-views.tsx", import.meta.url), "utf8");
+  const progress = await readFile(new URL("../lib/packing/progress.ts", import.meta.url), "utf8");
+
+  assert.match(source, /整套 \{formatNumber\(progressSummary\.completedSets\)\}/);
+  assert.match(source, /箱级进度 \{formatNumber\(progressSummary\.visibleCartons\)\}/);
+  assert.match(source, /当前第 \$\{formatNumber\(progressSummary\.currentSetNumber\)\} 套/);
+  assert.match(source, /primaryCountLabel=\{progressSummary\?\.isSetMode/);
+  assert.match(views, /<b>\{primaryCountLabel\}<\/b>/);
+  assert.match(views, /secondaryCountLabel/);
+  assert.match(progress, /A set is counted as completed only after every carton/);
 });
 
 test("ships Cloudflare security headers without blocking the static Next bootstrap or packing worker", async () => {

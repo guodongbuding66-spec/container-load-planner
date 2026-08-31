@@ -11,6 +11,8 @@ type Props = {
   result: PackingResult;
   visibleProducts: Set<string>;
   visibleCount: number;
+  primaryCountLabel: string;
+  secondaryCountLabel?: string;
   activeView: CameraView;
   onViewSelect: (view: ViewKind) => void;
 };
@@ -271,7 +273,15 @@ function occupiedExtent(boxes: PlacedBox[], kind: ViewKind) {
   );
 }
 
-export function OrthographicViews({ result, visibleProducts, visibleCount, activeView, onViewSelect }: Props) {
+export function OrthographicViews({
+  result,
+  visibleProducts,
+  visibleCount,
+  primaryCountLabel,
+  secondaryCountLabel,
+  activeView,
+  onViewSelect,
+}: Props) {
   const boxes = useMemo(
     () => result.placements.slice(0, Math.max(0, visibleCount)).filter((box) => visibleProducts.has(box.productId)),
     [result.placements, visibleCount, visibleProducts],
@@ -304,7 +314,8 @@ export function OrthographicViews({ result, visibleProducts, visibleCount, activ
             <header>
               <div><strong>{copy.title}</strong><span>{copy.axes} · {copy.description}</span></div>
               <div className="projection-card-meta">
-                <b>{boxes.length.toLocaleString()} 箱</b>
+                <b>{primaryCountLabel}</b>
+                {secondaryCountLabel ? <small>{secondaryCountLabel}</small> : null}
                 <span>{activeView === view.kind ? <Check size={11} /> : <Rotate3D size={11} />}{activeView === view.kind ? "3D 已同步" : "联动 3D"}</span>
               </div>
             </header>

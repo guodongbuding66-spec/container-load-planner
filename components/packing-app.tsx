@@ -21,7 +21,6 @@ import {
   Play,
   Plus,
   Printer,
-  Rotate3D,
   Save,
   ShieldCheck,
   Sparkles,
@@ -41,6 +40,7 @@ import {
   packWithComparison,
   recommendedPracticalTarget,
 } from "../lib/packing/engine";
+import { summarizePackingProgress } from "../lib/packing/progress";
 import {
   CONTAINER_PRESETS,
   DIMENSION_TEST_PRODUCTS,
@@ -104,6 +104,13 @@ function formatNumber(value: number, digits = 0) {
 
 function formatPercent(value: number) {
   return `${(value * 100).toFixed(1)}%`;
+}
+
+function strategyDisplayLabel(result: PackingResult) {
+  if (result.mode === "single" && result.setSummaries.length) {
+    return `${formatNumber(result.setSummaries[0].loadedSets)} 套（${formatNumber(result.metrics.loadedCount)} 箱）`;
+  }
+  return `${formatNumber(result.metrics.loadedCount)} 箱`;
 }
 
 function downloadFile(filename: string, content: string, type: string) {
@@ -463,6 +470,27 @@ export function PackingApp() {
     else if (status === "done") setMessage("输入已修改，请重新计算；旧方案已禁止导出");
   }, [status]);
 
+  const switchStrategy = (nextStrategy: PackingStrategy) => {
+    if (strategy === nextStrategy || status === "working") return;
+    setStrategy(nextStrategy);
+    const cachedPlan = !dirty ? result?.strategyPlans?.[nextStrategy] : undefined;
+    if (!cachedPlan || !result?.strategyPlans) {
+      if (result) markDirty();
+      return;
+    }
+    const strategyPlans = result.strategyPlans;
+    setResult({ ...cachedPlan, strategyPlans });
+    setVisibleProducts(new Set(cachedPlan.summaries.map((item) => item.productId)));
+    setPackingProgress(cachedPlan.placements.length);
+    setIsPlaying(false);
+    setCameraView("perspective");
+    setCameraProjection("perspective");
+    setStatus(cachedPlan.validation.valid ? "done" : "error");
+    setMessage(nextStrategy === "practical"
+      ? `已切换现场易执行方案：${strategyDisplayLabel(cachedPlan)}`
+      : `已切换极限理论方案：${strategyDisplayLabel(cachedPlan)}`);
+  };
+
   const activeProducts = useMemo(() => selectProductsForMode(products, mode), [mode, products]);
   const setInputSummaries = useMemo(() => summarizeSetInputs(activeProducts), [activeProducts]);
   const singleSetSummary = mode === "single" ? setInputSummaries[0] : undefined;
@@ -506,6 +534,29 @@ export function PackingApp() {
   const resultPlanningDelta = result && result.mode === "single"
     ? resultLoadedDisplay - reversePlan.recommendedDisplay
     : 0;
+  const progressSummary = useMemo(
+    () => result ? summarizePackingProgress(result, packingProgress) : null,
+    [packingProgress, result],
+  );
+  const cachedPracticalPlan = !dirty ? result?.strategyPlans?.practical : undefined;
+  const cachedMaximumPlan = !dirty ? result?.strategyPlans?.maximum : undefined;
+  const practicalPredictionDisplay = cachedPracticalPlan
+    ? cachedPracticalPlan.mode === "single" && cachedPracticalPlan.setSummaries.length
+      ? cachedPracticalPlan.setSummaries[0].loadedSets
+      : cachedPracticalPlan.metrics.loadedCount
+    : mode === "single" ? reversePlan.recommendedDisplay : null;
+  const maximumPredictionDisplay = cachedMaximumPlan
+    ? cachedMaximumPlan.mode === "single" && cachedMaximumPlan.setSummaries.length
+      ? cachedMaximumPlan.setSummaries[0].loadedSets
+      : cachedMaximumPlan.metrics.loadedCount
+    : null;
+  const selectedPredictionDisplay = strategy === "practical" ? practicalPredictionDisplay : maximumPredictionDisplay;
+  const selectedPredictionCartons = strategy === "maximum" && cachedMaximumPlan
+    ? cachedMaximumPlan.metrics.loadedCount
+    : reversePlan.recommendedTotal;
+  const selectedPredictionQuantities = strategy === "maximum" && cachedMaximumPlan
+    ? cachedMaximumPlan.summaries.map((item) => ({ productId: item.productId, sku: item.sku, suggestedQuantity: item.loaded }))
+    : reversePlan.quantities;
 
   const containerChoices = useMemo(() => [...CONTAINER_PRESETS, ...customContainers], [customContainers]);
   const hasKnownContainer = containerChoices.some((item) => item.id === container.id);
@@ -805,14 +856,24 @@ export function PackingApp() {
       setMessage(error);
       return;
     }
+    if (mode === "single" && reversePlan.recommendedTotal <= 0) {
+      setStatus("error");
+      setMessage("当前目标利用率无法倒推出有效装载量，请检查产品尺寸、重量与柜型。");
+      return;
+    }
     submitPacking({
       mode,
       strategy,
       practicalTargetUtilization: practicalTargetPercent / 100,
+      singleCartonLimit: mode === "single" ? reversePlan.recommendedTotal : undefined,
       container,
       clearance,
       products: activeProducts,
-    });
+    }, mode === "single"
+      ? strategy === "practical"
+        ? `正在按 ${targetVolumePercent}% 体积 / ${targetWeightPercent}% 载重目标生成 ${reversePlan.recommendedDisplay.toLocaleString()} ${reversePlan.displayUnit === "set" ? "套" : "箱"}现场方案…`
+        : "正在运行不受计划预留限制的极限理论算法，并同时生成现场对照方案…"
+      : "正在生成可行摆放并执行边界、重叠与载重校验…");
   };
 
   const applyReversePlan = () => {
@@ -1003,10 +1064,10 @@ export function PackingApp() {
               <div className="strategy-divider" />
               <div className="strategy-heading"><strong>独立求解算法</strong><span>{strategy === "practical" ? "工人可直接照做" : "高密度搜索参考"}</span></div>
               <div className="segmented strategy-segmented" role="group" aria-label="装柜执行策略">
-                <button aria-pressed={strategy === "practical"} className={strategy === "practical" ? "active" : ""} onClick={() => { if (strategy !== "practical") { setStrategy("practical"); markDirty(); } }}><ShieldCheck size={16} />现场易执行</button>
-                <button aria-pressed={strategy === "maximum"} className={strategy === "maximum" ? "active" : ""} onClick={() => { if (strategy !== "maximum") { setStrategy("maximum"); markDirty(); } }}><Gauge size={16} />极限理论</button>
+                <button aria-pressed={strategy === "practical"} className={strategy === "practical" ? "active" : ""} disabled={status === "working"} onClick={() => switchStrategy("practical")}><ShieldCheck size={16} /><span>现场易执行<small className="strategy-count">{practicalPredictionDisplay === null ? "待计算" : `${formatNumber(practicalPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</small></span></button>
+                <button aria-pressed={strategy === "maximum"} className={strategy === "maximum" ? "active" : ""} disabled={status === "working"} onClick={() => switchStrategy("maximum")}><Gauge size={16} /><span>极限理论<small className="strategy-count">{maximumPredictionDisplay === null ? "待计算" : `${formatNumber(maximumPredictionDisplay)} ${result?.strategyComparison?.displayUnit === "set" ? "套" : "箱"}`}</small></span></button>
               </div>
-              <p className="strategy-help">每次计算都会分别运行两套算法并显示数量差距；这里选择本次三视图、3D、坐标和指导书采用哪一套布局。命中历史实装时，默认值守住旧基准；主动调高现场目标 1% 后才解除硬封顶。极限结果是高密度搜索参考，不是数学最优证明。</p>
+              <p className="strategy-help">计算一次会缓存两套完整坐标；之后点击按钮会立即同步切换预测数量、三视图、3D、指标、导出与指导书。现场方案服从计划目标，极限方案不保留软目标余量。</p>
               {strategy === "practical" ? (
                 <div className="practical-target">
                   <div><strong>现场经验装载率</strong><span>整层模块 · 固定方向 · 完整支撑</span></div>
@@ -1079,17 +1140,19 @@ export function PackingApp() {
                   <small>{reversePlan.displayUnit === "set" && reversePlan.weightLimitedDisplay !== null ? `共 ${formatNumber(reversePlan.weightLimitedDisplay * reversePlan.cartonsPerSet)} 箱 · ` : ""}目标 {targetWeightPercent}%</small>
                 </div>
                 <div className="recommended">
-                  <span>{mode === "single" ? "稳健计划量" : "综合建议"}</span>
-                  <strong>{formatNumber(reversePlan.recommendedDisplay)} {reversePlan.displayUnit === "set" ? "套" : "箱"}</strong>
-                  <small>{reversePlan.displayUnit === "set" ? `共 ${formatNumber(reversePlan.recommendedTotal)} 箱 · ` : ""}{reversePlan.limitingFactor === "volume" ? "受体积目标限制" : reversePlan.limitingFactor === "weight" ? "受载重目标限制" : "两个目标同时达到"}</small>
+                  <span>{mode === "single" ? strategy === "practical" ? "现场方案预测" : "极限理论预测" : "综合建议"}</span>
+                  <strong>{selectedPredictionDisplay === null ? "待计算" : `${formatNumber(selectedPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</strong>
+                  <small>{mode === "single" && strategy === "maximum"
+                    ? selectedPredictionDisplay === null ? "运行一次后显示独立极限结果" : `共 ${formatNumber(selectedPredictionCartons)} 箱 · 不受 ${targetVolumePercent}% / ${targetWeightPercent}% 计划预留限制`
+                    : `${reversePlan.displayUnit === "set" ? `共 ${formatNumber(reversePlan.recommendedTotal)} 箱 · ` : ""}${reversePlan.limitingFactor === "volume" ? "受体积目标限制" : reversePlan.limitingFactor === "weight" ? "受载重目标限制" : "两个目标同时达到"}`}</small>
                 </div>
               </div>
               <div className="ratio-chips" aria-label="各 SKU 建议箱数">
-                {reversePlan.quantities.map((item) => <span key={item.productId}><b>{item.sku}</b>{formatNumber(item.suggestedQuantity)} 箱</span>)}
+                {selectedPredictionQuantities.map((item) => <span key={item.productId}><b>{item.sku}</b>{formatNumber(item.suggestedQuantity)} 箱</span>)}
               </div>
               <button className="reverse-apply-button" onClick={applyReversePlan} disabled={status === "working" || reversePlan.recommendedTotal <= 0}><ShieldCheck size={17} />{mode === "single" ? `按目标生成 ${formatNumber(reversePlan.recommendedDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}现场方案` : "应用建议数量并验证真实装载"}</button>
               <p className="reverse-note">{mode === "single"
-                ? "上方按钮严格按体积/载重目标限制计划数量；下方主按钮计算当前所选算法的可装上限。两种结果用途不同，系统会在结果区并排显示差额。"
+                ? "现场易执行显示目标约束后的工人方案；极限理论显示不留软余量的独立搜索上限。切换算法会同步切换整张方案。"
                 : "倒推先保持当前 SKU 数量比例；箱型方向、门洞和碎片空间会影响最终实际利用率，应用后将用装箱算法重新验证。"}</p>
             </article>
 
@@ -1101,14 +1164,18 @@ export function PackingApp() {
                 <div><span>{mode === "single" ? isSingleProductSet ? "每套 CBM" : "单件 CBM" : "需求 CBM"}</span><strong>{inputVolume.toFixed(2)}</strong></div>
                 <div><span>{mode === "single" ? isSingleProductSet ? "每套毛重" : "单件毛重" : "需求毛重"}</span><strong>{formatNumber(inputWeight, 1)} kg</strong></div>
               </div>
-              <button className="calculate-button" onClick={calculate} disabled={status === "working"}>
-                {status === "working" ? <LoaderCircle className="spin" size={19} /> : <Rotate3D size={19} />}
-                {status === "working"
-                  ? "正在计算…"
-                  : mode === "single"
-                    ? strategy === "practical" ? "计算现场可执行上限" : "计算极限理论上限"
-                    : "开始计算装柜方案"}
-              </button>
+              <div className="calculation-actions">
+                <button className="calculate-button" onClick={calculate} disabled={status === "working" || (mode === "single" && reversePlan.recommendedTotal <= 0)}>
+                  {status === "working" ? <LoaderCircle className="spin" size={19} /> : strategy === "maximum" ? <Gauge size={19} /> : <ShieldCheck size={19} />}
+                  {status === "working"
+                    ? "正在计算…"
+                    : mode === "single"
+                      ? strategy === "practical"
+                        ? `按目标生成 ${formatNumber(reversePlan.recommendedDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}现场方案`
+                        : "计算极限理论上限"
+                      : "开始计算装柜方案"}
+                </button>
+              </div>
             </article>
           </div>
 
@@ -1116,7 +1183,7 @@ export function PackingApp() {
             <div className="viewer-head">
               <div><span className="section-kicker">2D + LIVE 3D</span><h2>装柜方案联动复核</h2></div>
               <div className="viewer-status-group">
-                {result?.mode === "single" && !dirty ? <div className={`plan-context-chip ${resultPlanLimitDisplay !== null ? "planned" : "capacity"}`}><b>{resultPlanLimitDisplay !== null ? "目标计划方案" : "装载上限方案"}</b><span>{formatNumber(resultLoadedDisplay)} {resultDisplayUnit === "set" ? "套" : "箱"} · 计划 {formatNumber(reversePlan.recommendedDisplay)} {reversePlan.displayUnit === "set" ? "套" : "箱"}{resultPlanningDelta ? ` · ${resultPlanningDelta > 0 ? "+" : "−"}${formatNumber(Math.abs(resultPlanningDelta))}` : " · 一致"}</span></div> : null}
+                {result?.mode === "single" && !dirty ? <div className={`plan-context-chip ${result.strategy === "maximum" ? "capacity" : "planned"}`}><b>{result.strategy === "maximum" ? "极限理论方案" : "现场计划方案"}</b><span>{formatNumber(resultLoadedDisplay)} {resultDisplayUnit === "set" ? "套" : "箱"} · 现场计划 {formatNumber(reversePlan.recommendedDisplay)} {reversePlan.displayUnit === "set" ? "套" : "箱"}{resultPlanningDelta ? ` · ${resultPlanningDelta > 0 ? "+" : "−"}${formatNumber(Math.abs(resultPlanningDelta))}` : " · 一致"}</span></div> : null}
                 <div className="validation-chip">{result?.validation.valid && !dirty ? <CheckCircle2 size={16} /> : <ShieldCheck size={16} />}{result ? dirty ? "结果已过期" : result.validation.valid ? "布局校验通过" : "发现异常" : "等待计算"}</div>
               </div>
             </div>
@@ -1124,8 +1191,10 @@ export function PackingApp() {
               <>
                 <div className="packing-timeline">
                   <button className="timeline-play" onClick={togglePackingPlayback} disabled={!result.placements.length} aria-label={isPlaying ? "暂停码垛动画" : "播放码垛动画"}>{isPlaying ? <Pause size={15} /> : <Play size={15} />}</button>
-                  <div className="timeline-count"><strong>{formatNumber(packingProgress)} / {formatNumber(result.placements.length)}</strong><span>码垛进度 · {result.placements.length ? Math.round((packingProgress / result.placements.length) * 100) : 0}%</span></div>
-                  <input aria-label="码垛进度" type="range" min="0" max={Math.max(1, result.placements.length)} value={packingProgress} onChange={(event) => { setIsPlaying(false); setPackingProgress(numberValue(event.target.value)); }} />
+                  <div className="timeline-count">{progressSummary?.isSetMode
+                    ? <><strong>整套 {formatNumber(progressSummary.completedSets)} / {formatNumber(progressSummary.totalSets)} 套</strong><span>箱级进度 {formatNumber(progressSummary.visibleCartons)} / {formatNumber(progressSummary.totalCartons)} 箱 · {result.placements.length ? Math.round((packingProgress / result.placements.length) * 100) : 0}%</span></>
+                    : <><strong>{formatNumber(packingProgress)} / {formatNumber(result.placements.length)} 箱</strong><span>码垛进度 · {result.placements.length ? Math.round((packingProgress / result.placements.length) * 100) : 0}%</span></>}</div>
+                  <input aria-label={progressSummary?.isSetMode ? "套装箱级码垛进度" : "码垛进度"} type="range" min="0" max={Math.max(1, result.placements.length)} value={packingProgress} onChange={(event) => { setIsPlaying(false); setPackingProgress(numberValue(event.target.value)); }} />
                   <div className="timeline-step-controls" aria-label="逐箱码垛控制">
                     <button onClick={() => movePackingProgress(-1)} disabled={packingProgress <= 0} aria-label="上一步"><ChevronLeft size={14} /></button>
                     <select aria-label="播放速度" value={playbackSpeed} onChange={(event) => setPlaybackSpeed(numberValue(event.target.value))}>
@@ -1138,19 +1207,25 @@ export function PackingApp() {
                   <button className="timeline-all" onClick={() => { setIsPlaying(false); setPackingProgress(result.placements.length); }}>显示全部</button>
                 </div>
                 <div className="timeline-current" aria-live="polite">
-                  {packingProgress > 0 && result.placements[packingProgress - 1]
-                    ? <><span>当前第 {formatNumber(packingProgress)} 箱</span><strong>{result.placements[packingProgress - 1].sku}{result.placements[packingProgress - 1].setCode ? ` · ${result.placements[packingProgress - 1].setCode} 第 ${result.placements[packingProgress - 1].setNumber} 套 / 套内第 ${result.placements[packingProgress - 1].setItemNumber} 箱` : ""}</strong><b>坐标 {formatNumber(result.placements[packingProgress - 1].x)} / {formatNumber(result.placements[packingProgress - 1].y)} / {formatNumber(result.placements[packingProgress - 1].z)} mm · 第 {result.placements[packingProgress - 1].layer} 层</b></>
+                  {progressSummary?.currentPlacement
+                    ? <><span>{progressSummary.isSetMode && progressSummary.currentSetNumber
+                      ? `当前第 ${formatNumber(progressSummary.currentSetNumber)} 套 · 套内 ${formatNumber(progressSummary.currentSetItemNumber ?? 1)}/${formatNumber(progressSummary.currentSetCartons ?? 1)} 箱`
+                      : `当前第 ${formatNumber(progressSummary.visibleCartons)} 箱`}</span><strong>{progressSummary.currentPlacement.sku}{progressSummary.currentPlacement.setCode ? ` · ${progressSummary.currentPlacement.setCode}` : ""}</strong><b>坐标 {formatNumber(progressSummary.currentPlacement.x)} / {formatNumber(progressSummary.currentPlacement.y)} / {formatNumber(progressSummary.currentPlacement.z)} mm · 第 {progressSummary.currentPlacement.layer} 层</b></>
                     : <><span>准备开始</span><strong>尚未装入箱体</strong><b>点击播放或下一步查看装柜顺序</b></>}
                 </div>
                 <section className="viewer-projections" aria-label="三视图相机控制">
                   <div className="viewer-projection-head">
                     <div><span className="section-kicker">2D CHECK</span><strong>三视图同步复核</strong><small>点击任意视图，三维相机会切换为真正的正交投影并平滑旋转到对应方向</small></div>
-                    <span className="projection-progress">当前 {formatNumber(packingProgress)} / {formatNumber(result.placements.length)} 箱</span>
+                    <span className="projection-progress">{progressSummary?.isSetMode
+                      ? `当前整套 ${formatNumber(progressSummary.completedSets)} / ${formatNumber(progressSummary.totalSets)} 套 · ${formatNumber(progressSummary.visibleCartons)} / ${formatNumber(progressSummary.totalCartons)} 箱`
+                      : `当前 ${formatNumber(packingProgress)} / ${formatNumber(result.placements.length)} 箱`}</span>
                   </div>
                   <OrthographicViews
                     result={result}
                     visibleProducts={visibleProducts}
                     visibleCount={packingProgress}
+                    primaryCountLabel={progressSummary?.isSetMode ? `${formatNumber(progressSummary.completedSets)} 套` : `${formatNumber(packingProgress)} 箱`}
+                    secondaryCountLabel={progressSummary?.isSetMode ? `${formatNumber(progressSummary.visibleCartons)} 箱` : undefined}
                     activeView={cameraProjection === "orthographic" ? cameraView : "free"}
                     onViewSelect={selectOrthographicView}
                   />
@@ -1184,7 +1259,7 @@ export function PackingApp() {
                   <button key={item.productId} className={visibleProducts.has(item.productId) ? "" : "muted"} onClick={() => toggleProductVisibility(item.productId)}>
                     <i style={{ background: item.color }} />
                     <span>{item.sku}</span>
-                    <b>{item.loaded}</b>
+                    <b>{formatNumber(item.loaded)} 箱</b>
                   </button>
                 ))}
               </div>
