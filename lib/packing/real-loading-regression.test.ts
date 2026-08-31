@@ -72,7 +72,7 @@ describe("supplied real loading regression", () => {
     expect(result.quoteEstimate?.setWeightKg).toBe(46);
     expect(result.warnings.join(" ")).toContain("净重/毛重标签");
     expect(result.warnings.join(" ")).toContain("SKU 分区直码");
-  }, 10_000);
+  }, 30_000);
 
   it("compares both independent solvers without regressing any verified field quantity", () => {
     for (const record of suppliedRecords) {

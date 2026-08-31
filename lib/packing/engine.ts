@@ -20,7 +20,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.11.0";
+export const ENGINE_VERSION = "0.11.1";
 
 type Orientation = {
   dx: number;
@@ -70,6 +70,12 @@ function assertValidRequest(request: PackingRequest) {
     (!Number.isFinite(request.practicalTargetUtilization) || request.practicalTargetUtilization < 0.5 || request.practicalTargetUtilization > 0.95)
   ) {
     throw new Error("现场经验装载率必须在 50%–95% 之间。");
+  }
+  if (
+    request.singleCartonLimit !== undefined &&
+    (!Number.isFinite(request.singleCartonLimit) || request.singleCartonLimit <= 0)
+  ) {
+    throw new Error("单品计划箱数上限必须是大于 0 的有限数值。");
   }
   const containerValues = [
     request.container.length,
@@ -934,10 +940,19 @@ function packSingleSet(
   const historicalBound = fieldPracticalSetLimit === undefined
     ? Number.MAX_SAFE_INTEGER
     : Math.max(0, Math.floor(fieldPracticalSetLimit));
+  const planningSetBound = request.singleCartonLimit === undefined
+    ? Number.MAX_SAFE_INTEGER
+    : Math.max(0, Math.floor(request.singleCartonLimit / cartonsPerSet));
   const fieldCalibratedVolumeBound = fieldPracticalSetLimit === undefined
     ? volumeBound
     : Math.max(volumeBound, historicalBound);
-  const requestedSets = Math.max(0, Math.min(fieldCalibratedVolumeBound, weightBound, visibleBound, historicalBound));
+  const requestedSets = Math.max(0, Math.min(
+    fieldCalibratedVolumeBound,
+    weightBound,
+    visibleBound,
+    historicalBound,
+    planningSetBound,
+  ));
 
   if (requestedSets <= 0) {
     return { placements: [] as PlacedBox[], warnings: ["当前柜型无法装入一套完整的多箱产品。"] };
@@ -1147,6 +1162,9 @@ function packSingle(request: PackingRequest, container: EffectiveContainer, fiel
   const historicalBound = strategy === "practical" && fieldPracticalSetLimit !== undefined
     ? Math.max(0, Math.floor(fieldPracticalSetLimit))
     : Number.MAX_SAFE_INTEGER;
+  const planningBound = request.singleCartonLimit === undefined
+    ? Number.MAX_SAFE_INTEGER
+    : Math.max(0, Math.floor(request.singleCartonLimit));
   const practicalBound = strategy === "practical" && fieldPracticalSetLimit !== undefined
     ? Math.max(targetPracticalBound, historicalBound)
     : targetPracticalBound;
@@ -1159,6 +1177,7 @@ function packSingle(request: PackingRequest, container: EffectiveContainer, fiel
   const slabUpperBound = Math.min(
     strategy === "practical" ? practicalBound : physicalVolumeBound,
     historicalBound,
+    planningBound,
     weightBoundForProduct,
     MAX_VISIBLE_PLACEMENTS,
   );
@@ -1169,7 +1188,7 @@ function packSingle(request: PackingRequest, container: EffectiveContainer, fiel
         request,
         container,
         product,
-        Math.min(practicalBound, historicalBound, weightBoundForProduct, MAX_VISIBLE_PLACEMENTS),
+        Math.min(practicalBound, historicalBound, planningBound, weightBoundForProduct, MAX_VISIBLE_PLACEMENTS),
       )
     : null;
   for (const orientation of orientationsForStrategy(product, container, strategy)) {
@@ -1184,7 +1203,7 @@ function packSingle(request: PackingRequest, container: EffectiveContainer, fiel
         : physicalLayers;
     const geometric = nx * ny * nz;
     const weightBound = product.weight > 0 ? Math.floor(request.container.maxWeight / product.weight) : geometric;
-    const count = Math.min(geometric, weightBound, practicalBound, historicalBound);
+    const count = Math.min(geometric, weightBound, practicalBound, historicalBound, planningBound);
     if (!best || count > best.count) best = { orientation, nx, ny, nz, count };
   }
 
@@ -1766,6 +1785,9 @@ export function pack(request: PackingRequest): PackingResult {
     ...request,
     strategy: packingStrategy(request),
     practicalTargetUtilization: practicalTarget(request),
+    singleCartonLimit: request.mode === "single" && request.singleCartonLimit !== undefined
+      ? Math.max(1, Math.floor(request.singleCartonLimit))
+      : undefined,
     clearance: Math.max(0, request.clearance || 0),
     container: {
       ...request.container,
@@ -1814,6 +1836,14 @@ export function pack(request: PackingRequest): PackingResult {
     : 0;
   const quoteEstimate = estimateQuoteLoading(normalized, effectiveVolume, physicalLoadedSets);
   const warnings = [...output.warnings];
+  if (normalized.mode === "single" && normalized.singleCartonLimit !== undefined) {
+    const plannedQuantity = setSummaries.length
+      ? Math.floor(normalized.singleCartonLimit / setSummaries[0].cartonsPerSet)
+      : normalized.singleCartonLimit;
+    warnings.unshift(
+      `本次按利用率目标生成计划方案，主动封顶为 ${plannedQuantity.toLocaleString()} ${setSummaries.length ? "套" : "箱"}；这不是当前柜型的物理最大值。`,
+    );
+  }
   if (fieldPracticalSetLimit !== undefined && physicalLoadedSets >= fieldPracticalSetLimit) {
     warnings.push(`现场模式已按相同包装的历史实装记录封顶为 ${fieldPracticalSetLimit.toLocaleString()} 套；如需挑战理论搜索发现的安全增量，可将现场经验装载率主动调高到 ${(defaultPracticalTarget * 100 + 1).toFixed(1)}% 或以上后重新计算。`);
   }
@@ -1874,6 +1904,7 @@ export function pack(request: PackingRequest): PackingResult {
     mode: normalized.mode,
     strategy: normalized.strategy!,
     practicalTargetUtilization: normalized.practicalTargetUtilization!,
+    singleCartonLimit: normalized.singleCartonLimit,
     engineVersion: ENGINE_VERSION,
     container: normalized.container,
     clearance: normalized.clearance,
@@ -1923,7 +1954,18 @@ function buildStrategyComparison(practical: PackingResult, maximum: PackingResul
   const maximumSnapshot = comparisonSnapshot(maximum);
   const gainQuantity = Math.max(0, maximumSnapshot.displayQuantity - practicalSnapshot.displayQuantity);
   const gainRatio = practicalSnapshot.displayQuantity > 0 ? gainQuantity / practicalSnapshot.displayQuantity : 0;
-  const guidance: StrategyComparison["guidance"] = [practical.mode === "single"
+  const guidance: StrategyComparison["guidance"] = [];
+  if (practical.mode === "single" && practical.singleCartonLimit !== undefined) {
+    const plannedQuantity = displayUnit === "set" && practical.setSummaries.length
+      ? Math.floor(practical.singleCartonLimit / practical.setSummaries[0].cartonsPerSet)
+      : practical.singleCartonLimit;
+    guidance.push({
+      level: "adopted",
+      title: "现场方案已按利用率计划量封顶",
+      detail: `本次主动限制为 ${plannedQuantity.toLocaleString()} ${displayUnit === "set" ? "套" : "箱"}；极限算法仍独立计算未受计划目标限制的容量上限，两个数字用途不同。`,
+    });
+  }
+  guidance.push(practical.mode === "single"
     ? {
         level: "adopted",
         title: "已用理论搜索反向指导现场方案",
@@ -1933,7 +1975,7 @@ function buildStrategyComparison(practical: PackingResult, maximum: PackingResul
         level: "adopted",
         title: "已用理论多起点顺序扩展现场搜索",
         detail: "现场求解器会采用理论搜索发现的多种 SKU 排序线索，但每个候选都会按不侧翻、最多两种水平朝向和 99.5% 承托重新摆放与校验，不直接复制理论坐标。",
-      }];
+      });
 
   if (gainQuantity === 0) {
     guidance.push({
@@ -1979,8 +2021,12 @@ function buildStrategyComparison(practical: PackingResult, maximum: PackingResul
         practical.practicalTargetUtilization <= defaultTarget + EPS;
       guidance.push({
         level: "review",
-        title: historicalBaselineActive ? "可解除旧基准后进行现场试装" : "可作为下一轮现场试装目标",
-        detail: historicalBaselineActive
+        title: practical.singleCartonLimit !== undefined
+          ? "计划量之外保留为安全余量"
+          : historicalBaselineActive ? "可解除旧基准后进行现场试装" : "可作为下一轮现场试装目标",
+        detail: practical.singleCartonLimit !== undefined
+          ? "当前差距首先来自主动设置的体积/载重计划上限，不是算法自相矛盾；需要冲量时请改用“计算所选策略上限”另生成方案。"
+          : historicalBaselineActive
           ? `当前按历史实装 ${practical.quoteEstimate!.predictedSets.toLocaleString()} ${displayUnit === "set" ? "套" : "箱"}封顶；将现场经验装载率从 ${(defaultTarget * 100).toFixed(1)}% 主动调高到 ${(defaultTarget * 100 + 1).toFixed(1)}% 或以上后，系统会解除旧基准硬封顶，并继续只输出不侧翻、完整承托的现场候选。`
           : "剩余差距没有侧翻、局部承托或多方向风险；建议每次提高 1–2 个百分点试装，并在确认门口操作空间后记录新的实装数量。",
       });
@@ -2006,7 +2052,14 @@ function buildStrategyComparison(practical: PackingResult, maximum: PackingResul
  */
 export function packWithComparison(request: PackingRequest): PackingResult {
   const practical = pack({ ...request, strategy: "practical" });
-  let maximum = pack({ ...request, strategy: "maximum" });
+  let maximum = pack({
+    ...request,
+    strategy: "maximum",
+    // A single-product planning target limits the field instruction only. The
+    // theoretical branch remains uncapped so the comparison preserves the
+    // actual capacity ceiling instead of repeating the same planning number.
+    singleCartonLimit: request.mode === "single" ? undefined : request.singleCartonLimit,
+  });
   if (strategyDisplayQuantity(maximum) < strategyDisplayQuantity(practical)) {
     maximum = {
       ...practical,

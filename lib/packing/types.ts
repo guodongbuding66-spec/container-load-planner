@@ -39,6 +39,13 @@ export type PackingRequest = {
   mode: PackingMode;
   strategy?: PackingStrategy;
   practicalTargetUtilization?: number;
+  /**
+   * Optional planning cap for single-product calculations, expressed as the
+   * total number of cartons. Multi-carton products are rounded down to whole
+   * sets before packing. Omit this value when calculating the selected
+   * strategy's capacity ceiling.
+   */
+  singleCartonLimit?: number;
   container: ContainerSpec;
   clearance: number;
   products: ProductInput[];
@@ -212,6 +219,7 @@ export type PackingResult = {
   mode: PackingMode;
   strategy: PackingStrategy;
   practicalTargetUtilization: number;
+  singleCartonLimit?: number;
   engineVersion: string;
   container: ContainerSpec;
   clearance: number;

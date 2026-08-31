@@ -494,6 +494,18 @@ export function PackingApp() {
     ),
     [activeProducts, clearance, container, mode, practicalTargetPercent, strategy, targetVolumePercent, targetWeightPercent],
   );
+  const resultDisplayUnit = result?.mode === "single" && result.setSummaries.length ? "set" : "carton";
+  const resultLoadedDisplay = result
+    ? resultDisplayUnit === "set" ? result.setSummaries[0]?.loadedSets ?? 0 : result.metrics.loadedCount
+    : 0;
+  const resultPlanLimitDisplay = result?.singleCartonLimit !== undefined
+    ? resultDisplayUnit === "set"
+      ? Math.floor(result.singleCartonLimit / (result.setSummaries[0]?.cartonsPerSet ?? 1))
+      : result.singleCartonLimit
+    : null;
+  const resultPlanningDelta = result && result.mode === "single"
+    ? resultLoadedDisplay - reversePlan.recommendedDisplay
+    : 0;
 
   const containerChoices = useMemo(() => [...CONTAINER_PRESETS, ...customContainers], [customContainers]);
   const hasKnownContainer = containerChoices.some((item) => item.id === container.id);
@@ -804,6 +816,11 @@ export function PackingApp() {
   };
 
   const applyReversePlan = () => {
+    if (reversePlan.recommendedTotal <= 0) {
+      setStatus("error");
+      setMessage("当前目标利用率无法倒推出有效箱数，请检查产品尺寸、重量与柜型。");
+      return;
+    }
     if (mode === "single") {
       const error = validateInputs();
       if (error) {
@@ -811,17 +828,19 @@ export function PackingApp() {
         setMessage(error);
         return;
       }
+      setStrategy("practical");
       submitPacking(
-        { mode: "single", strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts },
-        isSingleProductSet
-          ? "单品多箱结构无需填写需求箱数，正在计算最大完整套数…"
-          : "单品模式无需填写需求数量，正在计算最大可装箱数…",
+        {
+          mode: "single",
+          strategy: "practical",
+          practicalTargetUtilization: practicalTargetPercent / 100,
+          singleCartonLimit: reversePlan.recommendedTotal,
+          container,
+          clearance,
+          products: activeProducts,
+        },
+        `正在按 ${targetVolumePercent}% 体积 / ${targetWeightPercent}% 载重目标生成 ${reversePlan.recommendedDisplay.toLocaleString()} ${reversePlan.displayUnit === "set" ? "套" : "箱"}现场方案…`,
       );
-      return;
-    }
-    if (reversePlan.recommendedTotal <= 0) {
-      setStatus("error");
-      setMessage("当前目标利用率无法倒推出有效箱数，请检查产品尺寸、重量与柜型。");
       return;
     }
     const suggestedByProduct = new Map(reversePlan.quantities.map((item) => [item.productId, item.suggestedQuantity]));
@@ -1039,14 +1058,14 @@ export function PackingApp() {
             </article>
 
             <article className="panel reverse-panel">
-              <div className="panel-head"><div><span className="section-kicker">03</span><h2>目标利用率倒推</h2></div><span className="pill">按当前 SKU 比例</span></div>
+              <div className="panel-head"><div><span className="section-kicker">03</span><h2>{mode === "single" ? "计划目标与装载上限" : "目标利用率倒推"}</h2></div><span className="pill">{mode === "single" ? "计划量 ≠ 最大量" : "按当前 SKU 比例"}</span></div>
               <div className="target-control">
                 <div><Layers3 size={16} /><span><strong>目标体积利用率</strong><small>按有效柜内容积倒推</small></span></div>
-                <div className="target-input"><input aria-label="目标体积利用率滑块" type="range" min="1" max="100" value={targetVolumePercent} onChange={(event) => setTargetVolumePercent(numberValue(event.target.value))} /><input aria-label="目标体积利用率" type="number" min="1" max="100" value={targetVolumePercent} onChange={(event) => setTargetVolumePercent(Math.min(100, Math.max(1, numberValue(event.target.value))))} /><b>%</b></div>
+                <div className="target-input"><input aria-label="目标体积利用率滑块" type="range" min="1" max="100" value={targetVolumePercent} onChange={(event) => { setTargetVolumePercent(numberValue(event.target.value)); markDirty(); }} /><input aria-label="目标体积利用率" type="number" min="1" max="100" value={targetVolumePercent} onChange={(event) => { setTargetVolumePercent(Math.min(100, Math.max(1, numberValue(event.target.value)))); markDirty(); }} /><b>%</b></div>
               </div>
               <div className="target-control">
                 <div><Weight size={16} /><span><strong>目标载重利用率</strong><small>按柜型最大载重倒推</small></span></div>
-                <div className="target-input"><input aria-label="目标载重利用率滑块" type="range" min="1" max="100" value={targetWeightPercent} onChange={(event) => setTargetWeightPercent(numberValue(event.target.value))} /><input aria-label="目标载重利用率" type="number" min="1" max="100" value={targetWeightPercent} onChange={(event) => setTargetWeightPercent(Math.min(100, Math.max(1, numberValue(event.target.value))))} /><b>%</b></div>
+                <div className="target-input"><input aria-label="目标载重利用率滑块" type="range" min="1" max="100" value={targetWeightPercent} onChange={(event) => { setTargetWeightPercent(numberValue(event.target.value)); markDirty(); }} /><input aria-label="目标载重利用率" type="number" min="1" max="100" value={targetWeightPercent} onChange={(event) => { setTargetWeightPercent(Math.min(100, Math.max(1, numberValue(event.target.value)))); markDirty(); }} /><b>%</b></div>
               </div>
               <div className="reverse-count-grid">
                 <div>
@@ -1060,7 +1079,7 @@ export function PackingApp() {
                   <small>{reversePlan.displayUnit === "set" && reversePlan.weightLimitedDisplay !== null ? `共 ${formatNumber(reversePlan.weightLimitedDisplay * reversePlan.cartonsPerSet)} 箱 · ` : ""}目标 {targetWeightPercent}%</small>
                 </div>
                 <div className="recommended">
-                  <span>综合建议</span>
+                  <span>{mode === "single" ? "稳健计划量" : "综合建议"}</span>
                   <strong>{formatNumber(reversePlan.recommendedDisplay)} {reversePlan.displayUnit === "set" ? "套" : "箱"}</strong>
                   <small>{reversePlan.displayUnit === "set" ? `共 ${formatNumber(reversePlan.recommendedTotal)} 箱 · ` : ""}{reversePlan.limitingFactor === "volume" ? "受体积目标限制" : reversePlan.limitingFactor === "weight" ? "受载重目标限制" : "两个目标同时达到"}</small>
                 </div>
@@ -1068,9 +1087,9 @@ export function PackingApp() {
               <div className="ratio-chips" aria-label="各 SKU 建议箱数">
                 {reversePlan.quantities.map((item) => <span key={item.productId}><b>{item.sku}</b>{formatNumber(item.suggestedQuantity)} 箱</span>)}
               </div>
-              <button className="reverse-apply-button" onClick={applyReversePlan} disabled={status === "working" || reversePlan.recommendedTotal <= 0}><Rotate3D size={17} />{mode === "single" ? isSingleProductSet ? "计算最大完整套数" : "计算最大可装箱数" : "应用建议数量并验证真实装载"}</button>
+              <button className="reverse-apply-button" onClick={applyReversePlan} disabled={status === "working" || reversePlan.recommendedTotal <= 0}><ShieldCheck size={17} />{mode === "single" ? `按目标生成 ${formatNumber(reversePlan.recommendedDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}现场方案` : "应用建议数量并验证真实装载"}</button>
               <p className="reverse-note">{mode === "single"
-                ? "单品模式不会转为拼柜，也不会要求订单箱数；目标利用率仅作为容量参考，实际结果按柜型、门洞、方向、载重和整套约束求最大值。"
+                ? "上方按钮严格按体积/载重目标限制计划数量；下方主按钮计算当前所选算法的可装上限。两种结果用途不同，系统会在结果区并排显示差额。"
                 : "倒推先保持当前 SKU 数量比例；箱型方向、门洞和碎片空间会影响最终实际利用率，应用后将用装箱算法重新验证。"}</p>
             </article>
 
@@ -1078,13 +1097,17 @@ export function PackingApp() {
               <div className="panel-head compact"><div><span className="section-kicker">04</span><h2>输入概览</h2></div></div>
               <div className="overview-grid">
                 <div><span>{isSingleProductSet ? "包装箱型" : "SKU"}</span><strong>{activeProducts.length}</strong></div>
-                <div><span>{mode === "single" ? "测算方式" : "需求件数"}</span><strong>{mode === "single" ? isSingleProductSet ? "整套自动最大" : "自动最大" : formatNumber(activeProducts.reduce((sum, item) => sum + item.quantity, 0))}</strong></div>
+                <div><span>{mode === "single" ? "测算方式" : "需求件数"}</span><strong>{mode === "single" ? "计划量 / 可装上限" : formatNumber(activeProducts.reduce((sum, item) => sum + item.quantity, 0))}</strong></div>
                 <div><span>{mode === "single" ? isSingleProductSet ? "每套 CBM" : "单件 CBM" : "需求 CBM"}</span><strong>{inputVolume.toFixed(2)}</strong></div>
                 <div><span>{mode === "single" ? isSingleProductSet ? "每套毛重" : "单件毛重" : "需求毛重"}</span><strong>{formatNumber(inputWeight, 1)} kg</strong></div>
               </div>
               <button className="calculate-button" onClick={calculate} disabled={status === "working"}>
                 {status === "working" ? <LoaderCircle className="spin" size={19} /> : <Rotate3D size={19} />}
-                {status === "working" ? "正在计算…" : "开始计算装柜方案"}
+                {status === "working"
+                  ? "正在计算…"
+                  : mode === "single"
+                    ? strategy === "practical" ? "计算现场可执行上限" : "计算极限理论上限"
+                    : "开始计算装柜方案"}
               </button>
             </article>
           </div>
@@ -1092,7 +1115,10 @@ export function PackingApp() {
           <section id="result" className="viewer-column">
             <div className="viewer-head">
               <div><span className="section-kicker">2D + LIVE 3D</span><h2>装柜方案联动复核</h2></div>
-              <div className="validation-chip">{result?.validation.valid && !dirty ? <CheckCircle2 size={16} /> : <ShieldCheck size={16} />}{result ? dirty ? "结果已过期" : result.validation.valid ? "布局校验通过" : "发现异常" : "等待计算"}</div>
+              <div className="viewer-status-group">
+                {result?.mode === "single" && !dirty ? <div className={`plan-context-chip ${resultPlanLimitDisplay !== null ? "planned" : "capacity"}`}><b>{resultPlanLimitDisplay !== null ? "目标计划方案" : "装载上限方案"}</b><span>{formatNumber(resultLoadedDisplay)} {resultDisplayUnit === "set" ? "套" : "箱"} · 计划 {formatNumber(reversePlan.recommendedDisplay)} {reversePlan.displayUnit === "set" ? "套" : "箱"}{resultPlanningDelta ? ` · ${resultPlanningDelta > 0 ? "+" : "−"}${formatNumber(Math.abs(resultPlanningDelta))}` : " · 一致"}</span></div> : null}
+                <div className="validation-chip">{result?.validation.valid && !dirty ? <CheckCircle2 size={16} /> : <ShieldCheck size={16} />}{result ? dirty ? "结果已过期" : result.validation.valid ? "布局校验通过" : "发现异常" : "等待计算"}</div>
+              </div>
             </div>
             {result ? (
               <>
@@ -1269,11 +1295,17 @@ export function PackingApp() {
 
         {result ? (
           <section className="result-section">
-            <div className="result-title"><div><span className="section-kicker">CALCULATED PLAN</span><h2>方案结果</h2></div><span className="run-meta">{result.strategy === "practical" ? `现场易执行 · 经验上限 ${(result.practicalTargetUtilization * 100).toFixed(1)}%` : "极限利用率"} · 算法 {result.engineVersion} · {formatNumber(result.metrics.solveTimeMs, 1)} ms</span></div>
+            <div className="result-title"><div><span className="section-kicker">CALCULATED PLAN</span><h2>方案结果</h2></div><span className="run-meta">{resultPlanLimitDisplay !== null
+              ? `目标计划方案 · ${formatNumber(resultPlanLimitDisplay)} ${resultDisplayUnit === "set" ? "套" : "箱"}上限`
+              : result.strategy === "practical" ? `现场可执行上限 · 经验率 ${(result.practicalTargetUtilization * 100).toFixed(1)}%` : "极限理论上限"} · 算法 {result.engineVersion} · {formatNumber(result.metrics.solveTimeMs, 1)} ms</span></div>
             <div className="metrics-grid">
               <MetricCard
                 icon={<PackageOpen size={21} />}
-                label={result.mode === "single" ? result.setSummaries.length ? "最大可装套数" : "最大可装" : "已装件数"}
+                label={result.mode === "single"
+                  ? resultPlanLimitDisplay !== null
+                    ? result.setSummaries.length ? "计划装载套数" : "计划装载箱数"
+                    : result.setSummaries.length ? "最大可装套数" : "最大可装"
+                  : "已装件数"}
                 value={result.mode === "single" && result.setSummaries.length
                   ? `${formatNumber(result.setSummaries[0].loadedSets)} 套`
                   : `${formatNumber(result.metrics.loadedCount)} 件`}
@@ -1285,6 +1317,22 @@ export function PackingApp() {
               <MetricCard icon={<Weight size={21} />} label="已装毛重" value={`${formatNumber(result.metrics.grossWeight, 1)} kg`} detail={`载重利用 ${formatPercent(result.metrics.weightUtilization)}`} tone="amber" />
               <MetricCard icon={<ShieldCheck size={21} />} label="独立校验" value={result.validation.valid ? "全部通过" : `${result.validation.errors.length} 项异常`} detail="边界 · 重叠 · 堆叠 · 载重" tone={result.validation.valid ? "green" : "red"} />
             </div>
+
+            {result.mode === "single" && !dirty ? (
+              <section className="planning-comparison" aria-label="稳健计划量与当前装柜方案对比">
+                <div className="planning-comparison-head">
+                  <div><span className="section-kicker">PLAN TARGET × CAPACITY</span><strong>稳健计划量与装载上限分开核算</strong><small>计划量遵守 {targetVolumePercent}% 体积 / {targetWeightPercent}% 载重目标；装载上限只受空间、门洞、方向与最大载重约束。</small></div>
+                  <b className={resultPlanningDelta === 0 ? "matched" : resultPlanningDelta > 0 ? "over" : "under"}>{resultPlanningDelta === 0
+                    ? "与计划一致"
+                    : `${resultPlanningDelta > 0 ? "超过计划" : "低于计划"} ${formatNumber(Math.abs(resultPlanningDelta))} ${resultDisplayUnit === "set" ? "套" : "箱"}`}</b>
+                </div>
+                <div className="planning-comparison-grid">
+                  <article><span>稳健计划量</span><strong>{formatNumber(reversePlan.recommendedDisplay)} {reversePlan.displayUnit === "set" ? "套" : "箱"}</strong><small>{reversePlan.limitingFactor === "volume" ? `受 ${targetVolumePercent}% 体积目标限制` : reversePlan.limitingFactor === "weight" ? `受 ${targetWeightPercent}% 载重目标限制` : "两个目标同时限制"}</small></article>
+                  <article className={resultPlanLimitDisplay === null ? "selected" : ""}><span>当前坐标方案</span><strong>{formatNumber(resultLoadedDisplay)} {resultDisplayUnit === "set" ? "套" : "箱"}</strong><small>实际体积 {formatPercent(result.metrics.volumeUtilization)} · 实际载重 {formatPercent(result.metrics.weightUtilization)}</small></article>
+                  <article className="explanation"><span>口径说明</span><strong>{resultPlanLimitDisplay !== null ? "按计划封顶" : "按策略求上限"}</strong><small>{resultPlanLimitDisplay !== null ? "当前方案主动保留安全余量，不代表柜内只能装这么多。" : "当前结果可以高于计划量，但绝不允许超过柜型最大载重。"}</small></article>
+                </div>
+              </section>
+            ) : null}
 
             {result.strategyComparison && !dirty ? (
               <section className="strategy-comparison" aria-label="现场与极限算法对比">

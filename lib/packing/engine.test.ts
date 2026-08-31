@@ -581,6 +581,53 @@ describe("packing engine", () => {
     expect(result.metrics.grossWeight).toBeLessThanOrEqual(28600);
   }, 15_000);
 
+  it("separates a utilization-capped field plan from the uncapped capacity ceiling", () => {
+    const singleSetContainer: ContainerSpec = {
+      ...container,
+      id: "40hq-plan-vs-capacity",
+      length: 12032,
+      width: 2350,
+      height: 2700,
+      doorWidth: 2340,
+      doorHeight: 2597,
+      maxWeight: 28600,
+    };
+    const baseRequest: PackingRequest = {
+      mode: "single",
+      strategy: "practical",
+      practicalTargetUtilization: 0.88,
+      container: singleSetContainer,
+      clearance: 10,
+      products: TWO_CARTON_SET_PRODUCTS,
+    };
+    const reversePlan = calculateReverseCounts(baseRequest, 0.85, 0.9);
+    const capacity = pack(baseRequest);
+    const planned = packWithComparison({
+      ...baseRequest,
+      singleCartonLimit: reversePlan.recommendedTotal,
+    });
+
+    expect(reversePlan).toMatchObject({
+      displayUnit: "set",
+      recommendedDisplay: 476,
+      recommendedTotal: 952,
+      limitingFactor: "weight",
+    });
+    expect(capacity.setSummaries[0].loadedSets).toBe(528);
+    expect(capacity.metrics.weightUtilization).toBeCloseTo(0.9969, 3);
+    expect(planned.singleCartonLimit).toBe(952);
+    expect(planned.setSummaries[0].loadedSets).toBe(476);
+    expect(planned.metrics.loadedCount).toBe(952);
+    expect(planned.metrics.weightUtilization).toBeLessThanOrEqual(0.9);
+    expect(planned.strategyComparison).toMatchObject({
+      practical: { displayQuantity: 476 },
+      maximum: { displayQuantity: 528 },
+      gainQuantity: 52,
+      sameQuantity: false,
+    });
+    expect(planned.validation.valid).toBe(true);
+  }, 45_000);
+
   it("separates the confirmed A64M quotation quantity from the physical 3D plan", () => {
     const result = pack({
       mode: "single",
