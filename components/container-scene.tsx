@@ -3,7 +3,7 @@
 import { Edges, OrbitControls, OrthographicCamera, PerspectiveCamera } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Box, DoorOpen, Eye, ScanLine } from "lucide-react";
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import * as THREE from "three";
 import {
   calculateCameraFit,
@@ -31,15 +31,23 @@ type InstanceGroup = {
   boxes: PlacedBox[];
 };
 
+let cachedWebGLSupport: boolean | undefined;
+
 function supportsWebGL() {
+  if (cachedWebGLSupport !== undefined) return cachedWebGLSupport;
   if (typeof document === "undefined") return false;
   try {
     const canvas = document.createElement("canvas");
-    return Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl"));
+    cachedWebGLSupport = Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl"));
   } catch {
-    return false;
+    cachedWebGLSupport = false;
   }
+  return cachedWebGLSupport;
 }
+
+const subscribeToClientReady = () => () => undefined;
+const getClientReady = () => true;
+const getServerNotReady = () => false;
 
 function TopViewFallback({ result, visibleProducts, visibleCount }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number }) {
   const effectiveLength = Math.max(1, result.container.length - result.clearance * 2);
@@ -185,14 +193,11 @@ function CameraRig({
 }
 
 function ContainerModel({ result, visibleProducts, visibleCount }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number }) {
-  const effective = useMemo(
-    () => ({
-      length: result.container.length - result.clearance * 2,
-      width: result.container.width - result.clearance * 2,
-      height: result.container.height - result.clearance,
-    }),
-    [result],
-  );
+  const effective = {
+    length: result.container.length - result.clearance * 2,
+    width: result.container.width - result.clearance * 2,
+    height: result.container.height - result.clearance,
+  };
   const maxDimension = Math.max(effective.length, effective.width, effective.height);
   const scale = 5.6 / maxDimension;
   const offset = useMemo(
@@ -246,7 +251,8 @@ export function ContainerScene({
   onCameraViewChange,
   onProjectionModeChange,
 }: Props) {
-  const webglSupported = useMemo(() => supportsWebGL(), []);
+  const clientReady = useSyncExternalStore(subscribeToClientReady, getClientReady, getServerNotReady);
+  const webglSupported = clientReady ? supportsWebGL() : null;
   const containerSize = useMemo<SceneSize>(() => (result ? normalizedSceneSize(result) : [5.6, 1.25, 1.1]), [result]);
   return (
     <div className="scene-shell" role="region" aria-label="可交互三维装柜视图">
@@ -256,6 +262,8 @@ export function ContainerScene({
           <strong>等待计算方案</strong>
           <span>填写左侧参数后，柜内真实摆放会显示在这里</span>
         </div>
+      ) : webglSupported === null ? (
+        <div className="scene-loading">正在检测三维图形能力…</div>
       ) : !webglSupported ? (
         <TopViewFallback result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} />
       ) : (

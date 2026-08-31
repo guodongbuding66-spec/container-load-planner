@@ -38,7 +38,7 @@ import {
   calculateReverseCounts,
   DEFAULT_PRACTICAL_TARGET,
   ENGINE_VERSION,
-  pack,
+  packWithComparison,
   recommendedPracticalTarget,
 } from "../lib/packing/engine";
 import {
@@ -157,7 +157,10 @@ function createSetComponent(index: number, setCode: string, componentIndex: numb
 }
 
 function nextSetCode(products: ProductInput[], cartonCount: number) {
-  const existing = new Set(products.map((product) => product.setCode?.trim()).filter(Boolean));
+  const existing = new Set(products.flatMap((product) => {
+    const setCode = product.setCode?.trim();
+    return setCode ? [setCode] : [];
+  }));
   let index = 1;
   let candidate = "";
   do {
@@ -264,7 +267,7 @@ export function PackingApp() {
   );
   const [container, setContainer] = useState<ContainerSpec>({ ...CONTAINER_PRESETS[2] });
   const [clearance, setClearance] = useState(10);
-  const [products, setProducts] = useState<ProductInput[]>(SAMPLE_PRODUCTS.map((item) => ({ ...item })));
+  const [products, setProducts] = useState<ProductInput[]>(() => SAMPLE_PRODUCTS.map((item) => ({ ...item })));
   const [result, setResult] = useState<PackingResult | null>(null);
   const [status, setStatus] = useState<CalcStatus>("idle");
   const [message, setMessage] = useState("参数已就绪");
@@ -287,6 +290,7 @@ export function PackingApp() {
   const activeRevisionRef = useRef<number | null>(null);
   const inputRevisionRef = useRef(0);
   const pendingPayloadRef = useRef<PackingRequest | null>(null);
+  const packingProgressRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const acceptResult = useCallback((nextResult: PackingResult, successMessage: string) => {
@@ -319,7 +323,7 @@ export function PackingApp() {
     (payload: PackingRequest) => {
       window.setTimeout(() => {
         try {
-          acceptResult(pack(payload), "方案已在兼容模式下生成并完成校验");
+          acceptResult(packWithComparison(payload), "双算法方案已在兼容模式下生成并完成校验");
         } catch (fallbackError) {
           activeRequestRef.current = null;
           activeRevisionRef.current = null;
@@ -415,7 +419,7 @@ export function PackingApp() {
         setMessage(response.message);
         return;
       }
-      acceptResult(response.payload, `方案已生成并通过 ${response.payload.validation.valid ? "独立校验" : "异常检查"}`);
+      acceptResult(response.payload, `现场与极限双算法已完成，并通过${response.payload.validation.valid ? "独立校验" : "异常检查"}`);
     };
     worker.onerror = () => {
       worker.terminate();
@@ -432,15 +436,21 @@ export function PackingApp() {
   }, [acceptResult, runFallback]);
 
   useEffect(() => {
+    packingProgressRef.current = packingProgress;
+  }, [packingProgress]);
+
+  useEffect(() => {
     if (!isPlaying || !result?.placements.length) return;
     const total = result.placements.length;
     const step = Math.max(1, Math.ceil(total / 120)) * playbackSpeed;
     const timer = window.setInterval(() => {
-      setPackingProgress((current) => {
-        const next = Math.min(total, current + step);
-        if (next >= total) setIsPlaying(false);
-        return next;
-      });
+      const next = Math.min(total, packingProgressRef.current + step);
+      packingProgressRef.current = next;
+      setPackingProgress(next);
+      if (next >= total) {
+        window.clearInterval(timer);
+        setIsPlaying(false);
+      }
     }, 120);
     return () => window.clearInterval(timer);
   }, [isPlaying, playbackSpeed, result]);
@@ -972,17 +982,18 @@ export function PackingApp() {
                   : "单箱或多箱都属于单品最大装柜，系统自动计算可装量，不需要填写需求数量。"
                 : "按订单数量、优先级、门洞与载重生成可校验的混装方案。"}</p>
               <div className="strategy-divider" />
-              <div className="strategy-heading"><strong>执行策略</strong><span>{strategy === "practical" ? "推荐给现场工人" : "用于理论上限对比"}</span></div>
+              <div className="strategy-heading"><strong>独立求解算法</strong><span>{strategy === "practical" ? "工人可直接照做" : "高密度搜索参考"}</span></div>
               <div className="segmented strategy-segmented" role="group" aria-label="装柜执行策略">
                 <button aria-pressed={strategy === "practical"} className={strategy === "practical" ? "active" : ""} onClick={() => { if (strategy !== "practical") { setStrategy("practical"); markDirty(); } }}><ShieldCheck size={16} />现场易执行</button>
-                <button aria-pressed={strategy === "maximum"} className={strategy === "maximum" ? "active" : ""} onClick={() => { if (strategy !== "maximum") { setStrategy("maximum"); markDirty(); } }}><Gauge size={16} />极限利用率</button>
+                <button aria-pressed={strategy === "maximum"} className={strategy === "maximum" ? "active" : ""} onClick={() => { if (strategy !== "maximum") { setStrategy("maximum"); markDirty(); } }}><Gauge size={16} />极限理论</button>
               </div>
+              <p className="strategy-help">每次计算都会分别运行两套算法并显示数量差距；这里选择本次三视图、3D、坐标和指导书采用哪一套布局。极限结果是高密度搜索参考，不是数学最优证明。</p>
               {strategy === "practical" ? (
                 <div className="practical-target">
                   <div><strong>现场经验装载率</strong><span>整层模块 · 固定方向 · 完整支撑</span></div>
                   <div className="target-input"><input aria-label="现场经验装载率滑块" type="range" min="50" max="95" step="0.5" value={practicalTargetPercent} onChange={(event) => { setPracticalTargetPercent(clampNumber(event.target.value, DEFAULT_PRACTICAL_TARGET * 100, 50, 95)); markDirty(); }} /><input aria-label="现场经验装载率" type="number" min="50" max="95" step="0.5" value={practicalTargetPercent} onChange={(event) => { setPracticalTargetPercent(clampNumber(event.target.value, DEFAULT_PRACTICAL_TARGET * 100, 50, 95)); markDirty(); }} /><b>%</b></div>
                 </div>
-              ) : <p className="strategy-warning">允许更多方向与局部支撑组合；数量可能更高，但必须由现场主管逐层复核。</p>}
+              ) : <p className="strategy-warning">独立运行三维分区动态规划和多起点自由空间搜索；允许侧翻与 68% 以上局部承托，仅用于发现潜在增量，不能直接替代现场指导书。</p>}
             </article>
 
             <article className="panel">
@@ -1275,6 +1286,37 @@ export function PackingApp() {
               <MetricCard icon={<ShieldCheck size={21} />} label="独立校验" value={result.validation.valid ? "全部通过" : `${result.validation.errors.length} 项异常`} detail="边界 · 重叠 · 堆叠 · 载重" tone={result.validation.valid ? "green" : "red"} />
             </div>
 
+            {result.strategyComparison && !dirty ? (
+              <section className="strategy-comparison" aria-label="现场与极限算法对比">
+                <div className="strategy-comparison-head">
+                  <div><span className="section-kicker">TWO INDEPENDENT SOLVERS</span><strong>现场算法 × 极限理论算法</strong><small>同一份输入分别计算；理论结果只把安全子集反向下放到现场方案。</small></div>
+                  <b className={result.strategyComparison.sameQuantity ? "matched" : "gain"}>{result.strategyComparison.sameQuantity
+                    ? "当前数量一致"
+                    : `理论多 ${formatNumber(result.strategyComparison.gainQuantity)} ${result.strategyComparison.displayUnit === "set" ? "套" : "箱"}`}</b>
+                </div>
+                <div className="strategy-comparison-grid">
+                  <article className={result.strategy === "practical" ? "selected" : ""}>
+                    <span><ShieldCheck size={15} />现场易执行算法</span>
+                    <strong>{formatNumber(result.strategyComparison.practical.displayQuantity)} {result.strategyComparison.displayUnit === "set" ? "套" : "箱"}</strong>
+                    <small>体积 {formatPercent(result.strategyComparison.practical.volumeUtilization)} · 最多 {result.strategyComparison.practical.executionComplexity.maxOrientationsPerSku} 种水平朝向 · 侧翻 0 · {formatNumber(result.strategyComparison.practical.solveTimeMs, 0)} ms</small>
+                  </article>
+                  <article className={result.strategy === "maximum" ? "selected maximum" : "maximum"}>
+                    <span><Gauge size={15} />极限理论算法</span>
+                    <strong>{formatNumber(result.strategyComparison.maximum.displayQuantity)} {result.strategyComparison.displayUnit === "set" ? "套" : "箱"}</strong>
+                    <small>体积 {formatPercent(result.strategyComparison.maximum.volumeUtilization)} · 最多 {result.strategyComparison.maximum.executionComplexity.maxOrientationsPerSku} 种方向 · 侧翻 {formatNumber(result.strategyComparison.maximum.executionComplexity.tippedCartonCount)} 箱 · {formatNumber(result.strategyComparison.maximum.solveTimeMs, 0)} ms</small>
+                  </article>
+                  <article className="delta">
+                    <span>可研究增量</span>
+                    <strong>{result.strategyComparison.sameQuantity ? "已追平" : `+${formatPercent(result.strategyComparison.gainRatio)}`}</strong>
+                    <small>{result.strategyComparison.sameQuantity ? "复杂摆法未增加数量" : "先看方向、侧翻与承托来源"}</small>
+                  </article>
+                </div>
+                <div className="strategy-guidance-list">
+                  {result.strategyComparison.guidance.map((item) => <article key={`${item.level}-${item.title}`} className={`guidance-${item.level}`}><b>{item.title}</b><span>{item.detail}</span></article>)}
+                </div>
+              </section>
+            ) : null}
+
             {result.quoteEstimate && !dirty ? (
               <section className={`real-benchmark ${result.quoteEstimate.physicallyPossibleByBounds ? "bounds-ok" : "bounds-impossible"}`} aria-label="报价预测与三维物理方案对比">
                 <div className="real-benchmark-copy">
@@ -1302,6 +1344,7 @@ export function PackingApp() {
               <span><b>{result.metrics.executionComplexity.maxOrientationsPerSku}</b> 单 SKU 最大方向数</span>
               <span><b>{result.metrics.executionComplexity.orientationVariants}</b> 全方案方向组合</span>
               <span className={result.metrics.executionComplexity.partialSupportCount ? "attention" : "safe"}><b>{result.metrics.executionComplexity.partialSupportCount}</b> 局部支撑箱体</span>
+              <span className={result.metrics.executionComplexity.tippedCartonCount ? "attention" : "safe"}><b>{result.metrics.executionComplexity.tippedCartonCount}</b> 侧翻箱体</span>
               <small>{result.strategy === "practical" ? "装载顺序已按支撑依赖和柜头→柜门重排" : "极限模式可能增加现场操作复杂度"}</small>
             </div>
 

@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import { pack } from "./engine";
+import { packWithComparison } from "./engine";
 import type { WorkerRequest, WorkerResponse } from "./types";
 
 self.onmessage = (event: MessageEvent<WorkerRequest>) => {
@@ -10,7 +10,7 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
     const response: WorkerResponse = {
       type: "result",
       requestId: message.requestId,
-      payload: pack(message.payload),
+      payload: packWithComparison(message.payload),
     };
     self.postMessage(response);
   } catch (error) {
@@ -24,5 +24,4 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
 };
 
 export {};
-
 

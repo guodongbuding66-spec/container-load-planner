@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateReverseCounts, pack, recommendedPracticalTarget, validatePacking } from "./engine";
+import { calculateReverseCounts, pack, packWithComparison, recommendedPracticalTarget, validatePacking } from "./engine";
 import {
   CONTAINER_PRESETS,
   DIMENSION_TEST_PRODUCTS,
@@ -655,7 +655,7 @@ describe("packing engine", () => {
   }, 20_000);
 
   it("keeps maximum utilization available as an explicit comparison strategy", () => {
-    const common = {
+    const common: Omit<PackingRequest, "strategy"> = {
       mode: "single" as const,
       container: CONTAINER_PRESETS.find((item) => item.id === "40hq")!,
       clearance: 10,
@@ -668,4 +668,58 @@ describe("packing engine", () => {
     expect(maximum.metrics.loadedCount).toBeGreaterThanOrEqual(practical.metrics.loadedCount);
     expect(maximum.practicalTargetUtilization).toBe(0.88);
   }, 30_000);
+
+  it("runs independent practical and theoretical solvers and reports a useful gap", () => {
+    const common: Omit<PackingRequest, "strategy"> = {
+      mode: "single",
+      practicalTargetUtilization: 0.88,
+      container: CONTAINER_PRESETS.find((item) => item.id === "40hq")!,
+      clearance: 10,
+      products: [product({
+        id: "dense-fixed",
+        sku: "DENSE-FIXED",
+        length: 1000,
+        width: 466,
+        height: 269,
+        weight: 20,
+        rotationPolicy: "fixed",
+      })],
+    };
+    const comparison = packWithComparison({ ...common, strategy: "practical" });
+    const theoretical = packWithComparison({ ...common, strategy: "maximum" });
+
+    expect(comparison.validation.valid).toBe(true);
+    expect(theoretical.validation.valid).toBe(true);
+    expect(comparison.strategyComparison).toBeDefined();
+    expect(comparison.strategyComparison!.maximum.displayQuantity)
+      .toBeGreaterThan(comparison.strategyComparison!.practical.displayQuantity);
+    expect(comparison.metrics.loadedCount).toBe(comparison.strategyComparison!.practical.loadedCount);
+    expect(theoretical.metrics.loadedCount).toBe(theoretical.strategyComparison!.maximum.loadedCount);
+    expect(theoretical.metrics.loadedCount).toBeGreaterThan(comparison.metrics.loadedCount);
+    expect(comparison.strategyComparison!.gainQuantity).toBeGreaterThan(0);
+    expect(comparison.strategyComparison!.practicalUsesTheoreticalGuide).toBe(true);
+    expect(comparison.strategyComparison!.guidance.some((item) => item.level === "review")).toBe(true);
+  }, 30_000);
+
+  it("never tips a carton in the practical solver even when arbitrary rotation is allowed", () => {
+    const result = pack({
+      mode: "single",
+      strategy: "practical",
+      practicalTargetUtilization: 0.88,
+      container,
+      clearance: 0,
+      products: [product({
+        id: "upright-field-box",
+        sku: "UPRIGHT-FIELD-BOX",
+        length: 1200,
+        width: 500,
+        height: 250,
+        rotationPolicy: "any",
+      })],
+    });
+
+    expect(result.validation.valid).toBe(true);
+    expect(result.metrics.executionComplexity.tippedCartonCount).toBe(0);
+    expect(result.placements.every((box) => box.dz === 250)).toBe(true);
+  });
 });

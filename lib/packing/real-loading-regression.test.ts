@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pack, recommendedPracticalTarget } from "./engine";
+import { pack, packWithComparison, recommendedPracticalTarget } from "./engine";
 import { CONTAINER_PRESETS } from "./presets";
 import { HISTORICAL_LOADING_RECORDS } from "./quote-estimator";
 import type { ProductInput } from "./types";
@@ -73,4 +73,28 @@ describe("supplied real loading regression", () => {
     expect(result.warnings.join(" ")).toContain("净重/毛重标签");
     expect(result.warnings.join(" ")).toContain("SKU 分区直码");
   }, 10_000);
+
+  it("compares both independent solvers without regressing any verified field quantity", () => {
+    for (const record of suppliedRecords) {
+      for (const container of CONTAINER_PRESETS) {
+        const result = packWithComparison({
+          mode: "single",
+          strategy: "practical",
+          practicalTargetUtilization: recommendedPracticalTarget(container),
+          container,
+          clearance: 10,
+          products: productsForRecord(record),
+        });
+        const expectedSets = record.loadingSets[container.id as keyof typeof record.loadingSets];
+        const comparison = result.strategyComparison!;
+        const practicalError = Math.abs(comparison.practical.displayQuantity - expectedSets) / expectedSets;
+
+        expect(result.validation.valid, `${record.models[0]} ${container.id}`).toBe(true);
+        expect(comparison.practical.displayQuantity).toBe(result.setSummaries[0]?.loadedSets ?? result.metrics.loadedCount);
+        expect(comparison.maximum.displayQuantity).toBeGreaterThanOrEqual(comparison.practical.displayQuantity);
+        expect(practicalError, `${record.models[0]} ${container.id}`).toBeLessThanOrEqual(0.03);
+        expect(comparison.practical.executionComplexity.tippedCartonCount).toBe(0);
+      }
+    }
+  }, 60_000);
 });

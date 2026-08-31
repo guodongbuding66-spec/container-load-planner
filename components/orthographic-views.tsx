@@ -293,20 +293,13 @@ export function OrthographicViews({ result, visibleProducts, visibleCount, activ
         const copy = VIEW_COPY[view.kind];
         const occupied = occupiedExtent(boxes, view.kind);
         return (
-          <section
+          <button
+            type="button"
             className={`projection-card projection-card-action ${activeView === view.kind ? "active" : ""}`}
             key={view.kind}
-            role="button"
-            tabIndex={0}
             aria-pressed={activeView === view.kind}
             aria-label={`${copy.title}，点击让三维视角旋转到${copy.title}`}
             onClick={() => onViewSelect(view.kind)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onViewSelect(view.kind);
-              }
-            }}
           >
             <header>
               <div><strong>{copy.title}</strong><span>{copy.axes} · {copy.description}</span></div>
@@ -320,10 +313,9 @@ export function OrthographicViews({ result, visibleProducts, visibleCount, activ
               <span>横向占用 {Math.round(occupied.horizontal).toLocaleString()} mm</span>
               <span>纵向占用 {Math.round(occupied.vertical).toLocaleString()} mm</span>
             </footer>
-          </section>
+          </button>
         );
       })}
     </div>
   );
 }
-

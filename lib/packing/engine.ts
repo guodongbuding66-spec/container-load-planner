@@ -8,6 +8,7 @@ import type {
   ProductSummary,
   ReverseCountResult,
   SetLoadSummary,
+  StrategyComparison,
   ValidationReport,
 } from "./types";
 import {
@@ -19,7 +20,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.10.0";
+export const ENGINE_VERSION = "0.11.0";
 
 type Orientation = {
   dx: number;
@@ -273,6 +274,30 @@ function getOrientations(product: ProductInput): Orientation[] {
   });
 }
 
+/**
+ * A field plan may turn a carton 90 degrees on the floor, but never tips it
+ * onto a side. `any` remains meaningful for the theoretical solver while the
+ * worker solver deliberately keeps the factory-designated carton height.
+ */
+function getPracticalOrientations(product: ProductInput): Orientation[] {
+  const l = positive(product.length);
+  const w = positive(product.width);
+  const h = positive(product.height);
+  const raw = rotationPolicy(product) === "fixed"
+    ? [{ dx: l, dy: w, dz: h, label: "LWH" }]
+    : [
+        { dx: l, dy: w, dz: h, label: "LWH" },
+        { dx: w, dy: l, dz: h, label: "WLH" },
+      ];
+  const seen = new Set<string>();
+  return raw.filter((item) => {
+    const key = `${item.dx}:${item.dy}:${item.dz}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function canPassDoor(orientation: Orientation, container: EffectiveContainer) {
   return orientation.dy <= container.doorWidth + EPS && orientation.dz <= container.doorHeight + EPS;
 }
@@ -363,7 +388,7 @@ function supportDetails(
 
 function preferredPracticalOrientation(product: ProductInput, container: EffectiveContainer) {
   let best: { orientation: Orientation; count: number } | undefined;
-  for (const orientation of getOrientations(product)) {
+  for (const orientation of getPracticalOrientations(product)) {
     if (!canPassDoor(orientation, container)) continue;
     const nx = Math.floor(container.length / orientation.dx);
     const ny = Math.floor(container.width / orientation.dy);
@@ -382,8 +407,7 @@ function preferredPracticalOrientation(product: ProductInput, container: Effecti
 
 function orientationsForStrategy(product: ProductInput, container: EffectiveContainer, strategy: PackingStrategy) {
   if (strategy === "maximum") return getOrientations(product).filter((orientation) => canPassDoor(orientation, container));
-  const preferred = preferredPracticalOrientation(product, container);
-  return preferred ? [preferred] : [];
+  return getPracticalOrientations(product).filter((orientation) => canPassDoor(orientation, container));
 }
 
 function makePlacement(product: ProductInput, index: number, point: Point, orientation: Orientation, layer = 1): PlacedBox {
@@ -403,6 +427,176 @@ function makePlacement(product: ProductInput, index: number, point: Point, orien
     orientation: orientation.label,
     layer,
   };
+}
+
+type ZoneSlabOption = {
+  orientation: Orientation;
+  length: number;
+  across: number;
+  layers: number;
+  capacity: number;
+};
+
+type ZoneSlabPlan = {
+  option: ZoneSlabOption;
+  quantity: number;
+};
+
+function zoneSlabOptions(
+  product: ProductInput,
+  container: EffectiveContainer,
+  strategy: PackingStrategy,
+) {
+  const orientations = strategy === "practical" ? getPracticalOrientations(product) : getOrientations(product);
+  return orientations.flatMap((orientation): ZoneSlabOption[] => {
+    if (!canPassDoor(orientation, container)) return [];
+    const across = Math.floor(container.width / orientation.dy);
+    const physicalLayers = Math.floor(container.height / orientation.dz);
+    const configuredLayers = maxStackLayers(product);
+    const layers = product.bottomOnly || product.stackable === false
+      ? Math.min(1, physicalLayers)
+      : configuredLayers > 0
+        ? Math.min(physicalLayers, configuredLayers)
+        : physicalLayers;
+    const capacity = across * layers;
+    return capacity > 0 && orientation.dx <= container.length + EPS
+      ? [{ orientation, length: orientation.dx, across, layers, capacity }]
+      : [];
+  });
+}
+
+/**
+ * Unbounded dynamic programming over longitudinal slabs. Unlike the practical
+ * fixed-grid solver, the theoretical solver may change orientation between
+ * slabs and choose the shortest combination that carries the requested count.
+ */
+function minimumSlabPlan(
+  product: ProductInput,
+  container: EffectiveContainer,
+  quantity: number,
+  strategy: PackingStrategy,
+): ZoneSlabPlan[] | null {
+  if (quantity <= 0) return [];
+  const options = zoneSlabOptions(product, container, strategy);
+  if (!options.length) return null;
+
+  const distance = new Float64Array(quantity + 1);
+  distance.fill(Number.POSITIVE_INFINITY);
+  distance[0] = 0;
+  const previousQuantity = new Int32Array(quantity + 1);
+  const previousOption = new Int16Array(quantity + 1);
+  previousQuantity.fill(-1);
+  previousOption.fill(-1);
+
+  for (let loaded = 0; loaded < quantity; loaded += 1) {
+    if (!Number.isFinite(distance[loaded])) continue;
+    for (let optionIndex = 0; optionIndex < options.length; optionIndex += 1) {
+      const option = options[optionIndex];
+      const next = Math.min(quantity, loaded + option.capacity);
+      const candidateLength = distance[loaded] + option.length;
+      const currentOption = previousOption[next] >= 0 ? options[previousOption[next]] : undefined;
+      const winsTie = Math.abs(candidateLength - distance[next]) <= EPS && (
+        !currentOption ||
+        option.capacity > currentOption.capacity ||
+        (option.capacity === currentOption.capacity && option.orientation.label < currentOption.orientation.label)
+      );
+      if (candidateLength < distance[next] - EPS || winsTie) {
+        distance[next] = candidateLength;
+        previousQuantity[next] = loaded;
+        previousOption[next] = optionIndex;
+      }
+    }
+  }
+  if (!Number.isFinite(distance[quantity])) return null;
+
+  const reversed: ZoneSlabOption[] = [];
+  let cursor = quantity;
+  while (cursor > 0) {
+    const optionIndex = previousOption[cursor];
+    const previous = previousQuantity[cursor];
+    if (optionIndex < 0 || previous < 0 || previous >= cursor) return null;
+    reversed.push(options[optionIndex]);
+    cursor = previous;
+  }
+  reversed.reverse();
+
+  let remaining = quantity;
+  return reversed.map((option) => {
+    const placed = Math.min(option.capacity, remaining);
+    remaining -= placed;
+    return { option, quantity: placed };
+  });
+}
+
+function slabPlanLength(plan: ZoneSlabPlan[] | null) {
+  return plan ? plan.reduce((sum, slab) => sum + slab.option.length, 0) : Number.POSITIVE_INFINITY;
+}
+
+function maximumMultiplierBySlabDp(
+  products: ProductInput[],
+  container: EffectiveContainer,
+  upperBound: number,
+  strategy: PackingStrategy,
+) {
+  let low = 0;
+  let high = Math.max(0, Math.floor(upperBound));
+  while (low < high) {
+    const candidate = Math.ceil((low + high) / 2);
+    const requiredLength = products.reduce((sum, product) => {
+      const plan = minimumSlabPlan(product, container, candidate * unitsPerSet(product), strategy);
+      return sum + slabPlanLength(plan);
+    }, 0);
+    if (requiredLength <= container.length + EPS) low = candidate;
+    else high = candidate - 1;
+  }
+  return low;
+}
+
+function buildSlabZonedPlan(
+  request: PackingRequest,
+  container: EffectiveContainer,
+  products: ProductInput[],
+  multiplier: number,
+  strategy: PackingStrategy,
+) {
+  if (multiplier <= 0) return null;
+  const zones = products.map((product) => ({
+    product,
+    plan: minimumSlabPlan(product, container, multiplier * unitsPerSet(product), strategy),
+  }));
+  if (zones.some((zone) => !zone.plan)) return null;
+  zones.sort((a, b) => slabPlanLength(b.plan) - slabPlanLength(a.plan) || a.product.sku.localeCompare(b.product.sku));
+  if (zones.reduce((sum, zone) => sum + slabPlanLength(zone.plan), 0) > container.length + EPS) return null;
+
+  const placements: PlacedBox[] = [];
+  let xOffset = 0;
+  for (const zone of zones) {
+    for (const slab of zone.plan!) {
+      let remaining = slab.quantity;
+      for (let layer = 0; layer < slab.option.layers && remaining > 0; layer += 1) {
+        for (let across = 0; across < slab.option.across && remaining > 0; across += 1) {
+          placements.push(makePlacement(
+            zone.product,
+            placements.length,
+            {
+              x: xOffset,
+              y: across * slab.option.orientation.dy,
+              z: layer * slab.option.orientation.dz,
+            },
+            slab.option.orientation,
+            layer + 1,
+          ));
+          remaining -= 1;
+        }
+      }
+      if (remaining > 0) return null;
+      xOffset += slab.option.length;
+    }
+  }
+
+  if (products.some((product) => setCode(product))) assignSetTrace(placements, products);
+  const ordered = orderForPracticalLoading(placements);
+  return validatePacking(ordered, request.container, request.clearance, products, strategy).valid ? ordered : null;
 }
 
 type LayerPattern = {
@@ -548,7 +742,7 @@ function buildPracticalZonedSet(
   for (const product of products) {
     const quantity = targetSets * unitsPerSet(product);
     let best: (typeof zones)[number] | undefined;
-    for (const orientation of getOrientations(product)) {
+    for (const orientation of getPracticalOrientations(product)) {
       if (!canPassDoor(orientation, container)) continue;
       const ny = Math.floor(container.width / orientation.dy);
       const physicalLayers = Math.floor(container.height / orientation.dz);
@@ -749,6 +943,51 @@ function packSingleSet(
     return { placements: [] as PlacedBox[], warnings: ["当前柜型无法装入一套完整的多箱产品。"] };
   }
 
+  if (packingStrategy(request) === "maximum") {
+    const theoreticalSets = maximumMultiplierBySlabDp(products, container, requestedSets, "maximum");
+    const theoreticalCandidate = buildSlabZonedPlan(request, container, products, theoreticalSets, "maximum");
+    let practicalSeed: PlacedBox[] | null = null;
+    let practicalSeedSets = 0;
+    for (let candidate = requestedSets; candidate >= Math.max(1, requestedSets - 500); candidate -= 1) {
+      const zoned = buildPracticalZonedSet(request, container, products, candidate);
+      const layered = zoned ? null : buildPracticalLayeredSet(request, container, products, candidate);
+      practicalSeed = zoned ?? layered;
+      if (practicalSeed) {
+        practicalSeedSets = candidate;
+        break;
+      }
+    }
+    const candidateRequest: PackingRequest = {
+      ...request,
+      mode: "mixed",
+      strategy: "maximum",
+      products: products.map((product) => ({
+        ...product,
+        quantity: requestedSets * unitsPerSet(product),
+      })),
+    };
+    const freeSpace = packMixed(candidateRequest, container);
+    const freeSpaceSets = Math.min(
+      ...products.map((product) =>
+        Math.floor(freeSpace.placements.filter((box) => box.productId === product.id).length / unitsPerSet(product)),
+      ),
+    );
+    const maximumCandidates = [
+      theoreticalCandidate ? { placements: theoreticalCandidate, sets: theoreticalSets, method: "纵向分区动态规划" } : null,
+      practicalSeed ? { placements: practicalSeed, sets: practicalSeedSets, method: "现场合法解下界" } : null,
+      { placements: freeSpace.placements, sets: freeSpaceSets, method: "多起点自由空间搜索" },
+    ].filter((candidate): candidate is { placements: PlacedBox[]; sets: number; method: string } => Boolean(candidate));
+    maximumCandidates.sort((a, b) => b.sets - a.sets || a.method.localeCompare(b.method));
+    const selected = maximumCandidates[0];
+    return {
+      placements: selected.placements,
+      warnings: [
+        ...freeSpace.warnings,
+        `极限理论算法独立比较纵向分区动态规划、多起点自由空间搜索，并以现场合法解作为搜索下界；采用“${selected.method}”的 ${selected.sets.toLocaleString()} 个完整套。`,
+      ],
+    };
+  }
+
   let layeredCandidate: PlacedBox[] | null = null;
   let layeredCandidateSets = 0;
   let practicalCandidateMethod = "整层模块";
@@ -766,6 +1005,8 @@ function packSingleSet(
       }
     }
   }
+  const guidedSets = maximumMultiplierBySlabDp(products, container, requestedSets, "practical");
+  const guidedCandidate = buildSlabZonedPlan(request, container, products, guidedSets, "practical");
   const candidateRequest: PackingRequest = {
     ...request,
     mode: "mixed",
@@ -775,21 +1016,31 @@ function packSingleSet(
     })),
   };
   const output = packMixed(candidateRequest, container);
-  if (layeredCandidate && layeredCandidate.length >= output.placements.length) {
-    return {
-      placements: layeredCandidate,
-      warnings: [
-        ...output.warnings,
-        `${practicalCandidateMethod}方案不低于自由空间搜索，采用 ${layeredCandidateSets.toLocaleString()} 个完整套；每个 SKU 固定方向并保持连续作业区。`,
-      ],
-    };
-  }
-  const warnings = [...output.warnings];
-  const loadedSets = Math.min(
+  const freeSpaceSets = Math.min(
     ...products.map((product) =>
       Math.floor(output.placements.filter((box) => box.productId === product.id).length / unitsPerSet(product)),
     ),
   );
+  const practicalCandidates = [
+    layeredCandidate ? { placements: layeredCandidate, sets: layeredCandidateSets, method: practicalCandidateMethod, guided: false } : null,
+    guidedCandidate ? { placements: guidedCandidate, sets: guidedSets, method: "理论引导水平分区", guided: true } : null,
+    { placements: output.placements, sets: freeSpaceSets, method: "现场自由空间", guided: false },
+  ].filter((candidate): candidate is { placements: PlacedBox[]; sets: number; method: string; guided: boolean } => Boolean(candidate));
+  practicalCandidates.sort((a, b) => b.sets - a.sets || Number(a.guided) - Number(b.guided) || a.method.localeCompare(b.method));
+  const selected = practicalCandidates[0];
+  if (selected && selected.placements !== output.placements) {
+    return {
+      placements: selected.placements,
+      warnings: [
+        ...output.warnings,
+        selected.guided
+          ? `已吸收极限算法中可安全落地的水平分区：采用 ${selected.sets.toLocaleString()} 个完整套，仅保留同高度 90° 转向、连续作业区和完整承托。`
+          : `${selected.method}方案不低于其他现场候选，采用 ${selected.sets.toLocaleString()} 个完整套；保持连续作业区和完整承托。`,
+      ],
+    };
+  }
+  const warnings = [...output.warnings];
+  const loadedSets = freeSpaceSets;
   if (requestedSets === visibleBound && loadedSets === visibleBound) {
     warnings.push(`可视化已达到 ${MAX_VISIBLE_PLACEMENTS.toLocaleString()} 箱上限；实际最大套数可能更高。`);
   }
@@ -803,7 +1054,7 @@ function buildPracticalSingleSideStrip(
   maximumCount: number,
 ) {
   if (maximumCount <= 0 || rotationPolicy(product) === "fixed") return null;
-  const orientations = getOrientations(product).filter((orientation) => canPassDoor(orientation, container));
+  const orientations = getPracticalOrientations(product).filter((orientation) => canPassDoor(orientation, container));
   let best: { positions: Array<{ x: number; y: number; orientation: Orientation }>; layers: number; count: number } | undefined;
 
   for (const primary of orientations) {
@@ -902,6 +1153,17 @@ function packSingle(request: PackingRequest, container: EffectiveContainer, fiel
   const weightBoundForProduct = product.weight > 0
     ? Math.floor(request.container.maxWeight / product.weight)
     : Number.MAX_SAFE_INTEGER;
+  const physicalVolumeBound = productVolume > 0
+    ? Math.floor(containerVolume / productVolume)
+    : 0;
+  const slabUpperBound = Math.min(
+    strategy === "practical" ? practicalBound : physicalVolumeBound,
+    historicalBound,
+    weightBoundForProduct,
+    MAX_VISIBLE_PLACEMENTS,
+  );
+  const slabCount = maximumMultiplierBySlabDp([product], container, slabUpperBound, strategy);
+  const slabCandidate = buildSlabZonedPlan(request, container, [product], slabCount, strategy);
   const workerSimpleMixedOrientation = strategy === "practical"
     ? buildPracticalSingleSideStrip(
         request,
@@ -955,16 +1217,28 @@ function packSingle(request: PackingRequest, container: EffectiveContainer, fiel
     warnings.push(`理论规则排布为 ${best.count.toLocaleString()} 件；当前可视化最多生成 ${MAX_VISIBLE_PLACEMENTS.toLocaleString()} 个箱体。`);
   }
   const pureOrientationPlacements = strategy === "practical" ? orderForPracticalLoading(placements) : placements;
-  const useSideStrip = Boolean(
-    workerSimpleMixedOrientation && workerSimpleMixedOrientation.length > pureOrientationPlacements.length,
-  );
-  if (useSideStrip) {
+  const candidates = [
+    { placements: pureOrientationPlacements, method: strategy === "practical" ? "单方向整齐网格" : "单方向三维网格", guided: false },
+    workerSimpleMixedOrientation
+      ? { placements: workerSimpleMixedOrientation, method: "主网格 + 连续侧条", guided: false }
+      : null,
+    slabCandidate
+      ? { placements: slabCandidate, method: strategy === "practical" ? "理论引导水平分区" : "极限分区动态规划", guided: strategy === "practical" }
+      : null,
+  ].filter((candidate): candidate is { placements: PlacedBox[]; method: string; guided: boolean } => Boolean(candidate));
+  candidates.sort((a, b) => b.placements.length - a.placements.length || Number(a.guided) - Number(b.guided) || a.method.localeCompare(b.method));
+  const selected = candidates[0];
+  if (selected.method === "主网格 + 连续侧条") {
     warnings.push("采用主网格 + 连续侧条补位：箱体只做水平 90° 转向、不侧翻，现场按两个清晰区域直码。");
+  } else if (selected.guided && selected.placements.length > pureOrientationPlacements.length) {
+    warnings.push("已吸收极限分区搜索中可安全执行的部分：只采用同高度水平转向、完整承托和连续纵向分区。");
+  } else if (strategy === "maximum") {
+    warnings.push("极限理论算法已独立比较单方向三维网格与多方向纵向分区动态规划，不受现场经验装载率限制。");
   }
   return {
-    placements: useSideStrip ? workerSimpleMixedOrientation! : pureOrientationPlacements,
+    placements: selected.placements,
     warnings,
-    theoreticalCount: Math.max(best.count, workerSimpleMixedOrientation?.length ?? 0),
+    theoreticalCount: Math.max(best.count, workerSimpleMixedOrientation?.length ?? 0, slabCount),
   };
 }
 
@@ -1044,11 +1318,13 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
     if (orientations.length === 0) return false;
 
     let best: { point: Point; orientation: Orientation; layer: number; score: number } | undefined;
+    const candidateBudget = strategy === "maximum" ? 2600 : 1200;
+    const retainedPointBudget = strategy === "maximum" ? 3200 : 1600;
     const candidatePoints = [...points]
       .sort(strategy === "practical"
         ? (a, b) => a.x - b.x || a.z - b.z || a.y - b.y
         : (a, b) => a.z - b.z || a.y - b.y || a.x - b.x)
-      .slice(0, 1500);
+      .slice(0, candidateBudget);
     for (const point of candidatePoints) {
       for (const orientation of orientations) {
         const candidate = makePlacement(product, placementIndex, point, orientation);
@@ -1112,7 +1388,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
       .sort(strategy === "practical"
         ? (a, b) => a.x - b.x || a.z - b.z || a.y - b.y
         : (a, b) => a.z - b.z || a.y - b.y || a.x - b.x)
-      .slice(0, 1800);
+      .slice(0, retainedPointBudget);
     return true;
   };
 
@@ -1173,7 +1449,11 @@ function weightedScore(placements: PlacedBox[], products: ProductInput[]) {
 
 function packMixed(request: PackingRequest, container: EffectiveContainer) {
   const requested = request.products.reduce((sum, item) => sum + Math.max(0, Math.floor(item.quantity)), 0);
-  const activeStrategies = packingStrategy(request) === "practical" || requested > 400 ? strategies.slice(0, 1) : strategies;
+  // Both solvers may learn from the same multi-start ordering ideas, but every
+  // candidate is rebuilt under that solver's own orientation/support rules.
+  // This lets theory guide field search without copying an unsafe theoretical
+  // placement into the practical output.
+  const activeStrategies = requested > 4000 ? strategies.slice(0, 2) : strategies;
   let best: PlacedBox[] = [];
   let bestScore = -1;
   for (const strategy of activeStrategies) {
@@ -1272,6 +1552,9 @@ export function validatePacking(
           Math.abs(orientation.dz - box.dz) <= EPS,
       );
       if (!allowedOrientation) errors.push(`${box.sku} 的箱体 ${index + 1} 使用了未允许的摆放方向。`);
+      if (strategy === "practical" && Math.abs(box.dz - positive(product.height)) > EPS) {
+        errors.push(`${box.sku} 的箱体 ${index + 1} 在现场易执行方案中发生侧翻；现场模式只允许保持原包装高度。`);
+      }
       if (product.bottomOnly === true && box.z > EPS) errors.push(`${box.sku} 的箱体 ${index + 1} 未按“必须底置”规则放在柜底。`);
       if (!canPassDoor({ dx: box.dx, dy: box.dy, dz: box.dz, label: box.orientation }, effective)) {
         errors.push(`${box.sku} 的箱体 ${index + 1} 无法按当前方向通过门洞。`);
@@ -1436,11 +1719,14 @@ function calculateExecutionComplexity(
   const productMap = new Map(products.map((product) => [product.id, product]));
   const topLevels = new Map<number, PlacedBox[]>();
   let partialSupportCount = 0;
+  let tippedCartonCount = 0;
 
   for (const box of placements) {
     const orientations = orientationsByProduct.get(box.productId) ?? new Set<string>();
     orientations.add(`${box.dx}:${box.dy}:${box.dz}`);
     orientationsByProduct.set(box.productId, orientations);
+    const product = productMap.get(box.productId);
+    if (product && Math.abs(box.dz - positive(product.height)) > EPS) tippedCartonCount += 1;
     if (box.z > EPS && supportDetails(box, topLevels, productMap).ratio < PRACTICAL_SUPPORT_RATIO) {
       partialSupportCount += 1;
     }
@@ -1452,6 +1738,7 @@ function calculateExecutionComplexity(
     orientationVariants: [...orientationsByProduct.values()].reduce((sum, orientations) => sum + orientations.size, 0),
     maxOrientationsPerSku: Math.max(0, ...[...orientationsByProduct.values()].map((orientations) => orientations.size)),
     partialSupportCount,
+    tippedCartonCount,
   };
 }
 
@@ -1528,6 +1815,7 @@ export function pack(request: PackingRequest): PackingResult {
     warnings.push(`现场模式已按相同包装的历史实装记录封顶为 ${fieldPracticalSetLimit.toLocaleString()} 套，避免输出虽能几何塞入、但超出现有工人作业基准的复杂方案。`);
   }
 
+  const normalizedProductMap = new Map(normalized.products.map((product) => [product.id, product]));
   for (const product of normalized.products) {
     if (!getOrientations(product).some((orientation) => canPassDoor(orientation, effective))) {
       warnings.push(`${product.sku} 没有可通过门洞的允许方向。`);
@@ -1537,7 +1825,7 @@ export function pack(request: PackingRequest): PackingResult {
     warnings.push(`订单仍有 ${(requestedCount - loadedCount).toLocaleString()} 件未装入，请查看 SKU 明细。`);
   }
   for (const summary of summaries) {
-    const product = normalized.products.find((item) => item.id === summary.productId);
+    const product = normalizedProductMap.get(summary.productId);
     if (product && mustLoad(product) && summary.unloaded > 0) {
       warnings.push(`必装货物 ${summary.sku} 仍有 ${summary.unloaded.toLocaleString()} 件未装入。`);
     }
@@ -1606,4 +1894,122 @@ export function pack(request: PackingRequest): PackingResult {
     warnings,
     createdAt: new Date().toISOString(),
   };
+}
+
+function strategyDisplayQuantity(result: PackingResult) {
+  return result.mode === "single" && result.setSummaries.length
+    ? result.setSummaries[0].loadedSets
+    : result.metrics.loadedCount;
+}
+
+function comparisonSnapshot(result: PackingResult): StrategyComparison["practical"] {
+  return {
+    loadedCount: result.metrics.loadedCount,
+    loadedSets: result.mode === "single" && result.setSummaries.length ? result.setSummaries[0].loadedSets : null,
+    displayQuantity: strategyDisplayQuantity(result),
+    volumeUtilization: result.metrics.volumeUtilization,
+    weightUtilization: result.metrics.weightUtilization,
+    solveTimeMs: result.metrics.solveTimeMs,
+    executionComplexity: result.metrics.executionComplexity,
+  };
+}
+
+function buildStrategyComparison(practical: PackingResult, maximum: PackingResult): StrategyComparison {
+  const displayUnit = practical.mode === "single" && practical.setSummaries.length ? "set" : "carton";
+  const practicalSnapshot = comparisonSnapshot(practical);
+  const maximumSnapshot = comparisonSnapshot(maximum);
+  const gainQuantity = Math.max(0, maximumSnapshot.displayQuantity - practicalSnapshot.displayQuantity);
+  const gainRatio = practicalSnapshot.displayQuantity > 0 ? gainQuantity / practicalSnapshot.displayQuantity : 0;
+  const guidance: StrategyComparison["guidance"] = [practical.mode === "single"
+    ? {
+        level: "adopted",
+        title: "已用理论搜索反向指导现场方案",
+        detail: "现场求解器会复用极限分区动态规划，但只吸收保持原包装高度、最多两种水平朝向、99.5% 以上承托且能形成连续作业区的摆法。",
+      }
+    : {
+        level: "adopted",
+        title: "已用理论多起点顺序扩展现场搜索",
+        detail: "现场求解器会采用理论搜索发现的多种 SKU 排序线索，但每个候选都会按不侧翻、最多两种水平朝向和 99.5% 承托重新摆放与校验，不直接复制理论坐标。",
+      }];
+
+  if (gainQuantity === 0) {
+    guidance.push({
+      level: "matched",
+      title: "现场方案已达到当前极限搜索结果",
+      detail: "数量相同不是共用算法：两套求解器分别运行后收敛到同一数量，增加侧翻或碎片补位也没有带来有效增量。",
+    });
+  } else {
+    guidance.push({
+      level: "review",
+      title: `理论方案多装 ${gainQuantity.toLocaleString()} ${displayUnit === "set" ? "套" : "箱"}`,
+      detail: `潜在增益 ${(gainRatio * 100).toFixed(1)}%；请结合下面的复杂度来源决定哪些分区值得现场试装。`,
+    });
+    if (maximumSnapshot.executionComplexity.tippedCartonCount > 0) {
+      guidance.push({
+        level: "blocked",
+        title: "侧翻增益未自动下放",
+        detail: `极限结果有 ${maximumSnapshot.executionComplexity.tippedCartonCount.toLocaleString()} 箱改变原包装高度，需先确认包装受力、标签朝向和叉装条件。`,
+      });
+    }
+    if (maximumSnapshot.executionComplexity.partialSupportCount > 0) {
+      guidance.push({
+        level: "blocked",
+        title: "局部承托增益未自动下放",
+        detail: `极限结果有 ${maximumSnapshot.executionComplexity.partialSupportCount.toLocaleString()} 箱未达到现场 99.5% 完整承托标准，必须增加垫板或重新试装。`,
+      });
+    }
+    if (maximumSnapshot.executionComplexity.maxOrientationsPerSku > 2) {
+      guidance.push({
+        level: "review",
+        title: "方向切换需要主管复核",
+        detail: `单个 SKU 最多出现 ${maximumSnapshot.executionComplexity.maxOrientationsPerSku} 种方向；现场方案仍限制为最多两种同高度水平方向。`,
+      });
+    }
+    if (
+      maximumSnapshot.executionComplexity.tippedCartonCount === 0 &&
+      maximumSnapshot.executionComplexity.partialSupportCount === 0 &&
+      maximumSnapshot.executionComplexity.maxOrientationsPerSku <= 2
+    ) {
+      guidance.push({
+        level: "review",
+        title: "可作为下一轮现场试装目标",
+        detail: "剩余差距主要来自经验装载率或历史实装封顶；建议每次提高 1–2 个百分点试装，确认门口操作空间后再保存为新的现场基准。",
+      });
+    }
+  }
+
+  return {
+    displayUnit,
+    practical: practicalSnapshot,
+    maximum: maximumSnapshot,
+    gainQuantity,
+    gainRatio,
+    sameQuantity: gainQuantity === 0,
+    practicalUsesTheoreticalGuide: true,
+    guidance,
+  };
+}
+
+/**
+ * UI/Worker entry point: both independent solvers run for the same immutable
+ * input. The theoretical solver treats the practical result as a valid lower
+ * bound, so a heuristic search can never report a worse "maximum" result.
+ */
+export function packWithComparison(request: PackingRequest): PackingResult {
+  const practical = pack({ ...request, strategy: "practical" });
+  let maximum = pack({ ...request, strategy: "maximum" });
+  if (strategyDisplayQuantity(maximum) < strategyDisplayQuantity(practical)) {
+    maximum = {
+      ...practical,
+      id: `plan-${Date.now()}-maximum-lower-bound`,
+      strategy: "maximum",
+      warnings: [
+        ...practical.warnings,
+        "极限搜索未超过现场合法解，已将现场方案作为理论搜索下界；不会把较差的启发式结果伪装成理论上限。",
+      ],
+    };
+  }
+  const comparison = buildStrategyComparison(practical, maximum);
+  const selected = packingStrategy(request) === "practical" ? practical : maximum;
+  return { ...selected, strategyComparison: comparison };
 }

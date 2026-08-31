@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pack, recommendedPracticalTarget, validatePacking } from "./engine";
+import { pack, packWithComparison, recommendedPracticalTarget, validatePacking } from "./engine";
 import { CONTAINER_PRESETS } from "./presets";
 import type { PackingStrategy, ProductInput, RotationPolicy } from "./types";
 
@@ -92,6 +92,34 @@ describe("deterministic packing stress regression", () => {
       expect(result.metrics.loadedCount % cartonsPerSet).toBe(0);
       expect(result.setSummaries[0].loadedCartons).toBe(result.setSummaries[0].loadedSets * cartonsPerSet);
       expect(result.placements.every((box) => box.setCode === `FUZZ-SET-${caseIndex}`)).toBe(true);
+    }
+  }, 30_000);
+
+  it("keeps both independently solved plans valid and never reports theory below field", () => {
+    const random = randomGenerator(0xd0ab1e);
+    for (let caseIndex = 0; caseIndex < 8; caseIndex += 1) {
+      const container = CONTAINER_PRESETS[caseIndex % CONTAINER_PRESETS.length];
+      const products = Array.from(
+        { length: between(random, 1, 3) },
+        (_, productIndex) => randomProduct(random, caseIndex + 200, productIndex),
+      );
+      const common = {
+        mode: "mixed" as const,
+        practicalTargetUtilization: recommendedPracticalTarget(container),
+        container,
+        clearance: between(random, 0, 25),
+        products,
+      };
+      const practical = packWithComparison({ ...common, strategy: "practical" });
+      const maximum = packWithComparison({ ...common, strategy: "maximum" });
+      const comparison = practical.strategyComparison!;
+
+      expect(practical.validation.valid, `practical case ${caseIndex}`).toBe(true);
+      expect(maximum.validation.valid, `maximum case ${caseIndex}`).toBe(true);
+      expect(comparison.maximum.displayQuantity).toBeGreaterThanOrEqual(comparison.practical.displayQuantity);
+      expect(practical.metrics.loadedCount).toBe(comparison.practical.loadedCount);
+      expect(maximum.metrics.loadedCount).toBe(maximum.strategyComparison!.maximum.loadedCount);
+      expect(comparison.practical.executionComplexity.tippedCartonCount).toBe(0);
     }
   }, 30_000);
 });

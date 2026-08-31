@@ -143,8 +143,36 @@ export type PackingMetrics = {
     orientationVariants: number;
     maxOrientationsPerSku: number;
     partialSupportCount: number;
+    tippedCartonCount: number;
   };
   solveTimeMs: number;
+};
+
+export type StrategyComparisonSnapshot = {
+  loadedCount: number;
+  loadedSets: number | null;
+  displayQuantity: number;
+  volumeUtilization: number;
+  weightUtilization: number;
+  solveTimeMs: number;
+  executionComplexity: PackingMetrics["executionComplexity"];
+};
+
+export type StrategyGuidance = {
+  level: "adopted" | "review" | "blocked" | "matched";
+  title: string;
+  detail: string;
+};
+
+export type StrategyComparison = {
+  displayUnit: "carton" | "set";
+  practical: StrategyComparisonSnapshot;
+  maximum: StrategyComparisonSnapshot;
+  gainQuantity: number;
+  gainRatio: number;
+  sameQuantity: boolean;
+  practicalUsesTheoreticalGuide: boolean;
+  guidance: StrategyGuidance[];
 };
 
 export type ValidationReport = {
@@ -191,6 +219,7 @@ export type PackingResult = {
   summaries: ProductSummary[];
   setSummaries: SetLoadSummary[];
   quoteEstimate?: QuoteEstimate;
+  strategyComparison?: StrategyComparison;
   metrics: PackingMetrics;
   validation: ValidationReport;
   warnings: string[];

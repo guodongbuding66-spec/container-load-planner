@@ -130,7 +130,7 @@ test("offers a worker-executable strategy and a unit-safe real loading benchmark
 
   assert.match(source, /aria-label="装柜执行策略"/);
   assert.match(source, /现场易执行/);
-  assert.match(source, /极限利用率/);
+  assert.match(source, /极限理论/);
   assert.match(source, /载入真实 A64M/);
   assert.match(source, /报价轨按已确认的 396 套/);
   assert.match(source, /报价经验预测/);
@@ -143,6 +143,33 @@ test("offers a worker-executable strategy and a unit-safe real loading benchmark
   assert.match(engine, /PRACTICAL_SUPPORT_RATIO = 0\.995/);
   assert.match(presets, /"40hq": \{ cartons: 792, sets: 396 \}/);
   assert.match(estimator, /loadingSets: \{ "20gp": 110, "40gp": 230, "40hq": 275 \}/);
+});
+
+test("runs two independent solvers and exposes actionable strategy guidance", async () => {
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+  const engine = await readFile(new URL("../lib/packing/engine.ts", import.meta.url), "utf8");
+  const worker = await readFile(new URL("../lib/packing/packing.worker.ts", import.meta.url), "utf8");
+  const views = await readFile(new URL("../components/orthographic-views.tsx", import.meta.url), "utf8");
+
+  assert.match(worker, /packWithComparison/);
+  assert.match(engine, /export function packWithComparison/);
+  assert.match(engine, /function maximumMultiplierBySlabDp/);
+  assert.match(source, /className="strategy-comparison"/);
+  assert.match(source, /现场算法 × 极限理论算法/);
+  assert.match(source, /每次计算都会分别运行两套算法/);
+  assert.match(source, /tippedCartonCount/);
+  assert.match(views, /<button[\s\S]*?className=\{`projection-card/);
+  assert.doesNotMatch(views, /role="button"/);
+});
+
+test("ships Cloudflare security headers without blocking the static Next bootstrap or packing worker", async () => {
+  const headers = await readFile(new URL("../public/_headers", import.meta.url), "utf8");
+
+  assert.match(headers, /X-Frame-Options: DENY/);
+  assert.match(headers, /X-Content-Type-Options: nosniff/);
+  assert.match(headers, /script-src 'self' 'unsafe-inline'/);
+  assert.match(headers, /worker-src 'self' blob:/);
+  assert.match(headers, /object-src 'none'/);
 });
 
 test("auto-calculates CBM and displays complete sets before carton details", async () => {
