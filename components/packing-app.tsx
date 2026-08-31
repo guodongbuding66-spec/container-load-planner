@@ -1150,7 +1150,11 @@ export function PackingApp() {
               <div className="ratio-chips" aria-label="各 SKU 建议箱数">
                 {selectedPredictionQuantities.map((item) => <span key={item.productId}><b>{item.sku}</b>{formatNumber(item.suggestedQuantity)} 箱</span>)}
               </div>
-              <button className="reverse-apply-button" onClick={applyReversePlan} disabled={status === "working" || reversePlan.recommendedTotal <= 0}><ShieldCheck size={17} />{mode === "single" ? `按目标生成 ${formatNumber(reversePlan.recommendedDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}现场方案` : "应用建议数量并验证真实装载"}</button>
+              <button className="reverse-apply-button" onClick={applyReversePlan} disabled={status === "working" || reversePlan.recommendedTotal <= 0}><ShieldCheck size={17} />{mode === "single"
+                ? strategy === "maximum"
+                  ? `切回现场并生成 ${formatNumber(reversePlan.recommendedDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}方案`
+                  : `按目标生成 ${formatNumber(reversePlan.recommendedDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}现场方案`
+                : "应用建议数量并验证真实装载"}</button>
               <p className="reverse-note">{mode === "single"
                 ? "现场易执行显示目标约束后的工人方案；极限理论显示不留软余量的独立搜索上限。切换算法会同步切换整张方案。"
                 : "倒推先保持当前 SKU 数量比例；箱型方向、门洞和碎片空间会影响最终实际利用率，应用后将用装箱算法重新验证。"}</p>
@@ -1209,7 +1213,7 @@ export function PackingApp() {
                 <div className="timeline-current" aria-live="polite">
                   {progressSummary?.currentPlacement
                     ? <><span>{progressSummary.isSetMode && progressSummary.currentSetNumber
-                      ? `当前第 ${formatNumber(progressSummary.currentSetNumber)} 套 · 套内 ${formatNumber(progressSummary.currentSetItemNumber ?? 1)}/${formatNumber(progressSummary.currentSetCartons ?? 1)} 箱`
+                      ? `已完成 ${formatNumber(progressSummary.completedSets)}/${formatNumber(progressSummary.totalSets)} 套 · 本步第 ${formatNumber(progressSummary.currentSetNumber)} 套 ${formatNumber(progressSummary.currentSetItemNumber ?? 1)}/${formatNumber(progressSummary.currentSetCartons ?? 1)} 箱`
                       : `当前第 ${formatNumber(progressSummary.visibleCartons)} 箱`}</span><strong>{progressSummary.currentPlacement.sku}{progressSummary.currentPlacement.setCode ? ` · ${progressSummary.currentPlacement.setCode}` : ""}</strong><b>坐标 {formatNumber(progressSummary.currentPlacement.x)} / {formatNumber(progressSummary.currentPlacement.y)} / {formatNumber(progressSummary.currentPlacement.z)} mm · 第 {progressSummary.currentPlacement.layer} 层</b></>
                     : <><span>准备开始</span><strong>尚未装入箱体</strong><b>点击播放或下一步查看装柜顺序</b></>}
                 </div>

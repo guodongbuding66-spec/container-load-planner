@@ -20,7 +20,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.11.2";
+export const ENGINE_VERSION = "0.11.3";
 
 type Orientation = {
   dx: number;
@@ -2025,7 +2025,7 @@ function buildStrategyComparison(practical: PackingResult, maximum: PackingResul
           ? "计划量之外保留为安全余量"
           : historicalBaselineActive ? "可解除旧基准后进行现场试装" : "可作为下一轮现场试装目标",
         detail: practical.singleCartonLimit !== undefined
-          ? "当前差距首先来自主动设置的体积/载重计划上限，不是算法自相矛盾；需要冲量时请改用“计算所选策略上限”另生成方案。"
+          ? "当前差距首先来自主动设置的体积/载重计划上限，不是算法自相矛盾；需要冲量时切换“极限理论”，页面会立即改用已缓存的极限数量、三视图、坐标与导出方案。"
           : historicalBaselineActive
           ? `当前按历史实装 ${practical.quoteEstimate!.predictedSets.toLocaleString()} ${displayUnit === "set" ? "套" : "箱"}封顶；将现场经验装载率从 ${(defaultTarget * 100).toFixed(1)}% 主动调高到 ${(defaultTarget * 100 + 1).toFixed(1)}% 或以上后，系统会解除旧基准硬封顶，并继续只输出不侧翻、完整承托的现场候选。`
           : "剩余差距没有侧翻、局部承托或多方向风险；建议每次提高 1–2 个百分点试装，并在确认门口操作空间后记录新的实装数量。",
