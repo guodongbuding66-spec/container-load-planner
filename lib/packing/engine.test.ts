@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateReverseCounts, pack, validatePacking } from "./engine";
+import { calculateReverseCounts, pack, recommendedPracticalTarget, validatePacking } from "./engine";
 import {
   CONTAINER_PRESETS,
   DIMENSION_TEST_PRODUCTS,
@@ -197,6 +197,35 @@ describe("packing engine", () => {
     expect(estimate.recommendedTotal).toBe(6);
     expect(estimate.limitingFactor).toBe("volume");
     expect(estimate.quantities[0].suggestedQuantity).toBe(6);
+    expect(estimate).toMatchObject({ displayUnit: "carton", cartonsPerSet: 1, recommendedDisplay: 6 });
+  });
+
+  it("returns complete sets as the primary reverse-count unit for multi-carton products", () => {
+    const simpleContainer = { ...container, id: "custom", length: 1000, width: 1000, height: 1000, maxWeight: 10_000 };
+    const products = [
+      product({ id: "set-display-a", sku: "SET-A", length: 500, width: 500, height: 500, weight: 10, setCode: "DISPLAY-SET", unitsPerSet: 1 }),
+      product({ id: "set-display-b", sku: "SET-B", length: 500, width: 500, height: 500, weight: 10, setCode: "DISPLAY-SET", unitsPerSet: 1 }),
+    ];
+    const estimate = calculateReverseCounts(
+      request({ mode: "single", container: simpleContainer, products }),
+      1,
+      1,
+    );
+
+    expect(estimate).toMatchObject({
+      displayUnit: "set",
+      cartonsPerSet: 2,
+      volumeLimitedTotal: 8,
+      volumeLimitedDisplay: 4,
+      recommendedTotal: 8,
+      recommendedDisplay: 4,
+    });
+    expect(estimate.quantities.map((item) => item.suggestedQuantity)).toEqual([4, 4]);
+  });
+
+  it("uses container-specific worker-practical utilization defaults", () => {
+    expect(CONTAINER_PRESETS.map((item) => recommendedPracticalTarget(item))).toEqual([0.805, 0.845, 0.88]);
+    expect(recommendedPracticalTarget({ id: "custom" })).toBe(0.845);
   });
 
   it("preserves the current mixed-SKU ratio when distributing a reverse plan", () => {
@@ -442,7 +471,7 @@ describe("packing engine", () => {
     expect(() => pack(request({ strategy: "practical", practicalTargetUtilization: 0.99 }))).toThrow("50%–95%");
   });
 
-  it("independently enforces practical orientation and full-support rules", () => {
+  it("allows a simple planar side strip but rejects tipped practical orientations and partial support", () => {
     const practicalProduct = product({
       id: "practical-box",
       sku: "PRACTICAL",
@@ -465,8 +494,20 @@ describe("packing engine", () => {
       orientation: "WLH",
     };
     const orientationValidation = validatePacking([first, rotated], { ...container, length: 1000, width: 1000 }, 0, [practicalProduct], "practical");
-    expect(orientationValidation.valid).toBe(false);
-    expect(orientationValidation.errors.join(" ")).toContain("固定为一种");
+    expect(orientationValidation.valid).toBe(true);
+
+    const tipped = {
+      ...first,
+      id: "practical-3",
+      x: 750,
+      dx: 250,
+      dy: 250,
+      dz: 500,
+      orientation: "WHL",
+    };
+    const tippedValidation = validatePacking([first, rotated, tipped], { ...container, length: 1000, width: 1000 }, 0, [practicalProduct], "practical");
+    expect(tippedValidation.valid).toBe(false);
+    expect(tippedValidation.errors.join(" ")).toContain("不允许侧翻补缝");
 
     const square = product({ id: "support-box", sku: "SUPPORT", length: 500, width: 500, height: 500, rotationPolicy: "fixed" });
     const supportValidation = validatePacking([
@@ -540,7 +581,7 @@ describe("packing engine", () => {
     expect(result.metrics.grossWeight).toBeLessThanOrEqual(28600);
   }, 15_000);
 
-  it("calibrates the practical strategy against the real SLM-A64M loading record", () => {
+  it("separates the confirmed A64M quotation quantity from the physical 3D plan", () => {
     const result = pack({
       mode: "single",
       strategy: "practical",
@@ -550,13 +591,13 @@ describe("packing engine", () => {
       products: REAL_WORLD_A64M_PRODUCTS,
     });
 
-    expect(REAL_WORLD_A64M_LOADING["40hq"]).toEqual({ cartons: 396, sets: 198 });
+    expect(REAL_WORLD_A64M_LOADING["40hq"]).toEqual({ cartons: 792, sets: 396 });
     const setVolume = REAL_WORLD_A64M_PRODUCTS.reduce(
       (sum, item) => sum + item.length * item.width * item.height * (item.unitsPerSet ?? 1),
       0,
     );
     const physicalContainerVolume = result.metrics.effectiveVolume;
-    expect((396 * setVolume) / physicalContainerVolume).toBeGreaterThan(1.6);
+    expect((REAL_WORLD_A64M_LOADING["40hq"].sets * setVolume) / physicalContainerVolume).toBeGreaterThan(1.6);
     expect((198 * setVolume) / physicalContainerVolume).toBeCloseTo(0.844, 3);
     expect(result.strategy).toBe("practical");
     expect(result.validation.valid).toBe(true);
@@ -565,6 +606,15 @@ describe("packing engine", () => {
     expect(result.metrics.executionComplexity.maxOrientationsPerSku).toBe(1);
     expect(result.metrics.executionComplexity.partialSupportCount).toBe(0);
     expect(result.metrics.volumeUtilization).toBeLessThanOrEqual(0.85);
+    expect(result.quoteEstimate).toMatchObject({
+      source: "historical-exact",
+      confidence: "verified",
+      predictedSets: 396,
+      physicalLoadedSets: 198,
+      gapSets: 198,
+      physicallyPossibleByBounds: false,
+    });
+    expect(result.quoteEstimate!.volumeBoundRatio).toBeGreaterThan(1.6);
 
     result.placements.forEach((upper, upperIndex) => {
       if (upper.z === 0) return;
@@ -616,6 +666,6 @@ describe("packing engine", () => {
 
     expect(maximum.validation.valid).toBe(true);
     expect(maximum.metrics.loadedCount).toBeGreaterThanOrEqual(practical.metrics.loadedCount);
-    expect(maximum.practicalTargetUtilization).toBe(0.845);
+    expect(maximum.practicalTargetUtilization).toBe(0.88);
   }, 30_000);
 });

@@ -60,6 +60,11 @@ export type ReverseCountResult = {
   volumeLimitedTotal: number;
   weightLimitedTotal: number | null;
   recommendedTotal: number;
+  displayUnit: "carton" | "set";
+  cartonsPerSet: number;
+  volumeLimitedDisplay: number;
+  weightLimitedDisplay: number | null;
+  recommendedDisplay: number;
   limitingFactor: "volume" | "weight" | "equal";
   quantities: ReverseCountItem[];
 };
@@ -147,6 +152,33 @@ export type ValidationReport = {
   errors: string[];
 };
 
+export type QuoteEstimate = {
+  source: "historical-exact" | "calibrated-volume";
+  confidence: "verified" | "estimated";
+  matchedModels: string[];
+  predictedSets: number;
+  physicalLoadedSets: number;
+  gapSets: number;
+  gapRatio: number;
+  expectedErrorPct: number;
+  backtestMeanErrorPct: number;
+  backtestP90ErrorPct: number;
+  backtestMaxErrorPct: number;
+  verifiedDataPoints: number;
+  calibratedCargoVolumeCbm: number;
+  setRoundedVolumeCbm: number;
+  setPhysicalVolumeCbm: number;
+  setWeightKg: number;
+  predictedCargoVolumeCbm: number;
+  predictedGrossWeightKg: number;
+  volumeBoundRatio: number;
+  weightBoundRatio: number;
+  withinVolumeBound: boolean;
+  withinWeightBound: boolean;
+  physicallyPossibleByBounds: boolean;
+  dataQualityWarnings: string[];
+};
+
 export type PackingResult = {
   id: string;
   mode: PackingMode;
@@ -158,6 +190,7 @@ export type PackingResult = {
   placements: PlacedBox[];
   summaries: ProductSummary[];
   setSummaries: SetLoadSummary[];
+  quoteEstimate?: QuoteEstimate;
   metrics: PackingMetrics;
   validation: ValidationReport;
   warnings: string[];

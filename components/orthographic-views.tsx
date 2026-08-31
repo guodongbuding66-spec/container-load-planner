@@ -326,3 +326,4 @@ export function OrthographicViews({ result, visibleProducts, visibleCount, activ
     </div>
   );
 }
+

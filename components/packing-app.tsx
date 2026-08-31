@@ -34,16 +34,22 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CameraProjection, CameraView } from "../lib/packing/camera-fit";
 import { buildPlacementCsv, MAX_CSV_BYTES, MAX_CSV_ROWS, parseProductsCsv } from "../lib/packing/csv";
-import { calculateReverseCounts, DEFAULT_PRACTICAL_TARGET, ENGINE_VERSION, pack } from "../lib/packing/engine";
+import {
+  calculateReverseCounts,
+  DEFAULT_PRACTICAL_TARGET,
+  ENGINE_VERSION,
+  pack,
+  recommendedPracticalTarget,
+} from "../lib/packing/engine";
 import {
   CONTAINER_PRESETS,
   DIMENSION_TEST_PRODUCTS,
   MULTI_CARTON_SET_PRODUCTS,
-  REAL_WORLD_A64M_LOADING,
   REAL_WORLD_A64M_PRODUCTS,
   SAMPLE_PRODUCTS,
   TWO_CARTON_SET_PRODUCTS,
 } from "../lib/packing/presets";
+import { HISTORICAL_LOADING_RECORDS } from "../lib/packing/quote-estimator";
 import {
   alignSetQuantities,
   normalizedUnitsPerSet,
@@ -59,6 +65,7 @@ import type {
   ProductInput,
   WorkerResponse,
 } from "../lib/packing/types";
+import { exactCartonVolumeCbm, roundedCartonVolumeCbm } from "../lib/packing/volume";
 import { OrthographicViews } from "./orthographic-views";
 import { SceneErrorBoundary } from "./scene-error-boundary";
 
@@ -130,7 +137,7 @@ function createProduct(index: number): ProductInput {
     bottomOnly: false,
     setCode: "",
     unitsPerSet: 1,
-    declaredVolumeCbm: 0,
+    declaredVolumeCbm: 0.15,
     color: COLORS[index % COLORS.length],
   };
 }
@@ -162,6 +169,9 @@ function nextSetCode(products: ProductInput[], cartonCount: number) {
 
 function normalizeProductDraft(product: Partial<ProductInput>, index: number): ProductInput {
   const fallback = createProduct(index);
+  const length = clampNumber(product.length, 0, 0);
+  const width = clampNumber(product.width, 0, 0);
+  const height = clampNumber(product.height, 0, 0);
   const rotationPolicy = ["fixed", "upright", "any"].includes(product.rotationPolicy ?? "")
     ? product.rotationPolicy as ProductInput["rotationPolicy"]
     : product.allowRotate === false
@@ -173,9 +183,9 @@ function normalizeProductDraft(product: Partial<ProductInput>, index: number): P
     id: safeText(product.id, fallback.id, 120),
     sku: safeText(product.sku, fallback.sku, 80),
     name: safeText(product.name, fallback.name, 200),
-    length: clampNumber(product.length, 0, 0),
-    width: clampNumber(product.width, 0, 0),
-    height: clampNumber(product.height, 0, 0),
+    length,
+    width,
+    height,
     weight: clampNumber(product.weight, 0, 0),
     quantity: clampInteger(product.quantity, 0, 0, 1_000_000),
     priority: clampInteger(product.priority, 50, 0, 100),
@@ -186,7 +196,7 @@ function normalizeProductDraft(product: Partial<ProductInput>, index: number): P
     bottomOnly: product.bottomOnly === true,
     setCode: safeText(product.setCode, "", 80).trim(),
     unitsPerSet: clampInteger(product.unitsPerSet, 1, 1, 99),
-    declaredVolumeCbm: clampNumber(product.declaredVolumeCbm, 0, 0),
+    declaredVolumeCbm: roundedCartonVolumeCbm({ length, width, height }),
     color: typeof product.color === "string" && VALID_COLOR.test(product.color) ? product.color : fallback.color,
   };
 }
@@ -249,7 +259,9 @@ function MetricCard({ icon, label, value, detail, tone = "teal" }: { icon: React
 export function PackingApp() {
   const [mode, setMode] = useState<PackingMode>("mixed");
   const [strategy, setStrategy] = useState<PackingStrategy>("practical");
-  const [practicalTargetPercent, setPracticalTargetPercent] = useState(DEFAULT_PRACTICAL_TARGET * 100);
+  const [practicalTargetPercent, setPracticalTargetPercent] = useState(
+    recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100,
+  );
   const [container, setContainer] = useState<ContainerSpec>({ ...CONTAINER_PRESETS[2] });
   const [clearance, setClearance] = useState(10);
   const [products, setProducts] = useState<ProductInput[]>(SAMPLE_PRODUCTS.map((item) => ({ ...item })));
@@ -445,16 +457,6 @@ export function PackingApp() {
   const setInputSummaries = useMemo(() => summarizeSetInputs(activeProducts), [activeProducts]);
   const singleSetSummary = mode === "single" ? setInputSummaries[0] : undefined;
   const isSingleProductSet = Boolean(singleSetSummary);
-  const isRealA64M = activeProducts.length === REAL_WORLD_A64M_PRODUCTS.length && activeProducts.every((product) => {
-    const benchmark = REAL_WORLD_A64M_PRODUCTS.find((item) => item.id === product.id);
-    return Boolean(benchmark) &&
-      product.length === benchmark!.length &&
-      product.width === benchmark!.width &&
-      product.height === benchmark!.height &&
-      product.weight === benchmark!.weight &&
-      product.setCode?.trim() === benchmark!.setCode;
-  });
-  const realA64MBenchmark = isRealA64M ? REAL_WORLD_A64M_LOADING[container.id] : undefined;
   const inputVolume = useMemo(
     () => activeProducts.reduce(
       (sum, item) => sum + item.length * item.width * item.height * (
@@ -500,6 +502,7 @@ export function PackingApp() {
     const preset = containerChoices.find((item) => item.id === id);
     if (!preset) return;
     setContainer({ ...preset });
+    setPracticalTargetPercent(recommendedPracticalTarget(preset) * 100);
     markDirty();
   };
 
@@ -535,7 +538,7 @@ export function PackingApp() {
         if (product.id !== id) return product;
         let nextValue: string | number | boolean = value;
         if (typeof value === "string") {
-          if (["length", "width", "height", "weight", "declaredVolumeCbm"].includes(field)) {
+          if (["length", "width", "height", "weight"].includes(field)) {
             nextValue = clampNumber(value, 0, 0);
           } else if (field === "quantity") {
             nextValue = clampInteger(value, 0, 0, 1_000_000);
@@ -553,7 +556,10 @@ export function PackingApp() {
             nextValue = value.slice(0, 80);
           }
         }
-        return { ...product, [field]: nextValue };
+        const updated = { ...product, [field]: nextValue };
+        return ["length", "width", "height"].includes(field)
+          ? { ...updated, declaredVolumeCbm: roundedCartonVolumeCbm(updated) }
+          : updated;
       }),
     );
     markDirty();
@@ -624,6 +630,7 @@ export function PackingApp() {
   const loadSample = () => {
     setMode("mixed");
     setContainer({ ...CONTAINER_PRESETS[2] });
+    setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
     setClearance(10);
     setProducts(SAMPLE_PRODUCTS.map((item) => ({ ...item })));
     setResult(null);
@@ -637,6 +644,7 @@ export function PackingApp() {
   const loadDimensionTest = () => {
     setMode("mixed");
     setContainer({ ...CONTAINER_PRESETS[2] });
+    setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
     setClearance(10);
     setProducts(DIMENSION_TEST_PRODUCTS.map((item) => ({ ...item })));
     setResult(null);
@@ -644,12 +652,13 @@ export function PackingApp() {
     setCameraProjection("perspective");
     markDirty();
     setStatus("idle");
-    setMessage("已载入你提供的 3 组 CM 尺寸，系统已换算为 mm 并保留标称 CBM");
+    setMessage("已载入你提供的 3 组 CM 尺寸；CBM 将由外箱尺寸自动计算到小数点后两位");
   };
 
   const loadTwoCartonSetTest = () => {
     setMode("single");
     setContainer({ ...CONTAINER_PRESETS[2] });
+    setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
     setClearance(10);
     setProducts(TWO_CARTON_SET_PRODUCTS.map((item) => ({ ...item })));
     setResult(null);
@@ -663,6 +672,7 @@ export function PackingApp() {
   const loadMultiCartonSetTest = () => {
     setMode("single");
     setContainer({ ...CONTAINER_PRESETS[2] });
+    setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
     setClearance(10);
     setProducts(MULTI_CARTON_SET_PRODUCTS.map((item) => ({ ...item })));
     setResult(null);
@@ -676,7 +686,7 @@ export function PackingApp() {
   const loadRealA64M = () => {
     setMode("single");
     setStrategy("practical");
-    setPracticalTargetPercent(DEFAULT_PRACTICAL_TARGET * 100);
+    setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
     setContainer({ ...CONTAINER_PRESETS[2] });
     setClearance(10);
     setProducts(REAL_WORLD_A64M_PRODUCTS.map((item) => ({ ...item })));
@@ -685,7 +695,40 @@ export function PackingApp() {
     setCameraProjection("perspective");
     markDirty();
     setStatus("idle");
-    setMessage("已载入真实 SLM-A64M：40HQ 报价表口径 396 箱 = 198 套，默认用现场易执行策略复算");
+    setMessage("已载入真实 SLM-A64M：报价轨按已确认的 396 套展示，三维轨继续计算无重叠物理方案");
+  };
+
+  const loadSuppliedRealRecord = (model: string) => {
+    const record = HISTORICAL_LOADING_RECORDS.find((item) => item.models.includes(model));
+    if (!record) return;
+    const setCodeValue = record.cartons.length > 1 ? `REAL-${model.replaceAll(/[^A-Za-z0-9]+/g, "-")}` : "";
+    setMode("single");
+    setStrategy("practical");
+    setContainer({ ...CONTAINER_PRESETS[2] });
+    setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
+    setClearance(10);
+    setProducts(record.cartons.map((carton, index) => ({
+      id: `real-supplied-${index}-${carton.length}-${carton.width}-${carton.height}`,
+      sku: record.cartons.length > 1 ? `REAL-${index + 1}` : "REAL-1CTN",
+      name: `${model}${record.cartons.length > 1 ? ` · 第 ${index + 1} 箱` : ""}`,
+      ...carton,
+      quantity: 1000,
+      priority: 100,
+      rotationPolicy: "upright",
+      stackable: true,
+      maxStackLayers: 0,
+      mustLoad: true,
+      bottomOnly: false,
+      setCode: setCodeValue,
+      unitsPerSet: 1,
+      color: COLORS[index % COLORS.length],
+    })));
+    setResult(null);
+    setCameraView("perspective");
+    setCameraProjection("perspective");
+    markDirty();
+    setStatus("idle");
+    setMessage(`已载入 ${model}；40HQ 历史实装 ${record.loadingSets["40hq"]} 套，计算后将同时显示历史预测与无重叠三维方案。`);
   };
 
   const validateInputs = () => {
@@ -821,12 +864,12 @@ export function PackingApp() {
 
   const downloadTemplate = () => {
     const lines = [
-      "sku,name,length,width,height,declaredVolumeCbm,weight,quantity,priority,setCode,unitsPerSet,rotationPolicy,stackable,maxStackLayers,mustLoad,bottomOnly,color",
-      "SET5-A-128,五箱套装A箱,1280,540,110,0.08,40,120,100,SET-5BOX,1,upright,true,22,true,false,#2f7f89",
-      "SET5-B-068,五箱套装B箱,680,540,110,0.04,14,120,100,SET-5BOX,1,upright,true,22,true,false,#a95e78",
-      "SET5-C-103,五箱套装C箱,1030,620,120,0.08,30,120,100,SET-5BOX,1,upright,true,20,true,false,#d5a72f",
-      "SET5-D-052,五箱套装D箱,520,350,180,0.033,12,120,100,SET-5BOX,1,upright,true,15,true,false,#6b72a9",
-      "SET5-E-090,五箱套装E箱,900,420,140,0.053,18,120,100,SET-5BOX,1,upright,true,18,true,false,#609d62",
+      "sku,name,length,width,height,weight,quantity,priority,setCode,unitsPerSet,rotationPolicy,stackable,maxStackLayers,mustLoad,bottomOnly,color",
+      "SET5-A-128,五箱套装A箱,1280,540,110,40,120,100,SET-5BOX,1,upright,true,22,true,false,#2f7f89",
+      "SET5-B-068,五箱套装B箱,680,540,110,14,120,100,SET-5BOX,1,upright,true,22,true,false,#a95e78",
+      "SET5-C-103,五箱套装C箱,1030,620,120,30,120,100,SET-5BOX,1,upright,true,20,true,false,#d5a72f",
+      "SET5-D-052,五箱套装D箱,520,350,180,12,120,100,SET-5BOX,1,upright,true,15,true,false,#6b72a9",
+      "SET5-E-090,五箱套装E箱,900,420,140,18,120,100,SET-5BOX,1,upright,true,18,true,false,#609d62",
     ];
     downloadFile("拼柜导入模板.csv", `\uFEFF${lines.join("\n")}`, "text/csv;charset=utf-8");
   };
@@ -995,12 +1038,24 @@ export function PackingApp() {
                 <div className="target-input"><input aria-label="目标载重利用率滑块" type="range" min="1" max="100" value={targetWeightPercent} onChange={(event) => setTargetWeightPercent(numberValue(event.target.value))} /><input aria-label="目标载重利用率" type="number" min="1" max="100" value={targetWeightPercent} onChange={(event) => setTargetWeightPercent(Math.min(100, Math.max(1, numberValue(event.target.value))))} /><b>%</b></div>
               </div>
               <div className="reverse-count-grid">
-                <div><span>体积倒推</span><strong>{formatNumber(reversePlan.volumeLimitedTotal)} 箱</strong><small>目标 {targetVolumePercent}%</small></div>
-                <div><span>载重倒推</span><strong>{reversePlan.weightLimitedTotal === null ? "缺少重量" : `${formatNumber(reversePlan.weightLimitedTotal)} 箱`}</strong><small>目标 {targetWeightPercent}%</small></div>
-                <div className="recommended"><span>综合建议</span><strong>{formatNumber(reversePlan.recommendedTotal)} 箱</strong><small>{reversePlan.limitingFactor === "volume" ? "受体积目标限制" : reversePlan.limitingFactor === "weight" ? "受载重目标限制" : "两个目标同时达到"}</small></div>
+                <div>
+                  <span>体积倒推</span>
+                  <strong>{formatNumber(reversePlan.volumeLimitedDisplay)} {reversePlan.displayUnit === "set" ? "套" : "箱"}</strong>
+                  <small>{reversePlan.displayUnit === "set" ? `共 ${formatNumber(reversePlan.volumeLimitedDisplay * reversePlan.cartonsPerSet)} 箱 · ` : ""}目标 {targetVolumePercent}%</small>
+                </div>
+                <div>
+                  <span>载重倒推</span>
+                  <strong>{reversePlan.weightLimitedDisplay === null ? "缺少重量" : `${formatNumber(reversePlan.weightLimitedDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</strong>
+                  <small>{reversePlan.displayUnit === "set" && reversePlan.weightLimitedDisplay !== null ? `共 ${formatNumber(reversePlan.weightLimitedDisplay * reversePlan.cartonsPerSet)} 箱 · ` : ""}目标 {targetWeightPercent}%</small>
+                </div>
+                <div className="recommended">
+                  <span>综合建议</span>
+                  <strong>{formatNumber(reversePlan.recommendedDisplay)} {reversePlan.displayUnit === "set" ? "套" : "箱"}</strong>
+                  <small>{reversePlan.displayUnit === "set" ? `共 ${formatNumber(reversePlan.recommendedTotal)} 箱 · ` : ""}{reversePlan.limitingFactor === "volume" ? "受体积目标限制" : reversePlan.limitingFactor === "weight" ? "受载重目标限制" : "两个目标同时达到"}</small>
+                </div>
               </div>
               <div className="ratio-chips" aria-label="各 SKU 建议箱数">
-                {reversePlan.quantities.map((item) => <span key={item.productId}><b>{item.sku}</b>{formatNumber(item.suggestedQuantity)}</span>)}
+                {reversePlan.quantities.map((item) => <span key={item.productId}><b>{item.sku}</b>{formatNumber(item.suggestedQuantity)} 箱</span>)}
               </div>
               <button className="reverse-apply-button" onClick={applyReversePlan} disabled={status === "working" || reversePlan.recommendedTotal <= 0}><Rotate3D size={17} />{mode === "single" ? isSingleProductSet ? "计算最大完整套数" : "计算最大可装箱数" : "应用建议数量并验证真实装载"}</button>
               <p className="reverse-note">{mode === "single"
@@ -1105,6 +1160,12 @@ export function PackingApp() {
             <div><span className="section-kicker">PRODUCTS</span><h2>{mode === "single" ? isSingleProductSet ? "单品多箱包装参数" : "单品包装参数" : "产品与拼柜订单"}</h2></div>
             <div className="panel-actions">
               <input ref={fileInputRef} hidden type="file" accept=".csv,text/csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importCsv(file); event.currentTarget.value = ""; }} />
+              <select className="real-record-select" aria-label="载入用户提供的真实装柜记录" value="" onChange={(event) => loadSuppliedRealRecord(event.target.value)}>
+                <option value="" disabled>载入真实记录…</option>
+                {HISTORICAL_LOADING_RECORDS.filter((record) => record.models[0].startsWith("实装记录·")).map((record) => (
+                  <option key={record.models[0]} value={record.models[0]}>{record.models[0]} · HQ {record.loadingSets["40hq"]} 套</option>
+                ))}
+              </select>
               <button className="button ghost small real-data-button" onClick={loadRealA64M}><CheckCircle2 size={15} />载入真实 A64M</button>
               <button className="button ghost small" onClick={loadDimensionTest}><PackageOpen size={15} />载入尺寸测试</button>
               <button className="button ghost small" onClick={loadTwoCartonSetTest}><Boxes size={15} />载入 1 套 2 箱</button>
@@ -1158,20 +1219,18 @@ export function PackingApp() {
           </section>
           <div className="product-table-wrap">
             <table className="product-table">
-              <thead><tr><th>标识</th><th>SKU / 品名</th><th>外箱长</th><th>外箱宽</th><th>外箱高</th><th>CBM 核对</th><th>毛重</th>{mode === "mixed" ? <th>需求箱数</th> : null}{mode === "mixed" || isSingleProductSet ? <><th>套装编码</th><th>套内数量</th></> : null}{mode === "mixed" ? <><th>装载优先级</th><th>必装</th></> : null}<th>方向规则</th><th>可承托</th><th>必须底置</th><th>层数上限</th><th aria-label="操作" /></tr></thead>
+              <thead><tr><th>标识</th><th>SKU / 品名</th><th>外箱长</th><th>外箱宽</th><th>外箱高</th><th>CBM 自动</th><th>毛重</th>{mode === "mixed" ? <th>需求箱数</th> : null}{mode === "mixed" || isSingleProductSet ? <><th>套装编码</th><th>套内数量</th></> : null}{mode === "mixed" ? <><th>装载优先级</th><th>必装</th></> : null}<th>方向规则</th><th>可承托</th><th>必须底置</th><th>层数上限</th><th aria-label="操作" /></tr></thead>
               <tbody>
                 {activeProducts.map((product) => {
-                  const calculatedCbm = (product.length * product.width * product.height) / 1_000_000_000;
-                  const declaredDifference = product.declaredVolumeCbm
-                    ? ((product.declaredVolumeCbm - calculatedCbm) / Math.max(calculatedCbm, 0.000001)) * 100
-                    : 0;
+                  const calculatedCbm = exactCartonVolumeCbm(product);
+                  const roundedCbm = roundedCartonVolumeCbm(product);
                   return <tr key={product.id}>
                     <td><input className="color-input" aria-label={`${product.sku} 颜色`} type="color" value={product.color} onChange={(event) => updateProduct(product.id, "color", event.target.value)} /></td>
                     <td><input aria-label={`${product.sku} SKU`} maxLength={80} className="sku-input" value={product.sku} onChange={(event) => updateProduct(product.id, "sku", event.target.value)} /><input aria-label={`${product.sku} 品名`} maxLength={200} className="name-input" value={product.name} onChange={(event) => updateProduct(product.id, "name", event.target.value)} /></td>
                     <td><input aria-label={`${product.sku} 外箱长`} type="number" min="0" value={product.length} onChange={(event) => updateProduct(product.id, "length", event.target.value)} /><small>mm</small></td>
                     <td><input aria-label={`${product.sku} 外箱宽`} type="number" min="0" value={product.width} onChange={(event) => updateProduct(product.id, "width", event.target.value)} /><small>mm</small></td>
                     <td><input aria-label={`${product.sku} 外箱高`} type="number" min="0" value={product.height} onChange={(event) => updateProduct(product.id, "height", event.target.value)} /><small>mm</small></td>
-                    <td className="cbm-cell"><input aria-label={`${product.sku} 标称 CBM`} type="number" step="0.001" min="0" value={product.declaredVolumeCbm || ""} placeholder="可选" onChange={(event) => updateProduct(product.id, "declaredVolumeCbm", event.target.value)} /><small>尺寸换算 {calculatedCbm.toFixed(4)}{product.declaredVolumeCbm ? ` · 差异 ${declaredDifference >= 0 ? "+" : ""}${declaredDifference.toFixed(1)}%` : ""}</small></td>
+                    <td className="cbm-cell"><output className="cbm-auto-value" aria-label={`${product.sku} 自动计算 CBM`}>{roundedCbm.toFixed(2)}</output><small>自动计算 · 精确值 {calculatedCbm.toFixed(4)}</small></td>
                     <td><input aria-label={`${product.sku} 毛重`} type="number" min="0" step="0.1" value={product.weight} onChange={(event) => updateProduct(product.id, "weight", event.target.value)} /><small>kg</small></td>
                     {mode === "mixed" ? <td><input aria-label={`${product.sku} 需求箱数`} type="number" min="0" max="1000000" step="1" value={product.quantity} onChange={(event) => updateProduct(product.id, "quantity", event.target.value)} /><small>箱</small></td> : null}
                     {mode === "mixed" || isSingleProductSet ? <><td><input className="set-code-input" aria-label={`${product.sku} 套装编码`} maxLength={80} value={product.setCode ?? ""} placeholder="留空=散箱" readOnly={mode === "single"} onChange={(event) => updateProduct(product.id, "setCode", event.target.value)} /><small>{mode === "single" ? "同一产品包装" : "同编码组成一套"}</small></td><td><input aria-label={`${product.sku} 套内数量`} type="number" min="1" max="99" step="1" value={product.unitsPerSet || 1} onChange={(event) => updateProduct(product.id, "unitsPerSet", event.target.value)} /><small>箱 / 套</small></td></> : null}
@@ -1216,12 +1275,26 @@ export function PackingApp() {
               <MetricCard icon={<ShieldCheck size={21} />} label="独立校验" value={result.validation.valid ? "全部通过" : `${result.validation.errors.length} 项异常`} detail="边界 · 重叠 · 堆叠 · 载重" tone={result.validation.valid ? "green" : "red"} />
             </div>
 
-            {realA64MBenchmark && !dirty && result.setSummaries[0] ? (
-              <section className="real-benchmark" aria-label="SLM-A64M 真实装柜数据对比">
-                <div className="real-benchmark-copy"><span className="section-kicker">REAL LOADING BENCHMARK</span><strong>SLM-A64M 真实装柜校准</strong><small>若把表中 396 按套计算需约 126.7 CBM，超过 40HQ 物理柜容；系统按可行口径解释为 396 箱 = 198 套，请向工厂确认源表单位。</small></div>
-                <div><span>报价表实际</span><strong>{formatNumber(realA64MBenchmark.cartons)} 箱</strong><small>= {formatNumber(realA64MBenchmark.sets)} 套</small></div>
-                <div><span>当前方案</span><strong>{formatNumber(result.setSummaries[0].loadedCartons)} 箱</strong><small>= {formatNumber(result.setSummaries[0].loadedSets)} 套</small></div>
-                <div className={result.setSummaries[0].loadedSets === realA64MBenchmark.sets ? "matched" : "different"}><span>与现场差异</span><strong>{result.setSummaries[0].loadedSets === realA64MBenchmark.sets ? "完全一致" : `${result.setSummaries[0].loadedSets > realA64MBenchmark.sets ? "+" : ""}${formatNumber(result.setSummaries[0].loadedSets - realA64MBenchmark.sets)} 套`}</strong><small>{result.strategy === "practical" ? "按现场策略复算" : "理论方案仅作比较"}</small></div>
+            {result.quoteEstimate && !dirty ? (
+              <section className={`real-benchmark ${result.quoteEstimate.physicallyPossibleByBounds ? "bounds-ok" : "bounds-impossible"}`} aria-label="报价预测与三维物理方案对比">
+                <div className="real-benchmark-copy">
+                  <span className="section-kicker">DUAL-TRACK ESTIMATE</span>
+                  <strong>报价经验预测 × 三维物理方案</strong>
+                  <small>{result.quoteEstimate.source === "historical-exact"
+                    ? `已命中历史包装指纹：${result.quoteEstimate.matchedModels.join(" / ")}；忠实展示报价记录，但不绕过物理校验。`
+                    : `按当前柜型 ${result.quoteEstimate.calibratedCargoVolumeCbm.toFixed(2)} CBM 基线预测；${result.quoteEstimate.verifiedDataPoints} 个物理可行数据点回测：平均 ${result.quoteEstimate.backtestMeanErrorPct.toFixed(1)}%，90% 不超过 ${result.quoteEstimate.backtestP90ErrorPct.toFixed(1)}%，最差 ${result.quoteEstimate.backtestMaxErrorPct.toFixed(1)}%。`}</small>
+                </div>
+                <div><span>报价经验预测</span><strong>{formatNumber(result.quoteEstimate.predictedSets)} 套</strong><small>{result.quoteEstimate.confidence === "verified" ? "历史尺寸指纹精确匹配 · 记录误差 0%" : `典型误差约 ±${result.quoteEstimate.expectedErrorPct.toFixed(1)}%`}</small></div>
+                <div><span>三维可执行方案</span><strong>{formatNumber(result.quoteEstimate.physicalLoadedSets)} 套</strong><small>无重叠坐标 · 独立校验</small></div>
+                <div className={result.quoteEstimate.physicallyPossibleByBounds ? (result.quoteEstimate.gapSets === 0 ? "matched" : "different") : "impossible"}>
+                  <span>{result.quoteEstimate.physicallyPossibleByBounds ? "双轨差距" : "物理边界"}</span>
+                  <strong>{result.quoteEstimate.physicallyPossibleByBounds
+                    ? result.quoteEstimate.gapSets === 0
+                      ? "完全一致"
+                      : `${result.quoteEstimate.gapSets > 0 ? "+" : ""}${formatNumber(result.quoteEstimate.gapSets)} 套`
+                    : "报价值不可三维实现"}</strong>
+                  <small>体积边界 {formatPercent(result.quoteEstimate.volumeBoundRatio)} · 载重边界 {formatPercent(result.quoteEstimate.weightBoundRatio)}</small>
+                </div>
               </section>
             ) : null}
 

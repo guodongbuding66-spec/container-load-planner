@@ -16,8 +16,10 @@ import {
   normalizedUnitsPerSet as unitsPerSet,
   selectProductsForMode,
 } from "./set-utils";
+import { estimateQuoteLoading } from "./quote-estimator";
+import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.8.0";
+export const ENGINE_VERSION = "0.10.0";
 
 type Orientation = {
   dx: number;
@@ -39,14 +41,23 @@ type EffectiveContainer = {
 const EPS = 0.0001;
 const MAX_VISIBLE_PLACEMENTS = 20000;
 export const DEFAULT_PRACTICAL_TARGET = 0.845;
+export const PRACTICAL_TARGET_BY_CONTAINER: Readonly<Record<string, number>> = {
+  "20gp": 0.805,
+  "40gp": 0.845,
+  "40hq": 0.88,
+};
 const PRACTICAL_SUPPORT_RATIO = 0.995;
+
+export function recommendedPracticalTarget(container: Pick<ContainerSpec, "id">) {
+  return PRACTICAL_TARGET_BY_CONTAINER[container.id.toLowerCase()] ?? DEFAULT_PRACTICAL_TARGET;
+}
 
 function packingStrategy(request: PackingRequest): PackingStrategy {
   return request.strategy === "practical" ? "practical" : "maximum";
 }
 
 function practicalTarget(request: PackingRequest) {
-  return request.practicalTargetUtilization ?? DEFAULT_PRACTICAL_TARGET;
+  return request.practicalTargetUtilization ?? recommendedPracticalTarget(request.container);
 }
 
 function assertValidRequest(request: PackingRequest) {
@@ -199,6 +210,8 @@ export function calculateReverseCounts(
     });
   }
   const recommendedTotal = suggested.reduce((sum, quantity) => sum + quantity, 0);
+  const displayAsSets = Boolean(singleSetCode && sourceTotal > 0);
+  const cartonsPerSet = displayAsSets ? sourceTotal : 1;
   const limitingFactor = weightLimitedTotal === null || volumeLimitedTotal < weightLimitedTotal
     ? "volume"
     : weightLimitedTotal < volumeLimitedTotal
@@ -214,6 +227,11 @@ export function calculateReverseCounts(
     volumeLimitedTotal,
     weightLimitedTotal,
     recommendedTotal,
+    displayUnit: displayAsSets ? "set" : "carton",
+    cartonsPerSet,
+    volumeLimitedDisplay: Math.floor(volumeLimitedTotal / cartonsPerSet),
+    weightLimitedDisplay: weightLimitedTotal === null ? null : Math.floor(weightLimitedTotal / cartonsPerSet),
+    recommendedDisplay: Math.floor(recommendedTotal / cartonsPerSet),
     limitingFactor,
     quantities: activeProducts.map((product, index) => ({
       productId: product.id,
@@ -504,6 +522,99 @@ function assignSetTrace(placements: PlacedBox[], products: ProductInput[]) {
   }
 }
 
+/**
+ * Worker-friendly multi-carton layout: every SKU gets one contiguous
+ * longitudinal zone and one fixed orientation. Cartons are filled floor-up in
+ * that zone, so the loading crew never needs to alternate SKUs inside a row or
+ * rely on another carton type for support.
+ */
+function buildPracticalZonedSet(
+  request: PackingRequest,
+  container: EffectiveContainer,
+  products: ProductInput[],
+  targetSets: number,
+) {
+  if (targetSets <= 0) return null;
+  const zones: Array<{
+    product: ProductInput;
+    orientation: Orientation;
+    nx: number;
+    ny: number;
+    nz: number;
+    quantity: number;
+    length: number;
+  }> = [];
+
+  for (const product of products) {
+    const quantity = targetSets * unitsPerSet(product);
+    let best: (typeof zones)[number] | undefined;
+    for (const orientation of getOrientations(product)) {
+      if (!canPassDoor(orientation, container)) continue;
+      const ny = Math.floor(container.width / orientation.dy);
+      const physicalLayers = Math.floor(container.height / orientation.dz);
+      const configuredLayers = maxStackLayers(product);
+      const nz = product.bottomOnly || product.stackable === false
+        ? Math.min(1, physicalLayers)
+        : configuredLayers > 0
+          ? Math.min(physicalLayers, configuredLayers)
+          : physicalLayers;
+      const cartonsPerLengthStep = ny * nz;
+      if (cartonsPerLengthStep <= 0) continue;
+      const nx = Math.ceil(quantity / cartonsPerLengthStep);
+      const length = nx * orientation.dx;
+      if (length > container.length + EPS) continue;
+      const candidate = { product, orientation, nx, ny, nz, quantity, length };
+      if (
+        !best ||
+        candidate.length < best.length - EPS ||
+        (Math.abs(candidate.length - best.length) <= EPS && candidate.nx < best.nx) ||
+        (Math.abs(candidate.length - best.length) <= EPS && candidate.nx === best.nx && candidate.orientation.label < best.orientation.label)
+      ) {
+        best = candidate;
+      }
+    }
+    if (!best) return null;
+    zones.push(best);
+  }
+
+  // Put longer zones at the nose. This gives the crew a small number of large,
+  // visually obvious blocks and leaves any unused length next to the doors.
+  zones.sort((a, b) => b.length - a.length || a.product.sku.localeCompare(b.product.sku));
+  if (zones.reduce((sum, zone) => sum + zone.length, 0) > container.length + EPS) return null;
+
+  const placements: PlacedBox[] = [];
+  let xOffset = 0;
+  for (const zone of zones) {
+    let remaining = zone.quantity;
+    for (let z = 0; z < zone.nz && remaining > 0; z += 1) {
+      for (let x = 0; x < zone.nx && remaining > 0; x += 1) {
+        for (let y = 0; y < zone.ny && remaining > 0; y += 1) {
+          placements.push(makePlacement(
+            zone.product,
+            placements.length,
+            {
+              x: xOffset + x * zone.orientation.dx,
+              y: y * zone.orientation.dy,
+              z: z * zone.orientation.dz,
+            },
+            zone.orientation,
+            z + 1,
+          ));
+          remaining -= 1;
+        }
+      }
+    }
+    if (remaining > 0) return null;
+    xOffset += zone.length;
+  }
+
+  const expectedCartons = products.reduce((sum, product) => sum + targetSets * unitsPerSet(product), 0);
+  if (placements.length !== expectedCartons) return null;
+  assignSetTrace(placements, products);
+  const ordered = orderForPracticalLoading(placements);
+  return validatePacking(ordered, request.container, request.clearance, products, "practical").valid ? ordered : null;
+}
+
 function buildPracticalLayeredSet(
   request: PackingRequest,
   container: EffectiveContainer,
@@ -609,7 +720,12 @@ function buildPracticalLayeredSet(
   return validatePacking(ordered, request.container, request.clearance, products, "practical").valid ? ordered : null;
 }
 
-function packSingleSet(request: PackingRequest, container: EffectiveContainer, products: ProductInput[]) {
+function packSingleSet(
+  request: PackingRequest,
+  container: EffectiveContainer,
+  products: ProductInput[],
+  fieldPracticalSetLimit?: number,
+) {
   const cartonsPerSet = products.reduce((sum, product) => sum + unitsPerSet(product), 0);
   const setVolume = products.reduce(
     (sum, product) => sum + product.length * product.width * product.height * unitsPerSet(product),
@@ -621,7 +737,13 @@ function packSingleSet(request: PackingRequest, container: EffectiveContainer, p
   const volumeBound = setVolume > 0 ? Math.max(1, Math.floor(targetVolume / setVolume)) : 0;
   const weightBound = setWeight > EPS ? Math.floor(request.container.maxWeight / setWeight) : volumeBound;
   const visibleBound = cartonsPerSet > 0 ? Math.floor(MAX_VISIBLE_PLACEMENTS / cartonsPerSet) : 0;
-  const requestedSets = Math.max(0, Math.min(volumeBound, weightBound, visibleBound));
+  const historicalBound = fieldPracticalSetLimit === undefined
+    ? Number.MAX_SAFE_INTEGER
+    : Math.max(0, Math.floor(fieldPracticalSetLimit));
+  const fieldCalibratedVolumeBound = fieldPracticalSetLimit === undefined
+    ? volumeBound
+    : Math.max(volumeBound, historicalBound);
+  const requestedSets = Math.max(0, Math.min(fieldCalibratedVolumeBound, weightBound, visibleBound, historicalBound));
 
   if (requestedSets <= 0) {
     return { placements: [] as PlacedBox[], warnings: ["当前柜型无法装入一套完整的多箱产品。"] };
@@ -629,26 +751,21 @@ function packSingleSet(request: PackingRequest, container: EffectiveContainer, p
 
   let layeredCandidate: PlacedBox[] | null = null;
   let layeredCandidateSets = 0;
+  let practicalCandidateMethod = "整层模块";
   {
     const minimumCandidate = Math.max(1, requestedSets - 500);
     for (let candidate = requestedSets; candidate >= minimumCandidate; candidate -= 1) {
-      const layered = buildPracticalLayeredSet(request, container, products, candidate);
-      if (layered) {
-        layeredCandidate = layered;
+      const zoned = buildPracticalZonedSet(request, container, products, candidate);
+      const layered = zoned ? null : buildPracticalLayeredSet(request, container, products, candidate);
+      const workerFriendly = zoned ?? layered;
+      if (workerFriendly) {
+        layeredCandidate = workerFriendly;
         layeredCandidateSets = candidate;
+        practicalCandidateMethod = zoned ? "SKU 分区直码" : "整层模块";
         break;
       }
     }
   }
-  if (packingStrategy(request) === "practical" && layeredCandidate) {
-    return {
-      placements: layeredCandidate,
-      warnings: layeredCandidateSets < requestedSets
-        ? [`整层模块受几何与完整支撑约束，已从体积上限 ${requestedSets.toLocaleString()} 套调整为 ${layeredCandidateSets.toLocaleString()} 套。`]
-        : [],
-    };
-  }
-
   const candidateRequest: PackingRequest = {
     ...request,
     mode: "mixed",
@@ -658,12 +775,12 @@ function packSingleSet(request: PackingRequest, container: EffectiveContainer, p
     })),
   };
   const output = packMixed(candidateRequest, container);
-  if (layeredCandidate && layeredCandidate.length > output.placements.length) {
+  if (layeredCandidate && layeredCandidate.length >= output.placements.length) {
     return {
       placements: layeredCandidate,
       warnings: [
         ...output.warnings,
-        `整层模块方案优于自由空间搜索，采用 ${layeredCandidateSets.toLocaleString()} 个完整套。`,
+        `${practicalCandidateMethod}方案不低于自由空间搜索，采用 ${layeredCandidateSets.toLocaleString()} 个完整套；每个 SKU 固定方向并保持连续作业区。`,
       ],
     };
   }
@@ -679,14 +796,93 @@ function packSingleSet(request: PackingRequest, container: EffectiveContainer, p
   return { placements: output.placements, warnings };
 }
 
-function packSingle(request: PackingRequest, container: EffectiveContainer) {
+function buildPracticalSingleSideStrip(
+  request: PackingRequest,
+  container: EffectiveContainer,
+  product: ProductInput,
+  maximumCount: number,
+) {
+  if (maximumCount <= 0 || rotationPolicy(product) === "fixed") return null;
+  const orientations = getOrientations(product).filter((orientation) => canPassDoor(orientation, container));
+  let best: { positions: Array<{ x: number; y: number; orientation: Orientation }>; layers: number; count: number } | undefined;
+
+  for (const primary of orientations) {
+    const nx = Math.floor(container.length / primary.dx);
+    const ny = Math.floor(container.width / primary.dy);
+    if (nx <= 0 || ny <= 0) continue;
+    const primaryPositions = Array.from({ length: nx * ny }, (_, index) => ({
+      x: (index % nx) * primary.dx,
+      y: Math.floor(index / nx) * primary.dy,
+      orientation: primary,
+    }));
+
+    for (const secondary of orientations) {
+      // A second horizontal direction is easy to execute; tipping cartons to a
+      // different height is intentionally excluded from the practical plan.
+      if (secondary.dz !== primary.dz) continue;
+      const strips: Array<Array<{ x: number; y: number; orientation: Orientation }>> = [];
+
+      const rightStart = nx * primary.dx;
+      const rightNx = Math.floor((container.length - rightStart) / secondary.dx);
+      const rightNy = Math.floor(container.width / secondary.dy);
+      strips.push(Array.from({ length: Math.max(0, rightNx * rightNy) }, (_, index) => ({
+        x: rightStart + (index % Math.max(1, rightNx)) * secondary.dx,
+        y: Math.floor(index / Math.max(1, rightNx)) * secondary.dy,
+        orientation: secondary,
+      })));
+
+      const topStart = ny * primary.dy;
+      const topNx = Math.floor(container.length / secondary.dx);
+      const topNy = Math.floor((container.width - topStart) / secondary.dy);
+      strips.push(Array.from({ length: Math.max(0, topNx * topNy) }, (_, index) => ({
+        x: (index % Math.max(1, topNx)) * secondary.dx,
+        y: topStart + Math.floor(index / Math.max(1, topNx)) * secondary.dy,
+        orientation: secondary,
+      })));
+
+      for (const strip of strips) {
+        const positions = [...primaryPositions, ...strip];
+        const physicalLayers = Math.floor(container.height / primary.dz);
+        const configuredLayers = maxStackLayers(product);
+        const layers = product.bottomOnly || product.stackable === false
+          ? Math.min(1, physicalLayers)
+          : configuredLayers > 0
+            ? Math.min(physicalLayers, configuredLayers)
+            : physicalLayers;
+        const count = Math.min(maximumCount, positions.length * layers);
+        if (!best || count > best.count || (count === best.count && positions.length < best.positions.length)) {
+          best = { positions, layers, count };
+        }
+      }
+    }
+  }
+
+  if (!best || best.count <= 0) return null;
+  const placements: PlacedBox[] = [];
+  for (let layer = 0; layer < best.layers && placements.length < best.count; layer += 1) {
+    for (const position of best.positions) {
+      if (placements.length >= best.count) break;
+      placements.push(makePlacement(
+        product,
+        placements.length,
+        { x: position.x, y: position.y, z: layer * position.orientation.dz },
+        position.orientation,
+        layer + 1,
+      ));
+    }
+  }
+  const ordered = orderForPracticalLoading(placements);
+  return validatePacking(ordered, request.container, request.clearance, [product], "practical").valid ? ordered : null;
+}
+
+function packSingle(request: PackingRequest, container: EffectiveContainer, fieldPracticalSetLimit?: number) {
   const product = request.products[0];
   if (!product) return { placements: [] as PlacedBox[], warnings: ["请至少添加一个产品。"] };
 
   const productSet = setCode(product)
     ? request.products.filter((item) => setCode(item) === setCode(product))
     : [];
-  if (productSet.length) return packSingleSet(request, container, productSet);
+  if (productSet.length) return packSingleSet(request, container, productSet, fieldPracticalSetLimit);
 
   let best:
     | { orientation: Orientation; nx: number; ny: number; nz: number; count: number }
@@ -694,9 +890,26 @@ function packSingle(request: PackingRequest, container: EffectiveContainer) {
   const strategy = packingStrategy(request);
   const containerVolume = container.length * container.width * container.height;
   const productVolume = product.length * product.width * product.height;
-  const practicalBound = strategy === "practical" && productVolume > 0
+  const targetPracticalBound = strategy === "practical" && productVolume > 0
     ? Math.max(1, Math.floor((containerVolume * practicalTarget(request)) / productVolume))
     : Number.MAX_SAFE_INTEGER;
+  const historicalBound = strategy === "practical" && fieldPracticalSetLimit !== undefined
+    ? Math.max(0, Math.floor(fieldPracticalSetLimit))
+    : Number.MAX_SAFE_INTEGER;
+  const practicalBound = strategy === "practical" && fieldPracticalSetLimit !== undefined
+    ? Math.max(targetPracticalBound, historicalBound)
+    : targetPracticalBound;
+  const weightBoundForProduct = product.weight > 0
+    ? Math.floor(request.container.maxWeight / product.weight)
+    : Number.MAX_SAFE_INTEGER;
+  const workerSimpleMixedOrientation = strategy === "practical"
+    ? buildPracticalSingleSideStrip(
+        request,
+        container,
+        product,
+        Math.min(practicalBound, historicalBound, weightBoundForProduct, MAX_VISIBLE_PLACEMENTS),
+      )
+    : null;
   for (const orientation of orientationsForStrategy(product, container, strategy)) {
     const nx = Math.floor(container.length / orientation.dx);
     const ny = Math.floor(container.width / orientation.dy);
@@ -709,7 +922,7 @@ function packSingle(request: PackingRequest, container: EffectiveContainer) {
         : physicalLayers;
     const geometric = nx * ny * nz;
     const weightBound = product.weight > 0 ? Math.floor(request.container.maxWeight / product.weight) : geometric;
-    const count = Math.min(geometric, weightBound, practicalBound);
+    const count = Math.min(geometric, weightBound, practicalBound, historicalBound);
     if (!best || count > best.count) best = { orientation, nx, ny, nz, count };
   }
 
@@ -741,10 +954,17 @@ function packSingle(request: PackingRequest, container: EffectiveContainer) {
   if (best.count > MAX_VISIBLE_PLACEMENTS) {
     warnings.push(`理论规则排布为 ${best.count.toLocaleString()} 件；当前可视化最多生成 ${MAX_VISIBLE_PLACEMENTS.toLocaleString()} 个箱体。`);
   }
+  const pureOrientationPlacements = strategy === "practical" ? orderForPracticalLoading(placements) : placements;
+  const useSideStrip = Boolean(
+    workerSimpleMixedOrientation && workerSimpleMixedOrientation.length > pureOrientationPlacements.length,
+  );
+  if (useSideStrip) {
+    warnings.push("采用主网格 + 连续侧条补位：箱体只做水平 90° 转向、不侧翻，现场按两个清晰区域直码。");
+  }
   return {
-    placements: strategy === "practical" ? orderForPracticalLoading(placements) : placements,
+    placements: useSideStrip ? workerSimpleMixedOrientation! : pureOrientationPlacements,
     warnings,
-    theoreticalCount: best.count,
+    theoreticalCount: Math.max(best.count, workerSimpleMixedOrientation?.length ?? 0),
   };
 }
 
@@ -1077,9 +1297,11 @@ export function validatePacking(
   }
   if (strategy === "practical") {
     for (const [productId, orientations] of orientationsByProduct) {
-      if (orientations.size > 1) {
+      const product = productMap.get(productId);
+      const heights = new Set([...orientations].map((orientation) => orientation.split(":")[2]));
+      if (orientations.size > 2 || heights.size > 1 || (orientations.size > 1 && rotationPolicy(product!) === "fixed")) {
         const sku = productMap.get(productId)?.sku ?? productId;
-        errors.push(`${sku} 在现场易执行方案中使用了 ${orientations.size} 种摆放方向，应固定为一种。`);
+        errors.push(`${sku} 在现场易执行方案中使用了 ${orientations.size} 种复杂方向；最多允许两种同高度的水平 90° 方向，不允许侧翻补缝。`);
       }
     }
   }
@@ -1251,7 +1473,7 @@ export function pack(request: PackingRequest): PackingResult {
     bottomOnly: product.bottomOnly === true,
     setCode: setCode(product),
     unitsPerSet: unitsPerSet(product),
-    declaredVolumeCbm: Math.max(0, product.declaredVolumeCbm || 0),
+    declaredVolumeCbm: roundedCartonVolumeCbm(product),
   }));
   const normalized: PackingRequest = {
     ...request,
@@ -1270,7 +1492,16 @@ export function pack(request: PackingRequest): PackingResult {
     products: selectProductsForMode(normalizedProducts, request.mode),
   };
   const effective = effectiveContainer(normalized.container, normalized.clearance);
-  const output = normalized.mode === "single" ? packSingle(normalized, effective) : packMixed(normalized, effective);
+  const effectiveVolume = effective.length * effective.width * effective.height;
+  const preliminaryQuoteEstimate = estimateQuoteLoading(normalized, effectiveVolume, 0);
+  const fieldPracticalSetLimit = normalized.strategy === "practical" &&
+    preliminaryQuoteEstimate?.source === "historical-exact" &&
+    preliminaryQuoteEstimate.physicallyPossibleByBounds
+    ? preliminaryQuoteEstimate.predictedSets
+    : undefined;
+  const output = normalized.mode === "single"
+    ? packSingle(normalized, effective, fieldPracticalSetLimit)
+    : packMixed(normalized, effective);
   const validation = validatePacking(
     output.placements,
     normalized.container,
@@ -1284,12 +1515,18 @@ export function pack(request: PackingRequest): PackingResult {
   const setSummaries = buildSetSummaries(normalized, summaries);
   const loadedVolume = summaries.reduce((sum, item) => sum + item.loadedVolume, 0);
   const grossWeight = summaries.reduce((sum, item) => sum + item.loadedWeight, 0);
-  const effectiveVolume = effective.length * effective.width * effective.height;
   const requestedCount = summaries.reduce((sum, item) => sum + item.requested, 0);
   const loadedCount = summaries.reduce((sum, item) => sum + item.loaded, 0);
   const centerOfGravity = calculateCenterOfGravity(output.placements, effective);
   const executionComplexity = calculateExecutionComplexity(output.placements, normalized.products);
+  const physicalLoadedSets = normalized.mode === "single"
+    ? setSummaries[0]?.loadedSets ?? loadedCount
+    : 0;
+  const quoteEstimate = estimateQuoteLoading(normalized, effectiveVolume, physicalLoadedSets);
   const warnings = [...output.warnings];
+  if (fieldPracticalSetLimit !== undefined && physicalLoadedSets >= fieldPracticalSetLimit) {
+    warnings.push(`现场模式已按相同包装的历史实装记录封顶为 ${fieldPracticalSetLimit.toLocaleString()} 套，避免输出虽能几何塞入、但超出现有工人作业基准的复杂方案。`);
+  }
 
   for (const product of normalized.products) {
     if (!getOrientations(product).some((orientation) => canPassDoor(orientation, effective))) {
@@ -1313,14 +1550,6 @@ export function pack(request: PackingRequest): PackingResult {
       warnings.push(`套装 ${setSummary.setCode} 已装 ${setSummary.loadedSets.toLocaleString()} / ${setSummary.requestedSets.toLocaleString()} 套，未装 ${setSummary.unloadedSets.toLocaleString()} 套。`);
     }
   }
-  for (const product of normalized.products) {
-    if (!product.declaredVolumeCbm) continue;
-    const calculated = (product.length * product.width * product.height) / 1_000_000_000;
-    const difference = Math.abs(product.declaredVolumeCbm - calculated) / Math.max(calculated, EPS);
-    if (difference > 0.07) {
-      warnings.push(`${product.sku} 标称 ${product.declaredVolumeCbm.toFixed(3)} CBM，与尺寸换算 ${calculated.toFixed(3)} CBM 相差 ${(difference * 100).toFixed(1)}%，几何装载仍以外箱尺寸为准。`);
-    }
-  }
   if (loadedCount > 0 && !centerOfGravity.balanced) {
     warnings.push(
       `当前重心位于柜长 ${(centerOfGravity.longitudinalRatio * 100).toFixed(1)}%、柜宽 ${(centerOfGravity.lateralRatio * 100).toFixed(1)}%，建议结合现场装载顺序复核配重。`,
@@ -1328,8 +1557,25 @@ export function pack(request: PackingRequest): PackingResult {
   }
   if (normalized.strategy === "practical") {
     warnings.unshift(
-      `现场易执行策略：每个 SKU 固定一种朝向、底面至少 ${(PRACTICAL_SUPPORT_RATIO * 100).toFixed(1)}% 受托，按柜头到柜门的截面顺序码放，并将经验装载率控制在 ${(normalized.practicalTargetUtilization! * 100).toFixed(1)}% 以内。`,
+      `现场易执行策略：每个 SKU 最多使用两种同高度平面方向、不侧翻补缝，底面至少 ${(PRACTICAL_SUPPORT_RATIO * 100).toFixed(1)}% 受托，按柜头到柜门的分区顺序码放，并将经验装载率控制在 ${(normalized.practicalTargetUtilization! * 100).toFixed(1)}% 以内。`,
     );
+  }
+  if (quoteEstimate) {
+    warnings.push(...quoteEstimate.dataQualityWarnings.map((warning) => `历史数据质量提示：${warning}`));
+    if (quoteEstimate.source === "calibrated-volume") {
+      warnings.push(
+        `报价预测按 ${quoteEstimate.calibratedCargoVolumeCbm.toFixed(2)} CBM 柜型基线计算；历史回测平均误差 ${quoteEstimate.backtestMeanErrorPct.toFixed(1)}%、90% 误差不超过 ${quoteEstimate.backtestP90ErrorPct.toFixed(1)}%、最大 ${quoteEstimate.backtestMaxErrorPct.toFixed(1)}%。仍须以三维物理方案确认可执行数量。`,
+      );
+    }
+    if (!quoteEstimate.physicallyPossibleByBounds) {
+      warnings.push(
+        `报价经验值 ${quoteEstimate.predictedSets.toLocaleString()} 套需要约 ${quoteEstimate.predictedCargoVolumeCbm.toFixed(2)} CBM / ${quoteEstimate.predictedGrossWeightKg.toLocaleString()} kg，已超过当前柜型物理边界；仅展示历史报价口径，不生成重叠箱体。`,
+      );
+    } else if (quoteEstimate.gapSets !== 0) {
+      warnings.push(
+        `报价预测 ${quoteEstimate.predictedSets.toLocaleString()} 套，当前三维可执行方案 ${quoteEstimate.physicalLoadedSets.toLocaleString()} 套，相差 ${Math.abs(quoteEstimate.gapSets).toLocaleString()} 套。`,
+      );
+    }
   }
 
   return {
@@ -1343,6 +1589,7 @@ export function pack(request: PackingRequest): PackingResult {
     placements: output.placements,
     summaries,
     setSummaries,
+    quoteEstimate,
     metrics: {
       loadedCount,
       requestedCount,

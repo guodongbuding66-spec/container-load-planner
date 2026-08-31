@@ -37,8 +37,19 @@ describe("CSV utilities", () => {
       priority: 100,
       unitsPerSet: 2,
       maxStackLayers: 99,
+      declaredVolumeCbm: 0.15,
       color: colors[0],
     });
+  });
+
+  it("recalculates CBM from dimensions even when a legacy CSV value is present", () => {
+    const parsed = parseProductsCsv(
+      "sku,name,length,width,height,declaredVolumeCbm,weight,quantity\n" +
+      "AUTO-CBM,自动体积,1270,550,290,99,31,1",
+      colors,
+    );
+
+    expect(parsed[0].declaredVolumeCbm).toBe(0.2);
   });
 
   it("rejects missing columns, empty files, and excessive rows", () => {

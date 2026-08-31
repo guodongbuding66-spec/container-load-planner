@@ -25,3 +25,4 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
 
 export {};
 
+

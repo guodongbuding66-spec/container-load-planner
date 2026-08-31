@@ -126,15 +126,34 @@ test("offers a worker-executable strategy and a unit-safe real loading benchmark
   const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
   const engine = await readFile(new URL("../lib/packing/engine.ts", import.meta.url), "utf8");
   const presets = await readFile(new URL("../lib/packing/presets.ts", import.meta.url), "utf8");
+  const estimator = await readFile(new URL("../lib/packing/quote-estimator.ts", import.meta.url), "utf8");
 
   assert.match(source, /aria-label="装柜执行策略"/);
   assert.match(source, /现场易执行/);
   assert.match(source, /极限利用率/);
   assert.match(source, /载入真实 A64M/);
-  assert.match(source, /396 箱 = 198 套/);
+  assert.match(source, /报价轨按已确认的 396 套/);
+  assert.match(source, /报价经验预测/);
   assert.match(source, /局部支撑箱体/);
+  assert.match(source, /载入用户提供的真实装柜记录/);
   assert.match(engine, /function buildPracticalLayeredSet/);
+  assert.match(engine, /function buildPracticalZonedSet/);
+  assert.match(engine, /function buildPracticalSingleSideStrip/);
   assert.match(engine, /function orderForPracticalLoading/);
   assert.match(engine, /PRACTICAL_SUPPORT_RATIO = 0\.995/);
-  assert.match(presets, /"40hq": \{ cartons: 396, sets: 198 \}/);
+  assert.match(presets, /"40hq": \{ cartons: 792, sets: 396 \}/);
+  assert.match(estimator, /loadingSets: \{ "20gp": 110, "40gp": 230, "40hq": 275 \}/);
+});
+
+test("auto-calculates CBM and displays complete sets before carton details", async () => {
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+  const engine = await readFile(new URL("../lib/packing/engine.ts", import.meta.url), "utf8");
+
+  assert.match(source, /<th>CBM 自动<\/th>/);
+  assert.match(source, /className="cbm-auto-value"/);
+  assert.match(source, /精确值 \{calculatedCbm\.toFixed\(4\)\}/);
+  assert.doesNotMatch(source, /aria-label=\{`\$\{product\.sku\} 标称 CBM`\}/);
+  assert.match(source, /reversePlan\.volumeLimitedDisplay/);
+  assert.match(source, /reversePlan\.displayUnit === "set" \? "套" : "箱"/);
+  assert.match(engine, /displayUnit: displayAsSets \? "set" : "carton"/);
 });

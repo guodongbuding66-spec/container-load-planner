@@ -58,3 +58,4 @@ describe("3D camera fitting", () => {
     expect(fit.orthographicHalfHeight * 2).toBeGreaterThanOrEqual(size[1]);
   });
 });
+

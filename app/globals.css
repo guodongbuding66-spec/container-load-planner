@@ -237,7 +237,7 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
 .product-table td input.sku-input, .product-table td input.name-input { display: block; width: 100% !important; }
 .product-table td input.set-code-input { width: 112px !important; font-weight: 700; }
 .product-table td.cbm-cell { min-width: 148px; }
-.product-table td.cbm-cell input { width: 92px !important; }
+.cbm-auto-value { width: 92px; height: 29px; display: flex; align-items: center; border: 1px solid rgba(63, 143, 151, .2); border-radius: 7px; padding: 0 8px; color: #1e6670; background: rgba(226, 244, 245, .72); font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; box-shadow: inset 0 1px rgba(255,255,255,.88); }
 .product-table td input.sku-input { color: #213d45; font-weight: 800; }
 .product-table td input.name-input { margin-top: 4px; color: #788a8f; border-color: transparent !important; background: transparent; }
 .product-table td small { display: block; color: #9aa9ac; font-size: 8px; margin-top: 2px; }
@@ -290,6 +290,9 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
 .real-benchmark > div:not(:first-child) > small { margin-top: 3px; color: #7e9297; font-size: 8px; }
 .real-benchmark .matched strong { color: #2d805d; }
 .real-benchmark .different strong { color: #aa7430; }
+.real-benchmark.bounds-impossible { border-color: rgba(188, 78, 64, .32); background: linear-gradient(135deg, rgba(255, 244, 241, .94), rgba(249, 245, 248, .86)); }
+.real-benchmark .impossible strong { color: #b14f43; }
+.real-benchmark .impossible small { color: #8e645f; }
 .execution-summary { min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 9px; padding: 9px 12px; border: 1px solid rgba(105, 143, 151, .16); border-radius: 11px; color: #607b82; background: rgba(248, 251, 252, .76); font-size: 8px; }
 .execution-summary span { display: inline-flex; align-items: baseline; gap: 4px; padding-right: 8px; border-right: 1px solid rgba(105, 143, 151, .16); }
 .execution-summary b { color: #285c65; font-size: 12px; }
@@ -297,6 +300,7 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
 .execution-summary .attention b { color: #b2792d; }
 .execution-summary small { margin-left: auto; color: #789096; font-size: 8px; }
 .real-data-button { border-color: rgba(48, 139, 128, .3) !important; color: #276e66 !important; background: linear-gradient(145deg, rgba(236, 250, 246, .9), rgba(224, 243, 244, .72)) !important; }
+.real-record-select { height: 31px; max-width: 210px; border: 1px solid rgba(48, 139, 128, .3); border-radius: 9px; padding: 0 28px 0 10px; color: #276e66; background: rgba(236, 250, 246, .84); outline: none; font-size: 9px; font-weight: 750; }
 .metric-card { min-height: 108px; display: flex; align-items: center; gap: 13px; border: 1px solid #dfe8e9; border-radius: 13px; padding: 16px; background: #fff; box-shadow: 0 5px 18px rgba(20,55,66,.035); }
 .metric-icon { width: 42px; height: 42px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 11px; color: var(--teal); background: var(--teal-soft); }
 .metric-card span { display: block; color: #74868b; font-size: 9px; }

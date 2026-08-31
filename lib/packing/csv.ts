@@ -1,4 +1,5 @@
 import type { PackingResult, ProductInput, RotationPolicy } from "./types";
+import { roundedCartonVolumeCbm } from "./volume";
 
 export const MAX_CSV_BYTES = 5 * 1024 * 1024;
 export const MAX_CSV_ROWS = 10_000;
@@ -125,14 +126,17 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
     const rawColor = get("color").trim();
     const fallbackColor = colors[index % Math.max(1, colors.length)] ?? "#2f7f89";
 
+    const length = boundedNumber(get("length"), 0, 0);
+    const width = boundedNumber(get("width"), 0, 0);
+    const height = boundedNumber(get("height"), 0, 0);
     return {
       id: `import-${now}-${index}`,
       sku: sanitizeText(get("sku"), 80),
       name: sanitizeText(get("name"), 200),
-      length: boundedNumber(get("length"), 0, 0),
-      width: boundedNumber(get("width"), 0, 0),
-      height: boundedNumber(get("height"), 0, 0),
-      declaredVolumeCbm: boundedNumber(get("declaredVolumeCbm"), 0, 0),
+      length,
+      width,
+      height,
+      declaredVolumeCbm: roundedCartonVolumeCbm({ length, width, height }),
       weight: boundedNumber(get("weight"), 0, 0),
       quantity: boundedInteger(get("quantity"), 0, 0, 1_000_000),
       priority: boundedInteger(get("priority"), 50, 0, 100),
