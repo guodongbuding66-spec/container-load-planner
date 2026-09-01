@@ -1098,7 +1098,9 @@ export function PackingApp() {
               <div className="strategy-divider" />
               <div className="strategy-heading"><strong>独立求解算法</strong><span>{strategy === "practical" ? "工人可直接照做" : "高密度搜索参考"}</span></div>
               <div className="segmented strategy-segmented" role="group" aria-label="装柜执行策略">
-                <button aria-pressed={strategy === "practical"} className={strategy === "practical" ? "active" : ""} disabled={status === "working"} onClick={() => switchStrategy("practical")}><ShieldCheck size={16} /><span>现场易执行<small className="strategy-count">{practicalPredictionDisplay === null ? "待计算" : `${formatNumber(practicalPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</small></span></button>
+                <button aria-pressed={strategy === "practical"} className={strategy === "practical" ? "active" : ""} disabled={status === "working"} onClick={() => switchStrategy("practical")}><ShieldCheck size={16} /><span>现场易执行<small className="strategy-count">{practicalPredictionDisplay === null
+                  ? "待计算"
+                  : `${cachedPracticalPlan ? "" : "目标 "}${formatNumber(practicalPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</small></span></button>
                 <button aria-pressed={strategy === "maximum"} className={strategy === "maximum" ? "active" : ""} disabled={status === "working"} onClick={() => switchStrategy("maximum")}><Gauge size={16} /><span>极限理论<small className="strategy-count">{maximumPredictionDisplay === null ? "待计算" : `${formatNumber(maximumPredictionDisplay)} ${result?.strategyComparison?.displayUnit === "set" ? "套" : "箱"}`}</small></span></button>
               </div>
               <p className="strategy-help">计算一次会缓存两套完整坐标；之后点击按钮会立即同步切换预测数量、三视图、3D、指标、导出与指导书。现场方案服从计划目标，极限方案不保留软目标余量。</p>
@@ -1249,7 +1251,7 @@ export function PackingApp() {
                 <div className="timeline-current" aria-live="polite">
                   {progressSummary?.currentPlacement
                     ? <><span>{progressSummary.isSetMode && progressSummary.currentSetNumber
-                      ? `已完成 ${formatNumber(progressSummary.completedSets)}/${formatNumber(progressSummary.totalSets)} 套 · 本步第 ${formatNumber(progressSummary.currentSetNumber)} 套 ${formatNumber(progressSummary.currentSetItemNumber ?? 1)}/${formatNumber(progressSummary.currentSetCartons ?? 1)} 箱`
+                      ? `已完成 ${formatNumber(progressSummary.completedSets)}/${formatNumber(progressSummary.totalSets)} 套 · 当前箱归属套号 ${formatNumber(progressSummary.currentSetNumber)} · 套内 ${formatNumber(progressSummary.currentSetItemNumber ?? 1)}/${formatNumber(progressSummary.currentSetCartons ?? 1)} 箱`
                       : `当前第 ${formatNumber(progressSummary.visibleCartons)} 箱`}</span><strong>{progressSummary.currentPlacement.sku}{progressSummary.currentPlacement.setCode ? ` · ${progressSummary.currentPlacement.setCode}` : ""}</strong><b>坐标 {formatNumber(progressSummary.currentPlacement.x)} / {formatNumber(progressSummary.currentPlacement.y)} / {formatNumber(progressSummary.currentPlacement.z)} mm · 第 {progressSummary.currentPlacement.layer} 层</b></>
                     : <><span>准备开始</span><strong>尚未装入箱体</strong><b>点击播放或下一步查看装柜顺序</b></>}
                 </div>

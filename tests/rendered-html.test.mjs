@@ -219,7 +219,8 @@ test("uses sets as the primary visualization unit for a single multi-carton prod
   assert.match(source, /整套 \{formatNumber\(progressSummary\.completedSets\)\}/);
   assert.match(source, /箱级进度 \{formatNumber\(progressSummary\.visibleCartons\)\}/);
   assert.match(source, /已完成 \$\{formatNumber\(progressSummary\.completedSets\)\}\/\$\{formatNumber\(progressSummary\.totalSets\)\} 套/);
-  assert.match(source, /本步第 \$\{formatNumber\(progressSummary\.currentSetNumber\)\} 套/);
+  assert.match(source, /当前箱归属套号 \$\{formatNumber\(progressSummary\.currentSetNumber\)\}/);
+  assert.match(source, /\$\{cachedPracticalPlan \? "" : "目标 "\}/);
   assert.match(source, /primaryCountLabel=\{progressSummary\?\.isSetMode/);
   assert.match(views, /<b>\{primaryCountLabel\}<\/b>/);
   assert.match(views, /secondaryCountLabel/);
