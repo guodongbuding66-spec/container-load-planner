@@ -100,6 +100,16 @@ describe("dual-track quote estimator", () => {
     expect(estimate.gapSets).toBe(estimate.predictedSets - 100);
   });
 
+  it("does not claim an exact historical match when carton weights materially differ", () => {
+    const source = HISTORICAL_LOADING_RECORDS.find((item) => item.models.includes("实装记录·单箱 167/73/13"))!;
+    const input = request(productsForRecord(source, { weightOffset: 20 }), 2);
+    const estimate = estimateQuoteLoading(input, effectiveVolume(input), 0)!;
+
+    expect(estimate.source).toBe("calibrated-volume");
+    expect(estimate.confidence).toBe("estimated");
+    expect(estimate.matchedModels).toEqual([]);
+  });
+
   it("does not apply a single-product quotation model to mixed orders", () => {
     const input = { ...request(productsForRecord(HISTORICAL_LOADING_RECORDS[0]), 2), mode: "mixed" as const };
     expect(estimateQuoteLoading(input, effectiveVolume(input), 0)).toBeUndefined();

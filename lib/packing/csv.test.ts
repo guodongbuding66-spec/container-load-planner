@@ -55,6 +55,10 @@ describe("CSV utilities", () => {
   it("rejects missing columns, empty files, and excessive rows", () => {
     expect(() => parseProductsCsv("sku,name\nA,测试", colors)).toThrow("缺少必要字段");
     expect(() => parseProductsCsv("", colors)).toThrow("文件为空");
+    expect(() => parseProductsCsv(
+      "sku,name,length,width,height,weight,quantity,sku\nA,测试,1,1,1,1,1,B",
+      colors,
+    )).toThrow("重复表头");
     const header = "sku,name,length,width,height,weight,quantity";
     const excessive = Array.from({ length: MAX_CSV_ROWS + 1 }, (_, index) => `A-${index},测试,1,1,1,1,1`);
     expect(() => parseProductsCsv([header, ...excessive].join("\n"), colors)).toThrow("最多支持");

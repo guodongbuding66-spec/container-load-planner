@@ -53,6 +53,19 @@ export function selectProductsForMode(products: ProductInput[], mode: PackingMod
   return products.filter((product) => normalizedSetCode(product) === firstSetCode);
 }
 
+/**
+ * A CSV whose every row belongs to one non-empty set code describes one
+ * sellable multi-carton product. Keep it in single-product mode so the user is
+ * shown complete sets instead of being asked for a mixed-order carton demand.
+ */
+export function inferImportedPackingMode(products: ProductInput[]): PackingMode {
+  if (!products.length) return "mixed";
+  const firstCode = normalizedSetCode(products[0]);
+  return firstCode && products.every((product) => normalizedSetCode(product) === firstCode)
+    ? "single"
+    : "mixed";
+}
+
 export function summarizeSetInputs(products: ProductInput[]): SetInputSummary[] {
   return [...collectSetGroups(products)].map(([setCode, group]) => {
     const items = group.map((product) => {

@@ -1,5 +1,6 @@
 import type {
   ContainerSpec,
+  PackingMode,
   PackingRequest,
   PackingResult,
   PackingStrategy,
@@ -20,7 +21,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.11.3";
+export const ENGINE_VERSION = "0.11.4";
 
 type Orientation = {
   dx: number;
@@ -61,7 +62,40 @@ function practicalTarget(request: PackingRequest) {
   return request.practicalTargetUtilization ?? recommendedPracticalTarget(request.container);
 }
 
+export function validateContainerInput(container: ContainerSpec, clearance: number): string | null {
+  const containerValues = [
+    container.length,
+    container.width,
+    container.height,
+    container.doorWidth,
+    container.doorHeight,
+    container.maxWeight,
+  ];
+  if (!containerValues.every((value) => Number.isFinite(value) && value > 0)) {
+    return "柜型尺寸、门洞和载重必须是大于 0 的有限数字。";
+  }
+  if (container.doorWidth > container.width + EPS || container.doorHeight > container.height + EPS) {
+    return "柜门尺寸不能大于柜内宽度或高度。";
+  }
+  if (!Number.isFinite(clearance) || clearance < 0) {
+    return "安全间隙必须是大于或等于 0 的有限数字。";
+  }
+  if (
+    clearance * 2 >= container.length ||
+    clearance * 2 >= container.width ||
+    clearance >= container.height ||
+    clearance * 2 >= container.doorWidth ||
+    clearance >= container.doorHeight
+  ) {
+    return "安全间隙过大，已占满柜内空间或门洞。";
+  }
+  return null;
+}
+
 function assertValidRequest(request: PackingRequest) {
+  if (request.mode !== "single" && request.mode !== "mixed") {
+    throw new Error("计算模式必须是单品最大装柜或多 SKU 拼柜。");
+  }
   if (request.strategy !== undefined && request.strategy !== "practical" && request.strategy !== "maximum") {
     throw new Error("装柜策略必须是现场易执行或极限利用率。");
   }
@@ -73,33 +107,12 @@ function assertValidRequest(request: PackingRequest) {
   }
   if (
     request.singleCartonLimit !== undefined &&
-    (!Number.isFinite(request.singleCartonLimit) || request.singleCartonLimit <= 0)
+    (!Number.isInteger(request.singleCartonLimit) || request.singleCartonLimit <= 0)
   ) {
-    throw new Error("单品计划箱数上限必须是大于 0 的有限数值。");
+    throw new Error("单品计划箱数上限必须是大于 0 的整数。");
   }
-  const containerValues = [
-    request.container.length,
-    request.container.width,
-    request.container.height,
-    request.container.doorWidth,
-    request.container.doorHeight,
-    request.container.maxWeight,
-  ];
-  if (!containerValues.every((value) => Number.isFinite(value) && value > 0)) {
-    throw new Error("柜型尺寸、门洞和载重必须是大于 0 的有限数字。");
-  }
-  if (!Number.isFinite(request.clearance) || request.clearance < 0) {
-    throw new Error("安全间隙必须是大于或等于 0 的有限数字。");
-  }
-  if (
-    request.clearance * 2 >= request.container.length ||
-    request.clearance * 2 >= request.container.width ||
-    request.clearance >= request.container.height ||
-    request.clearance * 2 >= request.container.doorWidth ||
-    request.clearance >= request.container.doorHeight
-  ) {
-    throw new Error("安全间隙过大，已占满柜内空间或门洞。");
-  }
+  const containerError = validateContainerInput(request.container, request.clearance);
+  if (containerError) throw new Error(containerError);
   if (!Array.isArray(request.products) || request.products.length === 0) {
     throw new Error("请至少添加一个产品。");
   }
@@ -113,9 +126,10 @@ function assertValidRequest(request: PackingRequest) {
       throw new Error(`${product.sku} 的外箱尺寸必须是大于 0 的有限数字。`);
     }
     if (!Number.isFinite(product.weight) || product.weight < 0) throw new Error(`${product.sku} 的重量不能为负数。`);
-    if (!Number.isInteger(product.quantity) || product.quantity < 0) throw new Error(`${product.sku} 的数量必须是非负整数。`);
+    if (!Number.isInteger(product.quantity) || product.quantity < 0 || product.quantity > 1_000_000) throw new Error(`${product.sku} 的数量必须是非负整数且不超过 1,000,000。`);
     if (!Number.isInteger(product.priority) || product.priority < 0 || product.priority > 100) throw new Error(`${product.sku} 的优先级必须是 0–100 的整数。`);
     if (!Number.isInteger(product.maxStackLayers) || product.maxStackLayers < 0 || product.maxStackLayers > 99) throw new Error(`${product.sku} 的层数上限必须是 0–99 的整数。`);
+    if (!["fixed", "upright", "any"].includes(product.rotationPolicy)) throw new Error(`${product.sku} 的方向规则无效。`);
     if (setCode(product) && (!Number.isInteger(product.unitsPerSet) || (product.unitsPerSet ?? 0) < 1 || (product.unitsPerSet ?? 0) > 99)) {
       throw new Error(`${product.sku} 的套内数量必须是 1–99 的整数。`);
     }
@@ -319,6 +333,10 @@ function overlaps(a: Pick<PlacedBox, "x" | "y" | "z" | "dx" | "dy" | "dz">, b: P
   );
 }
 
+function supportLevelKey(value: number) {
+  return Math.round(value / EPS);
+}
+
 function isInside(point: Point, box: PlacedBox) {
   return (
     point.x >= box.x - EPS &&
@@ -377,7 +395,7 @@ function supportDetails(
   products: Map<string, ProductInput>,
 ) {
   if (candidate.z <= EPS) return { ratio: 1, layer: 1 };
-  const supporters = (topLevels.get(candidate.z) ?? []).filter((box) => products.get(box.productId)?.stackable !== false);
+  const supporters = (topLevels.get(supportLevelKey(candidate.z)) ?? []).filter((box) => products.get(box.productId)?.stackable !== false);
   let supportedArea = 0;
   let layer = 1;
   for (const box of supporters) {
@@ -602,7 +620,7 @@ function buildSlabZonedPlan(
 
   if (products.some((product) => setCode(product))) assignSetTrace(placements, products);
   const ordered = orderForPracticalLoading(placements);
-  return validatePacking(ordered, request.container, request.clearance, products, strategy).valid ? ordered : null;
+  return validatePacking(ordered, request.container, request.clearance, products, strategy, request.mode).valid ? ordered : null;
 }
 
 type LayerPattern = {
@@ -812,7 +830,7 @@ function buildPracticalZonedSet(
   if (placements.length !== expectedCartons) return null;
   assignSetTrace(placements, products);
   const ordered = orderForPracticalLoading(placements);
-  return validatePacking(ordered, request.container, request.clearance, products, "practical").valid ? ordered : null;
+  return validatePacking(ordered, request.container, request.clearance, products, "practical", request.mode).valid ? ordered : null;
 }
 
 function buildPracticalLayeredSet(
@@ -917,7 +935,7 @@ function buildPracticalLayeredSet(
   if (placements.length !== expectedCartons) return null;
   assignSetTrace(placements, products);
   const ordered = orderForPracticalLoading(placements);
-  return validatePacking(ordered, request.container, request.clearance, products, "practical").valid ? ordered : null;
+  return validatePacking(ordered, request.container, request.clearance, products, "practical", request.mode).valid ? ordered : null;
 }
 
 function packSingleSet(
@@ -1138,7 +1156,7 @@ function buildPracticalSingleSideStrip(
     }
   }
   const ordered = orderForPracticalLoading(placements);
-  return validatePacking(ordered, request.container, request.clearance, [product], "practical").valid ? ordered : null;
+  return validatePacking(ordered, request.container, request.clearance, [product], "practical", request.mode).valid ? ordered : null;
 }
 
 function packSingle(request: PackingRequest, container: EffectiveContainer, fieldPracticalSetLimit?: number) {
@@ -1327,7 +1345,8 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
     placements.forEach((box, index) => {
       spatial.add(box, index);
       const top = box.z + box.dz;
-      topLevels.set(top, [...(topLevels.get(top) ?? []), box]);
+      const topKey = supportLevelKey(top);
+      topLevels.set(topKey, [...(topLevels.get(topKey) ?? []), box]);
     });
   };
 
@@ -1386,7 +1405,8 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
     totalVolume += product.length * product.width * product.height;
     placementIndex += 1;
     const top = placed.z + placed.dz;
-    topLevels.set(top, [...(topLevels.get(top) ?? []), placed]);
+    const topKey = supportLevelKey(top);
+    topLevels.set(topKey, [...(topLevels.get(topKey) ?? []), placed]);
 
     const additions: Point[] = [
       { x: placed.x + placed.dx, y: placed.y, z: placed.z },
@@ -1524,12 +1544,18 @@ export function validatePacking(
   clearance: number,
   products: ProductInput[] = [],
   strategy: PackingStrategy = "maximum",
+  mode: PackingMode = "mixed",
 ): ValidationReport {
+  const containerError = validateContainerInput(container, clearance);
+  if (containerError) return { valid: false, errors: [containerError] };
+  if (!Array.isArray(placements)) return { valid: false, errors: ["箱体坐标必须是数组。"] };
+  if (mode !== "single" && mode !== "mixed") return { valid: false, errors: ["计算模式无效。"] };
   const effective = effectiveContainer(container, clearance);
   const errors: string[] = [];
   const spatial = new SpatialIndex(effective);
   const topLevels = new Map<number, PlacedBox[]>();
   const productMap = new Map(products.map((product) => [product.id, product]));
+  if (productMap.size !== products.length) errors.push("产品资料存在重复 ID，无法独立核对箱体归属。");
   const placementIds = new Set<string>();
   const orientationsByProduct = new Map<string, Set<string>>();
   let totalWeight = 0;
@@ -1537,10 +1563,11 @@ export function validatePacking(
     const box = placements[index];
     const product = productMap.get(box.productId);
     const numericValues = [box.x, box.y, box.z, box.dx, box.dy, box.dz, box.weight, box.layer];
-    if (!numericValues.every(Number.isFinite) || box.dx <= 0 || box.dy <= 0 || box.dz <= 0 || box.weight < 0) {
+    if (!numericValues.every(Number.isFinite) || box.dx <= 0 || box.dy <= 0 || box.dz <= 0 || box.weight < 0 || !Number.isInteger(box.layer) || box.layer < 1) {
       errors.push(`${box.sku || `箱体 ${index + 1}`} 存在无效的坐标、尺寸、层级或重量。`);
       continue;
     }
+    if (!box.id?.trim()) errors.push(`${box.sku || `箱体 ${index + 1}`} 缺少箱体追踪 ID。`);
     if (placementIds.has(box.id)) errors.push(`${box.sku} 的箱体追踪 ID “${box.id}”重复。`);
     placementIds.add(box.id);
     if (products.length && !product) errors.push(`${box.sku} 的箱体 ${index + 1} 引用了未知产品。`);
@@ -1561,6 +1588,7 @@ export function validatePacking(
       }
     }
     if (product) {
+      if (box.sku !== product.sku) errors.push(`${box.sku || `箱体 ${index + 1}`} 的 SKU 与产品资料 ${product.sku} 不一致。`);
       if (Math.abs(box.weight - product.weight) > EPS) {
         errors.push(`${box.sku} 的箱体 ${index + 1} 重量与产品资料不一致。`);
       }
@@ -1583,6 +1611,9 @@ export function validatePacking(
       orientationsByProduct.set(box.productId, orientations);
     }
     const support = supportDetails(box, topLevels, productMap);
+    if (box.layer !== support.layer) {
+      errors.push(`${box.sku} 的箱体 ${index + 1} 标注为第 ${box.layer} 层，按支撑关系应为第 ${support.layer} 层。`);
+    }
     const supportThreshold = strategy === "practical" ? PRACTICAL_SUPPORT_RATIO : 0.68;
     if (box.z > EPS && support.ratio < supportThreshold) {
       errors.push(`${box.sku} 的箱体 ${index + 1} 底面支撑不足 ${(supportThreshold * 100).toFixed(1)}%。`);
@@ -1593,7 +1624,8 @@ export function validatePacking(
     }
     spatial.add(box, index);
     const top = box.z + box.dz;
-    topLevels.set(top, [...(topLevels.get(top) ?? []), box]);
+    const topKey = supportLevelKey(top);
+    topLevels.set(topKey, [...(topLevels.get(topKey) ?? []), box]);
     totalWeight += product?.weight ?? box.weight;
     if (errors.length >= 20) break;
   }
@@ -1611,6 +1643,14 @@ export function validatePacking(
   if (products.length) {
     const loadedByProduct = new Map<string, number>();
     for (const box of placements) loadedByProduct.set(box.productId, (loadedByProduct.get(box.productId) ?? 0) + 1);
+    if (mode === "mixed") {
+      for (const product of products) {
+        const loaded = loadedByProduct.get(product.id) ?? 0;
+        if (loaded > product.quantity) {
+          errors.push(`${product.sku} 已装 ${loaded.toLocaleString()} 箱，超过订单需求 ${product.quantity.toLocaleString()} 箱。`);
+        }
+      }
+    }
     const expectedSetByProduct = new Map<string, string>();
     for (const [code, group] of collectSetGroups(products)) {
       for (const product of group) expectedSetByProduct.set(product.id, code);
@@ -1750,7 +1790,8 @@ function calculateExecutionComplexity(
       partialSupportCount += 1;
     }
     const top = box.z + box.dz;
-    topLevels.set(top, [...(topLevels.get(top) ?? []), box]);
+    const topKey = supportLevelKey(top);
+    topLevels.set(topKey, [...(topLevels.get(topKey) ?? []), box]);
   }
 
   return {
@@ -1820,6 +1861,7 @@ export function pack(request: PackingRequest): PackingResult {
     normalized.clearance,
     normalized.products,
     normalized.strategy,
+    normalized.mode,
   );
   const theoreticalCount =
     "theoreticalCount" in output && typeof output.theoreticalCount === "number" ? output.theoreticalCount : undefined;
@@ -1900,7 +1942,7 @@ export function pack(request: PackingRequest): PackingResult {
   }
 
   return {
-    id: `plan-${Date.now()}`,
+    id: `plan-${Date.now()}-${normalized.strategy}`,
     mode: normalized.mode,
     strategy: normalized.strategy!,
     practicalTargetUtilization: normalized.practicalTargetUtilization!,
@@ -2061,12 +2103,24 @@ export function packWithComparison(request: PackingRequest): PackingResult {
     singleCartonLimit: request.mode === "single" ? undefined : request.singleCartonLimit,
   });
   if (strategyDisplayQuantity(maximumCapacity) < strategyDisplayQuantity(practical)) {
+    const attemptedMaximum = maximumCapacity;
     maximumCapacity = {
       ...practical,
       id: `plan-${Date.now()}-maximum-lower-bound`,
       strategy: "maximum",
+      singleCartonLimit: undefined,
+      practicalTargetUtilization: attemptedMaximum.practicalTargetUtilization,
+      metrics: {
+        ...practical.metrics,
+        solveTimeMs: attemptedMaximum.metrics.solveTimeMs,
+      },
+      createdAt: attemptedMaximum.createdAt,
       warnings: [
-        ...practical.warnings,
+        ...practical.warnings.filter((warning) =>
+          !warning.startsWith("现场易执行策略：") &&
+          !warning.startsWith("本次按利用率目标生成计划方案") &&
+          !warning.startsWith("现场模式已按相同包装的历史实装记录封顶"),
+        ),
         "极限搜索未超过现场合法解，已将现场方案作为理论搜索下界；不会把较差的启发式结果伪装成理论上限。",
       ],
     };

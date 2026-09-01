@@ -108,6 +108,10 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
   if (!headerRecord) throw new Error("CSV 文件为空，请先下载模板。");
 
   const headers = headerRecord.map((header) => header.trim());
+  const duplicateHeaders = [...new Set(headers.filter((header, index) => header && headers.indexOf(header) !== index))];
+  if (duplicateHeaders.length) {
+    throw new Error(`CSV 存在重复表头：${duplicateHeaders.join("、")}。请保证每个字段只出现一次。`);
+  }
   if (!REQUIRED_PRODUCT_COLUMNS.every((key) => headers.includes(key))) {
     throw new Error("CSV 缺少必要字段，请先下载模板。");
   }

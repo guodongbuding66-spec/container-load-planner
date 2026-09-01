@@ -38,7 +38,9 @@ function supportsWebGL() {
   if (typeof document === "undefined") return false;
   try {
     const canvas = document.createElement("canvas");
-    cachedWebGLSupport = Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl"));
+    const context = canvas.getContext("webgl2") || canvas.getContext("webgl");
+    cachedWebGLSupport = Boolean(context);
+    context?.getExtension("WEBGL_lose_context")?.loseContext();
   } catch {
     cachedWebGLSupport = false;
   }

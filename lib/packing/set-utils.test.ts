@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alignSetQuantities, selectProductsForMode, summarizeSetInputs } from "./set-utils";
+import { alignSetQuantities, inferImportedPackingMode, selectProductsForMode, summarizeSetInputs } from "./set-utils";
 import type { ProductInput } from "./types";
 
 function component(id: string, quantity: number, unitsPerSet: number): ProductInput {
@@ -63,5 +63,16 @@ describe("multi-carton set helpers", () => {
 
     expect(selectProductsForMode([...firstKit, unrelated], "single").map((item) => item.id)).toEqual(["a", "b"]);
     expect(selectProductsForMode([...firstKit, unrelated], "mixed")).toHaveLength(3);
+  });
+
+  it("imports one common set as a single multi-carton product without misclassifying mixed data", () => {
+    const oneProduct = [component("a", 10, 1), component("b", 10, 1)];
+    const anotherSet = { ...component("c", 10, 1), id: "other", setCode: "OTHER-KIT" };
+    const loose = { ...component("d", 10, 1), id: "loose", setCode: "" };
+
+    expect(inferImportedPackingMode(oneProduct)).toBe("single");
+    expect(inferImportedPackingMode([...oneProduct, anotherSet])).toBe("mixed");
+    expect(inferImportedPackingMode([...oneProduct, loose])).toBe("mixed");
+    expect(inferImportedPackingMode([])).toBe("mixed");
   });
 });

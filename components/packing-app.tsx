@@ -32,6 +32,7 @@ import {
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CameraProjection, CameraView } from "../lib/packing/camera-fit";
+import { isObsoleteCalculation } from "../lib/packing/calculation-state";
 import { buildPlacementCsv, MAX_CSV_BYTES, MAX_CSV_ROWS, parseProductsCsv } from "../lib/packing/csv";
 import {
   calculateReverseCounts,
@@ -39,6 +40,7 @@ import {
   ENGINE_VERSION,
   packWithComparison,
   recommendedPracticalTarget,
+  validateContainerInput,
 } from "../lib/packing/engine";
 import { summarizePackingProgress } from "../lib/packing/progress";
 import {
@@ -52,6 +54,7 @@ import {
 import { HISTORICAL_LOADING_RECORDS } from "../lib/packing/quote-estimator";
 import {
   alignSetQuantities,
+  inferImportedPackingMode,
   normalizedUnitsPerSet,
   selectProductsForMode,
   summarizeSetInputs,
@@ -75,10 +78,12 @@ const ContainerScene = dynamic(() => import("./container-scene").then((module) =
 });
 
 const STORAGE_KEY = "cargo-fit-workspace-v1";
+const STORAGE_SAVE_DELAY_MS = 320;
 const COLORS = ["#2f7f89", "#c66a3d", "#d5a72f", "#6b72a9", "#609d62", "#a95e78", "#447ca8"];
 const VALID_COLOR = /^#[0-9a-f]{6}$/i;
 
 type CalcStatus = "idle" | "working" | "done" | "error";
+type StorageState = "saved" | "error";
 
 function numberValue(value: string) {
   const parsed = Number(value);
@@ -291,7 +296,7 @@ export function PackingApp() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [cameraView, setCameraView] = useState<CameraView>("perspective");
   const [cameraProjection, setCameraProjection] = useState<CameraProjection>("perspective");
-  const [storageError, setStorageError] = useState(false);
+  const [storageState, setStorageState] = useState<StorageState>("saved");
   const workerRef = useRef<Worker | null>(null);
   const activeRequestRef = useRef<string | null>(null);
   const activeRevisionRef = useRef<number | null>(null);
@@ -300,14 +305,23 @@ export function PackingApp() {
   const packingProgressRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const clearActiveCalculation = useCallback(() => {
+    activeRequestRef.current = null;
+    activeRevisionRef.current = null;
+    pendingPayloadRef.current = null;
+  }, []);
+
+  const discardObsoleteCalculation = useCallback(() => {
+    if (!isObsoleteCalculation(activeRevisionRef.current, inputRevisionRef.current)) return false;
+    clearActiveCalculation();
+    setIsPlaying(false);
+    setStatus("idle");
+    setMessage("计算期间输入已变化，旧结果或旧错误已安全丢弃；请按当前参数重新计算");
+    return true;
+  }, [clearActiveCalculation]);
+
   const acceptResult = useCallback((nextResult: PackingResult, successMessage: string) => {
-    if (activeRevisionRef.current !== inputRevisionRef.current) {
-      activeRequestRef.current = null;
-      activeRevisionRef.current = null;
-      pendingPayloadRef.current = null;
-      setIsPlaying(false);
-      setStatus("idle");
-      setMessage("计算期间输入已变化，旧结果已安全丢弃；请按当前参数重新计算");
+    if (discardObsoleteCalculation()) {
       return;
     }
     setResult(nextResult);
@@ -318,13 +332,11 @@ export function PackingApp() {
     setCameraProjection("perspective");
     setStatus(nextResult.validation.valid ? "done" : "error");
     setDirty(false);
-    activeRequestRef.current = null;
-    activeRevisionRef.current = null;
-    pendingPayloadRef.current = null;
+    clearActiveCalculation();
     setMessage(nextResult.validation.valid
       ? successMessage
       : `方案未通过独立校验，已阻止打印与导出：${nextResult.validation.errors[0] ?? "请检查异常明细"}`);
-  }, []);
+  }, [clearActiveCalculation, discardObsoleteCalculation]);
 
   const runFallback = useCallback(
     (payload: PackingRequest) => {
@@ -332,15 +344,14 @@ export function PackingApp() {
         try {
           acceptResult(packWithComparison(payload), "双算法方案已在兼容模式下生成并完成校验");
         } catch (fallbackError) {
-          activeRequestRef.current = null;
-          activeRevisionRef.current = null;
-          pendingPayloadRef.current = null;
+          if (discardObsoleteCalculation()) return;
+          clearActiveCalculation();
           setStatus("error");
           setMessage(fallbackError instanceof Error ? fallbackError.message : "计算失败");
         }
       }, 30);
     },
-    [acceptResult],
+    [acceptResult, clearActiveCalculation, discardObsoleteCalculation],
   );
 
   useEffect(() => {
@@ -389,22 +400,19 @@ export function PackingApp() {
 
   useEffect(() => {
     if (!hydrated) return;
-    let feedbackTimer: number | undefined;
-    try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent }),
-      );
-      feedbackTimer = window.setTimeout(() => setStorageError(false), 0);
-    } catch {
-      feedbackTimer = window.setTimeout(() => {
-        setStorageError(true);
+    const saveTimer = window.setTimeout(() => {
+      try {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent }),
+        );
+        setStorageState("saved");
+      } catch {
+        setStorageState("error");
         setMessage("本机草稿保存失败：浏览器存储不可用或空间不足");
-      }, 0);
-    }
-    return () => {
-      if (feedbackTimer !== undefined) window.clearTimeout(feedbackTimer);
-    };
+      }
+    }, STORAGE_SAVE_DELAY_MS);
+    return () => window.clearTimeout(saveTimer);
   }, [clearance, container, customContainers, hydrated, mode, practicalTargetPercent, products, strategy, targetVolumePercent, targetWeightPercent]);
 
   useEffect(() => {
@@ -419,9 +427,8 @@ export function PackingApp() {
       const response = event.data;
       if (response.requestId !== activeRequestRef.current) return;
       if (response.type === "error") {
-        activeRequestRef.current = null;
-        activeRevisionRef.current = null;
-        pendingPayloadRef.current = null;
+        if (discardObsoleteCalculation()) return;
+        clearActiveCalculation();
         setStatus("error");
         setMessage(response.message);
         return;
@@ -431,16 +438,14 @@ export function PackingApp() {
     worker.onerror = () => {
       worker.terminate();
       workerRef.current = null;
+      if (discardObsoleteCalculation()) return;
       const pendingPayload = pendingPayloadRef.current;
       if (pendingPayload) runFallback(pendingPayload);
-      else {
-        activeRequestRef.current = null;
-        activeRevisionRef.current = null;
-      }
+      else clearActiveCalculation();
     };
     workerRef.current = worker;
     return () => worker.terminate();
-  }, [acceptResult, runFallback]);
+  }, [acceptResult, clearActiveCalculation, discardObsoleteCalculation, runFallback]);
 
   useEffect(() => {
     packingProgressRef.current = packingProgress;
@@ -468,6 +473,10 @@ export function PackingApp() {
     setIsPlaying(false);
     if (status === "working") setMessage("输入已修改；当前旧参数计算完成后将自动丢弃");
     else if (status === "done") setMessage("输入已修改，请重新计算；旧方案已禁止导出");
+    else if (status === "error") {
+      setStatus("idle");
+      setMessage("输入已修改，请检查后重新计算");
+    }
   }, [status]);
 
   const switchStrategy = (nextStrategy: PackingStrategy) => {
@@ -551,11 +560,10 @@ export function PackingApp() {
       : cachedMaximumPlan.metrics.loadedCount
     : null;
   const selectedPredictionDisplay = strategy === "practical" ? practicalPredictionDisplay : maximumPredictionDisplay;
-  const selectedPredictionCartons = strategy === "maximum" && cachedMaximumPlan
-    ? cachedMaximumPlan.metrics.loadedCount
-    : reversePlan.recommendedTotal;
-  const selectedPredictionQuantities = strategy === "maximum" && cachedMaximumPlan
-    ? cachedMaximumPlan.summaries.map((item) => ({ productId: item.productId, sku: item.sku, suggestedQuantity: item.loaded }))
+  const selectedCachedPlan = strategy === "practical" ? cachedPracticalPlan : cachedMaximumPlan;
+  const selectedPredictionCartons = selectedCachedPlan?.metrics.loadedCount ?? reversePlan.recommendedTotal;
+  const selectedPredictionQuantities = selectedCachedPlan
+    ? selectedCachedPlan.summaries.map((item) => ({ productId: item.productId, sku: item.sku, suggestedQuantity: item.loaded }))
     : reversePlan.quantities;
 
   const containerChoices = useMemo(() => [...CONTAINER_PRESETS, ...customContainers], [customContainers]);
@@ -586,7 +594,18 @@ export function PackingApp() {
       setMessage("请先填写自定义柜型名称。");
       return;
     }
-    const saved: ContainerSpec = { ...container, id: `custom-${Date.now()}`, name };
+    const containerError = validateContainerInput(container, clearance);
+    if (containerError) {
+      setStatus("error");
+      setMessage(`无法保存柜型：${containerError}`);
+      return;
+    }
+    if (customContainers.length >= 100) {
+      setStatus("error");
+      setMessage("本机最多保存 100 个自定义柜型，请先删除不再使用的柜型。");
+      return;
+    }
+    const saved: ContainerSpec = { ...container, id: `custom-${Date.now()}`, name: name.slice(0, 120) };
     setCustomContainers((current) => [...current, saved]);
     setContainer(saved);
     setShowContainerSave(false);
@@ -601,6 +620,7 @@ export function PackingApp() {
     if (!window.confirm(`确认删除本机柜型“${container.name}”吗？`)) return;
     setCustomContainers((current) => current.filter((item) => item.id !== container.id));
     setContainer({ ...CONTAINER_PRESETS[2] });
+    setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
     markDirty();
     setMessage("自定义柜型已删除，已切换到 40HQ 高柜");
   };
@@ -702,6 +722,9 @@ export function PackingApp() {
 
   const loadSample = () => {
     setMode("mixed");
+    setStrategy("practical");
+    setTargetVolumePercent(85);
+    setTargetWeightPercent(90);
     setContainer({ ...CONTAINER_PRESETS[2] });
     setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
     setClearance(10);
@@ -716,6 +739,9 @@ export function PackingApp() {
 
   const loadDimensionTest = () => {
     setMode("mixed");
+    setStrategy("practical");
+    setTargetVolumePercent(85);
+    setTargetWeightPercent(90);
     setContainer({ ...CONTAINER_PRESETS[2] });
     setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
     setClearance(10);
@@ -730,6 +756,9 @@ export function PackingApp() {
 
   const loadTwoCartonSetTest = () => {
     setMode("single");
+    setStrategy("practical");
+    setTargetVolumePercent(85);
+    setTargetWeightPercent(90);
     setContainer({ ...CONTAINER_PRESETS[2] });
     setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
     setClearance(10);
@@ -744,6 +773,9 @@ export function PackingApp() {
 
   const loadMultiCartonSetTest = () => {
     setMode("single");
+    setStrategy("practical");
+    setTargetVolumePercent(85);
+    setTargetWeightPercent(90);
     setContainer({ ...CONTAINER_PRESETS[2] });
     setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
     setClearance(10);
@@ -760,6 +792,8 @@ export function PackingApp() {
     setMode("single");
     setStrategy("practical");
     setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
+    setTargetVolumePercent(85);
+    setTargetWeightPercent(90);
     setContainer({ ...CONTAINER_PRESETS[2] });
     setClearance(10);
     setProducts(REAL_WORLD_A64M_PRODUCTS.map((item) => ({ ...item })));
@@ -779,6 +813,8 @@ export function PackingApp() {
     setStrategy("practical");
     setContainer({ ...CONTAINER_PRESETS[2] });
     setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
+    setTargetVolumePercent(85);
+    setTargetWeightPercent(90);
     setClearance(10);
     setProducts(record.cartons.map((carton, index) => ({
       id: `real-supplied-${index}-${carton.length}-${carton.width}-${carton.height}`,
@@ -806,20 +842,8 @@ export function PackingApp() {
 
   const validateInputs = () => {
     if (!activeProducts.length) return "请至少添加一个产品。";
-    if ([container.length, container.width, container.height, container.doorWidth, container.doorHeight, container.maxWeight].some((value) => !Number.isFinite(value) || value <= 0)) {
-      return "柜型尺寸、门洞和载重必须大于 0。";
-    }
-    if (
-      !Number.isFinite(clearance) ||
-      clearance < 0 ||
-      clearance * 2 >= container.length ||
-      clearance * 2 >= container.width ||
-      clearance >= container.height ||
-      clearance * 2 >= container.doorWidth ||
-      clearance >= container.doorHeight
-    ) {
-      return "安全间隙过大，已占满柜内空间或门洞。";
-    }
+    const containerError = validateContainerInput(container, clearance);
+    if (containerError) return containerError;
     const invalid = activeProducts.find(
       (item) =>
         !item.sku.trim() ||
@@ -828,9 +852,11 @@ export function PackingApp() {
         item.width <= 0 ||
         item.height <= 0 ||
         item.weight < 0 ||
-        item.maxStackLayers < 0 ||
-        (Boolean(item.setCode?.trim()) && (!item.unitsPerSet || item.unitsPerSet < 1)) ||
-        (mode === "mixed" && item.quantity <= 0),
+        !Number.isInteger(item.maxStackLayers) || item.maxStackLayers < 0 || item.maxStackLayers > 99 ||
+        !Number.isInteger(item.priority) || item.priority < 0 || item.priority > 100 ||
+        !["fixed", "upright", "any"].includes(item.rotationPolicy) ||
+        (Boolean(item.setCode?.trim()) && (!Number.isInteger(item.unitsPerSet) || !item.unitsPerSet || item.unitsPerSet < 1 || item.unitsPerSet > 99)) ||
+        (mode === "mixed" && (!Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 1_000_000)),
     );
     return invalid ? `${invalid.sku || "未命名产品"} 的尺寸、重量或数量不完整。` : null;
   };
@@ -944,7 +970,12 @@ export function PackingApp() {
 
   const exportJson = () => {
     if (!result?.validation.valid || dirty) return;
-    downloadFile(`装柜方案_${result.container.id}_${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(result, null, 2), "application/json");
+    const selectedPlanOnly = { ...result, strategyPlans: undefined };
+    downloadFile(
+      `装柜方案_${result.container.id}_${result.strategy}_${new Date().toISOString().slice(0, 10)}.json`,
+      JSON.stringify(selectedPlanOnly, null, 2),
+      "application/json",
+    );
   };
 
   const exportCsv = () => {
@@ -972,12 +1003,15 @@ export function PackingApp() {
     }
     try {
       const parsed = parseProductsCsv(await file.text(), COLORS);
+      const importedMode = inferImportedPackingMode(parsed);
       setProducts(parsed);
-      setMode("mixed");
+      setMode(importedMode);
       setResult(null);
       markDirty();
       setStatus("idle");
-      setMessage(`已导入 ${parsed.length} 个 SKU，请检查后计算`);
+      setMessage(importedMode === "single"
+        ? `已识别同一套装编码，按单品多箱模式导入 ${parsed.length} 个箱型；将直接计算完整套数`
+        : `已导入 ${parsed.length} 个 SKU，请检查后计算`);
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "CSV 读取失败，请检查文件后重试。");
@@ -1028,7 +1062,7 @@ export function PackingApp() {
             <h1>新建装柜测算</h1>
           </div>
           <div className="top-actions">
-            <span className={`save-state ${dirty ? "is-dirty" : ""} ${storageError ? "is-error" : ""}`}><Save size={15} />{storageError ? "草稿未能保存" : dirty ? "草稿已保存 · 待重算" : "本机草稿已保存"}</span>
+            <span className={`save-state ${dirty ? "is-dirty" : ""} ${storageState === "error" ? "is-error" : ""}`}><Save size={15} />{storageState === "error" ? "草稿未能保存" : dirty ? "草稿自动保存 · 待重算" : "本机草稿已保存"}</span>
             <button className="button ghost" onClick={loadSample}><Sparkles size={16} />载入示例</button>
             <button className="button ghost" onClick={printPlan} disabled={!canExport}><Printer size={16} />现场指导书</button>
             <button className="button ghost" onClick={exportJson} disabled={!canExport}><FileJson size={16} />导出方案</button>
@@ -1111,7 +1145,7 @@ export function PackingApp() {
               </div>
               {showContainerSave ? (
                 <div className="container-save-row">
-                  <input aria-label="自定义柜型名称" placeholder="例如：45HQ 客户专用柜" value={customContainerName} onChange={(event) => setCustomContainerName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") saveCustomContainer(); }} />
+                  <input aria-label="自定义柜型名称" maxLength={120} placeholder="例如：45HQ 客户专用柜" value={customContainerName} onChange={(event) => setCustomContainerName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") saveCustomContainer(); }} />
                   <button className="button primary small" onClick={saveCustomContainer}>保存</button>
                   <button className="icon-button" aria-label="取消保存柜型" onClick={() => setShowContainerSave(false)}><X size={16} /></button>
                 </div>
@@ -1142,7 +1176,9 @@ export function PackingApp() {
                 <div className="recommended">
                   <span>{mode === "single" ? strategy === "practical" ? "现场方案预测" : "极限理论预测" : "综合建议"}</span>
                   <strong>{selectedPredictionDisplay === null ? "待计算" : `${formatNumber(selectedPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</strong>
-                  <small>{mode === "single" && strategy === "maximum"
+                  <small>{selectedCachedPlan
+                    ? `${reversePlan.displayUnit === "set" ? `共 ${formatNumber(selectedPredictionCartons)} 箱 · ` : ""}已按当前${strategy === "practical" ? "现场" : "极限"}算法生成并独立校验`
+                    : mode === "single" && strategy === "maximum"
                     ? selectedPredictionDisplay === null ? "运行一次后显示独立极限结果" : `共 ${formatNumber(selectedPredictionCartons)} 箱 · 不受 ${targetVolumePercent}% / ${targetWeightPercent}% 计划预留限制`
                     : `${reversePlan.displayUnit === "set" ? `共 ${formatNumber(reversePlan.recommendedTotal)} 箱 · ` : ""}${reversePlan.limitingFactor === "volume" ? "受体积目标限制" : reversePlan.limitingFactor === "weight" ? "受载重目标限制" : "两个目标同时达到"}`}</small>
                 </div>

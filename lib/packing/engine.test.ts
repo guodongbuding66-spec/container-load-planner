@@ -104,7 +104,7 @@ describe("packing engine", () => {
   });
 
   it("keeps cartons upright when the rotation policy forbids tipping", () => {
-    const lowContainer = { ...container, length: 1200, width: 1000, height: 500, doorHeight: 500 };
+    const lowContainer = { ...container, length: 1200, width: 1000, height: 500, doorWidth: 1000, doorHeight: 500 };
     const uprightOnly = product({
       length: 700,
       width: 400,
@@ -119,7 +119,7 @@ describe("packing engine", () => {
   });
 
   it("honors the configured stack-layer limit", () => {
-    const cubeContainer = { ...container, length: 1000, width: 1000, height: 1000 };
+    const cubeContainer = { ...container, length: 1000, width: 1000, height: 1000, doorWidth: 1000, doorHeight: 1000 };
     const limited = product({ length: 500, width: 500, height: 200, rotationPolicy: "fixed", maxStackLayers: 2 });
     const result = pack(request({ mode: "single", container: cubeContainer, products: [limited] }));
 
@@ -128,7 +128,7 @@ describe("packing engine", () => {
   });
 
   it("keeps bottom-only cargo on the container floor", () => {
-    const cubeContainer = { ...container, length: 1000, width: 1000, height: 1000 };
+    const cubeContainer = { ...container, length: 1000, width: 1000, height: 1000, doorWidth: 1000, doorHeight: 1000 };
     const bottomOnly = product({
       length: 500,
       width: 500,
@@ -144,7 +144,7 @@ describe("packing engine", () => {
   });
 
   it("loads mandatory cargo before higher-priority filler cargo", () => {
-    const oneBoxContainer = { ...container, length: 500, width: 500, height: 500 };
+    const oneBoxContainer = { ...container, length: 500, width: 500, height: 500, doorWidth: 500, doorHeight: 500 };
     const mandatory = product({ id: "must", sku: "MUST", length: 500, width: 500, height: 500, quantity: 1, priority: 0, mustLoad: true });
     const filler = product({ id: "fill", sku: "FILL", length: 500, width: 500, height: 500, quantity: 1, priority: 100, mustLoad: false });
     const result = pack(request({ container: oneBoxContainer, products: [filler, mandatory] }));
@@ -155,7 +155,7 @@ describe("packing engine", () => {
   });
 
   it("does not place cartons on top of a non-stackable product", () => {
-    const narrowContainer = { ...container, length: 500, width: 500, height: 1500 };
+    const narrowContainer = { ...container, length: 500, width: 500, height: 1500, doorWidth: 500, doorHeight: 1500 };
     const nonStackable = product({
       length: 500,
       width: 500,
@@ -181,7 +181,7 @@ describe("packing engine", () => {
   });
 
   it("reverse-calculates volume and payload counts for a single carton", () => {
-    const simpleContainer = { ...container, length: 1000, width: 1000, height: 1000, maxWeight: 1000 };
+    const simpleContainer = { ...container, length: 1000, width: 1000, height: 1000, doorWidth: 1000, doorHeight: 1000, maxWeight: 1000 };
     const estimate = calculateReverseCounts(
       request({
         mode: "single",
@@ -201,7 +201,7 @@ describe("packing engine", () => {
   });
 
   it("returns complete sets as the primary reverse-count unit for multi-carton products", () => {
-    const simpleContainer = { ...container, id: "custom", length: 1000, width: 1000, height: 1000, maxWeight: 10_000 };
+    const simpleContainer = { ...container, id: "custom", length: 1000, width: 1000, height: 1000, doorWidth: 1000, doorHeight: 1000, maxWeight: 10_000 };
     const products = [
       product({ id: "set-display-a", sku: "SET-A", length: 500, width: 500, height: 500, weight: 10, setCode: "DISPLAY-SET", unitsPerSet: 1 }),
       product({ id: "set-display-b", sku: "SET-B", length: 500, width: 500, height: 500, weight: 10, setCode: "DISPLAY-SET", unitsPerSet: 1 }),
@@ -234,7 +234,7 @@ describe("packing engine", () => {
       product({ id: "ratio-b", sku: "B", quantity: 3, length: 100, width: 100, height: 100, weight: 1 }),
     ];
     const estimate = calculateReverseCounts(
-      request({ container: { ...container, length: 1000, width: 1000, height: 1000, maxWeight: 10000 }, products }),
+      request({ container: { ...container, length: 1000, width: 1000, height: 1000, doorWidth: 1000, doorHeight: 1000, maxWeight: 10000 }, products }),
       0.01,
       1,
     );
@@ -437,7 +437,7 @@ describe("packing engine", () => {
   });
 
   it("uses product master data when independently validating payload weight", () => {
-    const limitedContainer = { ...container, length: 1000, width: 1000, height: 1000, maxWeight: 50 };
+    const limitedContainer = { ...container, length: 1000, width: 1000, height: 1000, doorWidth: 1000, doorHeight: 1000, maxWeight: 50 };
     const cargo = product({ id: "weight-master", sku: "WEIGHT-MASTER", weight: 100, quantity: 1 });
     const forged = [{
       id: "forged-weight",
@@ -466,9 +466,75 @@ describe("packing engine", () => {
   it("rejects invalid requests instead of silently replacing bad dimensions", () => {
     expect(() => pack(request({ products: [product({ length: 0 })] }))).toThrow("外箱尺寸");
     expect(() => pack(request({ clearance: container.width }))).toThrow("安全间隙过大");
+    expect(() => pack(request({ container: { ...container, doorWidth: container.width + 1 } }))).toThrow("柜门尺寸");
+    expect(() => pack(request({ container: { ...container, doorHeight: container.height + 1 } }))).toThrow("柜门尺寸");
     expect(() => pack(request({ products: [product({ id: "duplicate" }), product({ id: "duplicate" })] }))).toThrow("产品 ID");
     expect(() => pack(request({ products: [product({ quantity: 1.5 })] }))).toThrow("非负整数");
     expect(() => pack(request({ strategy: "practical", practicalTargetUtilization: 0.99 }))).toThrow("50%–95%");
+  });
+
+  it("independently rejects invalid placement layers and misleading product labels", () => {
+    const cargo = product({ id: "layer-master", sku: "LAYER-MASTER", quantity: 2, rotationPolicy: "fixed" });
+    const valid = pack(request({ products: [cargo] })).placements[0];
+
+    const invalidLayer = validatePacking([{ ...valid, layer: 0 }], container, 0, [cargo]);
+    const fractionalLayer = validatePacking([{ ...valid, layer: 1.5 }], container, 0, [cargo]);
+    const wrongSku = validatePacking([{ ...valid, sku: "WRONG-SKU" }], container, 0, [cargo]);
+
+    expect(invalidLayer.valid).toBe(false);
+    expect(fractionalLayer.valid).toBe(false);
+    expect(invalidLayer.errors.join(" ")).toContain("层级");
+    expect(fractionalLayer.errors.join(" ")).toContain("层级");
+    expect(wrongSku.valid).toBe(false);
+    expect(wrongSku.errors.join(" ")).toContain("SKU");
+  });
+
+  it("independently rejects a mixed plan that loads more cartons than ordered", () => {
+    const cargo = product({ id: "demand-master", sku: "DEMAND-MASTER", quantity: 1, rotationPolicy: "fixed" });
+    const first = pack(request({ products: [cargo] })).placements[0];
+    const second = { ...first, id: "demand-master-extra", x: 1000 };
+
+    const validation = validatePacking([first, second], container, 0, [cargo]);
+
+    expect(validation.valid).toBe(false);
+    expect(validation.errors.join(" ")).toContain("超过订单需求");
+  });
+
+  it("keeps decimal-height support levels stable across floating-point rounding", () => {
+    const decimalContainer = {
+      ...container,
+      length: 1,
+      width: 1,
+      height: 1,
+      doorWidth: 1,
+      doorHeight: 1,
+      maxWeight: 100,
+    };
+    const products = [
+      product({ id: "decimal-a", sku: "DECIMAL-A", length: 1, width: 1, height: 0.1, weight: 1, quantity: 1, rotationPolicy: "fixed" }),
+      product({ id: "decimal-b", sku: "DECIMAL-B", length: 1, width: 1, height: 0.2, weight: 1, quantity: 1, rotationPolicy: "fixed" }),
+      product({ id: "decimal-c", sku: "DECIMAL-C", length: 1, width: 1, height: 0.1, weight: 1, quantity: 1, rotationPolicy: "fixed" }),
+    ];
+    const placements = products.map((item, index) => ({
+      id: `decimal-${index}`,
+      productId: item.id,
+      sku: item.sku,
+      name: item.name,
+      color: item.color,
+      x: 0,
+      y: 0,
+      z: [0, 0.1, 0.3][index],
+      dx: 1,
+      dy: 1,
+      dz: item.height,
+      weight: item.weight,
+      orientation: "LWH",
+      layer: index + 1,
+    }));
+
+    const validation = validatePacking(placements, decimalContainer, 0, products, "maximum", "mixed");
+
+    expect(validation.valid).toBe(true);
   });
 
   it("allows a simple planar side strip but rejects tipped practical orientations and partial support", () => {
@@ -493,7 +559,7 @@ describe("packing engine", () => {
       dy: 500,
       orientation: "WLH",
     };
-    const orientationValidation = validatePacking([first, rotated], { ...container, length: 1000, width: 1000 }, 0, [practicalProduct], "practical");
+    const orientationValidation = validatePacking([first, rotated], { ...container, length: 1000, width: 1000, doorWidth: 1000 }, 0, [practicalProduct], "practical");
     expect(orientationValidation.valid).toBe(true);
 
     const tipped = {
@@ -505,7 +571,7 @@ describe("packing engine", () => {
       dz: 500,
       orientation: "WHL",
     };
-    const tippedValidation = validatePacking([first, rotated, tipped], { ...container, length: 1000, width: 1000 }, 0, [practicalProduct], "practical");
+    const tippedValidation = validatePacking([first, rotated, tipped], { ...container, length: 1000, width: 1000, doorWidth: 1000 }, 0, [practicalProduct], "practical");
     expect(tippedValidation.valid).toBe(false);
     expect(tippedValidation.errors.join(" ")).toContain("不允许侧翻补缝");
 
@@ -513,7 +579,7 @@ describe("packing engine", () => {
     const supportValidation = validatePacking([
       { ...first, id: "support-1", productId: square.id, sku: square.sku, dx: 500, dy: 500, dz: 500, weight: square.weight },
       { ...first, id: "support-2", productId: square.id, sku: square.sku, x: 250, z: 500, dx: 500, dy: 500, dz: 500, weight: square.weight, layer: 2 },
-    ], { ...container, length: 1000, width: 1000, height: 1000 }, 0, [square], "practical");
+    ], { ...container, length: 1000, width: 1000, height: 1000, doorWidth: 1000, doorHeight: 1000 }, 0, [square], "practical");
     expect(supportValidation.valid).toBe(false);
     expect(supportValidation.errors.join(" ")).toContain("99.5%");
   });
@@ -635,6 +701,8 @@ describe("packing engine", () => {
       strategy: "maximum",
       metrics: { loadedCount: 1056 },
     });
+    expect(planned.strategyPlans?.maximum?.singleCartonLimit).toBeUndefined();
+    expect(planned.strategyPlans?.practical?.id).not.toBe(planned.strategyPlans?.maximum?.id);
     expect(planned.strategyPlans?.practical?.setSummaries[0].loadedSets).toBe(476);
     expect(planned.strategyPlans?.maximum?.setSummaries[0].loadedSets).toBe(528);
     expect(planned.strategyPlans?.practical?.validation.valid).toBe(true);

@@ -157,9 +157,9 @@ function expandedProducts(products: ProductInput[]) {
   );
 }
 
-function cartonSortKey(item: Pick<ProductInput, "length" | "width" | "height">) {
+function cartonSortKey(item: Pick<ProductInput, "length" | "width" | "height" | "weight">) {
   const dimensions = normalizedDimensions(item);
-  return dimensions.map((value) => value.toFixed(3).padStart(12, "0")).join(":");
+  return `${dimensions.map((value) => value.toFixed(3).padStart(12, "0")).join(":")}:${item.weight.toFixed(3).padStart(10, "0")}`;
 }
 
 function samePackaging(products: ProductInput[], record: HistoricalLoadingRecord) {
@@ -169,7 +169,11 @@ function samePackaging(products: ProductInput[], record: HistoricalLoadingRecord
   return supplied.every((product, index) => {
     const actualDimensions = normalizedDimensions(product);
     const historicalDimensions = normalizedDimensions(historical[index]);
-    return actualDimensions.every((dimension, dimensionIndex) => Math.abs(dimension - historicalDimensions[dimensionIndex]) <= 5);
+    const dimensionsMatch = actualDimensions.every(
+      (dimension, dimensionIndex) => Math.abs(dimension - historicalDimensions[dimensionIndex]) <= 5,
+    );
+    const weightTolerance = Math.max(1, historical[index].weight * 0.03);
+    return dimensionsMatch && Math.abs(product.weight - historical[index].weight) <= weightTolerance;
   });
 }
 

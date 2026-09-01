@@ -71,11 +71,33 @@ test("includes arbitrary multi-carton set creation and traceability", async () =
 
 test("blocks stale or invalid exports and discards obsolete worker results", async () => {
   const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+  const calculationState = await readFile(new URL("../lib/packing/calculation-state.ts", import.meta.url), "utf8");
 
   assert.match(source, /const canExport = Boolean\(result\?\.validation\.valid && !dirty/);
   assert.match(source, /disabled=\{!canExport\}/);
-  assert.match(source, /activeRevisionRef\.current !== inputRevisionRef\.current/);
-  assert.match(source, /旧结果已安全丢弃/);
+  assert.match(source, /discardObsoleteCalculation/);
+  assert.match(source, /旧结果或旧错误已安全丢弃/);
+  assert.match(source, /selectedPlanOnly = \{ \.\.\.result, strategyPlans: undefined \}/);
+  assert.match(calculationState, /activeRevision !== null && activeRevision !== inputRevision/);
+});
+
+test("keeps every prediction label on the selected cached coordinate plan", async () => {
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /const selectedCachedPlan = strategy === "practical" \? cachedPracticalPlan : cachedMaximumPlan/);
+  assert.match(source, /selectedCachedPlan\?\.metrics\.loadedCount \?\? reversePlan\.recommendedTotal/);
+  assert.match(source, /selectedCachedPlan\.summaries\.map/);
+  assert.match(source, /已按当前\$\{strategy === "practical" \? "现场" : "极限"\}算法生成并独立校验/);
+});
+
+test("debounces draft persistence and recognizes a one-code multi-carton CSV as one product", async () => {
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+  const setUtils = await readFile(new URL("../lib/packing/set-utils.ts", import.meta.url), "utf8");
+
+  assert.match(source, /STORAGE_SAVE_DELAY_MS = 320/);
+  assert.match(source, /window\.setTimeout\(\(\) => \{[\s\S]*?localStorage\.setItem[\s\S]*?STORAGE_SAVE_DELAY_MS/);
+  assert.match(source, /inferImportedPackingMode\(parsed\)/);
+  assert.match(setUtils, /export function inferImportedPackingMode/);
 });
 
 test("defers the heavy 3D bundle until a result exists and isolates render failures", async () => {
