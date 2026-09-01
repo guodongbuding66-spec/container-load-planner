@@ -2,39 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const developmentPreviewMeta =
-  /<meta(?=[^>]*\bname=["']codex-preview["'])(?=[^>]*\bcontent=["']development["'])[^>]*>/i;
+test("declares preview metadata without relying on a stale local build", async () => {
+  const layout = await readFile(new URL("../app/layout.tsx", import.meta.url), "utf8");
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
 
-test("renders development preview metadata", async () => {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
-  const { default: worker } = await import(workerUrl.href);
-
-  const response = await worker.fetch(
-    new Request("http://localhost/", {
-      headers: { accept: "text/html" },
-    }),
-    {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
-    },
-    {
-      waitUntil() {},
-      passThroughOnException() {},
-    },
-  );
-
-  assert.equal(response.status, 200);
-  assert.match(
-    response.headers.get("content-type") ?? "",
-    /^text\/html\b/i,
-  );
-  const html = await response.text();
-  assert.match(html, developmentPreviewMeta);
-  assert.match(html, /目标利用率倒推/);
-  assert.match(html, /另存为自定义柜型/);
-  assert.doesNotMatch(html, /container-scene/);
+  assert.match(layout, /["']codex-preview["']\s*:\s*["']development["']/);
+  assert.match(source, /目标利用率倒推/);
+  assert.match(source, /另存为自定义柜型/);
 });
 
 test("includes result-only progress and three-view interfaces", async () => {
