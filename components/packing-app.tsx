@@ -318,6 +318,7 @@ export function PackingApp() {
   const inputRevisionRef = useRef(0);
   const requestSequenceRef = useRef(0);
   const strategyRef = useRef<PackingStrategy>(strategy);
+  const displayedPlanIdRef = useRef<string | null>(null);
   const packingProgressRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const result = useMemo(
@@ -350,24 +351,30 @@ export function PackingApp() {
     return true;
   }, [clearActiveCalculation]);
 
+  const presentPlan = useCallback((plan: PackingResult) => {
+    if (displayedPlanIdRef.current === plan.id) return;
+    displayedPlanIdRef.current = plan.id;
+    setVisibleProducts(new Set(plan.summaries.map((item) => item.productId)));
+    setPackingProgress(plan.placements.length);
+    setIsPlaying(false);
+    setCameraView("perspective");
+    setCameraProjection("perspective");
+  }, []);
+
   const acceptResult = useCallback((nextResult: PackingResult, successMessage: string) => {
     if (discardObsoleteCalculation()) {
       return;
     }
     const acceptedPlan = selectStrategyResult(nextResult, strategyRef.current) ?? nextResult;
     setResultBundle(nextResult);
-    setVisibleProducts(new Set(acceptedPlan.summaries.map((item) => item.productId)));
-    setPackingProgress(acceptedPlan.placements.length);
-    setIsPlaying(false);
-    setCameraView("perspective");
-    setCameraProjection("perspective");
+    presentPlan(acceptedPlan);
     setStatus(acceptedPlan.validation.valid ? "done" : "error");
     setDirty(false);
     clearActiveCalculation();
     setMessage(acceptedPlan.validation.valid
       ? successMessage
       : `方案未通过独立校验，已阻止打印与导出：${acceptedPlan.validation.errors[0] ?? "请检查异常明细"}`);
-  }, [clearActiveCalculation, discardObsoleteCalculation]);
+  }, [clearActiveCalculation, discardObsoleteCalculation, presentPlan]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -469,6 +476,7 @@ export function PackingApp() {
 
   const markDirty = useCallback(() => {
     inputRevisionRef.current += 1;
+    displayedPlanIdRef.current = null;
     setDirty(true);
     setIsPlaying(false);
     if (status === "working") {
@@ -492,11 +500,7 @@ export function PackingApp() {
       setMessage(status === "working" ? "算法视图已切换；新快照完成后会自动显示对应方案" : "正在等待当前参数的双算法快照");
       return;
     }
-    setVisibleProducts(new Set(cachedPlan.summaries.map((item) => item.productId)));
-    setPackingProgress(cachedPlan.placements.length);
-    setIsPlaying(false);
-    setCameraView("perspective");
-    setCameraProjection("perspective");
+    presentPlan(cachedPlan);
     setStatus(cachedPlan.validation.valid ? "done" : "error");
     setMessage(nextStrategy === "practical"
       ? `已切换现场易执行方案：${strategyDisplayLabel(cachedPlan)}`
@@ -938,7 +942,16 @@ export function PackingApp() {
         const practicalResult = workerResultsRef.current.practical;
         const maximumResult = workerResultsRef.current.maximum;
         if (!practicalResult || !maximumResult) {
-          setMessage(`${solverStrategy === "practical" ? "现场易执行" : "高密度参考"}方案已完成，另一套算法仍在独立计算…`);
+          if (discardObsoleteCalculation()) return;
+          const partialBundle: PackingResult = {
+            ...response.payload,
+            strategyPlans: { [solverStrategy]: response.payload },
+          };
+          setResultBundle(partialBundle);
+          setDirty(false);
+          if (strategyRef.current === solverStrategy) presentPlan(response.payload);
+          setStatus("working");
+          setMessage(`${solverStrategy === "practical" ? "现场易执行" : "高密度参考"}方案已完成并可查看；另一套算法仍在后台独立计算…`);
           return;
         }
         const combined = combineStrategyResults(practicalResult, maximumResult, strategyRef.current);
@@ -956,7 +969,7 @@ export function PackingApp() {
     }, CALCULATION_TIMEOUT_MS);
     startStrategyWorker("practical");
     startStrategyWorker("maximum");
-  }, [acceptResult, clearActiveCalculation, terminateActiveWorkers]);
+  }, [acceptResult, clearActiveCalculation, discardObsoleteCalculation, presentPlan, terminateActiveWorkers]);
 
   const calculate = useCallback(() => {
     const error = validateInputs();
@@ -1102,7 +1115,7 @@ export function PackingApp() {
   };
 
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  const canExport = Boolean(result?.validation.valid && !dirty && status !== "working");
+  const canExport = Boolean(result?.validation.valid && !dirty);
 
   return (
     <main className="app-shell">
@@ -1167,11 +1180,18 @@ export function PackingApp() {
               <div className="strategy-divider" />
               <div className="strategy-heading"><strong>独立求解算法</strong><span>{strategy === "practical" ? "工人可直接照做" : "高密度搜索参考"}</span></div>
               <div className="segmented strategy-segmented" role="group" aria-label="装柜执行策略">
-                <button aria-pressed={strategy === "practical"} className={strategy === "practical" ? "active" : ""} onClick={() => switchStrategy("practical")}><ShieldCheck size={16} /><span>现场易执行<small className="strategy-count">{status === "working" || dirty
+                <button aria-pressed={strategy === "practical"} className={strategy === "practical" ? "active" : ""} onClick={() => switchStrategy("practical")}><ShieldCheck size={16} /><span>现场易执行<small className="strategy-count">{dirty
                   ? "实时重算中"
-                  : practicalPredictionDisplay === null ? "待计算"
-                  : `${cachedPracticalPlan ? "" : "目标 "}${formatNumber(practicalPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</small></span></button>
-                <button aria-pressed={strategy === "maximum"} className={strategy === "maximum" ? "active" : ""} onClick={() => switchStrategy("maximum")}><Gauge size={16} /><span>高密度参考<small className="strategy-count">{status === "working" || dirty ? "实时重算中" : maximumPredictionDisplay === null ? "待计算" : `${formatNumber(maximumPredictionDisplay)} ${resultBundle?.strategyComparison?.displayUnit === "set" ? "套" : "箱"}`}</small></span></button>
+                  : cachedPracticalPlan
+                    ? `${formatNumber(practicalPredictionDisplay ?? 0)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`
+                    : status === "working"
+                      ? "计算中"
+                      : practicalPredictionDisplay === null ? "待计算" : `目标 ${formatNumber(practicalPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</small></span></button>
+                <button aria-pressed={strategy === "maximum"} className={strategy === "maximum" ? "active" : ""} onClick={() => switchStrategy("maximum")}><Gauge size={16} /><span>高密度参考<small className="strategy-count">{dirty
+                  ? "实时重算中"
+                  : cachedMaximumPlan
+                    ? `${formatNumber(maximumPredictionDisplay ?? 0)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`
+                    : status === "working" ? "计算中" : "待计算"}</small></span></button>
               </div>
               <p className="strategy-help">任一参数变化都会自动重算同一份双算法快照；切换后，数量、三视图、3D、进度、指标和导出同时采用对应坐标。</p>
               {strategy === "practical" ? (
@@ -1247,7 +1267,7 @@ export function PackingApp() {
                 </div>
                 <div className="recommended">
                   <span>{mode === "single" ? strategy === "practical" ? "现场方案预测" : "高密度参考预测" : "综合建议"}</span>
-                  <strong>{status === "working" || dirty ? "实时重算中" : selectedPredictionDisplay === null ? "待计算" : `${formatNumber(selectedPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</strong>
+                  <strong>{dirty ? "实时重算中" : selectedPredictionDisplay === null ? status === "working" ? "计算中" : "待计算" : `${formatNumber(selectedPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</strong>
                   <small>{selectedCachedPlan
                     ? `${reversePlan.displayUnit === "set" ? `共 ${formatNumber(selectedPlanCartons)} 箱 · ` : ""}已按当前${strategy === "practical" ? "现场" : "极限"}算法生成并独立校验`
                     : mode === "single" && strategy === "maximum"
@@ -1261,8 +1281,12 @@ export function PackingApp() {
               <button className="reverse-apply-button" onClick={applyReversePlan} disabled={status === "working" || reversePlan.recommendedTotal <= 0}><ShieldCheck size={17} />{mode === "single"
                 ? status === "working" ? "正在同步双算法方案…" : `重新计算当前双算法快照`
                 : "应用建议数量并验证真实装载"}</button>
-              <p className="reverse-note">{status === "working" || dirty
+              <p className="reverse-note">{dirty
                 ? "正在用最新输入重新验证真实坐标；完成前不会展示旧方案或未经验证的统一建议。"
+                : status === "working" && selectedCachedPlan
+                  ? "当前所选算法已完成并可查看、打印或导出；另一套算法继续在后台独立计算。"
+                  : status === "working"
+                    ? "当前所选算法仍在计算；若另一算法先完成，可切换查看其已校验坐标。"
                 : mode === "single"
                   ? `体积/载重先倒推上限，算法再验证真实可装量；当前统一建议 ${formatNumber(selectedFeasibleRecommendation.displayQuantity)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}。切换算法会同步切换整张坐标方案。`
                   : "倒推先保持当前 SKU 数量比例；箱型方向、门洞和碎片空间会影响最终实际利用率，应用后将用装箱算法重新验证。"}</p>
@@ -1346,7 +1370,7 @@ export function PackingApp() {
                 <div className="scene-empty">
                   <div className="scene-empty-cube" aria-hidden="true" />
                   <strong>{status === "working" || dirty ? "正在同步最新方案" : "等待计算方案"}</strong>
-                  <span>{status === "working" || dirty ? "双算法完成后，数量、三视图和 3D 将一次性切换到同一快照" : "填写左侧参数后，柜内真实摆放会显示在这里"}</span>
+                  <span>{status === "working" || dirty ? "所选算法完成后会立即显示；另一算法继续在后台计算" : "填写左侧参数后，柜内真实摆放会显示在这里"}</span>
                 </div>
               </div>
             )}

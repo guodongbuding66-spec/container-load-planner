@@ -75,7 +75,8 @@ test("auto-recalculates one dual-plan snapshot and hides stale visual data", asy
   assert.match(source, /calculateReverseCounts\([\s\S]*?strategy: "practical"/);
   assert.match(source, /\[activeProducts, clearance, container, mode, practicalTargetPercent, targetVolumePercent, targetWeightPercent\]/);
   assert.match(source, /const acceptedPlan = selectStrategyResult\(nextResult, strategyRef\.current\) \?\? nextResult/);
-  assert.match(source, /setPackingProgress\(acceptedPlan\.placements\.length\)/);
+  assert.match(source, /presentPlan\(acceptedPlan\)/);
+  assert.match(source, /displayedPlanIdRef\.current === plan\.id/);
   assert.match(source, /strategyRef\.current = nextStrategy/);
   assert.match(source, /strategy: "practical"/);
   assert.match(source, /自动重算同一份双算法快照/);
@@ -187,6 +188,11 @@ test("runs two independent solvers and exposes actionable strategy guidance", as
   assert.match(source, /CALCULATION_TIMEOUT_MS = 60_000/);
   assert.match(source, /startStrategyWorker\("practical"\)/);
   assert.match(source, /startStrategyWorker\("maximum"\)/);
+  assert.match(source, /const partialBundle: PackingResult/);
+  assert.match(source, /strategyPlans: \{ \[solverStrategy\]: response\.payload \}/);
+  assert.match(source, /方案已完成并可查看；另一套算法仍在后台独立计算/);
+  assert.match(source, /当前所选算法已完成并可查看、打印或导出/);
+  assert.doesNotMatch(source, /status !== "working"/);
   assert.match(source, /tippedCartonCount/);
   assert.match(engine, /const strategyPlans/);
   assert.match(engine, /practical: practicalPlan/);
@@ -229,7 +235,7 @@ test("uses sets as the primary visualization unit for a single multi-carton prod
   assert.match(source, /柜内 → 箱门/);
   assert.match(source, /已完成 \$\{formatNumber\(progressSummary\.completedSets\)\}\/\$\{formatNumber\(progressSummary\.totalSets\)\} 套/);
   assert.match(source, /当前箱归属套号 \$\{formatNumber\(progressSummary\.currentSetNumber\)\}/);
-  assert.match(source, /\$\{cachedPracticalPlan \? "" : "目标 "\}/);
+  assert.match(source, /cachedPracticalPlan[\s\S]{0,180}formatNumber\(practicalPredictionDisplay \?\? 0\)/);
   assert.match(source, /primaryCountLabel=\{progressSummary\?\.isSetMode/);
   assert.match(views, /<b>\{primaryCountLabel\}<\/b>/);
   assert.match(views, /secondaryCountLabel/);
