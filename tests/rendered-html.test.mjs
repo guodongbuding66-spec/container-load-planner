@@ -76,18 +76,39 @@ test("blocks stale or invalid exports and discards obsolete worker results", asy
   assert.match(source, /const canExport = Boolean\(result\?\.validation\.valid && !dirty/);
   assert.match(source, /disabled=\{!canExport\}/);
   assert.match(source, /discardObsoleteCalculation/);
-  assert.match(source, /旧结果或旧错误已安全丢弃/);
+  assert.match(source, /旧结果已安全丢弃/);
   assert.match(source, /selectedPlanOnly = \{ \.\.\.result, strategyPlans: undefined \}/);
   assert.match(calculationState, /activeRevision !== null && activeRevision !== inputRevision/);
 });
 
-test("keeps every prediction label on the selected cached coordinate plan", async () => {
+test("keeps every prediction label on the selected immutable coordinate plan", async () => {
   const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
 
   assert.match(source, /const selectedCachedPlan = strategy === "practical" \? cachedPracticalPlan : cachedMaximumPlan/);
-  assert.match(source, /selectedCachedPlan\?\.metrics\.loadedCount \?\? reversePlan\.recommendedTotal/);
+  assert.match(source, /const selectedPlanCartons = selectedCachedPlan\?\.metrics\.loadedCount \?\? selectedFeasibleRecommendation\.totalCartons/);
+  assert.match(source, /const selectedFeasibleRecommendation = feasibleRecommendation\(reversePlan, selectedCachedPlan\)/);
   assert.match(source, /selectedCachedPlan\.summaries\.map/);
   assert.match(source, /已按当前\$\{strategy === "practical" \? "现场" : "极限"\}算法生成并独立校验/);
+});
+
+test("auto-recalculates one dual-plan snapshot and hides stale visual data", async () => {
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+  const calculationState = await readFile(new URL("../lib/packing/calculation-state.ts", import.meta.url), "utf8");
+
+  assert.match(source, /AUTO_CALCULATE_DELAY_MS = 280/);
+  assert.match(source, /window\.setTimeout\(calculate, AUTO_CALCULATE_DELAY_MS\)/);
+  assert.match(source, /\(\) => dirty \? null : selectStrategyResult\(resultBundle, strategy\)/);
+  assert.match(source, /const acceptedPlan = selectStrategyResult\(nextResult, strategyRef\.current\) \?\? nextResult/);
+  assert.match(source, /setPackingProgress\(acceptedPlan\.placements\.length\)/);
+  assert.match(source, /strategyRef\.current = nextStrategy/);
+  assert.match(source, /strategy: "practical"/);
+  assert.match(source, /自动重算同一份双算法快照/);
+  assert.match(source, /当前统一输入快照/);
+  assert.match(source, /现场与极限方案统一对比/);
+  assert.doesNotMatch(source, /setResult\(\{ \.\.\.cachedPlan/);
+  assert.doesNotMatch(source, /点击“开始计算装柜方案”/);
+  assert.match(calculationState, /Math\.min\(reversePlan\.recommendedTotal, verifiedCartons\)/);
+  assert.match(calculationState, /Math\.floor\(rawCartons \/ Math\.max\(1, reversePlan\.cartonsPerSet\)\)/);
 });
 
 test("debounces draft persistence and recognizes a one-code multi-carton CSV as one product", async () => {
@@ -179,10 +200,11 @@ test("runs two independent solvers and exposes actionable strategy guidance", as
   assert.match(engine, /function maximumMultiplierBySlabDp/);
   assert.match(source, /className="strategy-comparison"/);
   assert.match(source, /现场算法 × 极限理论算法/);
-  assert.match(source, /计算一次会缓存两套完整坐标/);
+  assert.match(source, /任一参数变化都会自动重算同一份双算法快照/);
   assert.match(source, /switchStrategy\("practical"\)/);
   assert.match(source, /switchStrategy\("maximum"\)/);
-  assert.match(source, /result\?\.strategyPlans\?\./);
+  assert.match(source, /resultBundle\?\.strategyPlans\?\./);
+  assert.match(source, /selectStrategyResult\(resultBundle, strategy\)/);
   assert.match(source, /tippedCartonCount/);
   assert.match(engine, /const strategyPlans/);
   assert.match(engine, /practical: practicalPlan/);
@@ -198,7 +220,8 @@ test("separates utilization planning from the selected strategy capacity ceiling
 
   assert.match(source, /计划目标与装载上限/);
   assert.match(source, /计划量 ≠ 最大量/);
-  assert.match(source, /按目标生成 \$\{formatNumber\(reversePlan\.recommendedDisplay\)\}/);
+  assert.match(source, /统一建议量/);
+  assert.match(source, /feasibleRecommendation\(reversePlan, selectedCachedPlan\)/);
   assert.match(source, /singleCartonLimit: mode === "single" \? reversePlan\.recommendedTotal/);
   assert.match(source, /现场方案预测/);
   assert.match(source, /极限理论预测/);

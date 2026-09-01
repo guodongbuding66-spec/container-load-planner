@@ -32,7 +32,12 @@ import {
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CameraProjection, CameraView } from "../lib/packing/camera-fit";
-import { isObsoleteCalculation } from "../lib/packing/calculation-state";
+import {
+  feasibleRecommendation,
+  isObsoleteCalculation,
+  resultDisplayQuantity,
+  selectStrategyResult,
+} from "../lib/packing/calculation-state";
 import { buildPlacementCsv, MAX_CSV_BYTES, MAX_CSV_ROWS, parseProductsCsv } from "../lib/packing/csv";
 import {
   calculateReverseCounts,
@@ -79,6 +84,7 @@ const ContainerScene = dynamic(() => import("./container-scene").then((module) =
 
 const STORAGE_KEY = "cargo-fit-workspace-v1";
 const STORAGE_SAVE_DELAY_MS = 320;
+const AUTO_CALCULATE_DELAY_MS = 280;
 const COLORS = ["#2f7f89", "#c66a3d", "#d5a72f", "#6b72a9", "#609d62", "#a95e78", "#447ca8"];
 const VALID_COLOR = /^#[0-9a-f]{6}$/i;
 
@@ -280,7 +286,7 @@ export function PackingApp() {
   const [container, setContainer] = useState<ContainerSpec>({ ...CONTAINER_PRESETS[2] });
   const [clearance, setClearance] = useState(10);
   const [products, setProducts] = useState<ProductInput[]>(() => SAMPLE_PRODUCTS.map((item) => ({ ...item })));
-  const [result, setResult] = useState<PackingResult | null>(null);
+  const [resultBundle, setResultBundle] = useState<PackingResult | null>(null);
   const [status, setStatus] = useState<CalcStatus>("idle");
   const [message, setMessage] = useState("参数已就绪");
   const [dirty, setDirty] = useState(false);
@@ -301,9 +307,15 @@ export function PackingApp() {
   const activeRequestRef = useRef<string | null>(null);
   const activeRevisionRef = useRef<number | null>(null);
   const inputRevisionRef = useRef(0);
+  const requestSequenceRef = useRef(0);
+  const strategyRef = useRef<PackingStrategy>(strategy);
   const pendingPayloadRef = useRef<PackingRequest | null>(null);
   const packingProgressRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const result = useMemo(
+    () => dirty ? null : selectStrategyResult(resultBundle, strategy),
+    [dirty, resultBundle, strategy],
+  );
 
   const clearActiveCalculation = useCallback(() => {
     activeRequestRef.current = null;
@@ -316,7 +328,7 @@ export function PackingApp() {
     clearActiveCalculation();
     setIsPlaying(false);
     setStatus("idle");
-    setMessage("计算期间输入已变化，旧结果或旧错误已安全丢弃；请按当前参数重新计算");
+    setMessage("输入已变化，旧结果已安全丢弃；正在按最新参数实时重算");
     return true;
   }, [clearActiveCalculation]);
 
@@ -324,18 +336,19 @@ export function PackingApp() {
     if (discardObsoleteCalculation()) {
       return;
     }
-    setResult(nextResult);
-    setVisibleProducts(new Set(nextResult.summaries.map((item) => item.productId)));
-    setPackingProgress(nextResult.placements.length);
+    const acceptedPlan = selectStrategyResult(nextResult, strategyRef.current) ?? nextResult;
+    setResultBundle(nextResult);
+    setVisibleProducts(new Set(acceptedPlan.summaries.map((item) => item.productId)));
+    setPackingProgress(acceptedPlan.placements.length);
     setIsPlaying(false);
     setCameraView("perspective");
     setCameraProjection("perspective");
-    setStatus(nextResult.validation.valid ? "done" : "error");
+    setStatus(acceptedPlan.validation.valid ? "done" : "error");
     setDirty(false);
     clearActiveCalculation();
-    setMessage(nextResult.validation.valid
+    setMessage(acceptedPlan.validation.valid
       ? successMessage
-      : `方案未通过独立校验，已阻止打印与导出：${nextResult.validation.errors[0] ?? "请检查异常明细"}`);
+      : `方案未通过独立校验，已阻止打印与导出：${acceptedPlan.validation.errors[0] ?? "请检查异常明细"}`);
   }, [clearActiveCalculation, discardObsoleteCalculation]);
 
   const runFallback = useCallback(
@@ -452,6 +465,10 @@ export function PackingApp() {
   }, [packingProgress]);
 
   useEffect(() => {
+    strategyRef.current = strategy;
+  }, [strategy]);
+
+  useEffect(() => {
     if (!isPlaying || !result?.placements.length) return;
     const total = result.placements.length;
     const step = Math.max(1, Math.ceil(total / 120)) * playbackSpeed;
@@ -471,24 +488,23 @@ export function PackingApp() {
     inputRevisionRef.current += 1;
     setDirty(true);
     setIsPlaying(false);
-    if (status === "working") setMessage("输入已修改；当前旧参数计算完成后将自动丢弃");
-    else if (status === "done") setMessage("输入已修改，请重新计算；旧方案已禁止导出");
+    if (status === "working") setMessage("输入已修改；旧任务将被丢弃，正在等待最新参数重算");
+    else if (status === "done") setMessage("输入已修改；数量、三视图和 3D 正在实时同步");
     else if (status === "error") {
       setStatus("idle");
-      setMessage("输入已修改，请检查后重新计算");
-    }
+      setMessage("输入已修改；正在按最新有效参数重新计算");
+    } else setMessage("参数已更新；正在准备实时计算");
   }, [status]);
 
   const switchStrategy = (nextStrategy: PackingStrategy) => {
-    if (strategy === nextStrategy || status === "working") return;
+    if (strategy === nextStrategy) return;
+    strategyRef.current = nextStrategy;
     setStrategy(nextStrategy);
-    const cachedPlan = !dirty ? result?.strategyPlans?.[nextStrategy] : undefined;
-    if (!cachedPlan || !result?.strategyPlans) {
-      if (result) markDirty();
+    const cachedPlan = !dirty ? resultBundle?.strategyPlans?.[nextStrategy] : undefined;
+    if (!cachedPlan) {
+      setMessage(status === "working" ? "算法视图已切换；新快照完成后会自动显示对应方案" : "正在等待当前参数的双算法快照");
       return;
     }
-    const strategyPlans = result.strategyPlans;
-    setResult({ ...cachedPlan, strategyPlans });
     setVisibleProducts(new Set(cachedPlan.summaries.map((item) => item.productId)));
     setPackingProgress(cachedPlan.placements.length);
     setIsPlaying(false);
@@ -532,23 +548,18 @@ export function PackingApp() {
     [activeProducts, clearance, container, mode, practicalTargetPercent, strategy, targetVolumePercent, targetWeightPercent],
   );
   const resultDisplayUnit = result?.mode === "single" && result.setSummaries.length ? "set" : "carton";
-  const resultLoadedDisplay = result
-    ? resultDisplayUnit === "set" ? result.setSummaries[0]?.loadedSets ?? 0 : result.metrics.loadedCount
-    : 0;
+  const resultLoadedDisplay = resultDisplayQuantity(result);
   const resultPlanLimitDisplay = result?.singleCartonLimit !== undefined
     ? resultDisplayUnit === "set"
       ? Math.floor(result.singleCartonLimit / (result.setSummaries[0]?.cartonsPerSet ?? 1))
       : result.singleCartonLimit
     : null;
-  const resultPlanningDelta = result && result.mode === "single"
-    ? resultLoadedDisplay - reversePlan.recommendedDisplay
-    : 0;
   const progressSummary = useMemo(
     () => result ? summarizePackingProgress(result, packingProgress) : null,
     [packingProgress, result],
   );
-  const cachedPracticalPlan = !dirty ? result?.strategyPlans?.practical : undefined;
-  const cachedMaximumPlan = !dirty ? result?.strategyPlans?.maximum : undefined;
+  const cachedPracticalPlan = !dirty ? resultBundle?.strategyPlans?.practical : undefined;
+  const cachedMaximumPlan = !dirty ? resultBundle?.strategyPlans?.maximum : undefined;
   const practicalPredictionDisplay = cachedPracticalPlan
     ? cachedPracticalPlan.mode === "single" && cachedPracticalPlan.setSummaries.length
       ? cachedPracticalPlan.setSummaries[0].loadedSets
@@ -561,10 +572,23 @@ export function PackingApp() {
     : null;
   const selectedPredictionDisplay = strategy === "practical" ? practicalPredictionDisplay : maximumPredictionDisplay;
   const selectedCachedPlan = strategy === "practical" ? cachedPracticalPlan : cachedMaximumPlan;
-  const selectedPredictionCartons = selectedCachedPlan?.metrics.loadedCount ?? reversePlan.recommendedTotal;
-  const selectedPredictionQuantities = selectedCachedPlan
-    ? selectedCachedPlan.summaries.map((item) => ({ productId: item.productId, sku: item.sku, suggestedQuantity: item.loaded }))
-    : reversePlan.quantities;
+  const selectedFeasibleRecommendation = feasibleRecommendation(reversePlan, selectedCachedPlan);
+  const selectedPlanCartons = selectedCachedPlan?.metrics.loadedCount ?? selectedFeasibleRecommendation.totalCartons;
+  const theoreticalGainDisplay = practicalPredictionDisplay !== null && maximumPredictionDisplay !== null
+    ? Math.max(0, maximumPredictionDisplay - practicalPredictionDisplay)
+    : null;
+  const resultPlanningDelta = result && result.mode === "single"
+    ? resultLoadedDisplay - selectedFeasibleRecommendation.displayQuantity
+    : 0;
+  const selectedPredictionQuantities = mode === "single" && reversePlan.displayUnit === "set"
+    ? activeProducts.map((item) => ({
+        productId: item.id,
+        sku: item.sku,
+        suggestedQuantity: selectedFeasibleRecommendation.displayQuantity * normalizedUnitsPerSet(item),
+      }))
+    : selectedCachedPlan
+      ? selectedCachedPlan.summaries.map((item) => ({ productId: item.productId, sku: item.sku, suggestedQuantity: item.loaded }))
+      : reversePlan.quantities;
 
   const containerChoices = useMemo(() => [...CONTAINER_PRESETS, ...customContainers], [customContainers]);
   const hasKnownContainer = containerChoices.some((item) => item.id === container.id);
@@ -673,7 +697,7 @@ export function PackingApp() {
       );
       return mode === "single" ? components : [...existing, ...components];
     });
-    setResult(null);
+    setResultBundle(null);
     markDirty();
     setStatus("idle");
     setMessage(mode === "single"
@@ -729,7 +753,7 @@ export function PackingApp() {
     setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
     setClearance(10);
     setProducts(SAMPLE_PRODUCTS.map((item) => ({ ...item })));
-    setResult(null);
+    setResultBundle(null);
     setCameraView("perspective");
     setCameraProjection("perspective");
     markDirty();
@@ -746,7 +770,7 @@ export function PackingApp() {
     setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
     setClearance(10);
     setProducts(DIMENSION_TEST_PRODUCTS.map((item) => ({ ...item })));
-    setResult(null);
+    setResultBundle(null);
     setCameraView("perspective");
     setCameraProjection("perspective");
     markDirty();
@@ -763,7 +787,7 @@ export function PackingApp() {
     setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
     setClearance(10);
     setProducts(TWO_CARTON_SET_PRODUCTS.map((item) => ({ ...item })));
-    setResult(null);
+    setResultBundle(null);
     setCameraView("perspective");
     setCameraProjection("perspective");
     markDirty();
@@ -780,7 +804,7 @@ export function PackingApp() {
     setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
     setClearance(10);
     setProducts(MULTI_CARTON_SET_PRODUCTS.map((item) => ({ ...item })));
-    setResult(null);
+    setResultBundle(null);
     setCameraView("perspective");
     setCameraProjection("perspective");
     markDirty();
@@ -797,7 +821,7 @@ export function PackingApp() {
     setContainer({ ...CONTAINER_PRESETS[2] });
     setClearance(10);
     setProducts(REAL_WORLD_A64M_PRODUCTS.map((item) => ({ ...item })));
-    setResult(null);
+    setResultBundle(null);
     setCameraView("perspective");
     setCameraProjection("perspective");
     markDirty();
@@ -832,7 +856,7 @@ export function PackingApp() {
       unitsPerSet: 1,
       color: COLORS[index % COLORS.length],
     })));
-    setResult(null);
+    setResultBundle(null);
     setCameraView("perspective");
     setCameraProjection("perspective");
     markDirty();
@@ -840,7 +864,7 @@ export function PackingApp() {
     setMessage(`已载入 ${model}；40HQ 历史实装 ${record.loadingSets["40hq"]} 套，计算后将同时显示历史预测与无重叠三维方案。`);
   };
 
-  const validateInputs = () => {
+  const validateInputs = useCallback(() => {
     if (!activeProducts.length) return "请至少添加一个产品。";
     const containerError = validateContainerInput(container, clearance);
     if (containerError) return containerError;
@@ -859,10 +883,11 @@ export function PackingApp() {
         (mode === "mixed" && (!Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 1_000_000)),
     );
     return invalid ? `${invalid.sku || "未命名产品"} 的尺寸、重量或数量不完整。` : null;
-  };
+  }, [activeProducts, clearance, container, mode]);
 
-  const submitPacking = (payload: PackingRequest, workingMessage = "正在生成可行摆放并执行边界、重叠与载重校验…") => {
-    const requestId = `request-${Date.now()}`;
+  const submitPacking = useCallback((payload: PackingRequest, workingMessage = "正在生成可行摆放并执行边界、重叠与载重校验…") => {
+    requestSequenceRef.current += 1;
+    const requestId = `request-${inputRevisionRef.current}-${requestSequenceRef.current}`;
     activeRequestRef.current = requestId;
     activeRevisionRef.current = inputRevisionRef.current;
     pendingPayloadRef.current = payload;
@@ -873,9 +898,9 @@ export function PackingApp() {
     } else {
       runFallback(payload);
     }
-  };
+  }, [runFallback]);
 
-  const calculate = () => {
+  const calculate = useCallback(() => {
     const error = validateInputs();
     if (error) {
       setStatus("error");
@@ -889,18 +914,22 @@ export function PackingApp() {
     }
     submitPacking({
       mode,
-      strategy,
+      strategy: "practical",
       practicalTargetUtilization: practicalTargetPercent / 100,
       singleCartonLimit: mode === "single" ? reversePlan.recommendedTotal : undefined,
       container,
       clearance,
       products: activeProducts,
     }, mode === "single"
-      ? strategy === "practical"
-        ? `正在按 ${targetVolumePercent}% 体积 / ${targetWeightPercent}% 载重目标生成 ${reversePlan.recommendedDisplay.toLocaleString()} ${reversePlan.displayUnit === "set" ? "套" : "箱"}现场方案…`
-        : "正在运行不受计划预留限制的极限理论算法，并同时生成现场对照方案…"
-      : "正在生成可行摆放并执行边界、重叠与载重校验…");
-  };
+      ? `正在实时重算现场与极限方案；计划上限 ${reversePlan.recommendedDisplay.toLocaleString()} ${reversePlan.displayUnit === "set" ? "套" : "箱"}…`
+      : "正在实时重算双算法坐标，并执行边界、重叠与载重校验…");
+  }, [activeProducts, clearance, container, mode, practicalTargetPercent, reversePlan, submitPacking, validateInputs]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const timer = window.setTimeout(calculate, AUTO_CALCULATE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [calculate, hydrated]);
 
   const applyReversePlan = () => {
     if (reversePlan.recommendedTotal <= 0) {
@@ -909,25 +938,7 @@ export function PackingApp() {
       return;
     }
     if (mode === "single") {
-      const error = validateInputs();
-      if (error) {
-        setStatus("error");
-        setMessage(error);
-        return;
-      }
-      setStrategy("practical");
-      submitPacking(
-        {
-          mode: "single",
-          strategy: "practical",
-          practicalTargetUtilization: practicalTargetPercent / 100,
-          singleCartonLimit: reversePlan.recommendedTotal,
-          container,
-          clearance,
-          products: activeProducts,
-        },
-        `正在按 ${targetVolumePercent}% 体积 / ${targetWeightPercent}% 载重目标生成 ${reversePlan.recommendedDisplay.toLocaleString()} ${reversePlan.displayUnit === "set" ? "套" : "箱"}现场方案…`,
-      );
+      calculate();
       return;
     }
     const suggestedByProduct = new Map(reversePlan.quantities.map((item) => [item.productId, item.suggestedQuantity]));
@@ -938,10 +949,7 @@ export function PackingApp() {
     setProducts(nextProducts);
     setMode("mixed");
     markDirty();
-    submitPacking(
-      { mode: "mixed", strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: nextProducts },
-      `已按当前 SKU 比例倒推 ${reversePlan.recommendedTotal.toLocaleString()} 箱，正在验证真实摆放…`,
-    );
+    setMessage(`已应用 ${reversePlan.recommendedTotal.toLocaleString()} 箱建议数量，正在实时验证双算法摆放…`);
   };
 
   const togglePackingPlayback = () => {
@@ -1006,7 +1014,7 @@ export function PackingApp() {
       const importedMode = inferImportedPackingMode(parsed);
       setProducts(parsed);
       setMode(importedMode);
-      setResult(null);
+      setResultBundle(null);
       markDirty();
       setStatus("idle");
       setMessage(importedMode === "single"
@@ -1098,15 +1106,16 @@ export function PackingApp() {
               <div className="strategy-divider" />
               <div className="strategy-heading"><strong>独立求解算法</strong><span>{strategy === "practical" ? "工人可直接照做" : "高密度搜索参考"}</span></div>
               <div className="segmented strategy-segmented" role="group" aria-label="装柜执行策略">
-                <button aria-pressed={strategy === "practical"} className={strategy === "practical" ? "active" : ""} disabled={status === "working"} onClick={() => switchStrategy("practical")}><ShieldCheck size={16} /><span>现场易执行<small className="strategy-count">{practicalPredictionDisplay === null
-                  ? "待计算"
+                <button aria-pressed={strategy === "practical"} className={strategy === "practical" ? "active" : ""} onClick={() => switchStrategy("practical")}><ShieldCheck size={16} /><span>现场易执行<small className="strategy-count">{status === "working" || dirty
+                  ? "实时重算中"
+                  : practicalPredictionDisplay === null ? "待计算"
                   : `${cachedPracticalPlan ? "" : "目标 "}${formatNumber(practicalPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</small></span></button>
-                <button aria-pressed={strategy === "maximum"} className={strategy === "maximum" ? "active" : ""} disabled={status === "working"} onClick={() => switchStrategy("maximum")}><Gauge size={16} /><span>极限理论<small className="strategy-count">{maximumPredictionDisplay === null ? "待计算" : `${formatNumber(maximumPredictionDisplay)} ${result?.strategyComparison?.displayUnit === "set" ? "套" : "箱"}`}</small></span></button>
+                <button aria-pressed={strategy === "maximum"} className={strategy === "maximum" ? "active" : ""} onClick={() => switchStrategy("maximum")}><Gauge size={16} /><span>极限理论<small className="strategy-count">{status === "working" || dirty ? "实时重算中" : maximumPredictionDisplay === null ? "待计算" : `${formatNumber(maximumPredictionDisplay)} ${resultBundle?.strategyComparison?.displayUnit === "set" ? "套" : "箱"}`}</small></span></button>
               </div>
-              <p className="strategy-help">计算一次会缓存两套完整坐标；之后点击按钮会立即同步切换预测数量、三视图、3D、指标、导出与指导书。现场方案服从计划目标，极限方案不保留软目标余量。</p>
+              <p className="strategy-help">任一参数变化都会自动重算同一份双算法快照；切换后，数量、三视图、3D、进度、指标和导出同时采用对应坐标。</p>
               {strategy === "practical" ? (
                 <div className="practical-target">
-                  <div><strong>现场经验装载率</strong><span>整层模块 · 固定方向 · 完整支撑</span></div>
+                  <div><strong>现场经验装载率</strong><span>仅影响现场算法 · 完整支撑</span></div>
                   <div className="target-input"><input aria-label="现场经验装载率滑块" type="range" min="50" max="95" step="0.5" value={practicalTargetPercent} onChange={(event) => { setPracticalTargetPercent(clampNumber(event.target.value, DEFAULT_PRACTICAL_TARGET * 100, 50, 95)); markDirty(); }} /><input aria-label="现场经验装载率" type="number" min="50" max="95" step="0.5" value={practicalTargetPercent} onChange={(event) => { setPracticalTargetPercent(clampNumber(event.target.value, DEFAULT_PRACTICAL_TARGET * 100, 50, 95)); markDirty(); }} /><b>%</b></div>
                 </div>
               ) : <p className="strategy-warning">独立运行三维分区动态规划和多起点自由空间搜索；允许侧翻与 68% 以上局部承托，仅用于发现潜在增量，不能直接替代现场指导书。</p>}
@@ -1177,11 +1186,11 @@ export function PackingApp() {
                 </div>
                 <div className="recommended">
                   <span>{mode === "single" ? strategy === "practical" ? "现场方案预测" : "极限理论预测" : "综合建议"}</span>
-                  <strong>{selectedPredictionDisplay === null ? "待计算" : `${formatNumber(selectedPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</strong>
+                  <strong>{status === "working" || dirty ? "实时重算中" : selectedPredictionDisplay === null ? "待计算" : `${formatNumber(selectedPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</strong>
                   <small>{selectedCachedPlan
-                    ? `${reversePlan.displayUnit === "set" ? `共 ${formatNumber(selectedPredictionCartons)} 箱 · ` : ""}已按当前${strategy === "practical" ? "现场" : "极限"}算法生成并独立校验`
+                    ? `${reversePlan.displayUnit === "set" ? `共 ${formatNumber(selectedPlanCartons)} 箱 · ` : ""}已按当前${strategy === "practical" ? "现场" : "极限"}算法生成并独立校验`
                     : mode === "single" && strategy === "maximum"
-                    ? selectedPredictionDisplay === null ? "运行一次后显示独立极限结果" : `共 ${formatNumber(selectedPredictionCartons)} 箱 · 不受 ${targetVolumePercent}% / ${targetWeightPercent}% 计划预留限制`
+                    ? selectedPredictionDisplay === null ? "等待独立极限结果" : `共 ${formatNumber(selectedPlanCartons)} 箱 · 不受 ${targetVolumePercent}% / ${targetWeightPercent}% 计划预留限制`
                     : `${reversePlan.displayUnit === "set" ? `共 ${formatNumber(reversePlan.recommendedTotal)} 箱 · ` : ""}${reversePlan.limitingFactor === "volume" ? "受体积目标限制" : reversePlan.limitingFactor === "weight" ? "受载重目标限制" : "两个目标同时达到"}`}</small>
                 </div>
               </div>
@@ -1189,35 +1198,13 @@ export function PackingApp() {
                 {selectedPredictionQuantities.map((item) => <span key={item.productId}><b>{item.sku}</b>{formatNumber(item.suggestedQuantity)} 箱</span>)}
               </div>
               <button className="reverse-apply-button" onClick={applyReversePlan} disabled={status === "working" || reversePlan.recommendedTotal <= 0}><ShieldCheck size={17} />{mode === "single"
-                ? strategy === "maximum"
-                  ? `切回现场并生成 ${formatNumber(reversePlan.recommendedDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}方案`
-                  : `按目标生成 ${formatNumber(reversePlan.recommendedDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}现场方案`
+                ? status === "working" ? "正在同步双算法方案…" : `重新计算当前双算法快照`
                 : "应用建议数量并验证真实装载"}</button>
-              <p className="reverse-note">{mode === "single"
-                ? "现场易执行显示目标约束后的工人方案；极限理论显示不留软余量的独立搜索上限。切换算法会同步切换整张方案。"
-                : "倒推先保持当前 SKU 数量比例；箱型方向、门洞和碎片空间会影响最终实际利用率，应用后将用装箱算法重新验证。"}</p>
-            </article>
-
-            <article className="panel order-overview">
-              <div className="panel-head compact"><div><span className="section-kicker">04</span><h2>输入概览</h2></div></div>
-              <div className="overview-grid">
-                <div><span>{isSingleProductSet ? "包装箱型" : "SKU"}</span><strong>{activeProducts.length}</strong></div>
-                <div><span>{mode === "single" ? "测算方式" : "需求件数"}</span><strong>{mode === "single" ? "计划量 / 可装上限" : formatNumber(activeProducts.reduce((sum, item) => sum + item.quantity, 0))}</strong></div>
-                <div><span>{mode === "single" ? isSingleProductSet ? "每套 CBM" : "单件 CBM" : "需求 CBM"}</span><strong>{inputVolume.toFixed(2)}</strong></div>
-                <div><span>{mode === "single" ? isSingleProductSet ? "每套毛重" : "单件毛重" : "需求毛重"}</span><strong>{formatNumber(inputWeight, 1)} kg</strong></div>
-              </div>
-              <div className="calculation-actions">
-                <button className="calculate-button" onClick={calculate} disabled={status === "working" || (mode === "single" && reversePlan.recommendedTotal <= 0)}>
-                  {status === "working" ? <LoaderCircle className="spin" size={19} /> : strategy === "maximum" ? <Gauge size={19} /> : <ShieldCheck size={19} />}
-                  {status === "working"
-                    ? "正在计算…"
-                    : mode === "single"
-                      ? strategy === "practical"
-                        ? `按目标生成 ${formatNumber(reversePlan.recommendedDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}现场方案`
-                        : "计算极限理论上限"
-                      : "开始计算装柜方案"}
-                </button>
-              </div>
+              <p className="reverse-note">{status === "working" || dirty
+                ? "正在用最新输入重新验证真实坐标；完成前不会展示旧方案或未经验证的统一建议。"
+                : mode === "single"
+                  ? `体积/载重先倒推上限，算法再验证真实可装量；当前统一建议 ${formatNumber(selectedFeasibleRecommendation.displayQuantity)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}。切换算法会同步切换整张坐标方案。`
+                  : "倒推先保持当前 SKU 数量比例；箱型方向、门洞和碎片空间会影响最终实际利用率，应用后将用装箱算法重新验证。"}</p>
             </article>
           </div>
 
@@ -1225,10 +1212,16 @@ export function PackingApp() {
             <div className="viewer-head">
               <div><span className="section-kicker">2D + LIVE 3D</span><h2>装柜方案联动复核</h2></div>
               <div className="viewer-status-group">
-                {result?.mode === "single" && !dirty ? <div className={`plan-context-chip ${result.strategy === "maximum" ? "capacity" : "planned"}`}><b>{result.strategy === "maximum" ? "极限理论方案" : "现场计划方案"}</b><span>{formatNumber(resultLoadedDisplay)} {resultDisplayUnit === "set" ? "套" : "箱"} · 现场计划 {formatNumber(reversePlan.recommendedDisplay)} {reversePlan.displayUnit === "set" ? "套" : "箱"}{resultPlanningDelta ? ` · ${resultPlanningDelta > 0 ? "+" : "−"}${formatNumber(Math.abs(resultPlanningDelta))}` : " · 一致"}</span></div> : null}
-                <div className="validation-chip">{result?.validation.valid && !dirty ? <CheckCircle2 size={16} /> : <ShieldCheck size={16} />}{result ? dirty ? "结果已过期" : result.validation.valid ? "布局校验通过" : "发现异常" : "等待计算"}</div>
+                {result?.mode === "single" ? <div className={`plan-context-chip ${result.strategy === "maximum" ? "capacity" : "planned"}`}><b>{result.strategy === "maximum" ? "极限理论方案" : "现场计划方案"}</b><span>{formatNumber(resultLoadedDisplay)} {resultDisplayUnit === "set" ? "套" : "箱"} · 统一建议 {formatNumber(selectedFeasibleRecommendation.displayQuantity)} {reversePlan.displayUnit === "set" ? "套" : "箱"}{resultPlanningDelta ? ` · ${resultPlanningDelta > 0 ? "+" : "−"}${formatNumber(Math.abs(resultPlanningDelta))}` : " · 一致"}</span></div> : null}
+                <div className="validation-chip">{result?.validation.valid ? <CheckCircle2 size={16} /> : status === "working" || dirty ? <LoaderCircle className="spin" size={16} /> : <ShieldCheck size={16} />}{result ? result.validation.valid ? "布局校验通过" : "发现异常" : status === "working" || dirty ? "实时重算中" : "等待计算"}</div>
               </div>
             </div>
+            <section className="viewer-input-strip" aria-label="当前统一输入快照">
+              <article><span>{isSingleProductSet ? "包装箱型" : "SKU 数量"}</span><strong>{activeProducts.length}</strong><small>{mode === "single" ? "单品完整套装" : "按订单比例拼柜"}</small></article>
+              <article><span>{mode === "single" ? isSingleProductSet ? "每套 CBM" : "单件 CBM" : "需求 CBM"}</span><strong>{inputVolume.toFixed(2)}</strong><small>由外箱尺寸自动计算</small></article>
+              <article><span>{mode === "single" ? isSingleProductSet ? "每套毛重" : "单件毛重" : "需求毛重"}</span><strong>{formatNumber(inputWeight, 1)} kg</strong><small>柜型上限 {formatNumber(container.maxWeight)} kg</small></article>
+              <article><span>当前约束</span><strong>{clearance} mm</strong><small>安全间隙 · 目标 {targetVolumePercent}% / {targetWeightPercent}%</small></article>
+            </section>
             {result ? (
               <>
                 <div className="packing-timeline">
@@ -1290,21 +1283,29 @@ export function PackingApp() {
               <div className="scene-shell" role="region" aria-label="可交互三维装柜视图">
                 <div className="scene-empty">
                   <div className="scene-empty-cube" aria-hidden="true" />
-                  <strong>等待计算方案</strong>
-                  <span>填写左侧参数后，柜内真实摆放会显示在这里</span>
+                  <strong>{status === "working" || dirty ? "正在同步最新方案" : "等待计算方案"}</strong>
+                  <span>{status === "working" || dirty ? "双算法完成后，数量、三视图和 3D 将一次性切换到同一快照" : "填写左侧参数后，柜内真实摆放会显示在这里"}</span>
                 </div>
               </div>
             )}
             {result ? (
-              <div className="legend-row">
-                {result.summaries.map((item) => (
-                  <button key={item.productId} className={visibleProducts.has(item.productId) ? "" : "muted"} onClick={() => toggleProductVisibility(item.productId)}>
-                    <i style={{ background: item.color }} />
-                    <span>{item.sku}</span>
-                    <b>{formatNumber(item.loaded)} 箱</b>
-                  </button>
-                ))}
-              </div>
+              <>
+                <div className="legend-row">
+                  {result.summaries.map((item) => (
+                    <button key={item.productId} className={visibleProducts.has(item.productId) ? "" : "muted"} onClick={() => toggleProductVisibility(item.productId)}>
+                      <i style={{ background: item.color }} />
+                      <span>{item.sku}</span>
+                      <b>{formatNumber(item.loaded)} 箱</b>
+                    </button>
+                  ))}
+                </div>
+                <section className="viewer-decision-grid" aria-label="现场与极限方案统一对比">
+                  <article className="current"><span>当前可视方案</span><strong>{formatNumber(resultLoadedDisplay)} {resultDisplayUnit === "set" ? "套" : "箱"}</strong><small>{formatNumber(result.metrics.loadedCount)} 箱 · 体积 {formatPercent(result.metrics.volumeUtilization)}</small></article>
+                  <article><span>现场易执行</span><strong>{practicalPredictionDisplay === null ? "—" : `${formatNumber(practicalPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</strong><small>经验率 {practicalTargetPercent.toFixed(1)}% · 完整承托</small></article>
+                  <article className="maximum"><span>极限理论</span><strong>{maximumPredictionDisplay === null ? "—" : `${formatNumber(maximumPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</strong><small>独立搜索 · 不保留计划余量</small></article>
+                  <article className="delta"><span>理论增量</span><strong>{theoreticalGainDisplay === null ? "—" : `+${formatNumber(theoreticalGainDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</strong><small>{theoreticalGainDisplay ? "用于反向优化现场分区" : "当前两套算法数量一致，继续比较复杂度"}</small></article>
+                </section>
+              </>
             ) : null}
           </section>
         </section>
@@ -1444,7 +1445,7 @@ export function PackingApp() {
                     : `${resultPlanningDelta > 0 ? "超过计划" : "低于计划"} ${formatNumber(Math.abs(resultPlanningDelta))} ${resultDisplayUnit === "set" ? "套" : "箱"}`}</b>
                 </div>
                 <div className="planning-comparison-grid">
-                  <article><span>稳健计划量</span><strong>{formatNumber(reversePlan.recommendedDisplay)} {reversePlan.displayUnit === "set" ? "套" : "箱"}</strong><small>{reversePlan.limitingFactor === "volume" ? `受 ${targetVolumePercent}% 体积目标限制` : reversePlan.limitingFactor === "weight" ? `受 ${targetWeightPercent}% 载重目标限制` : "两个目标同时限制"}</small></article>
+                  <article><span>统一建议量</span><strong>{formatNumber(selectedFeasibleRecommendation.displayQuantity)} {reversePlan.displayUnit === "set" ? "套" : "箱"}</strong><small>{selectedFeasibleRecommendation.displayQuantity < reversePlan.recommendedDisplay ? `倒推 ${formatNumber(reversePlan.recommendedDisplay)}，受当前算法真实坐标上限限制` : reversePlan.limitingFactor === "volume" ? `受 ${targetVolumePercent}% 体积目标限制` : reversePlan.limitingFactor === "weight" ? `受 ${targetWeightPercent}% 载重目标限制` : "两个目标同时限制"}</small></article>
                   <article className={resultPlanLimitDisplay === null ? "selected" : ""}><span>当前坐标方案</span><strong>{formatNumber(resultLoadedDisplay)} {resultDisplayUnit === "set" ? "套" : "箱"}</strong><small>实际体积 {formatPercent(result.metrics.volumeUtilization)} · 实际载重 {formatPercent(result.metrics.weightUtilization)}</small></article>
                   <article className="explanation"><span>口径说明</span><strong>{resultPlanLimitDisplay !== null ? "按计划封顶" : "按策略求上限"}</strong><small>{resultPlanLimitDisplay !== null ? "当前方案主动保留安全余量，不代表柜内只能装这么多。" : "当前结果可以高于计划量，但绝不允许超过柜型最大载重。"}</small></article>
                 </div>
@@ -1584,7 +1585,7 @@ export function PackingApp() {
             </article>
           </section>
         ) : (
-          <section className="empty-result"><PackageOpen size={30} /><div><strong>还没有计算结果</strong><span>点击“开始计算装柜方案”，系统会生成真实三维坐标并执行独立校验。</span></div></section>
+          <section className="empty-result"><PackageOpen size={30} /><div><strong>{status === "working" || dirty ? "正在生成最新方案" : "等待有效输入"}</strong><span>{status === "working" || dirty ? "系统会自动生成双算法坐标并执行独立校验，无需重复点击计算。" : "填写有效参数后会自动开始测算。"}</span></div></section>
         )}
 
         <footer className="app-footer"><span>外贸装柜智算 · Desktop-first local calculation</span><span>尺寸与柜型预设仅供测算，正式出货请复核实际数据</span></footer>
