@@ -286,6 +286,12 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
 .set-builder-card-actions .status-warning { color: #aa7e22; }
 .set-builder-card-actions button.danger { border-color: transparent; color: #a55451; background: transparent; }
 .set-builder-empty { margin-top: 10px; border: 1px dashed #cbdadd; border-radius: 8px; padding: 10px; color: #778b90; background: rgba(255,255,255,.62); font-size: 8px; text-align: center; }
+.set-builder-overflow { grid-column: 1 / -1; border: 1px dashed rgba(71, 128, 138, .28); border-radius: 9px; padding: 9px 11px; color: #627f86; background: rgba(239, 248, 249, .78); font-size: 8px; line-height: 1.5; text-align: center; }
+.product-pagination { min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 9px; border: 1px solid rgba(104, 143, 151, .18); border-radius: 11px; padding: 6px 8px 6px 12px; color: #617b82; background: rgba(246, 251, 252, .78); font-size: 9px; }
+.product-pagination div { display: flex; align-items: center; gap: 5px; }
+.product-pagination button { min-width: 52px; height: 28px; border: 1px solid rgba(84, 132, 141, .2); border-radius: 8px; padding: 0 8px; color: #3f6870; background: rgba(255, 255, 255, .86); font-size: 8px; font-weight: 800; transition: transform 120ms var(--ease-out), border-color 120ms ease, background-color 120ms ease; }
+.product-pagination button:not(:disabled):active { transform: scale(.97); }
+.product-pagination button:disabled { cursor: not-allowed; opacity: .42; }
 
 .result-section { margin-top: 20px; }
 .result-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 0 2px 12px; }
@@ -906,6 +912,8 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
   .product-panel, .summary-panel, .warning-panel, .coordinate-panel { padding: 13px; }
   .panel-head { flex-direction: column; }
   .panel-actions { justify-content: flex-start; }
+  .product-pagination { align-items: flex-start; flex-direction: column; }
+  .product-pagination div { width: 100%; overflow-x: auto; }
   .app-footer { flex-direction: column; gap: 6px; }
   .target-control { grid-template-columns: 1fr; gap: 7px; }
   .reverse-count-grid { grid-template-columns: 1fr; }

@@ -13,6 +13,7 @@ type Props = {
   visibleCount: number;
   primaryCountLabel: string;
   secondaryCountLabel?: string;
+  renderPrintSvg?: boolean;
   activeView: CameraView;
   onViewSelect: (view: ViewKind) => void;
 };
@@ -141,11 +142,13 @@ function ProjectionCanvas({
   boxes,
   horizontalSize,
   verticalSize,
+  renderPrintSvg,
 }: {
   kind: ViewKind;
   boxes: PlacedBox[];
   horizontalSize: number;
   verticalSize: number;
+  renderPrintSvg: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -254,7 +257,9 @@ function ProjectionCanvas({
   return (
     <>
       <canvas ref={canvasRef} className="projection-canvas" role="img" aria-label={`${VIEW_COPY[kind].title}，当前显示 ${boxes.length} 箱`} />
-      <ProjectionPrintSvg kind={kind} boxes={boxes} horizontalSize={horizontalSize} verticalSize={verticalSize} />
+      {renderPrintSvg
+        ? <ProjectionPrintSvg kind={kind} boxes={boxes} horizontalSize={horizontalSize} verticalSize={verticalSize} />
+        : null}
     </>
   );
 }
@@ -279,6 +284,7 @@ export function OrthographicViews({
   visibleCount,
   primaryCountLabel,
   secondaryCountLabel,
+  renderPrintSvg = false,
   activeView,
   onViewSelect,
 }: Props) {
@@ -319,7 +325,13 @@ export function OrthographicViews({
                 <span>{activeView === view.kind ? <Check size={11} /> : <Rotate3D size={11} />}{activeView === view.kind ? "3D 已同步" : "联动 3D"}</span>
               </div>
             </header>
-            <ProjectionCanvas kind={view.kind} boxes={boxes} horizontalSize={view.horizontalSize} verticalSize={view.verticalSize} />
+            <ProjectionCanvas
+              kind={view.kind}
+              boxes={boxes}
+              horizontalSize={view.horizontalSize}
+              verticalSize={view.verticalSize}
+              renderPrintSvg={renderPrintSvg}
+            />
             <footer>
               <span>横向占用 {Math.round(occupied.horizontal).toLocaleString()} mm</span>
               <span>纵向占用 {Math.round(occupied.vertical).toLocaleString()} mm</span>

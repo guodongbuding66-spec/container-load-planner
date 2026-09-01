@@ -188,7 +188,7 @@ export type ValidationReport = {
 };
 
 export type QuoteEstimate = {
-  source: "historical-exact" | "calibrated-volume";
+  source: "historical-exact" | "historical-near" | "calibrated-volume";
   confidence: "verified" | "estimated";
   matchedModels: string[];
   predictedSets: number;
@@ -241,11 +241,12 @@ export type PackingResult = {
 };
 
 export type WorkerRequest = {
-  type: "pack";
+  type: "pack-strategy";
   requestId: string;
+  strategy: PackingStrategy;
   payload: PackingRequest;
 };
 
 export type WorkerResponse =
-  | { type: "result"; requestId: string; payload: PackingResult }
-  | { type: "error"; requestId: string; message: string };
+  | { type: "result"; requestId: string; strategy: PackingStrategy; payload: PackingResult }
+  | { type: "error"; requestId: string; strategy: PackingStrategy; message: string };

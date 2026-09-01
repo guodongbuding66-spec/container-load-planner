@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateReverseCounts, pack, packWithComparison, recommendedPracticalTarget, validatePacking } from "./engine";
+import { calculateReverseCounts, combineStrategyResults, pack, packWithComparison, recommendedPracticalTarget, validatePacking } from "./engine";
 import {
   CONTAINER_PRESETS,
   DIMENSION_TEST_PRODUCTS,
@@ -740,11 +740,21 @@ describe("packing engine", () => {
       metrics: { loadedCount: 1056 },
     });
     expect(planned.strategyPlans?.maximum?.singleCartonLimit).toBeUndefined();
+    expect(planned.strategyPlans?.practical?.metrics.solveTimeMs).toBeLessThan(1_000);
     expect(planned.strategyPlans?.practical?.id).not.toBe(planned.strategyPlans?.maximum?.id);
     expect(planned.strategyPlans?.practical?.setSummaries[0].loadedSets).toBe(476);
     expect(planned.strategyPlans?.maximum?.setSummaries[0].loadedSets).toBe(528);
     expect(planned.strategyPlans?.practical?.validation.valid).toBe(true);
     expect(planned.strategyPlans?.maximum?.validation.valid).toBe(true);
+    expect(planned.strategyPlans?.practical?.warnings.join(" ")).toContain("已跳过不会增加数量");
+    const recombinedMaximum = combineStrategyResults(
+      planned.strategyPlans!.practical!,
+      planned.strategyPlans!.maximum!,
+      "maximum",
+    );
+    expect(recombinedMaximum.strategy).toBe("maximum");
+    expect(recombinedMaximum.setSummaries[0].loadedSets).toBe(528);
+    expect(recombinedMaximum.strategyPlans?.practical?.setSummaries[0].loadedSets).toBe(476);
     const maximumPlan = planned.strategyPlans!.maximum!;
     const firstThird = maximumPlan.placements.slice(0, Math.ceil(maximumPlan.placements.length * 0.32));
     const firstThirdLongitudinalEnd = Math.max(...firstThird.map((box) => box.x + box.dx));

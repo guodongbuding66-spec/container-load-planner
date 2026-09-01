@@ -110,6 +110,17 @@ describe("dual-track quote estimator", () => {
     expect(estimate.matchedModels).toEqual([]);
   });
 
+  it("labels tolerance-based carton fingerprints as a non-zero-error historical reference", () => {
+    const source = HISTORICAL_LOADING_RECORDS.find((item) => item.models.includes("实装记录·双箱 180/127"))!;
+    const input = request(productsForRecord(source, { lengthOffset: 3 }), 1);
+    const estimate = estimateQuoteLoading(input, effectiveVolume(input), 0)!;
+
+    expect(estimate.source).toBe("historical-near");
+    expect(estimate.confidence).toBe("estimated");
+    expect(estimate.expectedErrorPct).toBeGreaterThan(0);
+    expect(estimate.matchedModels).toContain("实装记录·双箱 180/127");
+  });
+
   it("does not apply a single-product quotation model to mixed orders", () => {
     const input = { ...request(productsForRecord(HISTORICAL_LOADING_RECORDS[0]), 2), mode: "mixed" as const };
     expect(estimateQuoteLoading(input, effectiveVolume(input), 0)).toBeUndefined();

@@ -126,15 +126,27 @@ function percentile(values: number[], ratio: number) {
   return sorted[Math.max(0, Math.min(sorted.length - 1, Math.ceil(sorted.length * ratio) - 1))];
 }
 
+function median(values: number[]) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
 /**
- * Honest generalized error evidence. Exact carton fingerprints are recalled
- * separately at 0%; these figures describe the fallback median-CBM model.
+ * Honest generalized error evidence. Every row is predicted from the other
+ * eligible rows only, so the figures are leave-one-record-out rather than an
+ * in-sample replay of the data used to derive the median-CBM baseline.
  */
 export const CALIBRATION_BACKTEST_STATS = (() => {
-  const errors = calibrationRecords().flatMap((record) => {
+  const records = calibrationRecords();
+  const errors = records.flatMap((record, heldOutIndex) => {
     const setCbm = historicalSetRoundedCbm(record);
     return STANDARD_CONTAINER_IDS.map((containerId) => {
-      const predicted = Math.round(CALIBRATED_CARGO_VOLUME_CBM[containerId] / setCbm);
+      const peerCargoVolumes = records
+        .filter((_, index) => index !== heldOutIndex)
+        .map((peer) => peer.loadingSets[containerId] * historicalSetRoundedCbm(peer));
+      const predicted = Math.round(median(peerCargoVolumes) / setCbm);
       const actual = record.loadingSets[containerId];
       return actual > 0 ? (Math.abs(predicted - actual) / actual) * 100 : 0;
     });
@@ -162,7 +174,12 @@ function cartonSortKey(item: Pick<ProductInput, "length" | "width" | "height" | 
   return `${dimensions.map((value) => value.toFixed(3).padStart(12, "0")).join(":")}:${item.weight.toFixed(3).padStart(10, "0")}`;
 }
 
-function samePackaging(products: ProductInput[], record: HistoricalLoadingRecord) {
+function packagingMatches(
+  products: ProductInput[],
+  record: HistoricalLoadingRecord,
+  dimensionToleranceMm: number,
+  weightTolerance: (historicalWeight: number) => number,
+) {
   const supplied = expandedProducts(products).sort((a, b) => cartonSortKey(a).localeCompare(cartonSortKey(b)));
   const historical = [...record.cartons].sort((a, b) => cartonSortKey(a).localeCompare(cartonSortKey(b)));
   if (supplied.length !== historical.length) return false;
@@ -170,11 +187,18 @@ function samePackaging(products: ProductInput[], record: HistoricalLoadingRecord
     const actualDimensions = normalizedDimensions(product);
     const historicalDimensions = normalizedDimensions(historical[index]);
     const dimensionsMatch = actualDimensions.every(
-      (dimension, dimensionIndex) => Math.abs(dimension - historicalDimensions[dimensionIndex]) <= 5,
+      (dimension, dimensionIndex) => Math.abs(dimension - historicalDimensions[dimensionIndex]) <= dimensionToleranceMm,
     );
-    const weightTolerance = Math.max(1, historical[index].weight * 0.03);
-    return dimensionsMatch && Math.abs(product.weight - historical[index].weight) <= weightTolerance;
+    return dimensionsMatch && Math.abs(product.weight - historical[index].weight) <= weightTolerance(historical[index].weight);
   });
+}
+
+function exactPackaging(products: ProductInput[], record: HistoricalLoadingRecord) {
+  return packagingMatches(products, record, 0.01, () => 0.01);
+}
+
+function nearPackaging(products: ProductInput[], record: HistoricalLoadingRecord) {
+  return packagingMatches(products, record, 5, (weight) => Math.max(1, weight * 0.03));
 }
 
 function setVolumes(products: ProductInput[]) {
@@ -200,7 +224,11 @@ export function estimateQuoteLoading(
   if (volumes.rounded <= 0 || volumes.physical <= 0) return undefined;
 
   const standardContainerId = request.container.id.toLowerCase();
-  const matchingRecords = HISTORICAL_LOADING_RECORDS.filter((record) => samePackaging(request.products, record));
+  const exactRecords = HISTORICAL_LOADING_RECORDS.filter((record) => exactPackaging(request.products, record));
+  const nearRecords = exactRecords.length
+    ? []
+    : HISTORICAL_LOADING_RECORDS.filter((record) => nearPackaging(request.products, record));
+  const matchingRecords = exactRecords.length ? exactRecords : nearRecords;
   const historicalLoading = matchingRecords
     .map((record) => record.loadingSets[standardContainerId as keyof HistoricalLoadingRecord["loadingSets"]])
     .filter((value): value is number => Number.isFinite(value));
@@ -213,9 +241,9 @@ export function estimateQuoteLoading(
   let expectedErrorPct: number;
   if (historicalLoading.length) {
     predictedSets = Math.round(historicalLoading.reduce((sum, value) => sum + value, 0) / historicalLoading.length);
-    source = "historical-exact";
-    confidence = "verified";
-    expectedErrorPct = 0;
+    source = exactRecords.length ? "historical-exact" : "historical-near";
+    confidence = exactRecords.length ? "verified" : "estimated";
+    expectedErrorPct = exactRecords.length ? 0 : CALIBRATION_BACKTEST_STATS.p90ErrorPct;
   } else {
     const volumeEstimate = Math.max(0, Math.round(calibratedCargoVolumeCbm / volumes.rounded));
     const weightEstimate = volumes.weight > 0

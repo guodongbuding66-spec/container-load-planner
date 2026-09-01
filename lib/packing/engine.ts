@@ -21,7 +21,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.12.2";
+export const ENGINE_VERSION = "0.13.0";
 
 type Orientation = {
   dx: number;
@@ -395,10 +395,11 @@ function supportDetails(
   products: Map<string, ProductInput>,
 ) {
   if (candidate.z <= EPS) return { ratio: 1, layer: 1 };
-  const supporters = (topLevels.get(supportLevelKey(candidate.z)) ?? []).filter((box) => products.get(box.productId)?.stackable !== false);
+  const supporters = topLevels.get(supportLevelKey(candidate.z)) ?? [];
   let supportedArea = 0;
   let layer = 1;
   for (const box of supporters) {
+    if (products.get(box.productId)?.stackable === false) continue;
     const ix = Math.max(0, Math.min(candidate.x + candidate.dx, box.x + box.dx) - Math.max(candidate.x, box.x));
     const iy = Math.max(0, Math.min(candidate.y + candidate.dy, box.y + box.dy) - Math.max(candidate.y, box.y));
     const overlap = ix * iy;
@@ -408,6 +409,12 @@ function supportDetails(
     }
   }
   return { ratio: Math.min(1, supportedArea / (candidate.dx * candidate.dy)), layer };
+}
+
+function appendMapArray<Key, Value>(map: Map<Key, Value[]>, key: Key, value: Value) {
+  const existing = map.get(key);
+  if (existing) existing.push(value);
+  else map.set(key, [value]);
 }
 
 function preferredPracticalOrientation(product: ProductInput, container: EffectiveContainer) {
@@ -979,6 +986,14 @@ function packSingleSet(
   if (packingStrategy(request) === "maximum") {
     const theoreticalSets = maximumMultiplierBySlabDp(products, container, requestedSets, "maximum");
     const theoreticalCandidate = buildSlabZonedPlan(request, container, products, theoreticalSets, "maximum");
+    if (theoreticalCandidate && theoreticalSets === requestedSets) {
+      return {
+        placements: theoreticalCandidate,
+        warnings: [
+          `纵向分区动态规划已达到体积、载重与可视化共同限定的严格上限 ${requestedSets.toLocaleString()} 个完整套；已跳过不会增加数量的其余极限候选。`,
+        ],
+      };
+    }
     let practicalSeed: PlacedBox[] | null = null;
     let practicalSeedSets = 0;
     for (let candidate = requestedSets; candidate >= Math.max(1, requestedSets - 500); candidate -= 1) {
@@ -1016,7 +1031,7 @@ function packSingleSet(
       placements: selected.placements,
       warnings: [
         ...freeSpace.warnings,
-        `极限理论算法独立比较纵向分区动态规划、多起点自由空间搜索，并以现场合法解作为搜索下界；采用“${selected.method}”的 ${selected.sets.toLocaleString()} 个完整套。`,
+        `高密度参考算法独立比较纵向分区动态规划、多起点自由空间搜索，并以现场合法解作为搜索下界；采用“${selected.method}”的 ${selected.sets.toLocaleString()} 个完整套。该结果不是全局最优证明。`,
       ],
     };
   }
@@ -1037,6 +1052,15 @@ function packSingleSet(
         break;
       }
     }
+  }
+  if (layeredCandidate && layeredCandidateSets === requestedSets) {
+    const warnings = [
+      `${practicalCandidateMethod}方案已达到当前计划上限 ${requestedSets.toLocaleString()} 个完整套；已跳过不会增加数量的理论引导与自由空间候选。`,
+    ];
+    if (requestedSets === visibleBound) {
+      warnings.push(`可视化已达到 ${MAX_VISIBLE_PLACEMENTS.toLocaleString()} 箱上限；实际最大套数可能更高。`);
+    }
+    return { placements: layeredCandidate, warnings };
   }
   const guidedSets = maximumMultiplierBySlabDp(products, container, requestedSets, "practical");
   const guidedCandidate = buildSlabZonedPlan(request, container, products, guidedSets, "practical");
@@ -1270,7 +1294,7 @@ function packSingle(request: PackingRequest, container: EffectiveContainer, fiel
   } else if (selected.guided && selected.placements.length > pureOrientationPlacements.length) {
     warnings.push("已吸收极限分区搜索中可安全执行的部分：只采用同高度水平转向、完整承托和连续纵向分区。");
   } else if (strategy === "maximum") {
-    warnings.push("极限理论算法已独立比较单方向三维网格与多方向纵向分区动态规划，不受现场经验装载率限制。");
+    warnings.push("高密度参考算法已独立比较单方向三维网格与多方向纵向分区动态规划，不受现场经验装载率限制；该启发式结果不是全局最优证明。");
   }
   return {
     placements: selected.placements,
@@ -1346,7 +1370,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
       spatial.add(box, index);
       const top = box.z + box.dz;
       const topKey = supportLevelKey(top);
-      topLevels.set(topKey, [...(topLevels.get(topKey) ?? []), box]);
+      appendMapArray(topLevels, topKey, box);
     });
   };
 
@@ -1406,7 +1430,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
     placementIndex += 1;
     const top = placed.z + placed.dz;
     const topKey = supportLevelKey(top);
-    topLevels.set(topKey, [...(topLevels.get(topKey) ?? []), placed]);
+    appendMapArray(topLevels, topKey, placed);
 
     const additions: Point[] = [
       { x: placed.x + placed.dx, y: placed.y, z: placed.z },
@@ -1625,7 +1649,7 @@ export function validatePacking(
     spatial.add(box, index);
     const top = box.z + box.dz;
     const topKey = supportLevelKey(top);
-    topLevels.set(topKey, [...(topLevels.get(topKey) ?? []), box]);
+    appendMapArray(topLevels, topKey, box);
     totalWeight += product?.weight ?? box.weight;
     if (errors.length >= 20) break;
   }
@@ -1689,7 +1713,7 @@ export function validatePacking(
       for (const box of setPlacements) {
         if (box.setCode !== code || !Number.isInteger(box.setNumber) || !Number.isInteger(box.setItemNumber)) continue;
         const setNumber = box.setNumber as number;
-        bySetNumber.set(setNumber, [...(bySetNumber.get(setNumber) ?? []), box]);
+        appendMapArray(bySetNumber, setNumber, box);
       }
       const expectedSetCount = Number.isInteger(first) ? Math.max(0, first) : 0;
       const actualNumbers = [...bySetNumber.keys()].sort((a, b) => a - b);
@@ -1791,7 +1815,7 @@ function calculateExecutionComplexity(
     }
     const top = box.z + box.dz;
     const topKey = supportLevelKey(top);
-    topLevels.set(topKey, [...(topLevels.get(topKey) ?? []), box]);
+    appendMapArray(topLevels, topKey, box);
   }
 
   return {
@@ -2022,8 +2046,8 @@ function buildStrategyComparison(practical: PackingResult, maximum: PackingResul
   guidance.push(practical.mode === "single"
     ? {
         level: "adopted",
-        title: "已用理论搜索反向指导现场方案",
-        detail: "现场求解器会复用极限分区动态规划，但只吸收保持原包装高度、最多两种水平朝向、99.5% 以上承托且能形成连续作业区的摆法。",
+      title: "已用高密度搜索反向指导现场方案",
+      detail: "现场求解器会复用高密度分区动态规划，但只吸收保持原包装高度、最多两种水平朝向、99.5% 以上承托且能形成连续作业区的摆法。",
       }
     : {
         level: "adopted",
@@ -2040,7 +2064,7 @@ function buildStrategyComparison(practical: PackingResult, maximum: PackingResul
   } else {
     guidance.push({
       level: "review",
-      title: `理论方案多装 ${gainQuantity.toLocaleString()} ${displayUnit === "set" ? "套" : "箱"}`,
+      title: `高密度方案多装 ${gainQuantity.toLocaleString()} ${displayUnit === "set" ? "套" : "箱"}`,
       detail: `潜在增益 ${(gainRatio * 100).toFixed(1)}%；请结合下面的复杂度来源决定哪些分区值得现场试装。`,
     });
     if (maximumSnapshot.executionComplexity.tippedCartonCount > 0) {
@@ -2079,7 +2103,7 @@ function buildStrategyComparison(practical: PackingResult, maximum: PackingResul
           ? "计划量之外保留为安全余量"
           : historicalBaselineActive ? "可解除旧基准后进行现场试装" : "可作为下一轮现场试装目标",
         detail: practical.singleCartonLimit !== undefined
-          ? "当前差距首先来自主动设置的体积/载重计划上限，不是算法自相矛盾；需要冲量时切换“极限理论”，页面会立即改用已缓存的极限数量、三视图、坐标与导出方案。"
+          ? "当前差距首先来自主动设置的体积/载重计划上限，不是算法自相矛盾；需要冲量时切换“高密度参考”，页面会立即改用已缓存的高密度数量、三视图、坐标与导出方案。"
           : historicalBaselineActive
           ? `当前按历史实装 ${practical.quoteEstimate!.predictedSets.toLocaleString()} ${displayUnit === "set" ? "套" : "箱"}封顶；将现场经验装载率从 ${(defaultTarget * 100).toFixed(1)}% 主动调高到 ${(defaultTarget * 100 + 1).toFixed(1)}% 或以上后，系统会解除旧基准硬封顶，并继续只输出不侧翻、完整承托的现场候选。`
           : "剩余差距没有侧翻、局部承托或多方向风险；建议每次提高 1–2 个百分点试装，并在确认门口操作空间后记录新的实装数量。",
@@ -2104,16 +2128,12 @@ function buildStrategyComparison(practical: PackingResult, maximum: PackingResul
  * input. The theoretical solver treats the practical result as a valid lower
  * bound, so a heuristic search can never report a worse "maximum" result.
  */
-export function packWithComparison(request: PackingRequest): PackingResult {
-  const practical = pack({ ...request, strategy: "practical" });
-  let maximumCapacity = pack({
-    ...request,
-    strategy: "maximum",
-    // A single-product planning target limits the field instruction only. The
-    // theoretical branch remains uncapped so the comparison preserves the
-    // actual capacity ceiling instead of repeating the same planning number.
-    singleCartonLimit: request.mode === "single" ? undefined : request.singleCartonLimit,
-  });
+export function combineStrategyResults(
+  practical: PackingResult,
+  maximum: PackingResult,
+  selectedStrategy: PackingStrategy = "practical",
+): PackingResult {
+  let maximumCapacity = maximum;
   if (strategyDisplayQuantity(maximumCapacity) < strategyDisplayQuantity(practical)) {
     const attemptedMaximum = maximumCapacity;
     maximumCapacity = {
@@ -2133,7 +2153,7 @@ export function packWithComparison(request: PackingRequest): PackingResult {
           !warning.startsWith("本次按利用率目标生成计划方案") &&
           !warning.startsWith("现场模式已按相同包装的历史实装记录封顶"),
         ),
-        "极限搜索未超过现场合法解，已将现场方案作为理论搜索下界；不会把较差的启发式结果伪装成理论上限。",
+        "高密度搜索未超过现场合法解，已将现场方案作为搜索下界；不会把较差的启发式结果伪装成理论上限。",
       ],
     };
   }
@@ -2144,6 +2164,19 @@ export function packWithComparison(request: PackingRequest): PackingResult {
     practical: practicalPlan,
     maximum: maximumPlan,
   };
-  const selected = packingStrategy(request) === "practical" ? practicalPlan : maximumPlan;
+  const selected = selectedStrategy === "practical" ? practicalPlan : maximumPlan;
   return { ...selected, strategyPlans };
+}
+
+export function packWithComparison(request: PackingRequest): PackingResult {
+  const practical = pack({ ...request, strategy: "practical" });
+  const maximumCapacity = pack({
+    ...request,
+    strategy: "maximum",
+    // A single-product planning target limits the field instruction only. The
+    // theoretical branch remains uncapped so the comparison preserves the
+    // actual capacity ceiling instead of repeating the same planning number.
+    singleCartonLimit: request.mode === "single" ? undefined : request.singleCartonLimit,
+  });
+  return combineStrategyResults(practical, maximumCapacity, packingStrategy(request));
 }

@@ -175,7 +175,7 @@ test("offers a worker-executable strategy and a unit-safe real loading benchmark
 
   assert.match(source, /aria-label="装柜执行策略"/);
   assert.match(source, /现场易执行/);
-  assert.match(source, /极限理论/);
+  assert.match(source, /高密度参考/);
   assert.match(source, /载入真实 A64M/);
   assert.match(source, /报价轨按已确认的 396 套/);
   assert.match(source, /报价经验预测/);
@@ -197,16 +197,22 @@ test("runs two independent solvers and exposes actionable strategy guidance", as
   const worker = await readFile(new URL("../lib/packing/packing.worker.ts", import.meta.url), "utf8");
   const views = await readFile(new URL("../components/orthographic-views.tsx", import.meta.url), "utf8");
 
-  assert.match(worker, /packWithComparison/);
+  assert.match(worker, /pack\(\{/);
+  assert.match(worker, /type !== "pack-strategy"/);
   assert.match(engine, /export function packWithComparison/);
+  assert.match(engine, /export function combineStrategyResults/);
   assert.match(engine, /function maximumMultiplierBySlabDp/);
   assert.match(source, /className="strategy-comparison"/);
-  assert.match(source, /现场算法 × 极限理论算法/);
+  assert.match(source, /现场算法 × 高密度参考算法/);
   assert.match(source, /任一参数变化都会自动重算同一份双算法快照/);
   assert.match(source, /switchStrategy\("practical"\)/);
   assert.match(source, /switchStrategy\("maximum"\)/);
   assert.match(source, /resultBundle\?\.strategyPlans\?\./);
   assert.match(source, /selectStrategyResult\(resultBundle, strategy\)/);
+  assert.match(source, /terminateActiveWorkers\(\)/);
+  assert.match(source, /CALCULATION_TIMEOUT_MS = 60_000/);
+  assert.match(source, /startStrategyWorker\("practical"\)/);
+  assert.match(source, /startStrategyWorker\("maximum"\)/);
   assert.match(source, /tippedCartonCount/);
   assert.match(engine, /const strategyPlans/);
   assert.match(engine, /practical: practicalPlan/);
@@ -228,10 +234,10 @@ test("separates utilization planning from the selected strategy capacity ceiling
   assert.match(source, /算术上限 \$\{formatNumber\(resultPlanLimitDisplay\)\}/);
   assert.match(source, /singleCartonLimit: mode === "single" \? reversePlan\.recommendedTotal/);
   assert.match(source, /现场方案预测/);
-  assert.match(source, /极限理论预测/);
+  assert.match(source, /高密度参考预测/);
   assert.match(source, /className="planning-comparison"/);
   assert.match(source, /className=\{`plan-context-chip/);
-  assert.match(source, /极限理论方案/);
+  assert.match(source, /高密度参考方案/);
   assert.match(source, /实际体积 \{formatPercent\(result\.metrics\.volumeUtilization\)\} · 实际载重/);
   assert.match(source, /setTargetWeightPercent[\s\S]{0,180}markDirty\(\)/);
   assert.match(types, /singleCartonLimit\?: number/);
