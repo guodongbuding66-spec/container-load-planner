@@ -224,6 +224,8 @@ test("separates utilization planning from the selected strategy capacity ceiling
   assert.match(source, /计划量 ≠ 最大量/);
   assert.match(source, /统一建议量/);
   assert.match(source, /feasibleRecommendation\(reversePlan, selectedCachedPlan\)/);
+  assert.match(source, /现场计划方案 · \$\{formatNumber\(resultLoadedDisplay\)\}/);
+  assert.match(source, /算术上限 \$\{formatNumber\(resultPlanLimitDisplay\)\}/);
   assert.match(source, /singleCartonLimit: mode === "single" \? reversePlan\.recommendedTotal/);
   assert.match(source, /现场方案预测/);
   assert.match(source, /极限理论预测/);

@@ -750,6 +750,20 @@ describe("packing engine", () => {
     const firstThirdLongitudinalEnd = Math.max(...firstThird.map((box) => box.x + box.dx));
     const fullLongitudinalEnd = Math.max(...maximumPlan.placements.map((box) => box.x + box.dx));
     expect(firstThirdLongitudinalEnd).toBeLessThan(fullLongitudinalEnd * 0.6);
+
+    const fullTarget = calculateReverseCounts(baseRequest, 1, 1);
+    const fullTargetPlan = packWithComparison({
+      ...baseRequest,
+      singleCartonLimit: fullTarget.recommendedTotal,
+    });
+    expect(fullTarget.recommendedDisplay).toBe(529);
+    expect(fullTargetPlan.setSummaries[0].loadedSets).toBe(528);
+    expect(fullTargetPlan.warnings.join(" ")).toContain("算术上限为 529 套");
+    expect(fullTargetPlan.warnings.join(" ")).toContain("独立校验可执行 528 套");
+    expect(fullTargetPlan.strategyComparison?.guidance).toContainEqual(expect.objectContaining({
+      title: "算术计划已收敛到可执行坐标",
+      detail: expect.stringContaining("页面统一采用后者"),
+    }));
   }, 45_000);
 
   it("separates the confirmed A64M quotation quantity from the physical 3D plan", () => {

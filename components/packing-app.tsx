@@ -1414,7 +1414,7 @@ export function PackingApp() {
         {result ? (
           <section className="result-section">
             <div className="result-title"><div><span className="section-kicker">CALCULATED PLAN</span><h2>方案结果</h2></div><span className="run-meta">{resultPlanLimitDisplay !== null
-              ? `目标计划方案 · ${formatNumber(resultPlanLimitDisplay)} ${resultDisplayUnit === "set" ? "套" : "箱"}上限`
+              ? `现场计划方案 · ${formatNumber(resultLoadedDisplay)} ${resultDisplayUnit === "set" ? "套" : "箱"}可执行${resultPlanLimitDisplay !== resultLoadedDisplay ? ` · 算术上限 ${formatNumber(resultPlanLimitDisplay)} ${resultDisplayUnit === "set" ? "套" : "箱"}` : ""}`
               : result.strategy === "practical" ? `现场可执行上限 · 经验率 ${(result.practicalTargetUtilization * 100).toFixed(1)}%` : "极限理论上限"} · 算法 {result.engineVersion} · {formatNumber(result.metrics.solveTimeMs, 1)} ms</span></div>
             <div className="metrics-grid">
               <MetricCard

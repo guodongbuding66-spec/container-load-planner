@@ -21,7 +21,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.12.1";
+export const ENGINE_VERSION = "0.12.2";
 
 type Orientation = {
   dx: number;
@@ -1887,8 +1887,11 @@ export function pack(request: PackingRequest): PackingResult {
     const plannedQuantity = setSummaries.length
       ? Math.floor(normalized.singleCartonLimit / setSummaries[0].cartonsPerSet)
       : normalized.singleCartonLimit;
+    const executableQuantity = setSummaries.length ? setSummaries[0].loadedSets : loadedCount;
     warnings.unshift(
-      `本次按利用率目标生成计划方案，主动封顶为 ${plannedQuantity.toLocaleString()} ${setSummaries.length ? "套" : "箱"}；这不是当前柜型的物理最大值。`,
+      executableQuantity < plannedQuantity
+        ? `体积/载重算术上限为 ${plannedQuantity.toLocaleString()} ${setSummaries.length ? "套" : "箱"}，当前坐标独立校验可执行 ${executableQuantity.toLocaleString()} ${setSummaries.length ? "套" : "箱"}；统一建议采用可执行值。`
+        : `本次按利用率目标生成现场计划，并以 ${plannedQuantity.toLocaleString()} ${setSummaries.length ? "套" : "箱"}为上限；这不是当前柜型的物理最大值。`,
     );
   }
   if (fieldPracticalSetLimit !== undefined && physicalLoadedSets >= fieldPracticalSetLimit) {
@@ -2007,10 +2010,13 @@ function buildStrategyComparison(practical: PackingResult, maximum: PackingResul
     const plannedQuantity = displayUnit === "set" && practical.setSummaries.length
       ? Math.floor(practical.singleCartonLimit / practical.setSummaries[0].cartonsPerSet)
       : practical.singleCartonLimit;
+    const executableQuantity = practicalSnapshot.displayQuantity;
     guidance.push({
       level: "adopted",
-      title: "现场方案已按利用率计划量封顶",
-      detail: `本次主动限制为 ${plannedQuantity.toLocaleString()} ${displayUnit === "set" ? "套" : "箱"}；极限算法仍独立计算未受计划目标限制的容量上限，两个数字用途不同。`,
+      title: executableQuantity < plannedQuantity ? "算术计划已收敛到可执行坐标" : "现场方案已按利用率计划量封顶",
+      detail: executableQuantity < plannedQuantity
+        ? `体积/载重倒推为 ${plannedQuantity.toLocaleString()} ${displayUnit === "set" ? "套" : "箱"}，现场算法独立校验可执行 ${executableQuantity.toLocaleString()} ${displayUnit === "set" ? "套" : "箱"}；页面统一采用后者，极限算法仍独立计算。`
+        : `本次计划与坐标均为 ${executableQuantity.toLocaleString()} ${displayUnit === "set" ? "套" : "箱"}；极限算法仍独立计算未受计划目标限制的容量上限。`,
     });
   }
   guidance.push(practical.mode === "single"
