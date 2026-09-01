@@ -60,6 +60,44 @@ describe("packing engine", () => {
     expect(result.metrics.grossWeight).toBe(2000);
   });
 
+  it("reorders the theoretical plan from the container nose toward the doors without violating support order", () => {
+    const sequenceContainer: ContainerSpec = {
+      id: "sequence-container",
+      name: "顺序测试柜",
+      length: 300,
+      width: 100,
+      height: 200,
+      doorWidth: 100,
+      doorHeight: 200,
+      maxWeight: 1000,
+    };
+    const result = pack(request({
+      mode: "single",
+      strategy: "maximum",
+      container: sequenceContainer,
+      products: [product({
+        id: "sequence-box",
+        sku: "SEQUENCE-BOX",
+        length: 100,
+        width: 100,
+        height: 100,
+        weight: 1,
+        rotationPolicy: "fixed",
+      })],
+    }));
+
+    expect(result.placements.map((box) => [box.x, box.z])).toEqual([
+      [0, 0],
+      [0, 100],
+      [100, 0],
+      [100, 100],
+      [200, 0],
+      [200, 100],
+    ]);
+    expect(result.validation.valid).toBe(true);
+    expect(result.warnings.join(" ")).toContain("柜内到箱门");
+  });
+
   it("rejects a carton when no allowed orientation fits through the door", () => {
     const tall = product({
       id: "too-large",
@@ -707,6 +745,11 @@ describe("packing engine", () => {
     expect(planned.strategyPlans?.maximum?.setSummaries[0].loadedSets).toBe(528);
     expect(planned.strategyPlans?.practical?.validation.valid).toBe(true);
     expect(planned.strategyPlans?.maximum?.validation.valid).toBe(true);
+    const maximumPlan = planned.strategyPlans!.maximum!;
+    const firstThird = maximumPlan.placements.slice(0, Math.ceil(maximumPlan.placements.length * 0.32));
+    const firstThirdLongitudinalEnd = Math.max(...firstThird.map((box) => box.x + box.dx));
+    const fullLongitudinalEnd = Math.max(...maximumPlan.placements.map((box) => box.x + box.dx));
+    expect(firstThirdLongitudinalEnd).toBeLessThan(fullLongitudinalEnd * 0.6);
   }, 45_000);
 
   it("separates the confirmed A64M quotation quantity from the physical 3D plan", () => {

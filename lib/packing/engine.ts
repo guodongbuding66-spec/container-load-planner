@@ -21,7 +21,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.11.4";
+export const ENGINE_VERSION = "0.11.5";
 
 type Orientation = {
   dx: number;
@@ -619,7 +619,7 @@ function buildSlabZonedPlan(
   }
 
   if (products.some((product) => setCode(product))) assignSetTrace(placements, products);
-  const ordered = orderForPracticalLoading(placements);
+  const ordered = orderForLoading(placements);
   return validatePacking(ordered, request.container, request.clearance, products, strategy, request.mode).valid ? ordered : null;
 }
 
@@ -646,7 +646,7 @@ function overlapArea2d(a: PlacedBox, b: PlacedBox) {
  * available only after every supporting carton directly below it has been
  * loaded; among available boxes, the nose-most one is chosen first.
  */
-function orderForPracticalLoading(placements: PlacedBox[]) {
+function orderForLoading(placements: PlacedBox[]) {
   const dependents = placements.map(() => [] as number[]);
   const remainingDependencies = placements.map(() => 0);
   const supportingLevels = new Map<number, number[]>();
@@ -829,7 +829,7 @@ function buildPracticalZonedSet(
   const expectedCartons = products.reduce((sum, product) => sum + targetSets * unitsPerSet(product), 0);
   if (placements.length !== expectedCartons) return null;
   assignSetTrace(placements, products);
-  const ordered = orderForPracticalLoading(placements);
+  const ordered = orderForLoading(placements);
   return validatePacking(ordered, request.container, request.clearance, products, "practical", request.mode).valid ? ordered : null;
 }
 
@@ -934,7 +934,7 @@ function buildPracticalLayeredSet(
   const expectedCartons = products.reduce((sum, product) => sum + targetSets * unitsPerSet(product), 0);
   if (placements.length !== expectedCartons) return null;
   assignSetTrace(placements, products);
-  const ordered = orderForPracticalLoading(placements);
+  const ordered = orderForLoading(placements);
   return validatePacking(ordered, request.container, request.clearance, products, "practical", request.mode).valid ? ordered : null;
 }
 
@@ -1155,7 +1155,7 @@ function buildPracticalSingleSideStrip(
       ));
     }
   }
-  const ordered = orderForPracticalLoading(placements);
+  const ordered = orderForLoading(placements);
   return validatePacking(ordered, request.container, request.clearance, [product], "practical", request.mode).valid ? ordered : null;
 }
 
@@ -1253,7 +1253,7 @@ function packSingle(request: PackingRequest, container: EffectiveContainer, fiel
   if (best.count > MAX_VISIBLE_PLACEMENTS) {
     warnings.push(`理论规则排布为 ${best.count.toLocaleString()} 件；当前可视化最多生成 ${MAX_VISIBLE_PLACEMENTS.toLocaleString()} 个箱体。`);
   }
-  const pureOrientationPlacements = strategy === "practical" ? orderForPracticalLoading(placements) : placements;
+  const pureOrientationPlacements = strategy === "practical" ? orderForLoading(placements) : placements;
   const candidates = [
     { placements: pureOrientationPlacements, method: strategy === "practical" ? "单方向整齐网格" : "单方向三维网格", guided: false },
     workerSimpleMixedOrientation
@@ -1855,8 +1855,13 @@ export function pack(request: PackingRequest): PackingResult {
   const output = normalized.mode === "single"
     ? packSingle(normalized, effective, fieldPracticalSetLimit)
     : packMixed(normalized, effective);
+  // Solvers may discover the final geometry layer-by-layer. Playback, exports
+  // and field instructions must instead follow a physically executable route:
+  // finish the container nose first, load every direct support before the box
+  // above it, and then advance toward the doors.
+  const orderedPlacements = orderForLoading(output.placements);
   const validation = validatePacking(
-    output.placements,
+    orderedPlacements,
     normalized.container,
     normalized.clearance,
     normalized.products,
@@ -1865,14 +1870,14 @@ export function pack(request: PackingRequest): PackingResult {
   );
   const theoreticalCount =
     "theoreticalCount" in output && typeof output.theoreticalCount === "number" ? output.theoreticalCount : undefined;
-  const summaries = buildSummaries(normalized, output.placements, theoreticalCount);
+  const summaries = buildSummaries(normalized, orderedPlacements, theoreticalCount);
   const setSummaries = buildSetSummaries(normalized, summaries);
   const loadedVolume = summaries.reduce((sum, item) => sum + item.loadedVolume, 0);
   const grossWeight = summaries.reduce((sum, item) => sum + item.loadedWeight, 0);
   const requestedCount = summaries.reduce((sum, item) => sum + item.requested, 0);
   const loadedCount = summaries.reduce((sum, item) => sum + item.loaded, 0);
-  const centerOfGravity = calculateCenterOfGravity(output.placements, effective);
-  const executionComplexity = calculateExecutionComplexity(output.placements, normalized.products);
+  const centerOfGravity = calculateCenterOfGravity(orderedPlacements, effective);
+  const executionComplexity = calculateExecutionComplexity(orderedPlacements, normalized.products);
   const physicalLoadedSets = normalized.mode === "single"
     ? setSummaries[0]?.loadedSets ?? loadedCount
     : 0;
@@ -1923,6 +1928,7 @@ export function pack(request: PackingRequest): PackingResult {
       `现场易执行策略：每个 SKU 最多使用两种同高度平面方向、不侧翻补缝，底面至少 ${(PRACTICAL_SUPPORT_RATIO * 100).toFixed(1)}% 受托，按柜头到柜门的分区顺序码放，并将经验装载率控制在 ${(normalized.practicalTargetUtilization! * 100).toFixed(1)}% 以内。`,
     );
   }
+  warnings.unshift("执行顺序已按柜内到箱门重排：同一纵深区域先下后上，任何上层箱均晚于其直接承托箱装入。");
   if (quoteEstimate) {
     warnings.push(...quoteEstimate.dataQualityWarnings.map((warning) => `历史数据质量提示：${warning}`));
     if (quoteEstimate.source === "calibrated-volume") {
@@ -1950,7 +1956,7 @@ export function pack(request: PackingRequest): PackingResult {
     engineVersion: ENGINE_VERSION,
     container: normalized.container,
     clearance: normalized.clearance,
-    placements: output.placements,
+    placements: orderedPlacements,
     summaries,
     setSummaries,
     quoteEstimate,

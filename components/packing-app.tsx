@@ -1234,8 +1234,8 @@ export function PackingApp() {
                 <div className="packing-timeline">
                   <button className="timeline-play" onClick={togglePackingPlayback} disabled={!result.placements.length} aria-label={isPlaying ? "暂停码垛动画" : "播放码垛动画"}>{isPlaying ? <Pause size={15} /> : <Play size={15} />}</button>
                   <div className="timeline-count">{progressSummary?.isSetMode
-                    ? <><strong>整套 {formatNumber(progressSummary.completedSets)} / {formatNumber(progressSummary.totalSets)} 套</strong><span>箱级进度 {formatNumber(progressSummary.visibleCartons)} / {formatNumber(progressSummary.totalCartons)} 箱 · {result.placements.length ? Math.round((packingProgress / result.placements.length) * 100) : 0}%</span></>
-                    : <><strong>{formatNumber(packingProgress)} / {formatNumber(result.placements.length)} 箱</strong><span>码垛进度 · {result.placements.length ? Math.round((packingProgress / result.placements.length) * 100) : 0}%</span></>}</div>
+                    ? <><strong>整套 {formatNumber(progressSummary.completedSets)} / {formatNumber(progressSummary.totalSets)} 套</strong><span>箱级进度 {formatNumber(progressSummary.visibleCartons)} / {formatNumber(progressSummary.totalCartons)} 箱 · {result.placements.length ? Math.round((packingProgress / result.placements.length) * 100) : 0}% · 柜内 → 箱门</span></>
+                    : <><strong>{formatNumber(packingProgress)} / {formatNumber(result.placements.length)} 箱</strong><span>码垛进度 · {result.placements.length ? Math.round((packingProgress / result.placements.length) * 100) : 0}% · 柜内 → 箱门</span></>}</div>
                   <input aria-label={progressSummary?.isSetMode ? "套装箱级码垛进度" : "码垛进度"} type="range" min="0" max={Math.max(1, result.placements.length)} value={packingProgress} onChange={(event) => { setIsPlaying(false); setPackingProgress(numberValue(event.target.value)); }} />
                   <div className="timeline-step-controls" aria-label="逐箱码垛控制">
                     <button onClick={() => movePackingProgress(-1)} disabled={packingProgress <= 0} aria-label="上一步"><ChevronLeft size={14} /></button>

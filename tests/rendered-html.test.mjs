@@ -161,7 +161,8 @@ test("offers a worker-executable strategy and a unit-safe real loading benchmark
   assert.match(engine, /function buildPracticalLayeredSet/);
   assert.match(engine, /function buildPracticalZonedSet/);
   assert.match(engine, /function buildPracticalSingleSideStrip/);
-  assert.match(engine, /function orderForPracticalLoading/);
+  assert.match(engine, /function orderForLoading/);
+  assert.match(engine, /const orderedPlacements = orderForLoading\(output\.placements\)/);
   assert.match(engine, /PRACTICAL_SUPPORT_RATIO = 0\.995/);
   assert.match(presets, /"40hq": \{ cartons: 792, sets: 396 \}/);
   assert.match(estimator, /loadingSets: \{ "20gp": 110, "40gp": 230, "40hq": 275 \}/);
@@ -218,6 +219,7 @@ test("uses sets as the primary visualization unit for a single multi-carton prod
 
   assert.match(source, /整套 \{formatNumber\(progressSummary\.completedSets\)\}/);
   assert.match(source, /箱级进度 \{formatNumber\(progressSummary\.visibleCartons\)\}/);
+  assert.match(source, /柜内 → 箱门/);
   assert.match(source, /已完成 \$\{formatNumber\(progressSummary\.completedSets\)\}\/\$\{formatNumber\(progressSummary\.totalSets\)\} 套/);
   assert.match(source, /当前箱归属套号 \$\{formatNumber\(progressSummary\.currentSetNumber\)\}/);
   assert.match(source, /\$\{cachedPracticalPlan \? "" : "目标 "\}/);
