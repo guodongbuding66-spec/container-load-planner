@@ -98,6 +98,8 @@ test("auto-recalculates one dual-plan snapshot and hides stale visual data", asy
   assert.match(source, /AUTO_CALCULATE_DELAY_MS = 280/);
   assert.match(source, /window\.setTimeout\(calculate, AUTO_CALCULATE_DELAY_MS\)/);
   assert.match(source, /\(\) => dirty \? null : selectStrategyResult\(resultBundle, strategy\)/);
+  assert.match(source, /calculateReverseCounts\([\s\S]*?strategy: "practical"/);
+  assert.match(source, /\[activeProducts, clearance, container, mode, practicalTargetPercent, targetVolumePercent, targetWeightPercent\]/);
   assert.match(source, /const acceptedPlan = selectStrategyResult\(nextResult, strategyRef\.current\) \?\? nextResult/);
   assert.match(source, /setPackingProgress\(acceptedPlan\.placements\.length\)/);
   assert.match(source, /strategyRef\.current = nextStrategy/);

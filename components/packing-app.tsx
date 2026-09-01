@@ -541,11 +541,11 @@ export function PackingApp() {
 
   const reversePlan = useMemo(
     () => calculateReverseCounts(
-      { mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts },
+      { mode, strategy: "practical", practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts },
       targetVolumePercent / 100,
       targetWeightPercent / 100,
     ),
-    [activeProducts, clearance, container, mode, practicalTargetPercent, strategy, targetVolumePercent, targetWeightPercent],
+    [activeProducts, clearance, container, mode, practicalTargetPercent, targetVolumePercent, targetWeightPercent],
   );
   const resultDisplayUnit = result?.mode === "single" && result.setSummaries.length ? "set" : "carton";
   const resultLoadedDisplay = resultDisplayQuantity(result);
