@@ -192,6 +192,10 @@ test("runs two independent solvers and exposes actionable strategy guidance", as
   assert.match(source, /strategyPlans: \{ \[solverStrategy\]: response\.payload \}/);
   assert.match(source, /方案已完成并可查看；另一套算法仍在后台独立计算/);
   assert.match(source, /当前所选算法已完成并可查看、打印或导出/);
+  assert.match(source, /const finishActiveCalculation = useCallback/);
+  assert.match(source, /if \(activeRequestRef\.current\) clearActiveCalculation\(\)/);
+  assert.match(source, /let worker = workersRef\.current\[solverStrategy\]/);
+  assert.match(source, /finishActiveCalculation\(\);/);
   assert.doesNotMatch(source, /status !== "working"/);
   assert.match(source, /tippedCartonCount/);
   assert.match(engine, /const strategyPlans/);

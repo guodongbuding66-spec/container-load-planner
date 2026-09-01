@@ -342,6 +342,16 @@ export function PackingApp() {
     workerResultsRef.current = {};
   }, [terminateActiveWorkers]);
 
+  const finishActiveCalculation = useCallback(() => {
+    if (calculationTimeoutRef.current !== null) {
+      window.clearTimeout(calculationTimeoutRef.current);
+      calculationTimeoutRef.current = null;
+    }
+    activeRequestRef.current = null;
+    activeRevisionRef.current = null;
+    workerResultsRef.current = {};
+  }, []);
+
   const discardObsoleteCalculation = useCallback(() => {
     if (!isObsoleteCalculation(activeRevisionRef.current, inputRevisionRef.current)) return false;
     clearActiveCalculation();
@@ -370,11 +380,11 @@ export function PackingApp() {
     presentPlan(acceptedPlan);
     setStatus(acceptedPlan.validation.valid ? "done" : "error");
     setDirty(false);
-    clearActiveCalculation();
+    finishActiveCalculation();
     setMessage(acceptedPlan.validation.valid
       ? successMessage
       : `方案未通过独立校验，已阻止打印与导出：${acceptedPlan.validation.errors[0] ?? "请检查异常明细"}`);
-  }, [clearActiveCalculation, discardObsoleteCalculation, presentPlan]);
+  }, [discardObsoleteCalculation, finishActiveCalculation, presentPlan]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -883,7 +893,7 @@ export function PackingApp() {
   }, [activeProducts, clearance, container, mode]);
 
   const submitPacking = useCallback((payload: PackingRequest, workingMessage = "正在生成可行摆放并执行边界、重叠与载重校验…") => {
-    terminateActiveWorkers();
+    if (activeRequestRef.current) clearActiveCalculation();
     requestSequenceRef.current += 1;
     const requestId = `request-${inputRevisionRef.current}-${requestSequenceRef.current}`;
     activeRequestRef.current = requestId;
@@ -901,14 +911,16 @@ export function PackingApp() {
 
     const startStrategyWorker = (solverStrategy: PackingStrategy, attempt = 0) => {
       if (requestId !== activeRequestRef.current) return;
-      let worker: Worker;
-      try {
-        worker = new Worker(new URL("../lib/packing/packing.worker.ts", import.meta.url), { type: "module" });
-      } catch {
-        failCalculation("当前浏览器无法启动装柜计算线程，请刷新页面或升级浏览器后重试。");
-        return;
+      let worker = workersRef.current[solverStrategy];
+      if (!worker) {
+        try {
+          worker = new Worker(new URL("../lib/packing/packing.worker.ts", import.meta.url), { type: "module" });
+        } catch {
+          failCalculation("当前浏览器无法启动装柜计算线程，请刷新页面或升级浏览器后重试。");
+          return;
+        }
+        workersRef.current[solverStrategy] = worker;
       }
-      workersRef.current[solverStrategy] = worker;
       let settled = false;
 
       const retryOrFail = (message: string) => {
@@ -936,8 +948,6 @@ export function PackingApp() {
           return;
         }
         settled = true;
-        worker.terminate();
-        delete workersRef.current[solverStrategy];
         workerResultsRef.current[solverStrategy] = response.payload;
         const practicalResult = workerResultsRef.current.practical;
         const maximumResult = workerResultsRef.current.maximum;
@@ -969,7 +979,7 @@ export function PackingApp() {
     }, CALCULATION_TIMEOUT_MS);
     startStrategyWorker("practical");
     startStrategyWorker("maximum");
-  }, [acceptResult, clearActiveCalculation, discardObsoleteCalculation, presentPlan, terminateActiveWorkers]);
+  }, [acceptResult, clearActiveCalculation, discardObsoleteCalculation, presentPlan]);
 
   const calculate = useCallback(() => {
     const error = validateInputs();
