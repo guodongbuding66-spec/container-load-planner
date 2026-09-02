@@ -49,6 +49,7 @@ import {
   validateContainerInput,
 } from "../lib/packing/engine";
 import { summarizePackingProgress } from "../lib/packing/progress";
+import { detectRuntimePolicy, type SolverSchedule } from "../lib/packing/runtime-policy";
 import {
   CONTAINER_PRESETS,
   DIMENSION_TEST_PRODUCTS,
@@ -86,7 +87,6 @@ const ContainerScene = dynamic(() => import("./container-scene").then((module) =
 const STORAGE_KEY = "cargo-fit-workspace-v1";
 const STORAGE_SAVE_DELAY_MS = 320;
 const AUTO_CALCULATE_DELAY_MS = 280;
-const CALCULATION_TIMEOUT_MS = 60_000;
 const PRODUCT_PAGE_SIZE = 100;
 const MAX_VISIBLE_SET_SUMMARIES = 50;
 const MAX_VISIBLE_SET_ITEMS = 16;
@@ -310,9 +310,11 @@ export function PackingApp() {
   const [storageState, setStorageState] = useState<StorageState>("saved");
   const [productPage, setProductPage] = useState(0);
   const [renderPrintViews, setRenderPrintViews] = useState(false);
+  const [solverSchedule, setSolverSchedule] = useState<SolverSchedule>("parallel");
   const workersRef = useRef<Partial<Record<PackingStrategy, Worker>>>({});
   const workerResultsRef = useRef<Partial<Record<PackingStrategy, PackingResult>>>({});
   const calculationTimeoutRef = useRef<number | null>(null);
+  const maximumStartTimerRef = useRef<number | null>(null);
   const activeRequestRef = useRef<string | null>(null);
   const activeRevisionRef = useRef<number | null>(null);
   const inputRevisionRef = useRef(0);
@@ -329,6 +331,10 @@ export function PackingApp() {
   const terminateActiveWorkers = useCallback(() => {
     Object.values(workersRef.current).forEach((worker) => worker?.terminate());
     workersRef.current = {};
+    if (maximumStartTimerRef.current !== null) {
+      window.clearTimeout(maximumStartTimerRef.current);
+      maximumStartTimerRef.current = null;
+    }
     if (calculationTimeoutRef.current !== null) {
       window.clearTimeout(calculationTimeoutRef.current);
       calculationTimeoutRef.current = null;
@@ -343,6 +349,10 @@ export function PackingApp() {
   }, [terminateActiveWorkers]);
 
   const finishActiveCalculation = useCallback(() => {
+    if (maximumStartTimerRef.current !== null) {
+      window.clearTimeout(maximumStartTimerRef.current);
+      maximumStartTimerRef.current = null;
+    }
     if (calculationTimeoutRef.current !== null) {
       window.clearTimeout(calculationTimeoutRef.current);
       calculationTimeoutRef.current = null;
@@ -899,14 +909,49 @@ export function PackingApp() {
     activeRequestRef.current = requestId;
     activeRevisionRef.current = inputRevisionRef.current;
     workerResultsRef.current = {};
+    const runtimePolicy = detectRuntimePolicy();
+    setSolverSchedule(runtimePolicy.schedule);
     setStatus("working");
-    setMessage(workingMessage);
+    setMessage(runtimePolicy.schedule === "practical-first"
+      ? `${workingMessage} 当前设备将先完成现场方案，再计算高密度参考。`
+      : workingMessage);
 
     const failCalculation = (message: string) => {
       if (requestId !== activeRequestRef.current) return;
       clearActiveCalculation();
       setStatus("error");
       setMessage(message);
+    };
+
+    const completeWithAvailablePlan = (reason: string) => {
+      if (requestId !== activeRequestRef.current) return false;
+      const plans: NonNullable<PackingResult["strategyPlans"]> = {
+        ...(workerResultsRef.current.practical ? { practical: workerResultsRef.current.practical } : {}),
+        ...(workerResultsRef.current.maximum ? { maximum: workerResultsRef.current.maximum } : {}),
+      };
+      const selected = plans[strategyRef.current] ?? plans.practical ?? plans.maximum;
+      if (!selected) return false;
+      clearActiveCalculation();
+      if (!plans[strategyRef.current]) {
+        strategyRef.current = selected.strategy;
+        setStrategy(selected.strategy);
+      }
+      setResultBundle({ ...selected, strategyPlans: plans });
+      presentPlan(selected);
+      setDirty(false);
+      setStatus(selected.validation.valid ? "done" : "error");
+      setMessage(selected.validation.valid
+        ? `${reason} 已保留并显示${selected.strategy === "practical" ? "现场易执行" : "高密度参考"}方案，不影响三视图、3D 和导出。`
+        : `可用方案未通过独立校验：${selected.validation.errors[0] ?? "请检查异常明细"}`);
+      return true;
+    };
+
+    const armCalculationTimeout = () => {
+      if (calculationTimeoutRef.current !== null) window.clearTimeout(calculationTimeoutRef.current);
+      calculationTimeoutRef.current = window.setTimeout(() => {
+        if (completeWithAvailablePlan("后台算法达到设备保护时限，")) return;
+        failCalculation(`本次计算已超过 ${Math.round(runtimePolicy.calculationTimeoutMs / 1000)} 秒并自动停止。请减少 SKU/箱数，或分批测算。`);
+      }, runtimePolicy.calculationTimeoutMs);
     };
 
     const startStrategyWorker = (solverStrategy: PackingStrategy, attempt = 0) => {
@@ -933,6 +978,7 @@ export function PackingApp() {
           startStrategyWorker(solverStrategy, attempt + 1);
           return;
         }
+        if (completeWithAvailablePlan(`${solverStrategy === "practical" ? "现场" : "高密度"}算法连续失败，`)) return;
         failCalculation(`${solverStrategy === "practical" ? "现场易执行" : "高密度参考"}算法连续两次失败：${message}`);
       };
 
@@ -962,6 +1008,15 @@ export function PackingApp() {
           if (strategyRef.current === solverStrategy) presentPlan(response.payload);
           setStatus("working");
           setMessage(`${solverStrategy === "practical" ? "现场易执行" : "高密度参考"}方案已完成并可查看；另一套算法仍在后台独立计算…`);
+          if (runtimePolicy.schedule === "practical-first" && solverStrategy === "practical") {
+            armCalculationTimeout();
+            maximumStartTimerRef.current = window.setTimeout(() => {
+              maximumStartTimerRef.current = null;
+              if (requestId !== activeRequestRef.current) return;
+              setMessage("现场方案已可使用；正在后台补算高密度参考，期间页面仍可操作。");
+              startStrategyWorker("maximum");
+            }, runtimePolicy.maximumStartDelayMs);
+          }
           return;
         }
         const combined = combineStrategyResults(practicalResult, maximumResult, strategyRef.current);
@@ -974,11 +1029,9 @@ export function PackingApp() {
       worker.postMessage({ type: "pack-strategy", requestId, strategy: solverStrategy, payload });
     };
 
-    calculationTimeoutRef.current = window.setTimeout(() => {
-      failCalculation("本次双算法计算已超过 60 秒并自动停止。请减少 SKU/箱数，或先使用现场方案分批测算。");
-    }, CALCULATION_TIMEOUT_MS);
+    armCalculationTimeout();
     startStrategyWorker("practical");
-    startStrategyWorker("maximum");
+    if (runtimePolicy.schedule === "parallel") startStrategyWorker("maximum");
   }, [acceptResult, clearActiveCalculation, discardObsoleteCalculation, presentPlan]);
 
   const calculate = useCallback(() => {
@@ -1204,6 +1257,9 @@ export function PackingApp() {
                     : status === "working" ? "计算中" : "待计算"}</small></span></button>
               </div>
               <p className="strategy-help">任一参数变化都会自动重算同一份双算法快照；切换后，数量、三视图、3D、进度、指标和导出同时采用对应坐标。</p>
+              {solverSchedule === "practical-first" ? (
+                <p className="mobile-compute-note"><ShieldCheck size={15} /><span><strong>设备节能计算已启用</strong>先生成可直接使用的现场方案，再后台补算高密度参考；高密度超时或失败不会清空现场结果。</span></p>
+              ) : null}
               {strategy === "practical" ? (
                 <div className="practical-target">
                   <div><strong>现场经验装载率</strong><span>仅影响现场算法 · 完整支撑</span></div>

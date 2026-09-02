@@ -13,6 +13,7 @@ import {
   type CameraView,
   type SceneSize,
 } from "../lib/packing/camera-fit";
+import { detectRuntimePolicy } from "../lib/packing/runtime-policy";
 import type { PackingResult, PlacedBox } from "../lib/packing/types";
 
 type Props = {
@@ -79,7 +80,7 @@ function TopViewFallback({ result, visibleProducts, visibleCount }: { result: Pa
   );
 }
 
-function InstancedBoxes({ group, scale, offset }: { group: InstanceGroup; scale: number; offset: THREE.Vector3 }) {
+function InstancedBoxes({ group, scale, offset, reducedRendering }: { group: InstanceGroup; scale: number; offset: THREE.Vector3; reducedRendering: boolean }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const transform = useMemo(() => new THREE.Object3D(), []);
 
@@ -100,7 +101,7 @@ function InstancedBoxes({ group, scale, offset }: { group: InstanceGroup; scale:
   }, [group.boxes, offset, scale, transform]);
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, group.boxes.length]} castShadow receiveShadow>
+    <instancedMesh ref={meshRef} args={[undefined, undefined, group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering}>
       <boxGeometry args={[1, 1, 1]} />
       <meshStandardMaterial color={group.color} roughness={0.72} metalness={0.08} />
     </instancedMesh>
@@ -194,7 +195,7 @@ function CameraRig({
   );
 }
 
-function ContainerModel({ result, visibleProducts, visibleCount }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number }) {
+function ContainerModel({ result, visibleProducts, visibleCount, reducedRendering }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number; reducedRendering: boolean }) {
   const effective = {
     length: result.container.length - result.clearance * 2,
     width: result.container.width - result.clearance * 2,
@@ -220,17 +221,17 @@ function ContainerModel({ result, visibleProducts, visibleCount }: { result: Pac
 
   return (
     <group>
-      <mesh position={[0, size[1] / 2, 0]} receiveShadow>
+      <mesh position={[0, size[1] / 2, 0]} receiveShadow={!reducedRendering}>
         <boxGeometry args={size} />
         <meshStandardMaterial color="#8bb8c0" transparent opacity={0.055} roughness={0.8} side={THREE.DoubleSide} />
         <Edges color="#4e7380" threshold={15} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.015, 0]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.015, 0]} receiveShadow={!reducedRendering}>
         <planeGeometry args={[size[0], size[2]]} />
         <meshStandardMaterial color="#dbe4e6" roughness={0.95} />
       </mesh>
       {groups.map((group) => (
-        <InstancedBoxes key={group.productId} group={group} scale={scale} offset={offset} />
+        <InstancedBoxes key={group.productId} group={group} scale={scale} offset={offset} reducedRendering={reducedRendering} />
       ))}
       <gridHelper args={[Math.max(size[0], size[2]) * 1.25, 16, "#91a6ab", "#d9e1e3"]} position={[0, -0.02, 0]} />
     </group>
@@ -255,6 +256,7 @@ export function ContainerScene({
 }: Props) {
   const clientReady = useSyncExternalStore(subscribeToClientReady, getClientReady, getServerNotReady);
   const webglSupported = clientReady ? supportsWebGL() : null;
+  const reducedRendering = clientReady ? detectRuntimePolicy().reducedRendering : false;
   const containerSize = useMemo<SceneSize>(() => (result ? normalizedSceneSize(result) : [5.6, 1.25, 1.1]), [result]);
   return (
     <div className="scene-shell" role="region" aria-label="可交互三维装柜视图">
@@ -272,16 +274,16 @@ export function ContainerScene({
         <>
           <div className="scene-canvas">
             <Canvas
-              shadows
-              dpr={[1, 1.6]}
-              gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+              shadows={!reducedRendering}
+              dpr={reducedRendering ? [1, 1.1] : [1, 1.6]}
+              gl={{ antialias: !reducedRendering, alpha: true, powerPreference: reducedRendering ? "low-power" : "high-performance" }}
             >
               <color attach="background" args={["#eef4f5"]} />
               <fog attach="fog" args={["#eef4f5", 12, 24]} />
               <ambientLight intensity={1.45} />
               <hemisphereLight args={["#ffffff", "#61747a", 1.5]} />
-              <directionalLight castShadow position={[5, 9, 4]} intensity={2.1} shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
-              <ContainerModel result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} />
+              <directionalLight castShadow={!reducedRendering} position={[5, 9, 4]} intensity={2.1} shadow-mapSize-width={reducedRendering ? 256 : 1024} shadow-mapSize-height={reducedRendering ? 256 : 1024} />
+              <ContainerModel result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} reducedRendering={reducedRendering} />
               <CameraRig
                 containerSize={containerSize}
                 view={cameraView}

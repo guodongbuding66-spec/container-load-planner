@@ -185,9 +185,12 @@ test("runs two independent solvers and exposes actionable strategy guidance", as
   assert.match(source, /resultBundle\?\.strategyPlans\?\./);
   assert.match(source, /selectStrategyResult\(resultBundle, strategy\)/);
   assert.match(source, /terminateActiveWorkers\(\)/);
-  assert.match(source, /CALCULATION_TIMEOUT_MS = 60_000/);
+  assert.match(source, /detectRuntimePolicy\(\)/);
+  assert.match(source, /runtimePolicy\.calculationTimeoutMs/);
   assert.match(source, /startStrategyWorker\("practical"\)/);
-  assert.match(source, /startStrategyWorker\("maximum"\)/);
+  assert.match(source, /runtimePolicy\.schedule === "parallel"\) startStrategyWorker\("maximum"\)/);
+  assert.match(source, /runtimePolicy\.schedule === "practical-first" && solverStrategy === "practical"/);
+  assert.match(source, /completeWithAvailablePlan\("后台算法达到设备保护时限，"\)/);
   assert.match(source, /const partialBundle: PackingResult/);
   assert.match(source, /strategyPlans: \{ \[solverStrategy\]: response\.payload \}/);
   assert.match(source, /方案已完成并可查看；另一套算法仍在后台独立计算/);
@@ -203,6 +206,26 @@ test("runs two independent solvers and exposes actionable strategy guidance", as
   assert.match(engine, /maximum: maximumPlan/);
   assert.match(views, /<button[\s\S]*?className=\{`projection-card/);
   assert.doesNotMatch(views, /role="button"/);
+});
+
+test("protects mobile calculations and enforces a readable typography floor", async () => {
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+  const scene = await readFile(new URL("../components/container-scene.tsx", import.meta.url), "utf8");
+  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  const runtimePolicy = await readFile(new URL("../lib/packing/runtime-policy.ts", import.meta.url), "utf8");
+
+  assert.match(runtimePolicy, /schedule: "practical-first"/);
+  assert.match(runtimePolicy, /calculationTimeoutMs: 35_000/);
+  assert.match(runtimePolicy, /viewportWidth <= 680/);
+  assert.match(source, /设备节能计算已启用/);
+  assert.match(source, /高密度超时或失败不会清空现场结果/);
+  assert.match(scene, /shadows=\{!reducedRendering\}/);
+  assert.match(scene, /dpr=\{reducedRendering \? \[1, 1\.1\] : \[1, 1\.6\]\}/);
+  assert.match(styles, /--type-caption: 12px/);
+  assert.match(styles, /--type-control: 13px/);
+  assert.match(styles, /Readability floor/);
+  assert.match(styles, /@media \(max-width: 680px\)[\s\S]*?font-size: 16px/s);
+  assert.match(styles, /\.set-summary-grid > article:only-child \{ grid-column: 1 \/ -1; \}/);
 });
 
 test("separates utilization planning from the selected strategy capacity ceiling", async () => {
@@ -254,6 +277,8 @@ test("ships Cloudflare security headers without blocking the static Next bootstr
   assert.match(headers, /script-src 'self' 'unsafe-inline'/);
   assert.match(headers, /worker-src 'self' blob:/);
   assert.match(headers, /object-src 'none'/);
+  assert.match(headers, /\/_next\/static\/\*/);
+  assert.match(headers, /Cache-Control: public, max-age=31556952, immutable/);
 });
 
 test("auto-calculates CBM and displays complete sets before carton details", async () => {

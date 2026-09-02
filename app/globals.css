@@ -23,6 +23,10 @@
   --glass-edge: rgba(255, 255, 255, 0.82);
   --glass-line: rgba(106, 143, 151, 0.2);
   --glass-shadow: 0 24px 70px rgba(24, 57, 72, 0.12), 0 3px 12px rgba(24, 57, 72, 0.06);
+  --type-kicker: 11px;
+  --type-caption: 12px;
+  --type-small: 13px;
+  --type-control: 13px;
 }
 
 * { box-sizing: border-box; }
@@ -812,6 +816,163 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 .empty-result { border-color: rgba(104, 143, 151, 0.28); border-radius: 18px; background: rgba(255, 255, 255, 0.48); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .coordinate-panel { scroll-margin-top: 112px; }
 
+/* Readability floor: dense operational data must remain legible at 100% zoom. */
+@media screen {
+  .eyebrow, .section-kicker, .brand span, .step-nav button b, .sidebar-version {
+    font-size: var(--type-kicker);
+  }
+
+  .panel-head p,
+  .panel-head div > span:not(.section-kicker),
+  .pill,
+  .helper-text,
+  .strategy-heading strong,
+  .strategy-heading span,
+  .strategy-count,
+  .strategy-help,
+  .practical-target strong,
+  .practical-target span,
+  .strategy-warning,
+  .select-wrap,
+  .field-label,
+  .field-unit,
+  .clearance-row span,
+  .range-control output,
+  .target-control span strong,
+  .target-control span small,
+  .target-input b,
+  .reverse-count-grid span,
+  .reverse-count-grid small,
+  .ratio-chips span,
+  .reverse-note,
+  .overview-grid span,
+  .capacity-button,
+  .plan-context-chip b,
+  .plan-context-chip span,
+  .validation-chip,
+  .viewer-input-strip span,
+  .viewer-input-strip small,
+  .timeline-count span,
+  .timeline-current,
+  .timeline-current strong,
+  .viewer-projection-head small,
+  .projection-progress,
+  .projection-card header span,
+  .projection-card header b,
+  .projection-card-meta > small,
+  .projection-card-meta > span,
+  .projection-card footer,
+  .scene-view-controls button,
+  .scene-projection-controls button,
+  .scene-hint span,
+  .door-marker,
+  .legend-row button,
+  .product-table th,
+  .coordinate-table th,
+  .product-table td small,
+  .table-note,
+  .set-builder-head small,
+  .set-quick-actions button,
+  .set-builder-card-actions button,
+  .set-builder-card-main span,
+  .set-builder-card-main small,
+  .set-ratio-list span,
+  .set-builder-card-actions > b,
+  .set-builder-empty,
+  .set-builder-overflow,
+  .product-pagination,
+  .product-pagination button,
+  .run-meta,
+  .planning-comparison-head small,
+  .planning-comparison-head > b,
+  .planning-comparison-grid span,
+  .planning-comparison-grid small,
+  .strategy-comparison-head small,
+  .strategy-comparison-head > b,
+  .strategy-comparison-grid span,
+  .strategy-comparison-grid small,
+  .strategy-guidance-list b,
+  .strategy-guidance-list span,
+  .real-benchmark-copy > small,
+  .real-benchmark > div:not(:first-child) > span,
+  .real-benchmark > div:not(:first-child) > small,
+  .execution-summary,
+  .execution-summary small,
+  .real-record-select,
+  .metric-card span,
+  .metric-card small,
+  .projection-card header strong,
+  .summary-name strong,
+  .summary-name span,
+  .summary-count,
+  .unloaded,
+  .set-summary-heading > small,
+  .set-summary-main > span,
+  .set-summary-main > strong small,
+  .set-summary-main > b,
+  .set-component-list span,
+  .validation-box strong,
+  .validation-box span,
+  .balance-copy strong,
+  .balance-copy span,
+  .balance-box > b,
+  .warning-list li,
+  .coordinate-table td,
+  .empty-result span,
+  .app-footer,
+  .viewer-decision-grid span,
+  .viewer-decision-grid small {
+    font-size: var(--type-caption) !important;
+    line-height: 1.48;
+  }
+
+  .segmented button,
+  .button,
+  .field input,
+  .container-save-row > input,
+  .target-input input[type="number"],
+  .product-table td input:not([type="checkbox"]):not([type="color"]),
+  .constraint-select,
+  .timeline-step-controls select,
+  .timeline-all,
+  .reverse-apply-button,
+  .calculate-button {
+    font-size: var(--type-control);
+  }
+
+  .sidebar-note span,
+  .save-state,
+  .status-strip,
+  .scene-loading,
+  .scene-empty span,
+  .scene-fallback > span,
+  .set-builder-card-main strong,
+  .set-summary-heading strong {
+    font-size: var(--type-small);
+    line-height: 1.45;
+  }
+
+  .strategy-guidance-list article { padding: 10px 12px; }
+  .execution-summary { gap: 10px; padding: 11px 13px; }
+  .set-summary-grid > article:only-child { grid-column: 1 / -1; }
+
+  .mobile-compute-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 9px 2px 0;
+    padding: 10px 11px;
+    border: 1px solid rgba(54, 139, 149, 0.24);
+    border-radius: 11px;
+    color: #4d6d74;
+    background: rgba(228, 246, 247, 0.74);
+    font-size: var(--type-caption);
+    line-height: 1.5;
+  }
+  .mobile-compute-note svg { flex: 0 0 auto; margin-top: 1px; color: #2e7e88; }
+  .mobile-compute-note strong { display: block; margin-bottom: 2px; color: #275c65; }
+}
+
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .topbar, .status-strip, .panel, .metric-card { background: rgba(248, 252, 253, 0.96); }
   .sidebar { background: #0b2631; }
@@ -885,10 +1046,22 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 }
 
 @media (max-width: 680px) {
+  :root {
+    --type-kicker: 12px;
+    --type-caption: 13px;
+    --type-small: 14px;
+    --type-control: 14px;
+  }
+  body { font-size: 15px; }
   .topbar { align-items: flex-start; flex-direction: column; padding: 18px; border-radius: 18px; }
   .top-actions { width: 100%; max-width: none; justify-content: flex-start; }
   .topbar h1 { font-size: 22px; }
-  .status-strip { margin-top: 0; }
+  .status-strip { height: auto; min-height: 44px; margin-top: 0; padding-top: 9px; padding-bottom: 9px; line-height: 1.4; }
+  .button, .segmented button, .calculate-button, .reverse-apply-button, .capacity-button { min-height: 44px; }
+  .field input, .select-wrap select, .container-save-row > input, .target-input input[type="number"] { min-height: 44px; font-size: 16px; }
+  .timeline-play, .timeline-step-controls button, .timeline-all { min-width: 44px; min-height: 44px; height: 44px; }
+  .timeline-step-controls select { min-height: 44px; font-size: 16px; }
+  .scene-view-controls button, .scene-projection-controls button { min-height: 38px; }
   .field-grid.three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .scene-shell { min-height: 390px; }
   .viewer-column { min-height: 500px; }
