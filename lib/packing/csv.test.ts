@@ -52,6 +52,34 @@ describe("CSV utilities", () => {
     expect(parsed[0].declaredVolumeCbm).toBe(0.2);
   });
 
+  it("imports explicit display units into canonical millimeters and kilograms", () => {
+    const parsed = parseProductsCsv(
+      "sku,name,length,width,height,lengthUnit,weight,weightUnit,quantity\n" +
+      "UNIT-1,单位换算,127,55,29,cm,68.3433012,lb,1",
+      colors,
+    );
+
+    expect(parsed[0]).toMatchObject({
+      length: 1270,
+      width: 550,
+      height: 290,
+      maxStackLayers: 0,
+    });
+    expect(parsed[0].weight).toBeCloseTo(31, 5);
+  });
+
+  it("keeps legacy files compatible and rejects unknown unit codes", () => {
+    const legacy = parseProductsCsv(
+      "sku,name,length,width,height,weight,quantity\nLEGACY,旧模板,1270,550,290,31,1",
+      colors,
+    );
+    expect(legacy[0]).toMatchObject({ length: 1270, weight: 31, maxStackLayers: 0 });
+    expect(() => parseProductsCsv(
+      "sku,name,length,width,height,lengthUnit,weight,quantity\nBAD,错误单位,1,1,1,ft,1,1",
+      colors,
+    )).toThrow("长度单位");
+  });
+
   it("rejects missing columns, empty files, and excessive rows", () => {
     expect(() => parseProductsCsv("sku,name\nA,测试", colors)).toThrow("缺少必要字段");
     expect(() => parseProductsCsv("", colors)).toThrow("文件为空");

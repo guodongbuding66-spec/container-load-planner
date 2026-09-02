@@ -1,4 +1,5 @@
 import type { PackingResult, ProductInput, RotationPolicy } from "./types";
+import { isLengthUnit, isWeightUnit, toKilograms, toMillimeters } from "./units";
 import { roundedCartonVolumeCbm } from "./volume";
 
 export const MAX_CSV_BYTES = 5 * 1024 * 1024;
@@ -121,6 +122,16 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
 
   const products = records.map((values, index) => {
     const get = (key: string) => values[headers.indexOf(key)] ?? "";
+    const rawLengthUnit = get("lengthUnit").trim().toLowerCase();
+    const rawWeightUnit = get("weightUnit").trim().toLowerCase();
+    if (rawLengthUnit && !isLengthUnit(rawLengthUnit)) {
+      throw new Error(`CSV 第 ${index + 2} 行的长度单位“${rawLengthUnit}”不受支持；请使用 mm、cm、m 或 in。`);
+    }
+    if (rawWeightUnit && !isWeightUnit(rawWeightUnit)) {
+      throw new Error(`CSV 第 ${index + 2} 行的重量单位“${rawWeightUnit}”不受支持；请使用 kg 或 lb。`);
+    }
+    const lengthUnit = isLengthUnit(rawLengthUnit) ? rawLengthUnit : "mm";
+    const weightUnit = isWeightUnit(rawWeightUnit) ? rawWeightUnit : "kg";
     const rawRotation = get("rotationPolicy").trim().toLowerCase();
     const rotationPolicy: RotationPolicy = ["fixed", "upright", "any"].includes(rawRotation)
       ? (rawRotation as RotationPolicy)
@@ -130,9 +141,9 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
     const rawColor = get("color").trim();
     const fallbackColor = colors[index % Math.max(1, colors.length)] ?? "#2f7f89";
 
-    const length = boundedNumber(get("length"), 0, 0);
-    const width = boundedNumber(get("width"), 0, 0);
-    const height = boundedNumber(get("height"), 0, 0);
+    const length = toMillimeters(boundedNumber(get("length"), 0, 0), lengthUnit);
+    const width = toMillimeters(boundedNumber(get("width"), 0, 0), lengthUnit);
+    const height = toMillimeters(boundedNumber(get("height"), 0, 0), lengthUnit);
     return {
       id: `import-${now}-${index}`,
       sku: sanitizeText(get("sku"), 80),
@@ -141,7 +152,7 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
       width,
       height,
       declaredVolumeCbm: roundedCartonVolumeCbm({ length, width, height }),
-      weight: boundedNumber(get("weight"), 0, 0),
+      weight: toKilograms(boundedNumber(get("weight"), 0, 0), weightUnit),
       quantity: boundedInteger(get("quantity"), 0, 0, 1_000_000),
       priority: boundedInteger(get("priority"), 50, 0, 100),
       rotationPolicy,

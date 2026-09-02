@@ -154,7 +154,7 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
 .target-control span small { margin-top: 2px; color: #89999d; font-size: 8px; }
 .target-input { display: grid; grid-template-columns: minmax(65px, 1fr) 48px 10px; align-items: center; gap: 5px; }
 .target-input input[type="range"] { width: 100%; accent-color: var(--teal); }
-.target-input input[type="number"] { width: 48px; height: 30px; border: 1px solid #d7e2e4; border-radius: 6px; padding: 0 5px; color: #28434b; background: #fff; text-align: right; outline: none; font-size: 10px; font-weight: 800; }
+.target-input .numeric-input { width: 48px; height: 30px; border: 1px solid #d7e2e4; border-radius: 6px; padding: 0 5px; color: #28434b; background: #fff; text-align: right; outline: none; font-size: 10px; font-weight: 800; }
 .target-input b { color: #789096; font-size: 9px; }
 .reverse-count-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 6px; }
 .reverse-count-grid > div { min-width: 0; padding: 9px; border: 1px solid #e1e9ea; border-radius: 9px; background: #f8fafb; }
@@ -243,6 +243,13 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
 .legend-row b { padding-left: 4px; color: #233e46; }
 
 .product-panel { margin-top: 16px; padding: 18px; scroll-margin-top: 14px; }
+.unit-toolbar { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin: -4px 0 13px; padding: 9px 11px; border: 1px solid rgba(89, 145, 152, .2); border-radius: 11px; background: rgba(237, 248, 249, .72); }
+.unit-toolbar > div { min-width: 180px; margin-right: auto; }
+.unit-toolbar strong, .unit-toolbar small { display: block; }
+.unit-toolbar strong { color: #2b5962; font-size: 10px; }
+.unit-toolbar small { margin-top: 2px; color: #758a90; font-size: 8px; line-height: 1.4; }
+.unit-toolbar label { display: grid; grid-template-columns: auto minmax(112px, 1fr); align-items: center; gap: 6px; color: #607980; font-size: 9px; font-weight: 750; }
+.unit-toolbar select { height: 31px; border: 1px solid rgba(94, 144, 151, .26); border-radius: 8px; padding: 0 26px 0 8px; color: #29464e; background: rgba(255, 255, 255, .88); outline: none; font-size: 9px; font-weight: 750; }
 .product-table-wrap, .coordinate-wrap { width: 100%; overflow-x: auto; border: 1px solid #dfe7e9; border-radius: 10px; }
 .product-table, .coordinate-table { width: 100%; min-width: 1840px; border-collapse: collapse; }
 .product-table th, .coordinate-table th { height: 34px; padding: 0 9px; color: #6b7d82; background: #f3f7f7; border-bottom: 1px solid #dce5e7; text-align: left; font-size: 9px; font-weight: 800; white-space: nowrap; }
@@ -258,6 +265,12 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
 .product-table td input.sku-input { color: #213d45; font-weight: 800; }
 .product-table td input.name-input { margin-top: 4px; color: #788a8f; border-color: transparent !important; background: transparent; }
 .product-table td small { display: block; color: #9aa9ac; font-size: 8px; margin-top: 2px; }
+.product-table td.numeric-cell { text-align: center; }
+.product-table td.numeric-cell .numeric-input { display: block; margin-inline: auto; text-align: center; font-variant-numeric: tabular-nums; }
+.product-table td .cell-unit, .product-table td .cell-meta { min-height: 12px; text-align: center; line-height: 1.35; }
+.product-table td.cbm-cell { text-align: center; }
+.cbm-auto-value { justify-content: center; margin-inline: auto; }
+.numeric-input[aria-invalid="true"] { border-color: #cf6762 !important; color: #8f3532 !important; background: #fff5f4 !important; box-shadow: 0 0 0 3px rgba(191, 70, 64, .1) !important; }
 .color-input { width: 28px; height: 28px; padding: 2px; border: 1px solid #dce5e7; border-radius: 7px; background: #fff; }
 .switch { display: inline-block; position: relative; width: 34px; height: 19px; }
 .switch input { opacity: 0; position: absolute; }
@@ -594,7 +607,7 @@ button:active:not(:disabled) { transform: scale(0.96); transition-duration: 100m
 .helper-text { color: #6f858c; font-size: 10px; }
 .select-wrap, .field, .field-control, .target-input, .range-control { min-width: 0; }
 .select-wrap { font-size: 10px; }
-.select-wrap select, .field input, .target-input input[type="number"], .container-save-row > input {
+.select-wrap select, .field input, .target-input .numeric-input, .container-save-row > input {
   border-color: rgba(105, 143, 151, 0.2);
   color: #1e3b44;
   background: rgba(250, 253, 253, 0.84);
@@ -616,7 +629,7 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 .target-control span strong { color: #31545d; font-size: 10px; }
 .target-control span small { color: #71868d; font-size: 8px; }
 .target-input { grid-template-columns: minmax(0, 1fr) 50px 10px; }
-.target-input input[type="number"] { height: 32px; border-radius: 9px; }
+.target-input .numeric-input { height: 32px; border-radius: 9px; }
 .reverse-count-grid > div, .overview-grid > div {
   border-color: rgba(105, 143, 151, 0.16);
   border-radius: 12px;
@@ -921,7 +934,9 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
   .empty-result span,
   .app-footer,
   .viewer-decision-grid span,
-  .viewer-decision-grid small {
+  .viewer-decision-grid small,
+  .unit-toolbar small,
+  .unit-toolbar label {
     font-size: var(--type-caption) !important;
     line-height: 1.48;
   }
@@ -930,13 +945,14 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
   .button,
   .field input,
   .container-save-row > input,
-  .target-input input[type="number"],
+  .target-input .numeric-input,
   .product-table td input:not([type="checkbox"]):not([type="color"]),
   .constraint-select,
   .timeline-step-controls select,
   .timeline-all,
   .reverse-apply-button,
-  .calculate-button {
+  .calculate-button,
+  .unit-toolbar select {
     font-size: var(--type-control);
   }
 
@@ -946,6 +962,7 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
   .scene-loading,
   .scene-empty span,
   .scene-fallback > span,
+  .unit-toolbar strong,
   .set-builder-card-main strong,
   .set-summary-heading strong {
     font-size: var(--type-small);
@@ -1058,7 +1075,11 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
   .topbar h1 { font-size: 22px; }
   .status-strip { height: auto; min-height: 44px; margin-top: 0; padding-top: 9px; padding-bottom: 9px; line-height: 1.4; }
   .button, .segmented button, .calculate-button, .reverse-apply-button, .capacity-button { min-height: 44px; }
-  .field input, .select-wrap select, .container-save-row > input, .target-input input[type="number"] { min-height: 44px; font-size: 16px; }
+  .field input, .select-wrap select, .container-save-row > input, .target-input .numeric-input { min-height: 44px; font-size: 16px; }
+  .unit-toolbar { align-items: stretch; flex-direction: column; }
+  .unit-toolbar > div { min-width: 0; margin-right: 0; }
+  .unit-toolbar label { grid-template-columns: 54px minmax(0, 1fr); }
+  .unit-toolbar select { min-height: 44px; font-size: 16px; }
   .timeline-play, .timeline-step-controls button, .timeline-all { min-width: 44px; min-height: 44px; height: 44px; }
   .timeline-step-controls select { min-height: 44px; font-size: 16px; }
   .scene-view-controls button, .scene-projection-controls button { min-height: 38px; }
@@ -1129,7 +1150,7 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 @media (prefers-contrast: more) {
   :root { --glass-edge: rgba(32, 70, 80, 0.5); }
   .topbar, .status-strip, .panel, .viewer-column, .metric-card { border-color: rgba(24, 59, 68, 0.48); background: #fff; }
-  .button, .select-wrap select, .field input, .target-input input[type="number"] { border-color: rgba(32, 70, 80, 0.52); }
+  .button, .select-wrap select, .field input, .target-input .numeric-input { border-color: rgba(32, 70, 80, 0.52); }
 }
 
 @media print {

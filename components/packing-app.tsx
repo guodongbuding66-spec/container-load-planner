@@ -76,6 +76,21 @@ import type {
   WorkerResponse,
 } from "../lib/packing/types";
 import { exactCartonVolumeCbm, roundedCartonVolumeCbm } from "../lib/packing/volume";
+import {
+  fromKilograms,
+  fromMillimeters,
+  isLengthUnit,
+  isWeightUnit,
+  LENGTH_UNIT_OPTIONS,
+  lengthUnitPrecision,
+  toKilograms,
+  toMillimeters,
+  WEIGHT_UNIT_OPTIONS,
+  weightUnitPrecision,
+  type LengthUnit,
+  type WeightUnit,
+} from "../lib/packing/units";
+import { NumericInput } from "./numeric-input";
 import { OrthographicViews } from "./orthographic-views";
 import { SceneErrorBoundary } from "./scene-error-boundary";
 
@@ -155,7 +170,7 @@ function createProduct(index: number): ProductInput {
     priority: 50,
     rotationPolicy: "upright",
     stackable: true,
-    maxStackLayers: 8,
+    maxStackLayers: 0,
     mustLoad: true,
     bottomOnly: false,
     setCode: "",
@@ -302,6 +317,10 @@ export function PackingApp() {
   const [customContainerName, setCustomContainerName] = useState("");
   const [targetVolumePercent, setTargetVolumePercent] = useState(85);
   const [targetWeightPercent, setTargetWeightPercent] = useState(90);
+  const [lengthUnit, setLengthUnit] = useState<LengthUnit>("mm");
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>("kg");
+  const [invalidNumericFields, setInvalidNumericFields] = useState<Set<string>>(new Set());
+  const [numericResetVersion, setNumericResetVersion] = useState(0);
   const [packingProgress, setPackingProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
@@ -411,6 +430,8 @@ export function PackingApp() {
             customContainers?: ContainerSpec[];
             targetVolumePercent?: number;
             targetWeightPercent?: number;
+            lengthUnit?: LengthUnit;
+            weightUnit?: WeightUnit;
           };
           if (data.mode === "single" || data.mode === "mixed") setMode(data.mode);
           if (data.strategy === "practical" || data.strategy === "maximum") setStrategy(data.strategy);
@@ -429,6 +450,8 @@ export function PackingApp() {
           }
           if (typeof data.targetVolumePercent === "number") setTargetVolumePercent(clampInteger(data.targetVolumePercent, 85, 1, 100));
           if (typeof data.targetWeightPercent === "number") setTargetWeightPercent(clampInteger(data.targetWeightPercent, 90, 1, 100));
+          if (isLengthUnit(data.lengthUnit)) setLengthUnit(data.lengthUnit);
+          if (isWeightUnit(data.weightUnit)) setWeightUnit(data.weightUnit);
           setMessage("已恢复本机草稿");
         }
       } catch {
@@ -446,7 +469,7 @@ export function PackingApp() {
       try {
         localStorage.setItem(
           STORAGE_KEY,
-          JSON.stringify({ mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent }),
+          JSON.stringify({ mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit }),
         );
         setStorageState("saved");
       } catch {
@@ -455,7 +478,7 @@ export function PackingApp() {
       }
     }, STORAGE_SAVE_DELAY_MS);
     return () => window.clearTimeout(saveTimer);
-  }, [clearance, container, customContainers, hydrated, mode, practicalTargetPercent, products, strategy, targetVolumePercent, targetWeightPercent]);
+  }, [clearance, container, customContainers, hydrated, lengthUnit, mode, practicalTargetPercent, products, strategy, targetVolumePercent, targetWeightPercent, weightUnit]);
 
   useEffect(() => () => terminateActiveWorkers(), [terminateActiveWorkers]);
 
@@ -510,6 +533,23 @@ export function PackingApp() {
       setMessage("输入已修改；正在按最新有效参数重新计算");
     } else setMessage("参数已更新；正在准备实时计算");
   }, [clearActiveCalculation, status]);
+
+  const setNumericFieldValidity = useCallback((fieldKey: string, valid: boolean) => {
+    setInvalidNumericFields((current) => {
+      const hasField = current.has(fieldKey);
+      if ((valid && !hasField) || (!valid && hasField)) return current;
+      const next = new Set(current);
+      if (valid) next.delete(fieldKey);
+      else next.add(fieldKey);
+      return next;
+    });
+    if (!valid) markDirty();
+  }, [markDirty]);
+
+  const clearNumericDraftErrors = useCallback(() => {
+    setInvalidNumericFields(new Set());
+    setNumericResetVersion((current) => current + 1);
+  }, []);
 
   const switchStrategy = (nextStrategy: PackingStrategy) => {
     if (strategy === nextStrategy) return;
@@ -610,12 +650,12 @@ export function PackingApp() {
   const containerChoices = useMemo(() => [...CONTAINER_PRESETS, ...customContainers], [customContainers]);
   const hasKnownContainer = containerChoices.some((item) => item.id === container.id);
 
-  const updateContainer = (field: keyof ContainerSpec, value: string | number) => {
+  const updateContainer = (field: keyof ContainerSpec, value: number) => {
     setContainer((current) => ({
       ...current,
       id: "custom-draft",
       name: "自定义柜型（未保存）",
-      [field]: typeof value === "number" ? value : numberValue(value),
+      [field]: value,
     }));
     markDirty();
   };
@@ -623,6 +663,7 @@ export function PackingApp() {
   const selectPreset = (id: string) => {
     const preset = containerChoices.find((item) => item.id === id);
     if (!preset) return;
+    clearNumericDraftErrors();
     setContainer({ ...preset });
     setPracticalTargetPercent(recommendedPracticalTarget(preset) * 100);
     markDirty();
@@ -705,6 +746,7 @@ export function PackingApp() {
   };
 
   const addCartonSet = (cartonCount: number) => {
+    clearNumericDraftErrors();
     const safeCount = Math.min(20, Math.max(2, Math.floor(cartonCount)));
     setProducts((current) => {
       const existing = mode === "single" ? [] : current;
@@ -736,11 +778,13 @@ export function PackingApp() {
   const alignSet = (code: string) => {
     const summary = setInputSummaries.find((item) => item.setCode === code);
     setProducts((current) => alignSetQuantities(current, code));
+    clearNumericDraftErrors();
     markDirty();
     setMessage(`套装 ${code} 已安全向下对齐为 ${summary?.completeSets ?? 0} 个完整套，未擅自增加订单数量。`);
   };
 
   const ungroupSet = (code: string) => {
+    clearNumericDraftErrors();
     setProducts((current) => {
       if (mode === "single") {
         const first = current.find((product) => product.setCode?.trim() === code);
@@ -757,11 +801,13 @@ export function PackingApp() {
   };
 
   const removeProduct = (id: string) => {
+    clearNumericDraftErrors();
     setProducts((current) => (current.length <= 1 ? current : current.filter((item) => item.id !== id)));
     markDirty();
   };
 
   const loadSample = () => {
+    clearNumericDraftErrors();
     setMode("mixed");
     setStrategy("practical");
     setTargetVolumePercent(85);
@@ -779,6 +825,7 @@ export function PackingApp() {
   };
 
   const loadDimensionTest = () => {
+    clearNumericDraftErrors();
     setMode("mixed");
     setStrategy("practical");
     setTargetVolumePercent(85);
@@ -796,6 +843,7 @@ export function PackingApp() {
   };
 
   const loadTwoCartonSetTest = () => {
+    clearNumericDraftErrors();
     setMode("single");
     setStrategy("practical");
     setTargetVolumePercent(85);
@@ -813,6 +861,7 @@ export function PackingApp() {
   };
 
   const loadMultiCartonSetTest = () => {
+    clearNumericDraftErrors();
     setMode("single");
     setStrategy("practical");
     setTargetVolumePercent(85);
@@ -830,6 +879,7 @@ export function PackingApp() {
   };
 
   const loadRealA64M = () => {
+    clearNumericDraftErrors();
     setMode("single");
     setStrategy("practical");
     setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
@@ -849,6 +899,7 @@ export function PackingApp() {
   const loadSuppliedRealRecord = (model: string) => {
     const record = HISTORICAL_LOADING_RECORDS.find((item) => item.models.includes(model));
     if (!record) return;
+    clearNumericDraftErrors();
     const setCodeValue = record.cartons.length > 1 ? `REAL-${model.replaceAll(/[^A-Za-z0-9]+/g, "-")}` : "";
     setMode("single");
     setStrategy("practical");
@@ -882,13 +933,14 @@ export function PackingApp() {
   };
 
   const validateInputs = useCallback(() => {
+    if (invalidNumericFields.size) return "有数字输入尚未完成，请填写后再计算。";
     if (!activeProducts.length) return "请至少添加一个产品。";
     const containerError = validateContainerInput(container, clearance);
     if (containerError) return containerError;
     const invalid = activeProducts.find(
       (item) =>
         !item.sku.trim() ||
-        ![item.length, item.width, item.height, item.weight, item.quantity, item.priority, item.maxStackLayers, item.unitsPerSet].every(Number.isFinite) ||
+        ![item.length, item.width, item.height, item.weight, item.quantity, item.priority, item.maxStackLayers].every(Number.isFinite) ||
         item.length <= 0 ||
         item.width <= 0 ||
         item.height <= 0 ||
@@ -900,7 +952,7 @@ export function PackingApp() {
         (mode === "mixed" && (!Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 1_000_000)),
     );
     return invalid ? `${invalid.sku || "未命名产品"} 的尺寸、重量或数量不完整。` : null;
-  }, [activeProducts, clearance, container, mode]);
+  }, [activeProducts, clearance, container, invalidNumericFields, mode]);
 
   const submitPacking = useCallback((payload: PackingRequest, workingMessage = "正在生成可行摆放并执行边界、重叠与载重校验…") => {
     if (activeRequestRef.current) clearActiveCalculation();
@@ -1083,6 +1135,7 @@ export function PackingApp() {
       quantity: suggestedByProduct.get(product.id) ?? 0,
     }));
     setProducts(nextProducts);
+    clearNumericDraftErrors();
     setMode("mixed");
     markDirty();
     setMessage(`已应用 ${reversePlan.recommendedTotal.toLocaleString()} 箱建议数量，正在实时验证双算法摆放…`);
@@ -1130,12 +1183,12 @@ export function PackingApp() {
 
   const downloadTemplate = () => {
     const lines = [
-      "sku,name,length,width,height,weight,quantity,priority,setCode,unitsPerSet,rotationPolicy,stackable,maxStackLayers,mustLoad,bottomOnly,color",
-      "SET5-A-128,五箱套装A箱,1280,540,110,40,120,100,SET-5BOX,1,upright,true,22,true,false,#2f7f89",
-      "SET5-B-068,五箱套装B箱,680,540,110,14,120,100,SET-5BOX,1,upright,true,22,true,false,#a95e78",
-      "SET5-C-103,五箱套装C箱,1030,620,120,30,120,100,SET-5BOX,1,upright,true,20,true,false,#d5a72f",
-      "SET5-D-052,五箱套装D箱,520,350,180,12,120,100,SET-5BOX,1,upright,true,15,true,false,#6b72a9",
-      "SET5-E-090,五箱套装E箱,900,420,140,18,120,100,SET-5BOX,1,upright,true,18,true,false,#609d62",
+      "sku,name,length,width,height,lengthUnit,weight,weightUnit,quantity,priority,setCode,unitsPerSet,rotationPolicy,stackable,maxStackLayers,mustLoad,bottomOnly,color",
+      "SET5-A-128,五箱套装A箱,1280,540,110,mm,40,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#2f7f89",
+      "SET5-B-068,五箱套装B箱,680,540,110,mm,14,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#a95e78",
+      "SET5-C-103,五箱套装C箱,1030,620,120,mm,30,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#d5a72f",
+      "SET5-D-052,五箱套装D箱,520,350,180,mm,12,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#6b72a9",
+      "SET5-E-090,五箱套装E箱,900,420,140,mm,18,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#609d62",
     ];
     downloadFile("拼柜导入模板.csv", `\uFEFF${lines.join("\n")}`, "text/csv;charset=utf-8");
   };
@@ -1149,6 +1202,7 @@ export function PackingApp() {
     try {
       const parsed = parseProductsCsv(await file.text(), COLORS);
       const importedMode = inferImportedPackingMode(parsed);
+      clearNumericDraftErrors();
       setProducts(parsed);
       setMode(importedMode);
       setResultBundle(null);
@@ -1232,8 +1286,8 @@ export function PackingApp() {
             <article className="panel mode-panel">
               <div className="panel-head compact"><div><span className="section-kicker">01</span><h2>计算模式</h2></div></div>
               <div className="segmented" role="group" aria-label="计算模式">
-                <button aria-pressed={mode === "single"} className={mode === "single" ? "active" : ""} onClick={() => { if (mode !== "single") { setMode("single"); markDirty(); } }}><Box size={17} />单品最大装柜</button>
-                <button aria-pressed={mode === "mixed"} className={mode === "mixed" ? "active" : ""} onClick={() => { if (mode !== "mixed") { setMode("mixed"); markDirty(); } }}><Boxes size={17} />多 SKU 拼柜</button>
+                <button aria-pressed={mode === "single"} className={mode === "single" ? "active" : ""} onClick={() => { if (mode !== "single") { clearNumericDraftErrors(); setMode("single"); markDirty(); } }}><Box size={17} />单品最大装柜</button>
+                <button aria-pressed={mode === "mixed"} className={mode === "mixed" ? "active" : ""} onClick={() => { if (mode !== "mixed") { clearNumericDraftErrors(); setMode("mixed"); markDirty(); } }}><Boxes size={17} />多 SKU 拼柜</button>
               </div>
               <p className="helper-text">{mode === "single"
                 ? isSingleProductSet
@@ -1263,7 +1317,7 @@ export function PackingApp() {
               {strategy === "practical" ? (
                 <div className="practical-target">
                   <div><strong>现场经验装载率</strong><span>仅影响现场算法 · 完整支撑</span></div>
-                  <div className="target-input"><input aria-label="现场经验装载率滑块" type="range" min="50" max="95" step="0.5" value={practicalTargetPercent} onChange={(event) => { setPracticalTargetPercent(clampNumber(event.target.value, DEFAULT_PRACTICAL_TARGET * 100, 50, 95)); markDirty(); }} /><input aria-label="现场经验装载率" type="number" min="50" max="95" step="0.5" value={practicalTargetPercent} onChange={(event) => { setPracticalTargetPercent(clampNumber(event.target.value, DEFAULT_PRACTICAL_TARGET * 100, 50, 95)); markDirty(); }} /><b>%</b></div>
+                  <div className="target-input"><input aria-label="现场经验装载率滑块" type="range" min="50" max="95" step="0.5" value={practicalTargetPercent} onChange={(event) => { setNumericFieldValidity("target:practical", true); setPracticalTargetPercent(clampNumber(event.target.value, DEFAULT_PRACTICAL_TARGET * 100, 50, 95)); markDirty(); }} /><NumericInput resetToken={numericResetVersion} ariaLabel="现场经验装载率" value={practicalTargetPercent} min={50} max={95} precision={1} onValueChange={(value) => { setPracticalTargetPercent(value); markDirty(); }} onValidityChange={(valid) => setNumericFieldValidity("target:practical", valid)} /><b>%</b></div>
                 </div>
               ) : <p className="strategy-warning">独立运行三维分区动态规划和多起点自由空间搜索；允许侧翻与 68% 以上局部承托。它是高密度启发式参考，不是全局最优证明，也不能直接替代现场指导书。</p>}
             </article>
@@ -1286,12 +1340,12 @@ export function PackingApp() {
                 <ChevronDown size={16} />
               </label>
               <div className="field-grid three">
-                <Field label="内长" unit="mm"><input type="number" value={container.length} onChange={(event) => updateContainer("length", event.target.value)} /></Field>
-                <Field label="内宽" unit="mm"><input type="number" value={container.width} onChange={(event) => updateContainer("width", event.target.value)} /></Field>
-                <Field label="内高" unit="mm"><input type="number" value={container.height} onChange={(event) => updateContainer("height", event.target.value)} /></Field>
-                <Field label="门宽" unit="mm"><input type="number" value={container.doorWidth} onChange={(event) => updateContainer("doorWidth", event.target.value)} /></Field>
-                <Field label="门高" unit="mm"><input type="number" value={container.doorHeight} onChange={(event) => updateContainer("doorHeight", event.target.value)} /></Field>
-                <Field label="最大载重" unit="kg"><input type="number" value={container.maxWeight} onChange={(event) => updateContainer("maxWeight", event.target.value)} /></Field>
+                <Field label="内长" unit="mm"><NumericInput resetToken={numericResetVersion} ariaLabel="柜体内长" value={container.length} precision={1} onValueChange={(value) => updateContainer("length", value)} onValidityChange={(valid) => setNumericFieldValidity("container:length", valid)} /></Field>
+                <Field label="内宽" unit="mm"><NumericInput resetToken={numericResetVersion} ariaLabel="柜体内宽" value={container.width} precision={1} onValueChange={(value) => updateContainer("width", value)} onValidityChange={(valid) => setNumericFieldValidity("container:width", valid)} /></Field>
+                <Field label="内高" unit="mm"><NumericInput resetToken={numericResetVersion} ariaLabel="柜体内高" value={container.height} precision={1} onValueChange={(value) => updateContainer("height", value)} onValidityChange={(valid) => setNumericFieldValidity("container:height", valid)} /></Field>
+                <Field label="门宽" unit="mm"><NumericInput resetToken={numericResetVersion} ariaLabel="柜门宽度" value={container.doorWidth} precision={1} onValueChange={(value) => updateContainer("doorWidth", value)} onValidityChange={(valid) => setNumericFieldValidity("container:doorWidth", valid)} /></Field>
+                <Field label="门高" unit="mm"><NumericInput resetToken={numericResetVersion} ariaLabel="柜门高度" value={container.doorHeight} precision={1} onValueChange={(value) => updateContainer("doorHeight", value)} onValidityChange={(valid) => setNumericFieldValidity("container:doorHeight", valid)} /></Field>
+                <Field label="最大载重" unit="kg"><NumericInput resetToken={numericResetVersion} ariaLabel="柜体最大载重" value={container.maxWeight} precision={2} onValueChange={(value) => updateContainer("maxWeight", value)} onValidityChange={(valid) => setNumericFieldValidity("container:maxWeight", valid)} /></Field>
               </div>
               <div className="clearance-row">
                 <div><strong>安全间隙</strong><span>自动从有效柜内空间扣除</span></div>
@@ -1314,11 +1368,11 @@ export function PackingApp() {
               <div className="panel-head"><div><span className="section-kicker">03</span><h2>{mode === "single" ? "计划目标与装载上限" : "目标利用率倒推"}</h2></div><span className="pill">{mode === "single" ? "计划量 ≠ 最大量" : "按当前 SKU 比例"}</span></div>
               <div className="target-control">
                 <div><Layers3 size={16} /><span><strong>目标体积利用率</strong><small>按有效柜内容积倒推</small></span></div>
-                <div className="target-input"><input aria-label="目标体积利用率滑块" type="range" min="1" max="100" value={targetVolumePercent} onChange={(event) => { setTargetVolumePercent(numberValue(event.target.value)); markDirty(); }} /><input aria-label="目标体积利用率" type="number" min="1" max="100" value={targetVolumePercent} onChange={(event) => { setTargetVolumePercent(Math.min(100, Math.max(1, numberValue(event.target.value)))); markDirty(); }} /><b>%</b></div>
+                <div className="target-input"><input aria-label="目标体积利用率滑块" type="range" min="1" max="100" value={targetVolumePercent} onChange={(event) => { setNumericFieldValidity("target:volume", true); setTargetVolumePercent(numberValue(event.target.value)); markDirty(); }} /><NumericInput resetToken={numericResetVersion} ariaLabel="目标体积利用率" value={targetVolumePercent} integer min={1} max={100} onValueChange={(value) => { setTargetVolumePercent(value); markDirty(); }} onValidityChange={(valid) => setNumericFieldValidity("target:volume", valid)} /><b>%</b></div>
               </div>
               <div className="target-control">
                 <div><Weight size={16} /><span><strong>目标载重利用率</strong><small>按柜型最大载重倒推</small></span></div>
-                <div className="target-input"><input aria-label="目标载重利用率滑块" type="range" min="1" max="100" value={targetWeightPercent} onChange={(event) => { setTargetWeightPercent(numberValue(event.target.value)); markDirty(); }} /><input aria-label="目标载重利用率" type="number" min="1" max="100" value={targetWeightPercent} onChange={(event) => { setTargetWeightPercent(Math.min(100, Math.max(1, numberValue(event.target.value)))); markDirty(); }} /><b>%</b></div>
+                <div className="target-input"><input aria-label="目标载重利用率滑块" type="range" min="1" max="100" value={targetWeightPercent} onChange={(event) => { setNumericFieldValidity("target:weight", true); setTargetWeightPercent(numberValue(event.target.value)); markDirty(); }} /><NumericInput resetToken={numericResetVersion} ariaLabel="目标载重利用率" value={targetWeightPercent} integer min={1} max={100} onValueChange={(value) => { setTargetWeightPercent(value); markDirty(); }} onValidityChange={(valid) => setNumericFieldValidity("target:weight", valid)} /><b>%</b></div>
               </div>
               <div className="reverse-count-grid">
                 <div>
@@ -1482,6 +1536,32 @@ export function PackingApp() {
               {mode === "mixed" ? <button className="button primary small" onClick={addProduct}><Plus size={15} />添加 SKU</button> : null}
             </div>
           </div>
+          <div className="unit-toolbar" role="group" aria-label="箱规录入单位">
+            <div>
+              <strong>箱规录入单位</strong>
+              <small>切换只改变下方箱规表的录入和显示；内部始终按 mm / kg 计算，装柜数量不会因换单位而改变。</small>
+            </div>
+            <label>
+              <span>长度</span>
+              <select aria-label="长度单位" value={lengthUnit} onChange={(event) => {
+                if (!isLengthUnit(event.target.value)) return;
+                clearNumericDraftErrors();
+                setLengthUnit(event.target.value);
+              }}>
+                {LENGTH_UNIT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>重量</span>
+              <select aria-label="重量单位" value={weightUnit} onChange={(event) => {
+                if (!isWeightUnit(event.target.value)) return;
+                clearNumericDraftErrors();
+                setWeightUnit(event.target.value);
+              }}>
+                {WEIGHT_UNIT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </label>
+          </div>
           <section className="set-builder" aria-label={mode === "single" ? "单品多箱包装助手" : "多箱套装助手"}>
               <div className="set-builder-head">
                 <div>
@@ -1549,14 +1629,14 @@ export function PackingApp() {
                   return <tr key={product.id}>
                     <td><input className="color-input" aria-label={`${product.sku} 颜色`} type="color" value={product.color} onChange={(event) => updateProduct(product.id, "color", event.target.value)} /></td>
                     <td><input aria-label={`${product.sku} SKU`} maxLength={80} className="sku-input" value={product.sku} onChange={(event) => updateProduct(product.id, "sku", event.target.value)} /><input aria-label={`${product.sku} 品名`} maxLength={200} className="name-input" value={product.name} onChange={(event) => updateProduct(product.id, "name", event.target.value)} /></td>
-                    <td><input aria-label={`${product.sku} 外箱长`} type="number" min="0" value={product.length} onChange={(event) => updateProduct(product.id, "length", event.target.value)} /><small>mm</small></td>
-                    <td><input aria-label={`${product.sku} 外箱宽`} type="number" min="0" value={product.width} onChange={(event) => updateProduct(product.id, "width", event.target.value)} /><small>mm</small></td>
-                    <td><input aria-label={`${product.sku} 外箱高`} type="number" min="0" value={product.height} onChange={(event) => updateProduct(product.id, "height", event.target.value)} /><small>mm</small></td>
-                    <td className="cbm-cell"><output className="cbm-auto-value" aria-label={`${product.sku} 自动计算 CBM`}>{roundedCbm.toFixed(2)}</output><small>自动计算 · 精确值 {calculatedCbm.toFixed(4)}</small></td>
-                    <td><input aria-label={`${product.sku} 毛重`} type="number" min="0" step="0.1" value={product.weight} onChange={(event) => updateProduct(product.id, "weight", event.target.value)} /><small>kg</small></td>
-                    {mode === "mixed" ? <td><input aria-label={`${product.sku} 需求箱数`} type="number" min="0" max="1000000" step="1" value={product.quantity} onChange={(event) => updateProduct(product.id, "quantity", event.target.value)} /><small>箱</small></td> : null}
-                    {mode === "mixed" || isSingleProductSet ? <><td><input className="set-code-input" aria-label={`${product.sku} 套装编码`} maxLength={80} value={product.setCode ?? ""} placeholder="留空=散箱" readOnly={mode === "single"} onChange={(event) => updateProduct(product.id, "setCode", event.target.value)} /><small>{mode === "single" ? "同一产品包装" : "同编码组成一套"}</small></td><td><input aria-label={`${product.sku} 套内数量`} type="number" min="1" max="99" step="1" value={product.unitsPerSet || 1} onChange={(event) => updateProduct(product.id, "unitsPerSet", event.target.value)} /><small>箱 / 套</small></td></> : null}
-                    {mode === "mixed" ? <><td><input aria-label={`${product.sku} 装载优先级`} type="number" min="0" max="100" step="1" value={product.priority} onChange={(event) => updateProduct(product.id, "priority", event.target.value)} /><small>数值越高越先装</small></td><td><label className="switch" title="必装货物优先于塞货，并在缺装时单独告警"><input aria-label={`${product.sku} 必装`} type="checkbox" checked={product.mustLoad !== false} onChange={(event) => updateProduct(product.id, "mustLoad", event.target.checked)} /><span /></label></td></> : null}
+                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 外箱长`} value={fromMillimeters(product.length, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => updateProduct(product.id, "length", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:length`, valid)} /><small className="cell-unit">{lengthUnit}</small></td>
+                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 外箱宽`} value={fromMillimeters(product.width, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => updateProduct(product.id, "width", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:width`, valid)} /><small className="cell-unit">{lengthUnit}</small></td>
+                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 外箱高`} value={fromMillimeters(product.height, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => updateProduct(product.id, "height", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:height`, valid)} /><small className="cell-unit">{lengthUnit}</small></td>
+                    <td className="cbm-cell"><output className="cbm-auto-value" aria-label={`${product.sku} 自动计算 CBM`}>{roundedCbm.toFixed(2)}</output><small className="cell-meta">自动计算 · 精确值 {calculatedCbm.toFixed(4)}</small></td>
+                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 毛重`} value={fromKilograms(product.weight, weightUnit)} precision={weightUnitPrecision(weightUnit)} onValueChange={(value) => updateProduct(product.id, "weight", toKilograms(value, weightUnit))} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:weight`, valid)} /><small className="cell-unit">{weightUnit}</small></td>
+                    {mode === "mixed" ? <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 需求箱数`} value={product.quantity} integer max={1_000_000} onValueChange={(value) => updateProduct(product.id, "quantity", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:quantity`, valid)} /><small className="cell-unit">箱</small></td> : null}
+                    {mode === "mixed" || isSingleProductSet ? <><td><input className="set-code-input" aria-label={`${product.sku} 套装编码`} maxLength={80} value={product.setCode ?? ""} placeholder="留空=散箱" readOnly={mode === "single"} onChange={(event) => updateProduct(product.id, "setCode", event.target.value)} /><small>{mode === "single" ? "同一产品包装" : "同编码组成一套"}</small></td><td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 套内数量`} value={product.unitsPerSet || 1} integer min={1} max={99} onValueChange={(value) => updateProduct(product.id, "unitsPerSet", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:unitsPerSet`, valid)} /><small className="cell-unit">箱 / 套</small></td></> : null}
+                    {mode === "mixed" ? <><td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 装载优先级`} value={product.priority} integer max={100} onValueChange={(value) => updateProduct(product.id, "priority", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:priority`, valid)} /><small className="cell-meta">数值越高越先装</small></td><td><label className="switch" title="必装货物优先于塞货，并在缺装时单独告警"><input aria-label={`${product.sku} 必装`} type="checkbox" checked={product.mustLoad !== false} onChange={(event) => updateProduct(product.id, "mustLoad", event.target.checked)} /><span /></label></td></> : null}
                     <td>
                       <select className="constraint-select" aria-label={`${product.sku} 方向规则`} value={product.rotationPolicy} onChange={(event) => updateProduct(product.id, "rotationPolicy", event.target.value)}>
                         <option value="fixed">固定方向</option>
@@ -1566,7 +1646,7 @@ export function PackingApp() {
                     </td>
                     <td><label className="switch" title="关闭后，其他箱体不能放在此产品上方"><input aria-label={`${product.sku} 可承托`} type="checkbox" checked={product.stackable} onChange={(event) => updateProduct(product.id, "stackable", event.target.checked)} /><span /></label></td>
                     <td><label className="switch" title="开启后该产品只允许摆放在集装箱地板"><input aria-label={`${product.sku} 必须底置`} type="checkbox" checked={product.bottomOnly === true} onChange={(event) => updateProduct(product.id, "bottomOnly", event.target.checked)} /><span /></label></td>
-                    <td><input aria-label={`${product.sku} 层数上限`} type="number" min="0" max="99" step="1" value={product.maxStackLayers} onChange={(event) => updateProduct(product.id, "maxStackLayers", event.target.value)} /><small>0 = 不限</small></td>
+                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 层数上限`} value={product.maxStackLayers} integer max={99} onValueChange={(value) => updateProduct(product.id, "maxStackLayers", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:maxStackLayers`, valid)} /><small className="cell-meta" title="0 表示不设置人为层数上限，仍受柜高、门高、承托和载重约束">0 = 自动按柜高</small></td>
                     <td>{mode === "mixed" || isSingleProductSet ? <button className="icon-button danger" aria-label={`删除 ${product.sku}`} onClick={() => removeProduct(product.id)} disabled={activeProducts.length <= 1}><Trash2 size={16} /></button> : null}</td>
                   </tr>
                 })}

@@ -115,8 +115,32 @@ test("provides accessible names for mode, ranges, and product data fields", asyn
   assert.match(source, /aria-pressed=\{mode === "single"\}/);
   assert.match(source, /aria-label="安全间隙"/);
   assert.match(source, /aria-label="目标体积利用率滑块"/);
-  assert.match(source, /aria-label=\{`\$\{product\.sku\} 外箱长`\}/);
-  assert.match(source, /aria-label=\{`\$\{product\.sku\} 层数上限`\}/);
+  assert.match(source, /ariaLabel=\{`\$\{product\.sku\} 外箱长`\}/);
+  assert.match(source, /ariaLabel=\{`\$\{product\.sku\} 层数上限`\}/);
+});
+
+test("keeps unit switching canonical and removes implicit layer caps and leading-zero coercion", async () => {
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+  const numericInput = await readFile(new URL("../components/numeric-input.tsx", import.meta.url), "utf8");
+  const units = await readFile(new URL("../lib/packing/units.ts", import.meta.url), "utf8");
+  const presets = await readFile(new URL("../lib/packing/presets.ts", import.meta.url), "utf8");
+  const csv = await readFile(new URL("../lib/packing/csv.ts", import.meta.url), "utf8");
+  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  assert.match(source, /maxStackLayers: 0/);
+  assert.doesNotMatch(source, /item\.maxStackLayers, item\.unitsPerSet\]\.every\(Number\.isFinite\)/);
+  assert.doesNotMatch(presets, /maxStackLayers: [1-9]/);
+  assert.match(source, /0 = 自动按柜高/);
+  assert.match(source, /aria-label="箱规录入单位"/);
+  assert.match(source, /toMillimeters\(value, lengthUnit\)/);
+  assert.match(source, /toKilograms\(value, weightUnit\)/);
+  assert.match(numericInput, /type="text"/);
+  assert.match(numericInput, /parsed\.state !== "valid"/);
+  assert.match(units, /mm: 1/);
+  assert.match(units, /kg: 1/);
+  assert.match(csv, /get\("lengthUnit"\)/);
+  assert.match(csv, /get\("weightUnit"\)/);
+  assert.match(styles, /\.product-table td \.cell-unit[^}]*text-align: center/s);
 });
 
 test("keeps a multi-carton product in single-product mode without carton demand input", async () => {

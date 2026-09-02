@@ -658,8 +658,8 @@ describe("packing engine", () => {
     const twoCartonSet = pack({ ...common, products: TWO_CARTON_SET_PRODUCTS });
 
     expect(dimensions.validation.valid).toBe(true);
-    expect(dimensions.metrics.loadedCount).toBe(690);
-    expect(dimensions.metrics.grossWeight).toBe(27660);
+    expect(dimensions.metrics.loadedCount).toBe(720);
+    expect(dimensions.metrics.grossWeight).toBe(28560);
     expect(twoCartonSet.validation.valid).toBe(true);
     expect(twoCartonSet.setSummaries[0]).toMatchObject({ requestedSets: 400, loadedSets: 400, unloadedSets: 0 });
     expect(twoCartonSet.metrics.loadedCount).toBe(800);
@@ -717,16 +717,16 @@ describe("packing engine", () => {
       recommendedTotal: 952,
       limitingFactor: "weight",
     });
-    expect(capacity.setSummaries[0].loadedSets).toBe(528);
-    expect(capacity.metrics.weightUtilization).toBeCloseTo(0.9969, 3);
+    expect(capacity.setSummaries[0].loadedSets).toBe(529);
+    expect(capacity.metrics.weightUtilization).toBeCloseTo(0.9988, 3);
     expect(planned.singleCartonLimit).toBe(952);
     expect(planned.setSummaries[0].loadedSets).toBe(476);
     expect(planned.metrics.loadedCount).toBe(952);
     expect(planned.metrics.weightUtilization).toBeLessThanOrEqual(0.9);
     expect(planned.strategyComparison).toMatchObject({
       practical: { displayQuantity: 476 },
-      maximum: { displayQuantity: 528 },
-      gainQuantity: 52,
+      maximum: { displayQuantity: 529 },
+      gainQuantity: 53,
       sameQuantity: false,
     });
     expect(planned.validation.valid).toBe(true);
@@ -737,13 +737,13 @@ describe("packing engine", () => {
     });
     expect(planned.strategyPlans?.maximum).toMatchObject({
       strategy: "maximum",
-      metrics: { loadedCount: 1056 },
+      metrics: { loadedCount: 1058 },
     });
     expect(planned.strategyPlans?.maximum?.singleCartonLimit).toBeUndefined();
     expect(planned.strategyPlans?.practical?.metrics.solveTimeMs).toBeLessThan(1_000);
     expect(planned.strategyPlans?.practical?.id).not.toBe(planned.strategyPlans?.maximum?.id);
     expect(planned.strategyPlans?.practical?.setSummaries[0].loadedSets).toBe(476);
-    expect(planned.strategyPlans?.maximum?.setSummaries[0].loadedSets).toBe(528);
+    expect(planned.strategyPlans?.maximum?.setSummaries[0].loadedSets).toBe(529);
     expect(planned.strategyPlans?.practical?.validation.valid).toBe(true);
     expect(planned.strategyPlans?.maximum?.validation.valid).toBe(true);
     expect(planned.strategyPlans?.practical?.warnings.join(" ")).toContain("已跳过不会增加数量");
@@ -753,7 +753,7 @@ describe("packing engine", () => {
       "maximum",
     );
     expect(recombinedMaximum.strategy).toBe("maximum");
-    expect(recombinedMaximum.setSummaries[0].loadedSets).toBe(528);
+    expect(recombinedMaximum.setSummaries[0].loadedSets).toBe(529);
     expect(recombinedMaximum.strategyPlans?.practical?.setSummaries[0].loadedSets).toBe(476);
     const maximumPlan = planned.strategyPlans!.maximum!;
     const firstThird = maximumPlan.placements.slice(0, Math.ceil(maximumPlan.placements.length * 0.32));
@@ -767,12 +767,11 @@ describe("packing engine", () => {
       singleCartonLimit: fullTarget.recommendedTotal,
     });
     expect(fullTarget.recommendedDisplay).toBe(529);
-    expect(fullTargetPlan.setSummaries[0].loadedSets).toBe(528);
-    expect(fullTargetPlan.warnings.join(" ")).toContain("算术上限为 529 套");
-    expect(fullTargetPlan.warnings.join(" ")).toContain("独立校验可执行 528 套");
+    expect(fullTargetPlan.setSummaries[0].loadedSets).toBe(529);
+    expect(fullTargetPlan.warnings.join(" ")).toContain("当前计划上限 529 个完整套");
     expect(fullTargetPlan.strategyComparison?.guidance).toContainEqual(expect.objectContaining({
-      title: "算术计划已收敛到可执行坐标",
-      detail: expect.stringContaining("页面统一采用后者"),
+      title: "现场方案已达到当前极限搜索结果",
+      detail: expect.stringContaining("两套求解器分别运行"),
     }));
   }, 45_000);
 
