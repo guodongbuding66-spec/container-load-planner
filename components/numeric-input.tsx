@@ -7,6 +7,7 @@ type Props = {
   value: number;
   onValueChange: (value: number) => void;
   onValidityChange?: (valid: boolean) => void;
+  onFocusChange?: (focused: boolean) => void;
   ariaLabel: string;
   integer?: boolean;
   min?: number;
@@ -20,6 +21,7 @@ export function NumericInput({
   value,
   onValueChange,
   onValidityChange,
+  onFocusChange,
   ariaLabel,
   integer = false,
   min = 0,
@@ -52,7 +54,10 @@ export function NumericInput({
       inputMode={integer ? "numeric" : "decimal"}
       type="text"
       value={draft}
-      onFocus={() => { focusedRef.current = true; }}
+      onFocus={() => {
+        focusedRef.current = true;
+        onFocusChange?.(true);
+      }}
       onChange={(event) => {
         const nextDraft = event.target.value;
         setDraft(nextDraft);
@@ -68,6 +73,7 @@ export function NumericInput({
         focusedRef.current = false;
         const parsed = parseNumericDraft(draft, { integer, min, max });
         if (parsed.state === "valid") setDraft(formatEditableNumber(parsed.value, precision));
+        onFocusChange?.(false);
       }}
       onKeyDown={(event) => {
         if (event.key === "Enter") event.currentTarget.blur();

@@ -18,9 +18,9 @@ const TOOLS = [
     icon: Newspaper,
   },
   {
-    href: "https://github.com/guodongbuding66-spec/galaxy-downloader",
-    name: "Galaxy Downloader",
-    description: "全能媒体下载器项目主页与最新版入口",
+    href: "https://galaxy-downloader.guodongbuding66.workers.dev/zh",
+    name: "SparkDownloader",
+    description: "在线视频、音频、图文与 HLS 下载工具",
     icon: Video,
   },
 ] as const;

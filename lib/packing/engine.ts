@@ -21,7 +21,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.14.0";
+export const ENGINE_VERSION = "0.14.1";
 
 type Orientation = {
   dx: number;
@@ -901,48 +901,98 @@ function buildPracticalLayeredSet(
   const remainderItems = orderedPatterns.flatMap((pattern) =>
     Array.from({ length: pattern.remainder }, () => pattern),
   ).sort((a, b) => b.orientation.dx * b.orientation.dy - a.orientation.dx * a.orientation.dy);
-  if (remainderItems.length) {
-    const supportLength = orderedPatterns.some((pattern) => pattern.fullLayers > 0)
-      ? orderedPatterns.filter((pattern) => pattern.fullLayers > 0).at(-1)!.coverageLength
-      : container.length;
-    const supportWidth = orderedPatterns.some((pattern) => pattern.fullLayers > 0)
-      ? orderedPatterns.filter((pattern) => pattern.fullLayers > 0).at(-1)!.coverageWidth
-      : container.width;
-    const layerPlacements: PlacedBox[] = [];
-    let points: Array<{ x: number; y: number }> = [{ x: 0, y: 0 }];
-    for (const pattern of remainderItems) {
-      if (z + pattern.orientation.dz > container.height + EPS) return null;
-      if (maxStackLayers(pattern.product) > 0 && layer > maxStackLayers(pattern.product)) return null;
-      const point = [...points]
-        .sort((a, b) => a.y - b.y || a.x - b.x)
-        .find((candidate) => {
-          if (candidate.x + pattern.orientation.dx > supportLength + EPS || candidate.y + pattern.orientation.dy > supportWidth + EPS) return false;
-          const candidateBox = makePlacement(pattern.product, -1, { ...candidate, z }, pattern.orientation, layer);
-          return layerPlacements.every((box) => !overlaps(candidateBox, box));
-        });
-      if (!point) return null;
-      const placed = makePlacement(
-        pattern.product,
-        placements.length + layerPlacements.length,
-        { ...point, z },
-        pattern.orientation,
-        layer,
-      );
-      layerPlacements.push(placed);
-      points = [
-        ...points.filter((candidate) => !(candidate.x >= placed.x - EPS && candidate.x < placed.x + placed.dx - EPS && candidate.y >= placed.y - EPS && candidate.y < placed.y + placed.dy - EPS)),
-        { x: placed.x + placed.dx, y: placed.y },
-        { x: placed.x, y: placed.y + placed.dy },
-      ].filter((candidate) => candidate.x < supportLength - EPS && candidate.y < supportWidth - EPS);
+  const expectedCartons = products.reduce((sum, product) => sum + targetSets * unitsPerSet(product), 0);
+  const finalize = (remainderPlacements: PlacedBox[]) => {
+    const candidate = [...placements, ...remainderPlacements];
+    if (candidate.length !== expectedCartons) return null;
+    assignSetTrace(candidate, products);
+    const ordered = orderForLoading(candidate);
+    return validatePacking(ordered, request.container, request.clearance, products, "practical", request.mode).valid
+      ? ordered
+      : null;
+  };
+  if (!remainderItems.length) return finalize([]);
+
+  const supportLength = orderedPatterns.some((pattern) => pattern.fullLayers > 0)
+    ? orderedPatterns.filter((pattern) => pattern.fullLayers > 0).at(-1)!.coverageLength
+    : container.length;
+  const supportWidth = orderedPatterns.some((pattern) => pattern.fullLayers > 0)
+    ? orderedPatterns.filter((pattern) => pattern.fullLayers > 0).at(-1)!.coverageWidth
+    : container.width;
+
+  // First try the most compact option: mix every remainder on one level.
+  const combinedRemainder: PlacedBox[] = [];
+  let combinedFits = true;
+  let points: Array<{ x: number; y: number }> = [{ x: 0, y: 0 }];
+  for (const pattern of remainderItems) {
+    if (z + pattern.orientation.dz > container.height + EPS ||
+      (maxStackLayers(pattern.product) > 0 && layer > maxStackLayers(pattern.product))) {
+      combinedFits = false;
+      break;
     }
-    placements.push(...layerPlacements);
+    const point = [...points]
+      .sort((a, b) => a.y - b.y || a.x - b.x)
+      .find((candidate) => {
+        if (candidate.x + pattern.orientation.dx > supportLength + EPS || candidate.y + pattern.orientation.dy > supportWidth + EPS) return false;
+        const candidateBox = makePlacement(pattern.product, -1, { ...candidate, z }, pattern.orientation, layer);
+        return combinedRemainder.every((box) => !overlaps(candidateBox, box));
+      });
+    if (!point) {
+      combinedFits = false;
+      break;
+    }
+    const placed = makePlacement(
+      pattern.product,
+      placements.length + combinedRemainder.length,
+      { ...point, z },
+      pattern.orientation,
+      layer,
+    );
+    combinedRemainder.push(placed);
+    points = [
+      ...points.filter((candidate) => !(candidate.x >= placed.x - EPS && candidate.x < placed.x + placed.dx - EPS && candidate.y >= placed.y - EPS && candidate.y < placed.y + placed.dy - EPS)),
+      { x: placed.x + placed.dx, y: placed.y },
+      { x: placed.x, y: placed.y + placed.dy },
+    ].filter((candidate) => candidate.x < supportLength - EPS && candidate.y < supportWidth - EPS);
+  }
+  if (combinedFits) {
+    const combined = finalize(combinedRemainder);
+    if (combined) return combined;
   }
 
-  const expectedCartons = products.reduce((sum, product) => sum + targetSets * unitsPerSet(product), 0);
-  if (placements.length !== expectedCartons) return null;
-  assignSetTrace(placements, products);
-  const ordered = orderForLoading(placements);
-  return validatePacking(ordered, request.container, request.clearance, products, "practical", request.mode).valid ? ordered : null;
+  // A shared tail layer can fail even when there is spare height. Keep each
+  // SKU remainder in a dense, rectangular level, largest footprint first.
+  // The normal practical validator still rejects any incomplete support,
+  // overlap, boundary, layer-limit or door violation.
+  const separateRemainder: PlacedBox[] = [];
+  let separateZ = z;
+  let separateLayer = layer;
+  const remainderPatterns = orderedPatterns
+    .filter((pattern) => pattern.remainder > 0)
+    .sort((a, b) =>
+      b.remainder * b.orientation.dx * b.orientation.dy - a.remainder * a.orientation.dx * a.orientation.dy ||
+      b.coverageLength * b.coverageWidth - a.coverageLength * a.coverageWidth,
+    );
+  for (const pattern of remainderPatterns) {
+    if (separateZ + pattern.orientation.dz > container.height + EPS) return null;
+    if (maxStackLayers(pattern.product) > 0 && separateLayer > maxStackLayers(pattern.product)) return null;
+    for (let index = 0; index < pattern.remainder; index += 1) {
+      separateRemainder.push(makePlacement(
+        pattern.product,
+        placements.length + separateRemainder.length,
+        {
+          x: (index % pattern.nx) * pattern.orientation.dx,
+          y: Math.floor(index / pattern.nx) * pattern.orientation.dy,
+          z: separateZ,
+        },
+        pattern.orientation,
+        separateLayer,
+      ));
+    }
+    separateZ += pattern.orientation.dz;
+    separateLayer += 1;
+  }
+  return finalize(separateRemainder);
 }
 
 function packSingleSet(

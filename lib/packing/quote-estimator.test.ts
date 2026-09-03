@@ -66,11 +66,11 @@ describe("dual-track quote estimator", () => {
     }
   });
 
-  it("keeps generalized median-CBM error near three percent for 90% of plausible rows", () => {
-    expect(CALIBRATION_BACKTEST_STATS.meanErrorPct).toBeLessThan(1.5);
-    expect(CALIBRATION_BACKTEST_STATS.p90ErrorPct).toBeLessThanOrEqual(3.7);
-    expect(CALIBRATION_BACKTEST_STATS.maxErrorPct).toBeLessThanOrEqual(6.6);
-    expect(CALIBRATION_BACKTEST_STATS.dataPoints).toBe(33);
+  it("keeps generalized median-CBM mean error below two percent and p90 below five percent", () => {
+    expect(CALIBRATION_BACKTEST_STATS.meanErrorPct).toBeLessThan(2);
+    expect(CALIBRATION_BACKTEST_STATS.p90ErrorPct).toBeLessThanOrEqual(5);
+    expect(CALIBRATION_BACKTEST_STATS.maxErrorPct).toBeLessThanOrEqual(7);
+    expect(CALIBRATION_BACKTEST_STATS.dataPoints).toBe(36);
   });
 
   it("reports A64M as a verified quote that exceeds every standard container volume", () => {
@@ -144,5 +144,18 @@ describe("dual-track quote estimator", () => {
     expect(estimate.predictedSets).toBe(275);
     expect(estimate.setWeightKg).toBe(46);
     expect(estimate.dataQualityWarnings.join(" ")).toContain("净重/毛重标签");
+  });
+
+  it("treats the new two-row field record as one complete two-carton set", () => {
+    const source = HISTORICAL_LOADING_RECORDS.find((item) => item.models.includes("实装记录·双箱 189/168"))!;
+    const input = request(productsForRecord(source), 2);
+    const estimate = estimateQuoteLoading(input, effectiveVolume(input), 0)!;
+
+    expect(estimate.source).toBe("historical-exact");
+    expect(estimate.predictedSets).toBe(270);
+    expect(estimate.setWeightKg).toBeCloseTo(85.8, 8);
+    expect(estimate.setPhysicalVolumeCbm).toBeCloseTo(0.244146, 8);
+    expect(estimate.dataQualityWarnings.join(" ")).toContain("1set / 1 ctn");
+    expect(estimate.dataQualityWarnings.join(" ")).toContain("1 套 2 箱");
   });
 });

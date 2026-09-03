@@ -47,7 +47,7 @@ test("blocks stale or invalid exports and discards obsolete worker results", asy
   const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
   const calculationState = await readFile(new URL("../lib/packing/calculation-state.ts", import.meta.url), "utf8");
 
-  assert.match(source, /const canExport = Boolean\(result\?\.validation\.valid && !dirty/);
+  assert.match(source, /const canExport = Boolean\(result\?\.validation\.valid && !dirty && !hasPendingDimensionChanges\)/);
   assert.match(source, /disabled=\{!canExport\}/);
   assert.match(source, /discardObsoleteCalculation/);
   assert.match(source, /旧结果已安全丢弃/);
@@ -86,6 +86,24 @@ test("auto-recalculates one dual-plan snapshot and hides stale visual data", asy
   assert.doesNotMatch(source, /点击“开始计算装柜方案”/);
   assert.match(calculationState, /Math\.min\(reversePlan\.recommendedTotal, verifiedCartons\)/);
   assert.match(calculationState, /Math\.floor\(rawCartons \/ Math\.max\(1, reversePlan\.cartonsPerSet\)\)/);
+});
+
+test("batches all dimension fields into one committed recalculation", async () => {
+  const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
+  const numericInput = await readFile(new URL("../components/numeric-input.tsx", import.meta.url), "utf8");
+
+  assert.match(numericInput, /onFocusChange\?: \(focused: boolean\) => void/);
+  assert.match(numericInput, /onFocusChange\?\.\(true\)/);
+  assert.match(numericInput, /onFocusChange\?\.\(false\)/);
+  assert.match(source, /pendingDimensionChangesRef/);
+  assert.match(source, /stageProductDimension\(product\.id, "length"/);
+  assert.match(source, /stageProductDimension\(product\.id, "width"/);
+  assert.match(source, /stageProductDimension\(product\.id, "height"/);
+  assert.match(source, /onFocusChange=\{handleDimensionFocusChange\}/);
+  assert.match(source, /if \(!hydrated \|\| isEditingDimensions \|\| hasPendingDimensionChanges\) return/);
+  assert.match(source, /if \(!dirty && resultBundle\) return/);
+  assert.match(source, /完成所有长、宽、高并离开尺寸输入区后，将统一重算一次/);
+  assert.match(source, /离开尺寸输入区后仅统一重算一次/);
 });
 
 test("debounces draft persistence and recognizes a one-code multi-carton CSV as one product", async () => {

@@ -107,6 +107,7 @@ const MAX_VISIBLE_SET_SUMMARIES = 50;
 const MAX_VISIBLE_SET_ITEMS = 16;
 const COLORS = ["#2f7f89", "#c66a3d", "#d5a72f", "#6b72a9", "#609d62", "#a95e78", "#447ca8"];
 const VALID_COLOR = /^#[0-9a-f]{6}$/i;
+type DimensionField = "length" | "width" | "height";
 
 type CalcStatus = "idle" | "working" | "done" | "error";
 type StorageState = "saved" | "error";
@@ -321,6 +322,8 @@ export function PackingApp() {
   const [weightUnit, setWeightUnit] = useState<WeightUnit>("kg");
   const [invalidNumericFields, setInvalidNumericFields] = useState<Set<string>>(new Set());
   const [numericResetVersion, setNumericResetVersion] = useState(0);
+  const [isEditingDimensions, setIsEditingDimensions] = useState(false);
+  const [hasPendingDimensionChanges, setHasPendingDimensionChanges] = useState(false);
   const [packingProgress, setPackingProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
@@ -334,6 +337,8 @@ export function PackingApp() {
   const workerResultsRef = useRef<Partial<Record<PackingStrategy, PackingResult>>>({});
   const calculationTimeoutRef = useRef<number | null>(null);
   const maximumStartTimerRef = useRef<number | null>(null);
+  const dimensionBlurTimerRef = useRef<number | null>(null);
+  const pendingDimensionChangesRef = useRef<Map<string, Partial<Record<DimensionField, number>>>>(new Map());
   const activeRequestRef = useRef<string | null>(null);
   const activeRevisionRef = useRef<number | null>(null);
   const inputRevisionRef = useRef(0);
@@ -480,7 +485,10 @@ export function PackingApp() {
     return () => window.clearTimeout(saveTimer);
   }, [clearance, container, customContainers, hydrated, lengthUnit, mode, practicalTargetPercent, products, strategy, targetVolumePercent, targetWeightPercent, weightUnit]);
 
-  useEffect(() => () => terminateActiveWorkers(), [terminateActiveWorkers]);
+  useEffect(() => () => {
+    terminateActiveWorkers();
+    if (dimensionBlurTimerRef.current !== null) window.clearTimeout(dimensionBlurTimerRef.current);
+  }, [terminateActiveWorkers]);
 
   useEffect(() => {
     const preparePrint = () => flushSync(() => setRenderPrintViews(true));
@@ -549,6 +557,13 @@ export function PackingApp() {
   const clearNumericDraftErrors = useCallback(() => {
     setInvalidNumericFields(new Set());
     setNumericResetVersion((current) => current + 1);
+    pendingDimensionChangesRef.current.clear();
+    setHasPendingDimensionChanges(false);
+    setIsEditingDimensions(false);
+    if (dimensionBlurTimerRef.current !== null) {
+      window.clearTimeout(dimensionBlurTimerRef.current);
+      dimensionBlurTimerRef.current = null;
+    }
   }, []);
 
   const switchStrategy = (nextStrategy: PackingStrategy) => {
@@ -739,6 +754,76 @@ export function PackingApp() {
     );
     markDirty();
   };
+
+  const beginDimensionEditTransaction = useCallback(() => {
+    if (pendingDimensionChangesRef.current.size === 0) {
+      // A running worker still represents the previously committed dimensions.
+      // Stop it once, then keep that last verified plan visible while the user
+      // moves through every length/width/height field.
+      inputRevisionRef.current += 1;
+      clearActiveCalculation();
+      setStatus((current) => current === "working" ? "idle" : current);
+      setIsPlaying(false);
+    }
+    setHasPendingDimensionChanges(true);
+    setMessage("尺寸录入中；完成所有长、宽、高并离开尺寸输入区后，将统一重算一次");
+  }, [clearActiveCalculation]);
+
+  const stageProductDimension = useCallback((id: string, field: DimensionField, value: number) => {
+    beginDimensionEditTransaction();
+    const current = pendingDimensionChangesRef.current.get(id) ?? {};
+    pendingDimensionChangesRef.current.set(id, { ...current, [field]: value });
+  }, [beginDimensionEditTransaction]);
+
+  const setDimensionFieldValidity = useCallback((id: string, field: DimensionField, valid: boolean) => {
+    const fieldKey = `product:${id}:${field}`;
+    setInvalidNumericFields((current) => {
+      const hasField = current.has(fieldKey);
+      if ((valid && !hasField) || (!valid && hasField)) return current;
+      const next = new Set(current);
+      if (valid) next.delete(fieldKey);
+      else next.add(fieldKey);
+      return next;
+    });
+    if (!valid) {
+      beginDimensionEditTransaction();
+      if (!pendingDimensionChangesRef.current.has(id)) pendingDimensionChangesRef.current.set(id, {});
+    }
+  }, [beginDimensionEditTransaction]);
+
+  const commitPendingDimensions = useCallback(() => {
+    const pending = new Map(pendingDimensionChangesRef.current);
+    pendingDimensionChangesRef.current.clear();
+    setHasPendingDimensionChanges(false);
+    setIsEditingDimensions(false);
+    if (!pending.size) return;
+
+    setProducts((current) => current.map((product) => {
+      const dimensions = pending.get(product.id);
+      if (!dimensions || !Object.keys(dimensions).length) return product;
+      const updated = { ...product, ...dimensions };
+      return { ...updated, declaredVolumeCbm: roundedCartonVolumeCbm(updated) };
+    }));
+    markDirty();
+    setMessage("尺寸已一次性提交；正在按完整的长、宽、高生成最新方案");
+  }, [markDirty]);
+
+  const handleDimensionFocusChange = useCallback((focused: boolean) => {
+    if (dimensionBlurTimerRef.current !== null) {
+      window.clearTimeout(dimensionBlurTimerRef.current);
+      dimensionBlurTimerRef.current = null;
+    }
+    if (focused) {
+      setIsEditingDimensions(true);
+      return;
+    }
+    // Blur fires before the next input's focus event. Deferring one task keeps
+    // tabbing/clicking across products and all three dimensions in one edit session.
+    dimensionBlurTimerRef.current = window.setTimeout(() => {
+      dimensionBlurTimerRef.current = null;
+      commitPendingDimensions();
+    }, 0);
+  }, [commitPendingDimensions]);
 
   const addProduct = () => {
     setProducts((current) => [...current, createProduct(current.length)]);
@@ -1087,6 +1172,10 @@ export function PackingApp() {
   }, [acceptResult, clearActiveCalculation, discardObsoleteCalculation, presentPlan]);
 
   const calculate = useCallback(() => {
+    if (isEditingDimensions || hasPendingDimensionChanges) {
+      setMessage("尺寸尚未提交；完成所有长、宽、高并离开尺寸输入区后再统一计算");
+      return;
+    }
     const error = validateInputs();
     if (error) {
       clearActiveCalculation();
@@ -1111,13 +1200,14 @@ export function PackingApp() {
     }, mode === "single"
       ? `正在实时重算现场与极限方案；计划上限 ${reversePlan.recommendedDisplay.toLocaleString()} ${reversePlan.displayUnit === "set" ? "套" : "箱"}…`
       : "正在实时重算双算法坐标，并执行边界、重叠与载重校验…");
-  }, [activeProducts, clearance, clearActiveCalculation, container, mode, practicalTargetPercent, reversePlan, submitPacking, validateInputs]);
+  }, [activeProducts, clearance, clearActiveCalculation, container, hasPendingDimensionChanges, isEditingDimensions, mode, practicalTargetPercent, reversePlan, submitPacking, validateInputs]);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || isEditingDimensions || hasPendingDimensionChanges) return;
+    if (!dirty && resultBundle) return;
     const timer = window.setTimeout(calculate, AUTO_CALCULATE_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [calculate, hydrated]);
+  }, [calculate, dirty, hasPendingDimensionChanges, hydrated, isEditingDimensions, resultBundle]);
 
   const applyReversePlan = () => {
     if (reversePlan.recommendedTotal <= 0) {
@@ -1160,14 +1250,14 @@ export function PackingApp() {
   };
 
   const printPlan = () => {
-    if (!result?.validation.valid || dirty) return;
+    if (!result?.validation.valid || dirty || hasPendingDimensionChanges) return;
     setIsPlaying(false);
     flushSync(() => setRenderPrintViews(true));
     window.requestAnimationFrame(() => window.print());
   };
 
   const exportJson = () => {
-    if (!result?.validation.valid || dirty) return;
+    if (!result?.validation.valid || dirty || hasPendingDimensionChanges) return;
     const selectedPlanOnly = { ...result, strategyPlans: undefined };
     downloadFile(
       `装柜方案_${result.container.id}_${result.strategy}_${new Date().toISOString().slice(0, 10)}.json`,
@@ -1177,7 +1267,7 @@ export function PackingApp() {
   };
 
   const exportCsv = () => {
-    if (!result?.validation.valid || dirty) return;
+    if (!result?.validation.valid || dirty || hasPendingDimensionChanges) return;
     downloadFile(`装柜坐标_${result.container.id}.csv`, `\uFEFF${buildPlacementCsv(result)}`, "text/csv;charset=utf-8");
   };
 
@@ -1232,7 +1322,7 @@ export function PackingApp() {
   };
 
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  const canExport = Boolean(result?.validation.valid && !dirty);
+  const canExport = Boolean(result?.validation.valid && !dirty && !hasPendingDimensionChanges);
 
   return (
     <main className="app-shell">
@@ -1261,7 +1351,7 @@ export function PackingApp() {
             <h1>新建装柜测算</h1>
           </div>
           <div className="top-actions">
-            <span className={`save-state ${dirty ? "is-dirty" : ""} ${storageState === "error" ? "is-error" : ""}`}><Save size={15} />{storageState === "error" ? "草稿未能保存" : dirty ? "草稿自动保存 · 待重算" : "本机草稿已保存"}</span>
+            <span className={`save-state ${dirty || hasPendingDimensionChanges ? "is-dirty" : ""} ${storageState === "error" ? "is-error" : ""}`}><Save size={15} />{storageState === "error" ? "草稿未能保存" : hasPendingDimensionChanges ? "尺寸录入中 · 尚未提交" : dirty ? "草稿自动保存 · 待重算" : "本机草稿已保存"}</span>
             <button className="button ghost" onClick={loadSample}><Sparkles size={16} />载入示例</button>
             <button className="button ghost" onClick={printPlan} disabled={!canExport}><Printer size={16} />现场指导书</button>
             <button className="button ghost" onClick={exportJson} disabled={!canExport}><FileJson size={16} />导出方案</button>
@@ -1398,7 +1488,7 @@ export function PackingApp() {
               <div className="ratio-chips" aria-label="各 SKU 建议箱数">
                 {selectedPredictionQuantities.map((item) => <span key={item.productId}><b>{item.sku}</b>{formatNumber(item.suggestedQuantity)} 箱</span>)}
               </div>
-              <button className="reverse-apply-button" onClick={applyReversePlan} disabled={status === "working" || reversePlan.recommendedTotal <= 0}><ShieldCheck size={17} />{mode === "single"
+              <button className="reverse-apply-button" onClick={applyReversePlan} disabled={status === "working" || hasPendingDimensionChanges || reversePlan.recommendedTotal <= 0}><ShieldCheck size={17} />{mode === "single"
                 ? status === "working" ? "正在同步双算法方案…" : `重新计算当前双算法快照`
                 : "应用建议数量并验证真实装载"}</button>
               <p className="reverse-note">{dirty
@@ -1418,7 +1508,7 @@ export function PackingApp() {
               <div><span className="section-kicker">2D + LIVE 3D</span><h2>装柜方案联动复核</h2></div>
               <div className="viewer-status-group">
                 {result?.mode === "single" ? <div className={`plan-context-chip ${result.strategy === "maximum" ? "capacity" : "planned"}`}><b>{result.strategy === "maximum" ? "高密度参考方案" : "现场计划方案"}</b><span>{formatNumber(resultLoadedDisplay)} {resultDisplayUnit === "set" ? "套" : "箱"} · 统一建议 {formatNumber(selectedFeasibleRecommendation.displayQuantity)} {reversePlan.displayUnit === "set" ? "套" : "箱"}{resultPlanningDelta ? ` · ${resultPlanningDelta > 0 ? "+" : "−"}${formatNumber(Math.abs(resultPlanningDelta))}` : " · 一致"}</span></div> : null}
-                <div className="validation-chip">{result?.validation.valid ? <CheckCircle2 size={16} /> : status === "working" || dirty ? <LoaderCircle className="spin" size={16} /> : <ShieldCheck size={16} />}{result ? result.validation.valid ? "布局校验通过" : "发现异常" : status === "working" || dirty ? "实时重算中" : "等待计算"}</div>
+                <div className="validation-chip">{hasPendingDimensionChanges ? <LoaderCircle size={16} /> : result?.validation.valid ? <CheckCircle2 size={16} /> : status === "working" || dirty ? <LoaderCircle className="spin" size={16} /> : <ShieldCheck size={16} />}{hasPendingDimensionChanges ? "尺寸录入中 · 已暂停计算" : result ? result.validation.valid ? "布局校验通过" : "发现异常" : status === "working" || dirty ? "实时重算中" : "等待计算"}</div>
               </div>
             </div>
             <section className="viewer-input-strip" aria-label="当前统一输入快照">
@@ -1629,9 +1719,9 @@ export function PackingApp() {
                   return <tr key={product.id}>
                     <td><input className="color-input" aria-label={`${product.sku} 颜色`} type="color" value={product.color} onChange={(event) => updateProduct(product.id, "color", event.target.value)} /></td>
                     <td><input aria-label={`${product.sku} SKU`} maxLength={80} className="sku-input" value={product.sku} onChange={(event) => updateProduct(product.id, "sku", event.target.value)} /><input aria-label={`${product.sku} 品名`} maxLength={200} className="name-input" value={product.name} onChange={(event) => updateProduct(product.id, "name", event.target.value)} /></td>
-                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 外箱长`} value={fromMillimeters(product.length, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => updateProduct(product.id, "length", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:length`, valid)} /><small className="cell-unit">{lengthUnit}</small></td>
-                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 外箱宽`} value={fromMillimeters(product.width, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => updateProduct(product.id, "width", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:width`, valid)} /><small className="cell-unit">{lengthUnit}</small></td>
-                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 外箱高`} value={fromMillimeters(product.height, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => updateProduct(product.id, "height", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:height`, valid)} /><small className="cell-unit">{lengthUnit}</small></td>
+                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 外箱长`} value={fromMillimeters(product.length, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => stageProductDimension(product.id, "length", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setDimensionFieldValidity(product.id, "length", valid)} onFocusChange={handleDimensionFocusChange} /><small className="cell-unit">{lengthUnit}</small></td>
+                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 外箱宽`} value={fromMillimeters(product.width, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => stageProductDimension(product.id, "width", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setDimensionFieldValidity(product.id, "width", valid)} onFocusChange={handleDimensionFocusChange} /><small className="cell-unit">{lengthUnit}</small></td>
+                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 外箱高`} value={fromMillimeters(product.height, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => stageProductDimension(product.id, "height", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setDimensionFieldValidity(product.id, "height", valid)} onFocusChange={handleDimensionFocusChange} /><small className="cell-unit">{lengthUnit}</small></td>
                     <td className="cbm-cell"><output className="cbm-auto-value" aria-label={`${product.sku} 自动计算 CBM`}>{roundedCbm.toFixed(2)}</output><small className="cell-meta">自动计算 · 精确值 {calculatedCbm.toFixed(4)}</small></td>
                     <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 毛重`} value={fromKilograms(product.weight, weightUnit)} precision={weightUnitPrecision(weightUnit)} onValueChange={(value) => updateProduct(product.id, "weight", toKilograms(value, weightUnit))} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:weight`, valid)} /><small className="cell-unit">{weightUnit}</small></td>
                     {mode === "mixed" ? <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 需求箱数`} value={product.quantity} integer max={1_000_000} onValueChange={(value) => updateProduct(product.id, "quantity", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:quantity`, valid)} /><small className="cell-unit">箱</small></td> : null}
@@ -1656,6 +1746,12 @@ export function PackingApp() {
           <div className="table-note"><CircleAlert size={16} /><span>{mode === "single"
             ? "这里每一行代表同一个产品的一种外箱，不代表多个产品拼柜。系统按完整套数装载，任一组成箱放不下即整套回滚。"
             : "相同“套装编码”的任意数量 SKU 会按“套内数量”组成原子批次：支持 2/3/4/5 箱及更多箱型，也支持 1:4、1:2:2 等比例；任一组成箱放不下即整套回滚。"}</span></div>
+          {hasPendingDimensionChanges ? (
+            <div className="dimension-edit-notice" role="status">
+              <LoaderCircle size={16} />
+              <span><b>尺寸录入期间暂停计算</b>当前保留上一次已校验方案；可连续填写所有行的长、宽、高，离开尺寸输入区后仅统一重算一次。</span>
+            </div>
+          ) : null}
         </section>
 
         {result ? (

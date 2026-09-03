@@ -92,6 +92,12 @@ export const HISTORICAL_LOADING_RECORDS: HistoricalLoadingRecord[] = [
     dataQualityWarnings: ["源记录的双箱套装净重/毛重标签与箱明细相反；已按 15 + 31 = 46 kg/套作为毛重安全校验。"],
   },
   {
+    models: ["实装记录·双箱 189/168"],
+    cartons: [carton(189, 75, 14, 66, 0.20), carton(168, 17, 16, 19.8, 0.05)],
+    loadingSets: { "20gp": 110, "40gp": 230, "40hq": 270 },
+    dataQualityWarnings: ["源记录顶部写“1set / 1 ctn”，但两行箱规的净重、毛重和体积均可加总到单套汇总；已按 1 套 2 箱校准。"],
+  },
+  {
     models: ["实装记录·单箱 167/73/13"],
     cartons: [carton(167, 73, 13, 56, 0.16)],
     loadingSets: { "20gp": 175, "40gp": 360, "40hq": 425 },
@@ -102,13 +108,6 @@ export const HISTORICAL_LOADING_RECORDS: HistoricalLoadingRecord[] = [
     loadingSets: { "20gp": 235, "40gp": 505, "40hq": 600 },
   },
 ];
-
-/** Robust medians from all physically plausible, user-verified loading rows. */
-export const CALIBRATED_CARGO_VOLUME_CBM: Record<string, number> = {
-  "20gp": 26.25,
-  "40gp": 56.25,
-  "40hq": 66,
-};
 
 const STANDARD_CONTAINER_IDS = ["20gp", "40gp", "40hq"] as const;
 
@@ -132,6 +131,15 @@ function median(values: number[]) {
   const middle = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
+
+/** Robust medians from all physically plausible, user-verified loading rows. */
+export const CALIBRATED_CARGO_VOLUME_CBM: Record<string, number> = Object.fromEntries(
+  STANDARD_CONTAINER_IDS.map((containerId) => [
+    containerId,
+    median(calibrationRecords().map((record) =>
+      record.loadingSets[containerId] * historicalSetRoundedCbm(record))),
+  ]),
+);
 
 /**
  * Honest generalized error evidence. Every row is predicted from the other

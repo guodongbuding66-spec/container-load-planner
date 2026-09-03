@@ -6,6 +6,6 @@
 
 - AI 外贸工作台：https://ai-foreign-trade-os.pages.dev/
 - iSUNOR 决策级情报：https://isunor-industry-daily.pages.dev/
-- Galaxy Downloader：https://github.com/guodongbuding66-spec/galaxy-downloader
+- SparkDownloader：https://galaxy-downloader.guodongbuding66.workers.dev/zh
 
 链接契约由 `components/galaxy-ecosystem-menu.test.tsx` 覆盖。

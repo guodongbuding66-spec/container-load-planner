@@ -29,8 +29,8 @@ function productsForRecord(record: (typeof suppliedRecords)[number]): ProductInp
 }
 
 describe("supplied real loading regression", () => {
-  it("keeps all three supplied records within three percent in worker-practical mode", () => {
-    expect(suppliedRecords).toHaveLength(3);
+  it("keeps all four supplied records within three percent in worker-practical mode", () => {
+    expect(suppliedRecords).toHaveLength(4);
 
     for (const record of suppliedRecords) {
       for (const container of CONTAINER_PRESETS) {
@@ -56,7 +56,7 @@ describe("supplied real loading regression", () => {
   }, 30_000);
 
   it("loads the supplied two-carton record as complete sets and surfaces its weight-label conflict", () => {
-    const record = suppliedRecords.find((item) => item.models[0].includes("双箱"))!;
+    const record = suppliedRecords.find((item) => item.models[0].includes("双箱 180/127"))!;
     const container = CONTAINER_PRESETS.find((item) => item.id === "40hq")!;
     const result = pack({
       mode: "single",
@@ -99,7 +99,7 @@ describe("supplied real loading regression", () => {
   }, 60_000);
 
   it("lets an explicit higher field target challenge a safe theoretical gain instead of staying hard-capped", () => {
-    const record = suppliedRecords.find((item) => item.models[0].includes("双箱"))!;
+    const record = suppliedRecords.find((item) => item.models[0].includes("双箱 180/127"))!;
     const container = CONTAINER_PRESETS.find((item) => item.id === "40hq")!;
     const baseline = packWithComparison({
       mode: "single",
@@ -126,4 +126,29 @@ describe("supplied real loading regression", () => {
     expect(challenged.strategyComparison!.maximum.displayQuantity)
       .toBeGreaterThanOrEqual(challenged.strategyComparison!.practical.displayQuantity);
   }, 60_000);
+
+  it("replays the new 189/168 two-carton record for each standard container", () => {
+    const record = suppliedRecords.find((item) => item.models[0].includes("双箱 189/168"))!;
+    const expectedByContainer = { "20gp": 110, "40gp": 230, "40hq": 270 } as const;
+
+    for (const container of CONTAINER_PRESETS) {
+      const result = pack({
+        mode: "single",
+        strategy: "practical",
+        practicalTargetUtilization: recommendedPracticalTarget(container),
+        container,
+        clearance: 10,
+        products: productsForRecord(record),
+      });
+      const expectedSets = expectedByContainer[container.id as keyof typeof expectedByContainer];
+      const physicalSets = result.setSummaries[0]?.loadedSets ?? 0;
+
+      expect(result.validation.valid, container.id).toBe(true);
+      expect(result.quoteEstimate?.predictedSets).toBe(expectedSets);
+      expect(physicalSets).toBe(expectedSets);
+      expect(result.setSummaries[0]?.loadedCartons).toBe(expectedSets * 2);
+      expect(result.quoteEstimate?.setWeightKg).toBeCloseTo(85.8, 8);
+      expect(result.warnings.join(" ")).toContain("1set / 1 ctn");
+    }
+  }, 30_000);
 });
