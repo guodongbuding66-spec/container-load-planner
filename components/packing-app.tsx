@@ -91,6 +91,7 @@ import {
   type WeightUnit,
 } from "../lib/packing/units";
 import { NumericInput } from "./numeric-input";
+import { SupportAndSites } from "./support-and-sites";
 import { OrthographicViews } from "./orthographic-views";
 import { SceneErrorBoundary } from "./scene-error-boundary";
 
@@ -1357,6 +1358,8 @@ export function PackingApp() {
             <button className="button ghost" onClick={exportJson} disabled={!canExport}><FileJson size={16} />导出方案</button>
           </div>
         </header>
+
+        <SupportAndSites />
 
         <section className="status-strip" aria-live="polite">
           <div className={`status-dot status-${status}`} />
