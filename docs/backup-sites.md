@@ -9,7 +9,7 @@
 | Cloudflare Pages | https://container-load-planner.pages.dev/ |
 | Netlify | 已创建项目 cargo-fit-planner，尚未上线：账号额度耗尽，平台拒绝部署，无公开入口 |
 | GitHub Pages | 待接入，无公开入口 |
-| Vercel | 待接入，无公开入口 |
+| Vercel | https://container-load-planner-gray.vercel.app/ |
 | EdgeOne Makers | 待接入，无公开入口 |
 
 入口维护于 `components/support-and-sites.tsx`。只有完成部署的真实地址才可对用户开放；平台控制台、仓库地址不能作为备用网站。
@@ -18,7 +18,8 @@
 
 - 所有公开镜像均使用同一份源代码的纯静态导出：`npm ci` → `npm run build:pages` → `out/`。
 - Netlify 配置在 `netlify.toml`。关闭 Next 服务端插件，避免为本机计算引入动态函数。
-- Vercel 配置在 `vercel.json`，明确使用静态产物。需要先连接账号并核实套餐适用范围，再导入 GitHub 仓库并记录真实域名。
+- Vercel 配置在 `vercel.json`，明确使用静态产物。项目 `prj_r8PcBkAQNeJQIUYqywz0Mv0VYY4g`，空间 `guodongbuding66-4957`。通过源码上传完成生产部署；尚未绑定 Git 持续部署，后续代码更新必须另行同步 Vercel。
+- 上传构建源码时必须包含已跟踪的 `.openai/hosting.json`：Vite 配置的类型检查依赖该文件。该文件仅含项目标识和空资源绑定，不包含凭据。不要上传 `.env`、令牌、本机缓存或依赖目录。
 - EdgeOne Makers/Pages 需要对应账号和项目权限；使用该平台支持的 Git 导入或静态产物上传流程。不能将未生成的默认域名当作已上线站点。
 - 当前源代码仓库是私有仓库。GitHub Free 的 Pages 不支持私有仓库发布；不要为启用镜像擅自公开源码。可在用户选定后使用支持私有仓库的套餐或单独的公开静态产物仓库。
 - GitHub Pages 若使用 `/container-load-planner/` 子路径，必须额外配置 Next `basePath` 并验证图标、JS/CSS 与打包后的装柜 Worker 路径，不能直接上传根路径产物。

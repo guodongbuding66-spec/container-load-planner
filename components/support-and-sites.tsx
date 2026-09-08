@@ -6,6 +6,7 @@ import { Copy, ExternalLink, Mail, Network } from "lucide-react";
 const SUPPORT_EMAIL = "1906761042@qq.com";
 const sites = [
   { name: "Cloudflare 主站", url: "https://container-load-planner.pages.dev/" },
+  { name: "Vercel 备用站", url: "https://container-load-planner-gray.vercel.app/" },
 ];
 
 export function SupportAndSites() {
@@ -42,7 +43,7 @@ export function SupportAndSites() {
             ))}
           </nav>
           <p>不同站点的本机草稿独立保存。切换前请保留当前页面，并导出需要保留的方案。</p>
-          <p className="support-sites-pending">备用线路暂未开放：Netlify、GitHub Pages、Vercel、EdgeOne Makers。上线核验后将在这里提供访问入口。</p>
+          <p className="support-sites-pending">其余备用线路暂未开放：Netlify、GitHub Pages、EdgeOne Makers。上线核验后将在这里提供访问入口。</p>
           <small>建议收藏备用地址，主站无法打开时也能直接访问。</small>
         </div>
       </details>
