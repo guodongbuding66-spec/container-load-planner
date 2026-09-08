@@ -1,4 +1,4 @@
-import type { ContainerSpec, PackingMode, PackingStrategy, ProductInput } from "./types";
+import type { ContainerSpec, PackingMode, PackingResult, PackingStrategy, ProductInput } from "./types";
 import { isLengthUnit, isWeightUnit, type LengthUnit, type WeightUnit } from "./units";
 import { MAX_CSV_ROWS } from "./csv";
 
@@ -57,7 +57,8 @@ function product(value: unknown): ProductInput {
     mustLoad: v.mustLoad === undefined ? true : bool(v.mustLoad),
     bottomOnly: v.bottomOnly === undefined ? false : bool(v.bottomOnly),
     setCode: v.setCode === undefined ? "" : text(v.setCode, 80),
-    unitsPerSet: v.unitsPerSet === undefined ? 1 : integer(v.unitsPerSet, 1, 99), color };
+    unitsPerSet: v.unitsPerSet === undefined ? 1 : integer(v.unitsPerSet, 1, 99),
+    ...(v.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: number(v.maxTopLoadKg) }), color };
 }
 export function parseWorkspaceBackup(contents: string): WorkspaceInputs {
   const file = record(JSON.parse(contents));
@@ -76,7 +77,8 @@ export function parseWorkspaceBackup(contents: string): WorkspaceInputs {
     targetVolumePercent: integer(v.targetVolumePercent, 1, 100), targetWeightPercent: integer(v.targetWeightPercent, 1, 100),
     lengthUnit: v.lengthUnit, weightUnit: v.weightUnit };
 }
-export function serializeWorkspaceBackup(inputs: WorkspaceInputs, engineVersion: string): string {
+export function serializeWorkspaceBackup(inputs: WorkspaceInputs, engineVersion: string, plan?: PackingResult | null): string {
   return JSON.stringify({ format: "cargo-fit-workspace", version: 1, engineVersion,
-    createdAt: new Date().toISOString(), inputs }, null, 2);
+    createdAt: new Date().toISOString(), inputs, ...(plan?.validation.valid ? { coordinatePlan: { strategy: plan.strategy, placements: plan.placements } } : {}) }, null, 2);
 }
+

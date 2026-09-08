@@ -46,6 +46,7 @@ import {
   DEFAULT_PRACTICAL_TARGET,
   ENGINE_VERSION,
   recommendedPracticalTarget,
+  restorePackingSnapshot,
   validateContainerInput,
 } from "../lib/packing/engine";
 import { summarizePackingProgress } from "../lib/packing/progress";
@@ -92,6 +93,7 @@ import {
 } from "../lib/packing/units";
 import { NumericInput } from "./numeric-input";
 import { SupportAndSites } from "./support-and-sites";
+import { ArchiveLibrary, BearingRules, UnloadedReasons, ManualPlan, FieldGuide, FleetPlanner } from "./planning-upgrades";
 import { RemainingCapacity } from "./remaining-capacity";
 import { MAX_WORKSPACE_BYTES, parseWorkspaceBackup, serializeWorkspaceBackup } from "../lib/packing/workspace-file";
 import { OrthographicViews } from "./orthographic-views";
@@ -310,6 +312,8 @@ export function PackingApp() {
   const [container, setContainer] = useState<ContainerSpec>({ ...CONTAINER_PRESETS[2] });
   const [clearance, setClearance] = useState(10);
   const [products, setProducts] = useState<ProductInput[]>(() => SAMPLE_PRODUCTS.map((item) => ({ ...item })));
+  const [autoCalculate, setAutoCalculate] = useState(true);
+  const [calculationBudget, setCalculationBudget] = useState(0);
   const [resultBundle, setResultBundle] = useState<PackingResult | null>(null);
   const [status, setStatus] = useState<CalcStatus>("idle");
   const [message, setMessage] = useState("参数已就绪");
@@ -544,7 +548,8 @@ export function PackingApp() {
       setStatus("idle");
       setMessage("输入已修改；正在按最新有效参数重新计算");
     } else setMessage("参数已更新；正在准备实时计算");
-  }, [clearActiveCalculation, status]);
+    if (!autoCalculate) setMessage("输入已修改，请点击“计算方案”更新结果。");
+  }, [autoCalculate, clearActiveCalculation, status]);
 
   const setNumericFieldValidity = useCallback((fieldKey: string, valid: boolean) => {
     setInvalidNumericFields((current) => {
@@ -1050,7 +1055,7 @@ export function PackingApp() {
     activeRequestRef.current = requestId;
     activeRevisionRef.current = inputRevisionRef.current;
     workerResultsRef.current = {};
-    const runtimePolicy = detectRuntimePolicy();
+    const runtimePolicy = { ...detectRuntimePolicy(), ...(calculationBudget ? { calculationTimeoutMs: calculationBudget * 1000 } : {}) };
     setSolverSchedule(runtimePolicy.schedule);
     setStatus("working");
     setMessage(runtimePolicy.schedule === "practical-first"
@@ -1173,7 +1178,7 @@ export function PackingApp() {
     armCalculationTimeout();
     startStrategyWorker("practical");
     if (runtimePolicy.schedule === "parallel") startStrategyWorker("maximum");
-  }, [acceptResult, clearActiveCalculation, discardObsoleteCalculation, presentPlan]);
+  }, [acceptResult, calculationBudget, clearActiveCalculation, discardObsoleteCalculation, presentPlan]);
 
   const calculate = useCallback(() => {
     if (isEditingDimensions || hasPendingDimensionChanges) {
@@ -1207,11 +1212,11 @@ export function PackingApp() {
   }, [activeProducts, clearance, clearActiveCalculation, container, hasPendingDimensionChanges, isEditingDimensions, mode, practicalTargetPercent, reversePlan, submitPacking, validateInputs]);
 
   useEffect(() => {
-    if (!hydrated || isEditingDimensions || hasPendingDimensionChanges) return;
+    if (!autoCalculate || !hydrated || isEditingDimensions || hasPendingDimensionChanges) return;
     if (!dirty && resultBundle) return;
     const timer = window.setTimeout(calculate, AUTO_CALCULATE_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [calculate, dirty, hasPendingDimensionChanges, hydrated, isEditingDimensions, resultBundle]);
+  }, [autoCalculate, calculate, dirty, hasPendingDimensionChanges, hydrated, isEditingDimensions, resultBundle]);
 
   const applyReversePlan = () => {
     if (reversePlan.recommendedTotal <= 0) {
@@ -1267,21 +1272,24 @@ export function PackingApp() {
     }
     const contents = serializeWorkspaceBackup(
       { mode, strategy, practicalTargetPercent, container, clearance, products, customContainers,
-        targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit }, ENGINE_VERSION,
+        targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit }, ENGINE_VERSION, result,
     );
     downloadFile(`装柜工作区_${new Date().toISOString().slice(0, 10)}.json`, contents, "application/json");
-    setMessage("工作区已导出，可在另一台设备或备用站恢复；恢复后会重新计算方案。");
+    setMessage("工作区已导出，可跨设备恢复；已完成方案的箱位会在恢复时重新校验。");
   };
 
   const restoreWorkspace = async (file: File) => {
     const revision = inputRevisionRef.current;
     try {
       if (file.size > MAX_WORKSPACE_BYTES) throw new Error("工作区备份不能超过 5 MB。");
-      const restored = parseWorkspaceBackup(await file.text());
+      const contents = await file.text();
+      const restored = parseWorkspaceBackup(contents);
+      const snapshot = JSON.parse(contents).coordinatePlan;
+      const restoredPlan = snapshot === undefined ? null : restorePackingSnapshot({mode:restored.mode,strategy:restored.strategy,practicalTargetUtilization:restored.practicalTargetPercent/100,container:restored.container,clearance:restored.clearance,products:restored.products},snapshot);
       if (revision !== inputRevisionRef.current || pendingDimensionChangesRef.current.size > 0) {
         throw new Error("读取文件期间输入发生变化，请完成录入后重新选择备份。");
       }
-      if (!window.confirm(`恢复包含 ${restored.products.length} 个箱型的工作区？当前输入将被替换。建议先备份当前工作区；恢复后将使用当前算法重新计算。`)) return;
+      if (!window.confirm(`恢复包含 ${restored.products.length} 个箱型的工作区？当前输入将被替换。建议先备份当前工作区；${restoredPlan ? "已保存箱位将通过当前规则重新校验并恢复。" : "恢复后将使用当前算法重新计算。"}`)) return;
       clearActiveCalculation();
       clearNumericDraftErrors();
       setMode(restored.mode);
@@ -1300,7 +1308,19 @@ export function PackingApp() {
       setResultBundle(null);
       markDirty();
       setStatus("idle");
-      setMessage("已恢复工作区输入，正在重新校验并计算；历史坐标不会直接作为已验证方案使用。");
+      if (restoredPlan) {
+        setAutoCalculate(false);
+        strategyRef.current=restoredPlan.strategy;
+        setStrategy(restoredPlan.strategy);
+        setResultBundle(restoredPlan);
+        setDirty(false);
+        presentPlan(restoredPlan);
+        setStatus("done");
+        setMessage("已恢复并重新校验历史箱位、锁定标记与输入参数；自动重算已暂停。");
+      } else {
+        setAutoCalculate(true);
+        setMessage("已恢复工作区输入，正在重新计算方案。");
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "工作区恢复失败，当前输入未修改。");
     }
@@ -1372,6 +1392,35 @@ export function PackingApp() {
   };
 
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const stopCalculation = () => {
+    const plans = { ...workerResultsRef.current };
+    const selected = plans[strategyRef.current] ?? plans.practical ?? plans.maximum;
+    const currentRevision = activeRevisionRef.current === inputRevisionRef.current;
+    clearActiveCalculation();
+    setAutoCalculate(false);
+    if (selected && currentRevision && selected.validation.valid) {
+      strategyRef.current = selected.strategy;
+      setStrategy(selected.strategy);
+      setResultBundle({ ...selected, strategyPlans: plans });
+      presentPlan(selected);
+      setDirty(false);
+      setStatus("done");
+      setMessage("已停止后续计算并保留已完成方案；当前切换为手动计算。");
+    } else {
+      setStatus("idle");
+      setMessage("已停止计算；尚未完成的搜索不会被当作可用方案。点击“计算方案”可重新开始。");
+    }
+  };
+  const replaceProductInputs = (nextProducts: ProductInput[]) => {
+    clearNumericDraftErrors();
+    setProducts(normalizeProductList(nextProducts));
+    setProductPage(0);
+    markDirty();
+  };
+  const workspaceBackup = serializeWorkspaceBackup({mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,result);
+  const upgradesDisabled = hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0 || status === "working";
+  const fleetRequest: PackingRequest = { mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
+
   const canExport = Boolean(result?.validation.valid && !dirty && !hasPendingDimensionChanges);
 
   return (
@@ -1410,7 +1459,7 @@ export function PackingApp() {
                 <button type="button" className="button ghost" onClick={exportJson} disabled={!canExport}><FileJson size={16} />导出当前方案</button>
                 <button type="button" className="button ghost" onClick={backupWorkspace} disabled={hasPendingDimensionChanges || invalidNumericFields.size > 0}><Download size={16} />备份工作区</button>
                 <button type="button" className="button ghost" onClick={() => workspaceInputRef.current?.click()} disabled={hasPendingDimensionChanges}><Upload size={16} />恢复工作区</button>
-                <p>备份箱规、套装、柜型、目标与单位，可跨设备恢复。恢复后重新计算，不直接沿用旧坐标。</p>
+                <p>备份箱规、套装、柜型、目标与单位，可跨设备恢复。包含已完成方案时，重新校验后恢复箱位；仅有输入时重新计算。</p>
               </div>
             </details>
             <input ref={workspaceInputRef} type="file" accept=".json,application/json" aria-label="选择工作区备份文件" hidden onChange={(event) => {
@@ -1422,6 +1471,12 @@ export function PackingApp() {
         </header>
 
         <SupportAndSites />
+        <section className="calculation-controls" aria-label="计算控制">
+          <label><input type="checkbox" checked={autoCalculate} onChange={e=>setAutoCalculate(e.target.checked)}/>尺寸录入完成后自动计算</label>
+          <label>计算时限<select aria-label="计算时限" value={calculationBudget} onChange={e=>setCalculationBudget(Number(e.target.value))}><option value={0}>按设备自动</option><option value={15}>15 秒</option><option value={35}>35 秒</option><option value={60}>60 秒</option><option value={120}>120 秒</option></select></label>
+          <button className="button primary" disabled={status === "working" || hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0} onClick={calculate}>计算方案</button>
+          <button className="button" disabled={status !== "working"} onClick={stopCalculation}>停止并保留已完成方案</button>
+        </section>
 
         <section className="status-strip" aria-live="polite">
           <div className={`status-dot status-${status}`} />
@@ -1820,6 +1875,17 @@ export function PackingApp() {
           ) : null}
         </section>
 
+        <section className="planning-upgrades" aria-label="方案管理与高级装载工具">
+          <ArchiveLibrary backup={workspaceBackup} disabled={upgradesDisabled} onRestore={backup=>{void restoreWorkspace(new File([backup],"工作区归档.json",{type:"application/json"}));}} onProducts={replaceProductInputs}/>
+          <BearingRules key={JSON.stringify(products.map(p=>[p.id,p.maxTopLoadKg]))} products={activeProducts} disabled={upgradesDisabled} onChange={next=>replaceProductInputs(products.map(p=>next.find(n=>n.id===p.id)??p))}/>
+          {mode === "mixed" ? <FleetPlanner key={JSON.stringify([fleetRequest,customContainers])} request={fleetRequest} customContainers={customContainers} disabled={upgradesDisabled}/> : null}
+          {result && !hasPendingDimensionChanges ? <>
+            <UnloadedReasons result={result} products={activeProducts}/>
+            <ManualPlan key={result.id} result={result} products={activeProducts} disabled={upgradesDisabled||!result.validation.valid} onAdopt={next=>{clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。");}}/>
+            {result.validation.valid ? <FieldGuide key={`field-${result.id}`} result={result}/> : null}
+          </> : null}
+        </section>
+
         {result ? (
           <section className="result-section">
             <div className="result-title"><div><span className="section-kicker">CALCULATED PLAN</span><h2>方案结果</h2></div><span className="run-meta">{resultPlanLimitDisplay !== null
@@ -1996,7 +2062,7 @@ export function PackingApp() {
             </article>
           </section>
         ) : (
-          <section className="empty-result"><PackageOpen size={30} /><div><strong>{status === "working" || dirty ? "正在生成最新方案" : "等待有效输入"}</strong><span>{status === "working" || dirty ? "系统会自动生成双算法坐标并执行独立校验，无需重复点击计算。" : "填写有效参数后会自动开始测算。"}</span></div></section>
+          <section className="empty-result"><PackageOpen size={30} /><div><strong>{status === "working" || (dirty && autoCalculate) ? "正在生成最新方案" : "等待计算"}</strong><span>{!autoCalculate ? "当前为手动计算，请完成录入后点击“计算方案”。" : "系统会自动生成双算法坐标并执行独立校验。"}</span></div></section>
         )}
 
         <footer className="app-footer"><span>外贸装柜智算 · Desktop-first local calculation</span><span>尺寸与柜型预设仅供测算，正式出货请复核实际数据</span></footer>

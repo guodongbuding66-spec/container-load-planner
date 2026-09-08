@@ -100,7 +100,7 @@ test("batches all dimension fields into one committed recalculation", async () =
   assert.match(source, /stageProductDimension\(product\.id, "width"/);
   assert.match(source, /stageProductDimension\(product\.id, "height"/);
   assert.match(source, /onFocusChange=\{handleDimensionFocusChange\}/);
-  assert.match(source, /if \(!hydrated \|\| isEditingDimensions \|\| hasPendingDimensionChanges\) return/);
+  assert.match(source, /if \(!autoCalculate \|\| !hydrated \|\| isEditingDimensions \|\| hasPendingDimensionChanges\) return/);
   assert.match(source, /if \(!dirty && resultBundle\) return/);
   assert.match(source, /完成所有长、宽、高并离开尺寸输入区后，将统一重算一次/);
   assert.match(source, /离开尺寸输入区后仅统一重算一次/);
@@ -241,7 +241,8 @@ test("runs two independent solvers and exposes actionable strategy guidance", as
   assert.match(source, /if \(activeRequestRef\.current\) clearActiveCalculation\(\)/);
   assert.match(source, /let worker = workersRef\.current\[solverStrategy\]/);
   assert.match(source, /finishActiveCalculation\(\);/);
-  assert.doesNotMatch(source, /status !== "working"/);
+  const selectedResult = source.slice(source.indexOf("const result = useMemo"), source.indexOf("const terminateActiveWorkers"));
+  assert.doesNotMatch(selectedResult, /status/); // Background work must not hide a completed plan.
   assert.match(source, /tippedCartonCount/);
   assert.match(engine, /const strategyPlans/);
   assert.match(engine, /practical: practicalPlan/);

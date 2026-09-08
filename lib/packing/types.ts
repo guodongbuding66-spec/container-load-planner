@@ -32,6 +32,8 @@ export type ProductInput = {
   unitsPerSet?: number;
   declaredVolumeCbm?: number;
   allowRotate?: boolean;
+  /** Maximum weight resting above one carton; undefined means unspecified. Zero forbids load. */
+  maxTopLoadKg?: number;
   color: string;
 };
 
@@ -77,6 +79,7 @@ export type ReverseCountResult = {
 };
 
 export type PlacedBox = {
+  locked?: boolean;
   id: string;
   productId: string;
   sku: string;

@@ -1,3 +1,4 @@
+import { bearingErrors } from "./bearing";
 import type {
   ContainerSpec,
   PackingMode,
@@ -21,7 +22,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.14.1";
+export const ENGINE_VERSION = "0.15.0";
 
 type Orientation = {
   dx: number;
@@ -125,6 +126,7 @@ function assertValidRequest(request: PackingRequest) {
     if (![product.length, product.width, product.height].every((value) => Number.isFinite(value) && value > 0)) {
       throw new Error(`${product.sku} 的外箱尺寸必须是大于 0 的有限数字。`);
     }
+    if (product.maxTopLoadKg !== undefined && (!Number.isFinite(product.maxTopLoadKg) || product.maxTopLoadKg < 0)) throw new Error(`${product.sku} 的上方承重必须为非负有限数字。`);
     if (!Number.isFinite(product.weight) || product.weight < 0) throw new Error(`${product.sku} 的重量不能为负数。`);
     if (!Number.isInteger(product.quantity) || product.quantity < 0 || product.quantity > 1_000_000) throw new Error(`${product.sku} 的数量必须是非负整数且不超过 1,000,000。`);
     if (!Number.isInteger(product.priority) || product.priority < 0 || product.priority > 100) throw new Error(`${product.sku} 的优先级必须是 0–100 的整数。`);
@@ -1459,6 +1461,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
         const support = supportDetails(candidate, topLevels, productMap);
         const layerLimit = maxStackLayers(product);
         if (support.ratio < supportThreshold || (layerLimit > 0 && support.layer > layerLimit)) continue;
+        if (request.products.some(p => p.maxTopLoadKg !== undefined) && bearingErrors([...placements, candidate], request.products).length) continue;
         const topPenalty = strategy === "practical"
           ? candidate.x * 1_000_000_000
           : candidate.z * 1_000_000_000;
@@ -1788,6 +1791,7 @@ export function validatePacking(
       }
     }
   }
+  errors.push(...bearingErrors(placements, products));
   return { valid: errors.length === 0, errors };
 }
 
@@ -1926,7 +1930,12 @@ export function pack(request: PackingRequest): PackingResult {
     preliminaryQuoteEstimate.physicallyPossibleByBounds
     ? preliminaryQuoteEstimate.predictedSets
     : undefined;
-  const output = normalized.mode === "single"
+  const hasBearingRules = normalized.products.some(p => p.maxTopLoadKg !== undefined);
+  const cartonsPerUnit = normalized.products.reduce((sum,p)=>sum+(setCode(p)?unitsPerSet(p):1),0);
+  const unitVolume = normalized.products.reduce((sum,p)=>sum+p.length*p.width*p.height*(setCode(p)?unitsPerSet(p):1),0);
+  const bearingUnitLimit = Math.min(Math.floor(4000/cartonsPerUnit), Math.floor(effectiveVolume/unitVolume), Math.floor((normalized.singleCartonLimit ?? 4000)/cartonsPerUnit));
+  const bearingRequest: PackingRequest = normalized.mode === "single" && hasBearingRules ? { ...normalized, mode: "mixed", products: normalized.products.map(p => ({ ...p, quantity: bearingUnitLimit*(setCode(p)?unitsPerSet(p):1) })) } : normalized;
+  const output = hasBearingRules ? packMixed(bearingRequest, effective) : normalized.mode === "single"
     ? packSingle(normalized, effective, fieldPracticalSetLimit)
     : packMixed(normalized, effective);
   // Solvers may discover the final geometry layer-by-layer. Playback, exports
@@ -1957,6 +1966,7 @@ export function pack(request: PackingRequest): PackingResult {
     : 0;
   const quoteEstimate = estimateQuoteLoading(normalized, effectiveVolume, physicalLoadedSets);
   const warnings = [...output.warnings];
+  if (hasBearingRules) warnings.push("已启用逐箱上方累计承重约束，按接触面积分配静态竖向载荷；结果可能比无承重约束的排列更保守。");
   if (normalized.mode === "single" && normalized.singleCartonLimit !== undefined) {
     const plannedQuantity = setSummaries.length
       ? Math.floor(normalized.singleCartonLimit / setSummaries[0].cartonsPerSet)
@@ -2229,4 +2239,89 @@ export function packWithComparison(request: PackingRequest): PackingResult {
     singleCartonLimit: request.mode === "single" ? undefined : request.singleCartonLimit,
   });
   return combineStrategyResults(practical, maximumCapacity, packingStrategy(request));
+}
+
+/** Revalidate a manual edit and rebuild every geometry-dependent metric. */
+export function revisePackingResult(original: PackingResult, placements: PlacedBox[], products: ProductInput[]): PackingResult {
+  if (placements.length !== original.placements.length || new Set(placements.map(b => b.id)).size !== placements.length) throw new Error("手动调整不能增删箱体或重复追踪 ID。");
+  const before = new Map(original.placements.map(b => [b.id, b]));
+  for (const b of placements) {
+    const old = before.get(b.id);
+    if (!old || old.productId !== b.productId || old.weight !== b.weight || old.setCode !== b.setCode || old.setNumber !== b.setNumber || old.setItemNumber !== b.setItemNumber) throw new Error("箱体身份和成套关系不能改变。");
+    if (old.locked && ["x", "y", "z", "dx", "dy", "dz"].some(k => old[k as keyof PlacedBox] !== b[k as keyof PlacedBox])) throw new Error("请先解除箱位锁定。");
+  }
+  const productMap = new Map(products.map(p => [p.id, p]));
+  const levels = new Map<number, PlacedBox[]>();
+  const relayered = [...placements].sort((a,b) => a.z-b.z).map(b => {
+    const box = { ...b, layer: supportDetails(b, levels, productMap).layer };
+    appendMapArray(levels, supportLevelKey(box.z+box.dz), box);
+    return box;
+  });
+  const ordered = orderForLoading(relayered);
+  const validation = validatePacking(ordered, original.container, original.clearance, products, original.strategy, original.mode);
+  if (!validation.valid) throw new Error(validation.errors.slice(0,3).join("\n"));
+  const effective = effectiveContainer(original.container, original.clearance);
+  return { ...original, id: `manual-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, placements: ordered,
+    strategyPlans: undefined, strategyComparison: undefined, quoteEstimate: undefined, validation,
+    warnings: ["手动调整已重新校验；箱位锁定仅作用于本手动方案，重新计算将创建新方案。"],
+    metrics: { ...original.metrics, centerOfGravity: calculateCenterOfGravity(ordered,effective), executionComplexity: calculateExecutionComplexity(ordered,products) }, createdAt: new Date().toISOString() };
+}
+
+export function explainUnloaded(result: PackingResult, products: ProductInput[]) {
+  const effective = effectiveContainer(result.container,result.clearance);
+  return result.summaries.filter(s => s.unloaded > 0).map(s => {
+    const p = products.find(p => p.id===s.productId);
+    const reasons: string[] = [];
+    if (!p) return { ...s, reasons: ["缺少箱规资料"] };
+    const orientations = orientationsForStrategy(p,effective,result.strategy);
+    if (!getOrientations(p).some(o=>canPassDoor(o,effective))) reasons.push("允许的方向均无法通过柜门（确定限制）");
+    if (!orientations.some(o=>o.dx<=effective.length && o.dy<=effective.width && o.dz<=effective.height)) reasons.push("当前策略下的尺寸或方向超出柜内空间（确定限制）");
+    if (p.weight > result.container.maxWeight-result.metrics.grossWeight) reasons.push("剩余载重不足以再加入一箱（确定限制）");
+    if (p.length*p.width*p.height > result.metrics.effectiveVolume-result.metrics.loadedVolume) reasons.push("剩余总容积不足一箱（确定限制）");
+    if (p.setCode) reasons.push("必须整套装入；任一组件不足或放不下会整套回退");
+    if (!reasons.length) reasons.push("搜索未找到满足当前约束的摆放位置；不能据此证明绝对装不下");
+    if (p.maxStackLayers>0) reasons.push(`配置了 ${p.maxStackLayers} 层上限`);
+    if (p.maxTopLoadKg!==undefined) reasons.push(`配置了上方承重 ${p.maxTopLoadKg} kg`);
+    return { ...s, reasons };
+  });
+}
+
+/** Treat saved coordinates as untrusted input; rebuild all totals with today's validator. */
+export function restorePackingSnapshot(request: PackingRequest, snapshot: unknown): PackingResult {
+  assertValidRequest(request);
+  if (!snapshot || typeof snapshot !== "object") throw new Error("归档坐标格式无效。");
+  const raw=snapshot as Record<string,unknown>;
+  if (raw.strategy!=="practical"&&raw.strategy!=="maximum") throw new Error("归档算法标识无效。");
+  if (!Array.isArray(raw.placements)||raw.placements.length>12000) throw new Error("归档箱体坐标数量无效。");
+  const products=selectProductsForMode(request.products,request.mode);
+  const byId=new Map(products.map(p=>[p.id,p]));
+  const placements:PlacedBox[]=raw.placements.map((value:unknown)=>{
+    if(!value||typeof value!=="object")throw new Error("归档箱体格式无效。");
+    const b=value as Record<string,unknown>;
+    for(const key of ["id","productId","sku","orientation"])if(typeof b[key]!=="string"||(b[key] as string).length>300)throw new Error("归档箱体标识无效。");
+    for(const key of ["x","y","z","dx","dy","dz","weight","layer"])if(typeof b[key]!=="number"||!Number.isFinite(b[key]))throw new Error("归档箱体坐标或重量无效。");
+    const p=byId.get(b.productId as string);if(!p)throw new Error("归档箱体引用了不存在的产品。");
+    if(b.setCode!==undefined&&typeof b.setCode!=="string")throw new Error("归档套装编码无效。");
+    if(b.locked!==undefined&&typeof b.locked!=="boolean")throw new Error("归档锁定标记无效。");
+    return {id:b.id as string,productId:p.id,sku:b.sku as string,name:p.name,color:p.color,
+      x:b.x as number,y:b.y as number,z:b.z as number,dx:b.dx as number,dy:b.dy as number,dz:b.dz as number,
+      weight:b.weight as number,layer:b.layer as number,orientation:b.orientation as string,locked:b.locked as boolean|undefined,
+      setCode:b.setCode as string|undefined,setNumber:b.setNumber as number|undefined,setItemNumber:b.setItemNumber as number|undefined};
+  });
+  const ordered=orderForLoading(placements);
+  const validation=validatePacking(ordered,request.container,request.clearance,products,raw.strategy,request.mode);
+  if(!validation.valid)throw new Error(`归档坐标未通过当前校验：${validation.errors.slice(0,3).join("；")}`);
+  const normalized: PackingRequest={...request,products,strategy:raw.strategy};
+  const summaries=buildSummaries(normalized,ordered);
+  const setSummaries=buildSetSummaries(normalized,summaries);
+  const effective=effectiveContainer(request.container,request.clearance);
+  const loadedVolume=summaries.reduce((n,s)=>n+s.loadedVolume,0);
+  const grossWeight=summaries.reduce((n,s)=>n+s.loadedWeight,0);
+  const effectiveVolume=effective.length*effective.width*effective.height;
+  return {id:`restored-${Date.now()}`,mode:request.mode,strategy:raw.strategy,practicalTargetUtilization:practicalTarget(normalized),engineVersion:ENGINE_VERSION,
+    container:request.container,clearance:request.clearance,placements:ordered,summaries,setSummaries,validation,
+    metrics:{loadedCount:ordered.length,requestedCount:summaries.reduce((n,s)=>n+s.requested,0),loadedVolume,grossWeight,effectiveVolume,
+      volumeUtilization:loadedVolume/effectiveVolume,weightUtilization:grossWeight/request.container.maxWeight,
+      centerOfGravity:calculateCenterOfGravity(ordered,effective),executionComplexity:calculateExecutionComplexity(ordered,products),solveTimeMs:0},
+    warnings:["历史箱位已按当前箱规与引擎重新校验。自动重算已暂停，可继续手动调整或生成新方案。"],createdAt:new Date().toISOString()};
 }
