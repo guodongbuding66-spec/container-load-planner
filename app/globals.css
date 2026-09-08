@@ -1197,7 +1197,8 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
   .button, button { box-shadow: none !important; }
 }
 
-.support-strip { position: relative; z-index: 45; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; margin-top: 12px; border: 1px solid #d6e6e8; border-radius: 12px; background: #f7fcfc; color: #31545d; font-size: 14px; }
+/* Keep backup links above page panels, below the sticky header and its tools menu. */
+.support-strip { position: relative; z-index: 17; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; margin-top: 12px; border: 1px solid #d6e6e8; border-radius: 12px; background: #f7fcfc; color: #31545d; font-size: 14px; }
 .support-contact { display: flex; flex: 1 1 400px; min-width: 0; align-items: center; flex-wrap: wrap; gap: 8px; }
 .support-contact > a { color: #226c77; font-weight: 650; overflow-wrap: anywhere; }
 .support-contact > span { color: #536b74; }
