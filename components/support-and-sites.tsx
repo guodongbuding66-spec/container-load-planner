@@ -42,7 +42,7 @@ export function SupportAndSites() {
               </a>
             ))}
           </nav>
-          <p>不同站点的本机草稿独立保存。切换前请保留当前页面，并导出需要保留的方案。</p>
+          <p>不同站点的本机草稿独立保存。切换前请在“文件与备份”中备份工作区，到备用站恢复后即可继续测算。</p>
           <p className="support-sites-pending">其余备用线路暂未开放：Netlify、GitHub Pages、EdgeOne Makers。上线核验后将在这里提供访问入口。</p>
           <small>建议收藏备用地址，主站无法打开时也能直接访问。</small>
         </div>
