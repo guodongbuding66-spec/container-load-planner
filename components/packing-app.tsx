@@ -92,6 +92,8 @@ import {
 } from "../lib/packing/units";
 import { NumericInput } from "./numeric-input";
 import { SupportAndSites } from "./support-and-sites";
+import { RemainingCapacity } from "./remaining-capacity";
+import { MAX_WORKSPACE_BYTES, parseWorkspaceBackup, serializeWorkspaceBackup } from "../lib/packing/workspace-file";
 import { OrthographicViews } from "./orthographic-views";
 import { SceneErrorBoundary } from "./scene-error-boundary";
 
@@ -348,6 +350,7 @@ export function PackingApp() {
   const displayedPlanIdRef = useRef<string | null>(null);
   const packingProgressRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const workspaceInputRef = useRef<HTMLInputElement>(null);
   const result = useMemo(
     () => dirty ? null : selectStrategyResult(resultBundle, strategy),
     [dirty, resultBundle, strategy],
@@ -1257,6 +1260,52 @@ export function PackingApp() {
     window.requestAnimationFrame(() => window.print());
   };
 
+  const backupWorkspace = () => {
+    if (hasPendingDimensionChanges || invalidNumericFields.size) {
+      setMessage("请先完成数字和尺寸录入，再备份工作区。");
+      return;
+    }
+    const contents = serializeWorkspaceBackup(
+      { mode, strategy, practicalTargetPercent, container, clearance, products, customContainers,
+        targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit }, ENGINE_VERSION,
+    );
+    downloadFile(`装柜工作区_${new Date().toISOString().slice(0, 10)}.json`, contents, "application/json");
+    setMessage("工作区已导出，可在另一台设备或备用站恢复；恢复后会重新计算方案。");
+  };
+
+  const restoreWorkspace = async (file: File) => {
+    const revision = inputRevisionRef.current;
+    try {
+      if (file.size > MAX_WORKSPACE_BYTES) throw new Error("工作区备份不能超过 5 MB。");
+      const restored = parseWorkspaceBackup(await file.text());
+      if (revision !== inputRevisionRef.current || pendingDimensionChangesRef.current.size > 0) {
+        throw new Error("读取文件期间输入发生变化，请完成录入后重新选择备份。");
+      }
+      if (!window.confirm(`恢复包含 ${restored.products.length} 个箱型的工作区？当前输入将被替换。建议先备份当前工作区；恢复后将使用当前算法重新计算。`)) return;
+      clearActiveCalculation();
+      clearNumericDraftErrors();
+      setMode(restored.mode);
+      strategyRef.current = restored.strategy;
+      setStrategy(restored.strategy);
+      setPracticalTargetPercent(restored.practicalTargetPercent);
+      setContainer(restored.container);
+      setClearance(restored.clearance);
+      setProducts(normalizeProductList(restored.products));
+      setCustomContainers(restored.customContainers);
+      setTargetVolumePercent(restored.targetVolumePercent);
+      setTargetWeightPercent(restored.targetWeightPercent);
+      setLengthUnit(restored.lengthUnit);
+      setWeightUnit(restored.weightUnit);
+      setProductPage(0);
+      setResultBundle(null);
+      markDirty();
+      setStatus("idle");
+      setMessage("已恢复工作区输入，正在重新校验并计算；历史坐标不会直接作为已验证方案使用。");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "工作区恢复失败，当前输入未修改。");
+    }
+  };
+
   const exportJson = () => {
     if (!result?.validation.valid || dirty || hasPendingDimensionChanges) return;
     const selectedPlanOnly = { ...result, strategyPlans: undefined };
@@ -1355,7 +1404,20 @@ export function PackingApp() {
             <span className={`save-state ${dirty || hasPendingDimensionChanges ? "is-dirty" : ""} ${storageState === "error" ? "is-error" : ""}`}><Save size={15} />{storageState === "error" ? "草稿未能保存" : hasPendingDimensionChanges ? "尺寸录入中 · 尚未提交" : dirty ? "草稿自动保存 · 待重算" : "本机草稿已保存"}</span>
             <button className="button ghost" onClick={loadSample}><Sparkles size={16} />载入示例</button>
             <button className="button ghost" onClick={printPlan} disabled={!canExport}><Printer size={16} />现场指导书</button>
-            <button className="button ghost" onClick={exportJson} disabled={!canExport}><FileJson size={16} />导出方案</button>
+            <details className="workspace-file-menu">
+              <summary className="button ghost"><FileJson size={16} />文件与备份</summary>
+              <div className="workspace-file-panel">
+                <button type="button" className="button ghost" onClick={exportJson} disabled={!canExport}><FileJson size={16} />导出当前方案</button>
+                <button type="button" className="button ghost" onClick={backupWorkspace} disabled={hasPendingDimensionChanges || invalidNumericFields.size > 0}><Download size={16} />备份工作区</button>
+                <button type="button" className="button ghost" onClick={() => workspaceInputRef.current?.click()} disabled={hasPendingDimensionChanges}><Upload size={16} />恢复工作区</button>
+                <p>备份箱规、套装、柜型、目标与单位，可跨设备恢复。恢复后重新计算，不直接沿用旧坐标。</p>
+              </div>
+            </details>
+            <input ref={workspaceInputRef} type="file" accept=".json,application/json" aria-label="选择工作区备份文件" hidden onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              event.currentTarget.value = "";
+              if (file) void restoreWorkspace(file);
+            }} />
           </div>
         </header>
 
@@ -1520,6 +1582,7 @@ export function PackingApp() {
               <article><span>{mode === "single" ? isSingleProductSet ? "每套毛重" : "单件毛重" : "需求毛重"}</span><strong>{formatNumber(inputWeight, 1)} kg</strong><small>柜型上限 {formatNumber(container.maxWeight)} kg</small></article>
               <article><span>当前约束</span><strong>{clearance} mm</strong><small>安全间隙 · 目标 {targetVolumePercent}% / {targetWeightPercent}%</small></article>
             </section>
+            {result ? <RemainingCapacity result={result} pending={hasPendingDimensionChanges} /> : null}
             {result ? (
               <>
                 <div className="packing-timeline">

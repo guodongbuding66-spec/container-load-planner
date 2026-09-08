@@ -1227,3 +1227,24 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* Capacity belongs to the selected plan, above the loading timeline. */
+.remaining-capacity { margin: 12px 16px; padding: 14px 16px; border: 1px solid #c8e2e5; border-radius: 12px; background: #f3fafb; color: #244c56; }
+.remaining-capacity-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; margin-bottom: 12px; font-size: 14px; }
+.remaining-capacity-heading > span { font-size: 13px; color: #55727a; }
+.remaining-capacity-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 20px; }
+.remaining-capacity-grid article { min-width: 0; }
+.remaining-capacity-grid article > span, .remaining-capacity-grid article > small { display: block; font-size: 13px; color: #55727a; }
+.remaining-capacity-grid article > strong { display: block; margin: 5px 0; color: #176e79; font-size: clamp(19px, 1.5vw, 24px); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.remaining-capacity-grid strong small { font-size: 13px; font-weight: 500; }
+.remaining-capacity p { margin: 12px 0 0; font-size: 13px; line-height: 1.6; color: #55727a; }
+@media (max-width: 700px) { .remaining-capacity { margin: 10px; padding: 12px; } .remaining-capacity-grid { grid-template-columns: 1fr; } }
+@media print { .remaining-capacity { break-inside: avoid; border-color: #8daeb4; background: #fff; } }
+
+.workspace-file-menu { position: relative; z-index: 50; }
+.workspace-file-menu > summary { list-style: none; cursor: pointer; }
+.workspace-file-menu > summary::-webkit-details-marker { display: none; }
+.workspace-file-menu > summary:focus-visible { outline: 2px solid #226c77; outline-offset: 3px; }
+.workspace-file-panel { position: absolute; right: 0; top: calc(100% + 8px); width: min(330px, calc(100vw - 48px)); padding: 12px; border: 1px solid #d6e6e8; border-radius: 12px; background: white; box-shadow: 0 12px 36px #17384024; }
+.workspace-file-panel .button { width: 100%; min-height: 44px; justify-content: flex-start; margin-bottom: 6px; }
+.workspace-file-panel p { margin: 8px 2px 2px; color: #55727a; font-size: 13px; line-height: 1.6; }

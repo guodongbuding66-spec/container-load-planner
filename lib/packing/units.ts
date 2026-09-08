@@ -26,11 +26,11 @@ const KILOGRAMS_PER_UNIT: Record<WeightUnit, number> = {
 };
 
 export function isLengthUnit(value: unknown): value is LengthUnit {
-  return typeof value === "string" && value in MILLIMETERS_PER_UNIT;
+  return typeof value === "string" && Object.prototype.hasOwnProperty.call(MILLIMETERS_PER_UNIT, value);
 }
 
 export function isWeightUnit(value: unknown): value is WeightUnit {
-  return typeof value === "string" && value in KILOGRAMS_PER_UNIT;
+  return typeof value === "string" && Object.prototype.hasOwnProperty.call(KILOGRAMS_PER_UNIT, value);
 }
 
 export function toMillimeters(value: number, unit: LengthUnit) {
