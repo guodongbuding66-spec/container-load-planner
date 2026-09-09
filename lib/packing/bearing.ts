@@ -25,14 +25,34 @@ export function bearingLoads(boxes: PlacedBox[]) {
   return loads;
 }
 
+export function hasBearingRules(p: ProductInput) {
+  return p.maxTopLoadKg !== undefined || p.allowedAboveSkus !== undefined || Object.keys(p.topLoadByVerticalAxis ?? {}).length > 0;
+}
+export function bearingLimit(b: PlacedBox, p: ProductInput) {
+  // Equal dimensions can identify multiple original axes: take the most restrictive applicable limit.
+  const values = (["length", "width", "height"] as const)
+    .filter(axis => Math.abs(p[axis] - b.dz) < 0.0001)
+    .map(axis => p.topLoadByVerticalAxis?.[axis]).filter((n): n is number => n !== undefined);
+  if (p.maxTopLoadKg !== undefined) values.push(p.maxTopLoadKg);
+  return values.length ? Math.min(...values) : undefined;
+}
+export function bearingStatus(boxes: PlacedBox[], products: ProductInput[]) {
+  const loads = bearingLoads(boxes);
+  const unknown = boxes.filter(b => (loads.get(b.id) ?? 0) > 0 && bearingLimit(b, products.find(p => p.id === b.productId)!) === undefined);
+  return { unknownIds: unknown.map(b => b.id), verified: unknown.length === 0 };
+}
 export function bearingErrors(boxes: PlacedBox[], products: ProductInput[]) {
-  if (!products.some(p => p.maxTopLoadKg !== undefined)) return [];
+  if (!products.some(hasBearingRules)) return [];
   const loads = bearingLoads(boxes);
   const rules = new Map(products.map(p => [p.id, p]));
-  return boxes.flatMap(b => {
-    const limit = rules.get(b.productId)?.maxTopLoadKg;
-    const actual = loads.get(b.id) ?? 0;
-    return limit !== undefined && actual > limit + 0.00001
-      ? [`${b.sku} 箱体 ${b.id} 上方累计 ${actual.toFixed(2)} kg，超过允许承重 ${limit} kg。`] : [];
-  });
+  const errors: string[] = [];
+  for (const b of boxes) {
+    const p = rules.get(b.productId); if (!p) continue;
+    const limit = bearingLimit(b, p), actual = loads.get(b.id) ?? 0;
+    if (limit !== undefined && actual > limit + 0.00001) errors.push(`${b.sku} 箱体 ${b.id} 上方累计 ${actual.toFixed(2)} kg，超过允许承重 ${limit} kg。`);
+    if (p.allowedAboveSkus !== undefined) for (const upper of boxes) {
+      if (Math.abs(upper.z - b.z - b.dz) < 0.0001 && contactArea(b, upper) > 0 && !p.allowedAboveSkus.includes(upper.sku)) errors.push(`${b.sku} 不允许 ${upper.sku} 直接叠放于上方。`);
+    }
+  }
+  return errors;
 }

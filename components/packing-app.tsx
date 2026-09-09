@@ -46,7 +46,6 @@ import {
   DEFAULT_PRACTICAL_TARGET,
   ENGINE_VERSION,
   recommendedPracticalTarget,
-  restorePackingSnapshot,
   validateContainerInput,
 } from "../lib/packing/engine";
 import { summarizePackingProgress } from "../lib/packing/progress";
@@ -93,9 +92,11 @@ import {
 } from "../lib/packing/units";
 import { NumericInput } from "./numeric-input";
 import { SupportAndSites } from "./support-and-sites";
+import { CloudWorkspace } from "./cloud-workspace";
+import { ProductCatalog, CustomerReportPanel } from "./product-catalog";
 import { ArchiveLibrary, BearingRules, UnloadedReasons, ManualPlan, FieldGuide, FleetPlanner } from "./planning-upgrades";
 import { RemainingCapacity } from "./remaining-capacity";
-import { MAX_WORKSPACE_BYTES, parseWorkspaceBackup, serializeWorkspaceBackup } from "../lib/packing/workspace-file";
+import { MAX_WORKSPACE_BYTES, parseWorkspaceBackup, restoreWorkspacePlans, serializeWorkspaceBackup } from "../lib/packing/workspace-file";
 import { OrthographicViews } from "./orthographic-views";
 import { SceneErrorBoundary } from "./scene-error-boundary";
 
@@ -317,6 +318,7 @@ export function PackingApp() {
   const [resultBundle, setResultBundle] = useState<PackingResult | null>(null);
   const [status, setStatus] = useState<CalcStatus>("idle");
   const [message, setMessage] = useState("参数已就绪");
+  const [pendingRestore,setPendingRestore]=useState<{description:string;apply:()=>void}|null>(null);
   const [dirty, setDirty] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [visibleProducts, setVisibleProducts] = useState<Set<string>>(new Set());
@@ -1055,6 +1057,7 @@ export function PackingApp() {
     activeRequestRef.current = requestId;
     activeRevisionRef.current = inputRevisionRef.current;
     workerResultsRef.current = {};
+    const finishedStrategies = new Set<PackingStrategy>();
     const runtimePolicy = { ...detectRuntimePolicy(), ...(calculationBudget ? { calculationTimeoutMs: calculationBudget * 1000 } : {}) };
     setSolverSchedule(runtimePolicy.schedule);
     setStatus("working");
@@ -1139,15 +1142,24 @@ export function PackingApp() {
           retryOrFail("计算线程返回了不匹配的策略结果。");
           return;
         }
+        if(response.type === "progress") {
+          workerResultsRef.current[solverStrategy]=response.payload;
+          setResultBundle({...response.payload,strategyPlans:{...workerResultsRef.current}});
+          setDirty(false);
+          if(strategyRef.current===solverStrategy)presentPlan(response.payload);
+          setMessage("已找到并校验首个可行方案，正在继续搜索；可随时停止保留。");
+          return;
+        }
         settled = true;
+        finishedStrategies.add(solverStrategy);
         workerResultsRef.current[solverStrategy] = response.payload;
         const practicalResult = workerResultsRef.current.practical;
         const maximumResult = workerResultsRef.current.maximum;
-        if (!practicalResult || !maximumResult) {
+        if (!practicalResult || !maximumResult || !finishedStrategies.has("practical") || !finishedStrategies.has("maximum")) {
           if (discardObsoleteCalculation()) return;
           const partialBundle: PackingResult = {
             ...response.payload,
-            strategyPlans: { [solverStrategy]: response.payload },
+            strategyPlans: { ...workerResultsRef.current },
           };
           setResultBundle(partialBundle);
           setDirty(false);
@@ -1272,7 +1284,7 @@ export function PackingApp() {
     }
     const contents = serializeWorkspaceBackup(
       { mode, strategy, practicalTargetPercent, container, clearance, products, customContainers,
-        targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit }, ENGINE_VERSION, result,
+        targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit }, ENGINE_VERSION, result, resultBundle?.strategyPlans,
     );
     downloadFile(`装柜工作区_${new Date().toISOString().slice(0, 10)}.json`, contents, "application/json");
     setMessage("工作区已导出，可跨设备恢复；已完成方案的箱位会在恢复时重新校验。");
@@ -1284,12 +1296,14 @@ export function PackingApp() {
       if (file.size > MAX_WORKSPACE_BYTES) throw new Error("工作区备份不能超过 5 MB。");
       const contents = await file.text();
       const restored = parseWorkspaceBackup(contents);
-      const snapshot = JSON.parse(contents).coordinatePlan;
-      const restoredPlan = snapshot === undefined ? null : restorePackingSnapshot({mode:restored.mode,strategy:restored.strategy,practicalTargetUtilization:restored.practicalTargetPercent/100,container:restored.container,clearance:restored.clearance,products:restored.products},snapshot);
+      const restoredPlan = restoreWorkspacePlans(contents, restored);
       if (revision !== inputRevisionRef.current || pendingDimensionChangesRef.current.size > 0) {
         throw new Error("读取文件期间输入发生变化，请完成录入后重新选择备份。");
       }
-      if (!window.confirm(`恢复包含 ${restored.products.length} 个箱型的工作区？当前输入将被替换。建议先备份当前工作区；${restoredPlan ? "已保存箱位将通过当前规则重新校验并恢复。" : "恢复后将使用当前算法重新计算。"}`)) return;
+      const description=`恢复包含 ${restored.products.length} 个箱型的工作区？当前输入将被替换。${restoredPlan ? "已保存箱位通过当前规则校验，将一并恢复。" : "恢复后将使用当前算法重新计算。"}`;
+      const apply=()=>{
+      if(revision!==inputRevisionRef.current||pendingDimensionChangesRef.current.size>0){setPendingRestore(null);setMessage("当前输入已变化，请重新选择需要恢复的工作区。");return;}
+      setPendingRestore(null);
       clearActiveCalculation();
       clearNumericDraftErrors();
       setMode(restored.mode);
@@ -1321,6 +1335,8 @@ export function PackingApp() {
         setAutoCalculate(true);
         setMessage("已恢复工作区输入，正在重新计算方案。");
       }
+      };
+      setPendingRestore({description,apply});
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "工作区恢复失败，当前输入未修改。");
     }
@@ -1417,7 +1433,7 @@ export function PackingApp() {
     setProductPage(0);
     markDirty();
   };
-  const workspaceBackup = useMemo(() => serializeWorkspaceBackup({mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,result), [mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit,result]);
+  const workspaceBackup = useMemo(() => serializeWorkspaceBackup({mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,result,resultBundle?.strategyPlans), [mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit,result,resultBundle?.strategyPlans]);
   const upgradesDisabled = hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0 || status === "working";
   const fleetRequest: PackingRequest = { mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
 
@@ -1425,6 +1441,7 @@ export function PackingApp() {
 
   return (
     <main className="app-shell">
+      {pendingRestore?<section className="restore-confirm" role="region" aria-label="确认恢复工作区"><strong>确认恢复工作区</strong><p>{pendingRestore.description}</p><div className="upgrade-actions"><button className="button primary" onClick={pendingRestore.apply}>确认恢复</button><button className="button" onClick={()=>setPendingRestore(null)}>取消恢复</button></div></section>:null}
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-mark"><Container size={22} /></div>
@@ -1876,11 +1893,14 @@ export function PackingApp() {
         </section>
 
         <section className="planning-upgrades" aria-label="方案管理与高级装载工具">
+          <CloudWorkspace backup={workspaceBackup} plan={result} products={activeProducts} disabled={upgradesDisabled} onRestore={backup=>{void restoreWorkspace(new File([backup],"云端归档.json",{type:"application/json"}));}} onProducts={next=>{setMode("mixed");replaceProductInputs(next);}}/>
+          <ProductCatalog products={activeProducts} plan={result} disabled={upgradesDisabled} onProducts={replaceProductInputs}/>
           <ArchiveLibrary backup={workspaceBackup} disabled={upgradesDisabled} onRestore={backup=>{void restoreWorkspace(new File([backup],"工作区归档.json",{type:"application/json"}));}} onProducts={replaceProductInputs}/>
           <BearingRules key={JSON.stringify(products.map(p=>[p.id,p.maxTopLoadKg]))} products={activeProducts} disabled={upgradesDisabled} onChange={next=>replaceProductInputs(products.map(p=>next.find(n=>n.id===p.id)??p))}/>
           {mode === "mixed" ? <FleetPlanner key={JSON.stringify([fleetRequest,customContainers])} request={fleetRequest} customContainers={customContainers} disabled={upgradesDisabled}/> : null}
           {result && !hasPendingDimensionChanges ? <>
-            <UnloadedReasons result={result} products={activeProducts}/>
+            <CustomerReportPanel plan={result} products={activeProducts}/>
+            <UnloadedReasons result={result} products={activeProducts} onFocus={id=>{setVisibleProducts(new Set(result.summaries.map(s=>s.productId)));setCameraView("top");setPackingProgress(result.placements.length);setMessage(`已在原因面板突出 ${activeProducts.find(p=>p.id===id)?.sku??"当前 SKU"}；三维保留其他货物，避免把隐藏箱位误认为空闲空间。`);}}/>
             <ManualPlan key={result.id} result={result} products={activeProducts} disabled={upgradesDisabled||!result.validation.valid} onAdopt={next=>{clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。");}}/>
             {result.validation.valid ? <FieldGuide key={`field-${result.id}`} result={result}/> : null}
           </> : null}

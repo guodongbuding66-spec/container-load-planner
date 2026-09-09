@@ -1,0 +1,15 @@
+import type { PackingResult,ProductInput } from "./types";
+type OsOrder={id:string;items:{skuId:string;quantity:number}[]};
+type OsCatalog={skus:{id:string;code:string;variant?:string;updatedAt?:string}[];packages:{id:string;skuId:string;code:string;l:number;w:number;h:number;grossWeight:number;qtyPerSet:number;stackable:boolean;keepUpright:boolean;maxStackLayers:number|null;maxTopLoad:number|null}[]};
+export function importOsOrder(order:OsOrder,catalog:OsCatalog):ProductInput[]{
+  if(!Array.isArray(order?.items)||!order.items.length||!Array.isArray(catalog?.skus)||!Array.isArray(catalog?.packages))throw Error("订单或包装资料不完整");
+  const quantities=new Map<string,number>();for(const i of order.items){if(!Number.isInteger(i.quantity)||i.quantity<1)throw Error("订单套数无效");quantities.set(i.skuId,(quantities.get(i.skuId)??0)+i.quantity);}
+  const products:ProductInput[]=[];
+  for(const [id,qty]of quantities){const sku=catalog.skus.find(s=>s.id===id),packages=catalog.packages.filter(p=>p.skuId===id);if(!sku||!packages.length)throw Error("订单 SKU 缺少包装资料，未替换当前输入");for(const p of packages){if(![p.l,p.w,p.h].every(n=>Number.isFinite(n)&&n>0)||!Number.isFinite(p.grossWeight)||p.grossWeight<0||!Number.isInteger(p.qtyPerSet)||p.qtyPerSet<1||p.qtyPerSet>99)throw Error("外贸 OS 包装参数无效");products.push({id:p.id,sku:`${sku.code}-${p.code}`,name:sku.variant??sku.code,length:p.l*10,width:p.w*10,height:p.h*10,weight:p.grossWeight,quantity:qty*p.qtyPerSet,priority:50,rotationPolicy:p.keepUpright?"upright":"any",stackable:p.stackable,maxStackLayers:p.maxStackLayers??0,maxTopLoadKg:p.maxTopLoad??undefined,setCode:sku.code,unitsPerSet:p.qtyPerSet,color:"#2f7f89",source:{system:"aftos",skuId:sku.id,packageId:p.id,orderId:order.id},packaging:{revision:sku.updatedAt??"OS导入",effectiveDate:sku.updatedAt?.slice(0,10)??"",notes:"外贸 OS 箱规原单位 cm，已转换为 mm。"}});}}
+  return products;
+}
+export function exportOsPlan(plan:PackingResult,products:ProductInput[]){
+  if(!plan.validation.valid)throw Error("方案未通过校验");
+  return {containerType:plan.container.id,container:{...plan.container,length:plan.container.length/10,width:plan.container.width/10,height:plan.container.height/10,doorWidth:plan.container.doorWidth/10,doorHeight:plan.container.doorHeight/10},sets:plan.setSummaries.reduce((n,s)=>n+s.loadedSets,0),solverVersion:plan.engineVersion,status:"Draft",createdAt:plan.createdAt,
+    placed:plan.placements.map(b=>{const p=products.find(p=>p.id===b.productId);return {skuId:p?.source?.skuId??null,pkgId:p?.source?.packageId??null,code:b.sku,setNo:b.setNumber??null,x:b.x/10,y:b.y/10,z:b.z/10,l:b.dx/10,w:b.dy/10,h:b.dz/10,weight:b.weight};}),unloaded:plan.summaries.filter(s=>s.unloaded>0).map(s=>({sku:s.sku,quantity:s.unloaded})),metrics:{volumeUtilization:plan.metrics.volumeUtilization,weightUtilization:plan.metrics.weightUtilization,usedCBM:plan.metrics.loadedVolume/1e9,totalWeight:plan.metrics.grossWeight},sourceOrderIds:[...new Set(products.map(p=>p.source?.orderId).filter(Boolean))],coordinateUnit:"CM"};
+}

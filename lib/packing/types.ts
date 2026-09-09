@@ -34,10 +34,15 @@ export type ProductInput = {
   allowRotate?: boolean;
   /** Maximum weight resting above one carton; undefined means unspecified. Zero forbids load. */
   maxTopLoadKg?: number;
+  allowedAboveSkus?: string[];
+  topLoadByVerticalAxis?: Partial<Record<"length" | "width" | "height", number>>;
+  source?: { system: "aftos"; skuId: string; packageId: string; orderId: string };
+  packaging?: { revision: string; effectiveDate: string; notes: string };
   color: string;
 };
 
 export type PackingRequest = {
+  searchPass?: number;
   mode: PackingMode;
   strategy?: PackingStrategy;
   practicalTargetUtilization?: number;
@@ -251,5 +256,5 @@ export type WorkerRequest = {
 };
 
 export type WorkerResponse =
-  | { type: "result"; requestId: string; strategy: PackingStrategy; payload: PackingResult }
+  | { type: "result" | "progress"; requestId: string; strategy: PackingStrategy; payload: PackingResult }
   | { type: "error"; requestId: string; strategy: PackingStrategy; message: string };

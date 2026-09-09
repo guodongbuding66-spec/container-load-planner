@@ -7,6 +7,10 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
   const message = event.data;
   if (message.type !== "pack-strategy") return;
   try {
+    if (message.payload.mode === "mixed") {
+      const quick=pack({...message.payload,strategy:message.strategy,searchPass:0});
+      if(quick.validation.valid)self.postMessage({type:"progress",requestId:message.requestId,strategy:message.strategy,payload:quick});
+    }
     const response: WorkerResponse = {
       type: "result",
       requestId: message.requestId,

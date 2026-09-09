@@ -1,5 +1,6 @@
 import type { ContainerSpec, PackingMode, PackingResult, PackingStrategy, ProductInput } from "./types";
 import { isLengthUnit, isWeightUnit, type LengthUnit, type WeightUnit } from "./units";
+import { restorePackingSnapshot } from "./engine";
 import { MAX_CSV_ROWS } from "./csv";
 
 export const MAX_WORKSPACE_BYTES = 5 * 1024 * 1024;
@@ -44,7 +45,7 @@ function container(value: unknown): ContainerSpec {
     width: number(v.width), height: number(v.height), doorWidth: number(v.doorWidth),
     doorHeight: number(v.doorHeight), maxWeight: number(v.maxWeight) };
 }
-function product(value: unknown): ProductInput {
+export function parseProductInput(value: unknown): ProductInput {
   const v = record(value);
   if (v.rotationPolicy !== "fixed" && v.rotationPolicy !== "upright" && v.rotationPolicy !== "any") throw new Error("箱型方向规则无效。");
   const color = text(v.color, 7);
@@ -58,6 +59,10 @@ function product(value: unknown): ProductInput {
     bottomOnly: v.bottomOnly === undefined ? false : bool(v.bottomOnly),
     setCode: v.setCode === undefined ? "" : text(v.setCode, 80),
     unitsPerSet: v.unitsPerSet === undefined ? 1 : integer(v.unitsPerSet, 1, 99),
+    ...(v.allowedAboveSkus === undefined ? {} : {allowedAboveSkus: (()=>{if(!Array.isArray(v.allowedAboveSkus)||v.allowedAboveSkus.length>1000)throw new Error("叠放规则无效");return v.allowedAboveSkus.map(s=>text(s,80));})()}),
+    ...(v.topLoadByVerticalAxis === undefined ? {} : {topLoadByVerticalAxis: Object.fromEntries(Object.entries(record(v.topLoadByVerticalAxis)).map(([k,n])=>{if(!["length","width","height"].includes(k))throw new Error("承重方向无效");return [k,number(n)];}))}),
+    ...(v.source === undefined ? {} : {source:(()=>{const source=record(v.source);if(source.system!=="aftos")throw new Error("来源无效");return {system:"aftos" as const,skuId:text(source.skuId,120),packageId:text(source.packageId,120),orderId:text(source.orderId,120)};})()}),
+    ...(v.packaging === undefined ? {} : {packaging: (()=>{const p=record(v.packaging);return {revision:text(p.revision,100),effectiveDate:text(p.effectiveDate,10),notes:text(p.notes,2000)};})()}),
     ...(v.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: number(v.maxTopLoadKg) }), color };
 }
 export function parseWorkspaceBackup(contents: string): WorkspaceInputs {
@@ -73,12 +78,23 @@ export function parseWorkspaceBackup(contents: string): WorkspaceInputs {
   if (!Array.isArray(v.customContainers) || v.customContainers.length > 100) throw new Error("自定义柜型数量无效。");
   return { mode: v.mode, strategy: v.strategy, practicalTargetPercent: number(v.practicalTargetPercent, 50, 95),
     container: container(v.container), clearance: number(v.clearance, 0, 50),
-    products: v.products.map(product), customContainers: v.customContainers.map(container),
+    products: v.products.map(parseProductInput), customContainers: v.customContainers.map(container),
     targetVolumePercent: integer(v.targetVolumePercent, 1, 100), targetWeightPercent: integer(v.targetWeightPercent, 1, 100),
     lengthUnit: v.lengthUnit, weightUnit: v.weightUnit };
 }
-export function serializeWorkspaceBackup(inputs: WorkspaceInputs, engineVersion: string, plan?: PackingResult | null): string {
+export function serializeWorkspaceBackup(inputs: WorkspaceInputs, engineVersion: string, plan?: PackingResult | null, plans?: PackingResult["strategyPlans"]): string {
   return JSON.stringify({ format: "cargo-fit-workspace", version: 1, engineVersion,
-    createdAt: new Date().toISOString(), inputs, ...(plan?.validation.valid ? { coordinatePlan: { strategy: plan.strategy, placements: plan.placements } } : {}) }, null, 2);
+    createdAt: new Date().toISOString(), inputs,
+    coordinatePlans: Object.fromEntries(Object.entries(plan?.validation.valid?(plans??plan.strategyPlans??{}):{}).filter(([,p])=>p?.validation.valid).map(([key,p])=>[key,{strategy:p!.strategy,singleCartonLimit:p!.singleCartonLimit,placements:p!.placements}])),
+    ...(plan?.validation.valid ? { coordinatePlan: { strategy: plan.strategy, singleCartonLimit: plan.singleCartonLimit, placements: plan.placements } } : {}) }, null, 2);
 }
 
+
+export function restoreWorkspacePlans(contents: string, inputs: WorkspaceInputs) {
+  const raw=record(JSON.parse(contents));
+  const request={mode:inputs.mode,strategy:inputs.strategy,practicalTargetUtilization:inputs.practicalTargetPercent/100,container:inputs.container,clearance:inputs.clearance,products:inputs.products};
+  const plans:NonNullable<PackingResult["strategyPlans"]>={};
+  if(raw.coordinatePlans!==undefined)for(const [key,snapshot] of Object.entries(record(raw.coordinatePlans))){if(key!=="practical"&&key!=="maximum")throw new Error("归档算法无效");const p=restorePackingSnapshot(request,snapshot);if(p.strategy!==key)throw new Error("算法与坐标不一致");plans[key]=p;}
+  const selected=raw.coordinatePlan===undefined?plans[inputs.strategy]??plans.practical??plans.maximum:restorePackingSnapshot(request,raw.coordinatePlan);
+  return selected?{...selected,strategyPlans:Object.keys(plans).length?{...plans,[selected.strategy]:selected}:undefined}:null;
+}

@@ -234,7 +234,7 @@ test("runs two independent solvers and exposes actionable strategy guidance", as
   assert.match(source, /runtimePolicy\.schedule === "practical-first" && solverStrategy === "practical"/);
   assert.match(source, /completeWithAvailablePlan\("后台算法达到设备保护时限，"\)/);
   assert.match(source, /const partialBundle: PackingResult/);
-  assert.match(source, /strategyPlans: \{ \[solverStrategy\]: response\.payload \}/);
+  assert.match(source, /strategyPlans: \{ \.\.\.workerResultsRef\.current \}/);
   assert.match(source, /方案已完成并可查看；另一套算法仍在后台独立计算/);
   assert.match(source, /当前所选算法已完成并可查看、打印或导出/);
   assert.match(source, /const finishActiveCalculation = useCallback/);

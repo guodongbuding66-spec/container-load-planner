@@ -1,4 +1,5 @@
-import { bearingErrors } from "./bearing";
+import { executionAudit } from "./execution";
+import { bearingErrors, hasBearingRules, bearingStatus, contactArea } from "./bearing";
 import type {
   ContainerSpec,
   PackingMode,
@@ -22,7 +23,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.15.0";
+export const ENGINE_VERSION = "0.16.0";
 
 type Orientation = {
   dx: number;
@@ -127,6 +128,8 @@ function assertValidRequest(request: PackingRequest) {
       throw new Error(`${product.sku} 的外箱尺寸必须是大于 0 的有限数字。`);
     }
     if (product.maxTopLoadKg !== undefined && (!Number.isFinite(product.maxTopLoadKg) || product.maxTopLoadKg < 0)) throw new Error(`${product.sku} 的上方承重必须为非负有限数字。`);
+    if (product.allowedAboveSkus !== undefined && (!Array.isArray(product.allowedAboveSkus) || product.allowedAboveSkus.some(s => typeof s !== "string" || !s.trim()))) throw new Error("叠放白名单格式无效。");
+    if (product.topLoadByVerticalAxis && Object.entries(product.topLoadByVerticalAxis).some(([k,v]) => !["length","width","height"].includes(k) || !Number.isFinite(v) || v < 0)) throw new Error("方向承重必须为非负有限数字。");
     if (!Number.isFinite(product.weight) || product.weight < 0) throw new Error(`${product.sku} 的重量不能为负数。`);
     if (!Number.isInteger(product.quantity) || product.quantity < 0 || product.quantity > 1_000_000) throw new Error(`${product.sku} 的数量必须是非负整数且不超过 1,000,000。`);
     if (!Number.isInteger(product.priority) || product.priority < 0 || product.priority > 100) throw new Error(`${product.sku} 的优先级必须是 0–100 的整数。`);
@@ -1400,16 +1403,19 @@ function buildItemBatches(request: PackingRequest, sort: SortStrategy) {
   return batches.sort((a, b) => sort(a.items[0], b.items[0]));
 }
 
-function packMixedWithStrategy(request: PackingRequest, container: EffectiveContainer, sort: SortStrategy) {
-  const batches = buildItemBatches(request, sort);
-  const placements: PlacedBox[] = [];
+function packMixedWithStrategy(request: PackingRequest, container: EffectiveContainer, sort: SortStrategy, anchors: PlacedBox[] = []) {
+  const already = new Map<string, number>();
+  anchors.forEach(b => already.set(b.productId, (already.get(b.productId) ?? 0) + 1));
+  const batches = buildItemBatches({...request, products:request.products.map(p=>({...p,quantity:Math.max(0,p.quantity-(already.get(p.id)??0))}))}, sort);
+  for (const batch of batches) if (batch.setCode) batch.setNumber = (batch.setNumber ?? 0) + Math.max(0,...anchors.filter(b=>b.setCode===batch.setCode).map(b=>b.setNumber??0));
+  const placements: PlacedBox[] = anchors.map(b=>({...b}));
   let spatial = new SpatialIndex(container);
   let topLevels = new Map<number, PlacedBox[]>();
   const productMap = new Map(request.products.map((product) => [product.id, product]));
   let points: Point[] = [{ x: 0, y: 0, z: 0 }];
-  let totalWeight = 0;
-  let totalVolume = 0;
-  let placementIndex = 0;
+  let totalWeight = placements.reduce((n,b)=>n+b.weight,0);
+  let totalVolume = placements.reduce((n,b)=>n+b.dx*b.dy*b.dz,0);
+  let placementIndex = anchors.length ? 1 + Math.max(0,...placements.map(b=>Number(b.id.split("-").at(-1))||0)) : 0;
   const blockedSetCodes = new Set<string>();
   const strategy = packingStrategy(request);
   const supportThreshold = strategy === "practical" ? PRACTICAL_SUPPORT_RATIO : 0.68;
@@ -1426,6 +1432,11 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
     });
   };
 
+  rebuildIndexes();
+  if (anchors.length) points.push(...anchors.flatMap(b=>[
+    {x:b.x+b.dx,y:b.y,z:b.z},{x:b.x,y:b.y+b.dy,z:b.z},{x:b.x,y:b.y,z:b.z+b.dz},
+    {x:0,y:b.y,z:b.z+b.dz},{x:b.x,y:0,z:b.z+b.dz},{x:b.x+b.dx,y:0,z:0}
+  ]));
   const placeProduct = (product: ProductInput) => {
     if (totalWeight + product.weight > request.container.maxWeight + EPS) return false;
     const orientations = orientationsForStrategy(product, container, strategy);
@@ -1461,7 +1472,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
         const support = supportDetails(candidate, topLevels, productMap);
         const layerLimit = maxStackLayers(product);
         if (support.ratio < supportThreshold || (layerLimit > 0 && support.layer > layerLimit)) continue;
-        if (request.products.some(p => p.maxTopLoadKg !== undefined) && bearingErrors([...placements, candidate], request.products).length) continue;
+        if (request.products.some(hasBearingRules) && bearingErrors([...placements, candidate], request.products).length) continue;
         const topPenalty = strategy === "practical"
           ? candidate.x * 1_000_000_000
           : candidate.z * 1_000_000_000;
@@ -1569,7 +1580,7 @@ function packMixed(request: PackingRequest, container: EffectiveContainer) {
   // candidate is rebuilt under that solver's own orientation/support rules.
   // This lets theory guide field search without copying an unsafe theoretical
   // placement into the practical output.
-  const activeStrategies = requested > 4000 ? strategies.slice(0, 2) : strategies;
+  const activeStrategies = request.searchPass !== undefined ? [strategies[Math.abs(request.searchPass) % strategies.length]] : requested > 4000 ? strategies.slice(0, 2) : strategies;
   let best: PlacedBox[] = [];
   let bestScore = -1;
   for (const strategy of activeStrategies) {
@@ -1930,12 +1941,12 @@ export function pack(request: PackingRequest): PackingResult {
     preliminaryQuoteEstimate.physicallyPossibleByBounds
     ? preliminaryQuoteEstimate.predictedSets
     : undefined;
-  const hasBearingRules = normalized.products.some(p => p.maxTopLoadKg !== undefined);
+  const bearingEnabled = normalized.products.some(hasBearingRules);
   const cartonsPerUnit = normalized.products.reduce((sum,p)=>sum+(setCode(p)?unitsPerSet(p):1),0);
   const unitVolume = normalized.products.reduce((sum,p)=>sum+p.length*p.width*p.height*(setCode(p)?unitsPerSet(p):1),0);
   const bearingUnitLimit = Math.min(Math.floor(4000/cartonsPerUnit), Math.floor(effectiveVolume/unitVolume), Math.floor((normalized.singleCartonLimit ?? 4000)/cartonsPerUnit));
-  const bearingRequest: PackingRequest = normalized.mode === "single" && hasBearingRules ? { ...normalized, mode: "mixed", products: normalized.products.map(p => ({ ...p, quantity: bearingUnitLimit*(setCode(p)?unitsPerSet(p):1) })) } : normalized;
-  const output = hasBearingRules ? packMixed(bearingRequest, effective) : normalized.mode === "single"
+  const bearingRequest: PackingRequest = normalized.mode === "single" && bearingEnabled ? { ...normalized, mode: "mixed", products: normalized.products.map(p => ({ ...p, quantity: bearingUnitLimit*(setCode(p)?unitsPerSet(p):1) })) } : normalized;
+  const output = bearingEnabled ? packMixed(bearingRequest, effective) : normalized.mode === "single"
     ? packSingle(normalized, effective, fieldPracticalSetLimit)
     : packMixed(normalized, effective);
   // Solvers may discover the final geometry layer-by-layer. Playback, exports
@@ -1966,7 +1977,9 @@ export function pack(request: PackingRequest): PackingResult {
     : 0;
   const quoteEstimate = estimateQuoteLoading(normalized, effectiveVolume, physicalLoadedSets);
   const warnings = [...output.warnings];
-  if (hasBearingRules) warnings.push("已启用逐箱上方累计承重约束，按接触面积分配静态竖向载荷；结果可能比无承重约束的排列更保守。");
+  const bearingCheck = bearingStatus(orderedPlacements, normalized.products);
+  if (!bearingCheck.verified) warnings.push(`承重未核验：${bearingCheck.unknownIds.length} 个受压箱体尚未填写该朝向的承重参数；几何通过不代表承重已确认。`);
+  if (bearingEnabled) warnings.push("已启用逐箱上方累计承重约束，按接触面积分配静态竖向载荷；结果可能比无承重约束的排列更保守。");
   if (normalized.mode === "single" && normalized.singleCartonLimit !== undefined) {
     const plannedQuantity = setSummaries.length
       ? Math.floor(normalized.singleCartonLimit / setSummaries[0].cartonsPerSet)
@@ -2263,7 +2276,7 @@ export function revisePackingResult(original: PackingResult, placements: PlacedB
   const effective = effectiveContainer(original.container, original.clearance);
   return { ...original, id: `manual-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, placements: ordered,
     strategyPlans: undefined, strategyComparison: undefined, quoteEstimate: undefined, validation,
-    warnings: ["手动调整已重新校验；箱位锁定仅作用于本手动方案，重新计算将创建新方案。"],
+    warnings: ["手动调整已重新校验；继续优化会保留锁定箱位及其支撑；重新计算整个订单将创建新方案。"],
     metrics: { ...original.metrics, centerOfGravity: calculateCenterOfGravity(ordered,effective), executionComplexity: calculateExecutionComplexity(ordered,products) }, createdAt: new Date().toISOString() };
 }
 
@@ -2291,6 +2304,8 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   assertValidRequest(request);
   if (!snapshot || typeof snapshot !== "object") throw new Error("归档坐标格式无效。");
   const raw=snapshot as Record<string,unknown>;
+  const limit=raw.singleCartonLimit??request.singleCartonLimit;
+  if(limit!==undefined&&(!Number.isInteger(limit)||Number(limit)<1))throw new Error("归档计划上限无效。");
   if (raw.strategy!=="practical"&&raw.strategy!=="maximum") throw new Error("归档算法标识无效。");
   if (!Array.isArray(raw.placements)||raw.placements.length>12000) throw new Error("归档箱体坐标数量无效。");
   const products=selectProductsForMode(request.products,request.mode);
@@ -2311,7 +2326,8 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   const ordered=orderForLoading(placements);
   const validation=validatePacking(ordered,request.container,request.clearance,products,raw.strategy,request.mode);
   if(!validation.valid)throw new Error(`归档坐标未通过当前校验：${validation.errors.slice(0,3).join("；")}`);
-  const normalized: PackingRequest={...request,products,strategy:raw.strategy};
+  if(request.mode==="single"&&limit!==undefined&&ordered.length>Number(limit))throw new Error("归档箱数超过计划上限。");
+  const normalized: PackingRequest={...request,products,strategy:raw.strategy,singleCartonLimit:limit as number|undefined};
   const summaries=buildSummaries(normalized,ordered);
   const setSummaries=buildSetSummaries(normalized,summaries);
   const effective=effectiveContainer(request.container,request.clearance);
@@ -2319,9 +2335,33 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   const grossWeight=summaries.reduce((n,s)=>n+s.loadedWeight,0);
   const effectiveVolume=effective.length*effective.width*effective.height;
   return {id:`restored-${Date.now()}`,mode:request.mode,strategy:raw.strategy,practicalTargetUtilization:practicalTarget(normalized),engineVersion:ENGINE_VERSION,
-    container:request.container,clearance:request.clearance,placements:ordered,summaries,setSummaries,validation,
+    container:request.container,clearance:request.clearance,singleCartonLimit:normalized.singleCartonLimit,placements:ordered,summaries,setSummaries,validation,
     metrics:{loadedCount:ordered.length,requestedCount:summaries.reduce((n,s)=>n+s.requested,0),loadedVolume,grossWeight,effectiveVolume,
       volumeUtilization:loadedVolume/effectiveVolume,weightUtilization:grossWeight/request.container.maxWeight,
       centerOfGravity:calculateCenterOfGravity(ordered,effective),executionComplexity:calculateExecutionComplexity(ordered,products),solveTimeMs:0},
     warnings:["历史箱位已按当前箱规与引擎重新校验。自动重算已暂停，可继续手动调整或生成新方案。"],createdAt:new Date().toISOString()};
+}
+
+/** Retain locked boxes, their support closure and complete kits; only rebuild the free remainder. */
+export function improvePacking(original: PackingResult, products: ProductInput[], pass = 0): PackingResult {
+  const request: PackingRequest = {mode:original.mode,strategy:original.strategy,container:original.container,clearance:original.clearance,practicalTargetUtilization:original.practicalTargetUtilization,products};
+  const baseline=restorePackingSnapshot(request,{strategy:original.strategy,placements:original.placements});
+  const fixed=new Set(original.placements.filter(b=>b.locked).map(b=>b.id));
+  let changed=true;
+  while(changed){changed=false;for(const b of original.placements){if(!fixed.has(b.id))continue;for(const a of original.placements){if(fixed.has(a.id))continue;const sameSet=Boolean(b.setCode&&a.setCode===b.setCode&&a.setNumber===b.setNumber);const support=Math.abs(a.z+a.dz-b.z)<EPS&&contactArea(a,b)>EPS;if(sameSet||support){fixed.add(a.id);changed=true;}}}}
+  const effective=effectiveContainer(request.container,request.clearance);
+  if(request.mode==="single"){
+    const n=products.reduce((s,p)=>s+(setCode(p)?unitsPerSet(p):1),0),v=products.reduce((s,p)=>s+p.length*p.width*p.height*(setCode(p)?unitsPerSet(p):1),0);
+    const units=Math.floor(Math.min(effective.length*effective.width*effective.height/v,MAX_VISIBLE_PLACEMENTS/n,(original.singleCartonLimit??MAX_VISIBLE_PLACEMENTS)/n));
+    request.products=products.map(p=>({...p,quantity:units*(setCode(p)?unitsPerSet(p):1)}));
+  }
+  const variants:SortStrategy[]=[...strategies,(a,b)=>compareRequired(a,b)||b.weight-a.weight,(a,b)=>compareRequired(a,b)||a.height-b.height,(a,b)=>compareRequired(a,b)||a.length*a.width-b.length*b.width];
+  const placements=packMixedWithStrategy(request,effective,variants[Math.abs(pass)%variants.length],original.placements.filter(b=>fixed.has(b.id)));
+  let candidate:PackingResult;try{candidate=restorePackingSnapshot(request,{strategy:original.strategy,placements});}catch{return original;}
+  const score=(p:PackingResult)=>weightedScore(p.placements,products);
+  if(score(candidate)<score(baseline)||candidate.metrics.loadedCount<baseline.metrics.loadedCount)return original;
+  if(score(candidate)===score(baseline)&&executionAudit(candidate).score>=executionAudit(baseline).score)return original;
+  candidate.id=`optimized-${Date.now()}-${pass}`;candidate.singleCartonLimit=original.singleCartonLimit;
+  candidate.warnings=[`已保留 ${fixed.size} 个固定／支撑／成套箱位，其余空间完成第 ${pass+1} 轮搜索。`,...candidate.warnings];
+  return candidate;
 }
