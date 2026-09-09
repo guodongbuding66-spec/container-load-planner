@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { ARCHIVE_KEY, addArchive, parseArchive, type ArchiveEntry } from "../lib/packing/archive";
 import { parseWorkspaceBackup } from "../lib/packing/workspace-file";
 import { bearingLoads, bearingStatus } from "../lib/packing/bearing";
-import { explainUnloaded, revisePackingResult } from "../lib/packing/engine";
+import { explainUnloaded, diagnoseUnloadedPosition, revisePackingResult } from "../lib/packing/engine";
 import { fleetEconomics, type FleetComparison, type FleetOption, type FleetResult } from "../lib/packing/fleet";
 import type { ContainerSpec, PackingRequest, PackingResult, ProductInput } from "../lib/packing/types";
 import { CONTAINER_PRESETS } from "../lib/packing/presets";
@@ -50,8 +50,9 @@ export function BearingRules({products,disabled,onChange}:{products:ProductInput
 
 export function UnloadedReasons({result,products,onFocus}:{result:PackingResult;products:ProductInput[];onFocus?:(id:string)=>void}) {
   const [focused,setFocused]=useState<string|null>(null);
+  const diagnosis=useMemo(()=>focused?diagnoseUnloadedPosition(result,products,focused):null,[result,products,focused]);
   const items=useMemo(()=>explainUnloaded(result,products),[result,products]);
-  return <details className="upgrade-panel"><summary>未装入原因 · {items.reduce((n,p)=>n+p.unloaded,0)} 箱</summary><div className="upgrade-body">{focused?<figure><figcaption>当前 SKU 高亮；其他箱体灰显，空白仅代表俯视投影未占用，不代表完整可装空间。</figcaption><svg role="img" aria-label="未装入货物位置与已占空间" viewBox={`0 0 ${result.container.length} ${result.container.width}`} style={{width:"100%",maxHeight:220}}><rect width={result.container.length} height={result.container.width} fill="#f0f6f7"/>{[...result.placements].sort((a,b)=>Number(a.productId===focused)-Number(b.productId===focused)).map(b=><rect key={b.id} x={b.x} y={b.y} width={b.dx} height={b.dy} fill={b.productId===focused?b.color:"#b9cbd0"} stroke="white" strokeWidth={4}><title>{b.sku} · Z {b.z} mm</title></rect>)}</svg></figure>:null}{!items.length?<p>本方案的需求已全部装入。</p>:items.map(p=><article key={p.productId}><strong>{p.sku} · 未装 {p.unloaded} 箱</strong> <button className="button small" onClick={()=>{setFocused(p.productId);onFocus?.(p.productId);}}>定位货物与空间</button><ul>{p.reasons.map(reason=><li key={reason}>{reason}</li>)}</ul></article>)}</div></details>;
+  return <details className="upgrade-panel"><summary>未装入原因 · {items.reduce((n,p)=>n+p.unloaded,0)} 箱</summary><div className="upgrade-body">{focused?<figure><p>{diagnosis?.detail}</p><figcaption>当前 SKU 高亮；其他箱体灰显，空白仅代表俯视投影未占用，不代表完整可装空间。</figcaption><svg role="img" aria-label="未装入货物位置与已占空间" viewBox={`0 0 ${result.container.length} ${result.container.width}`} style={{width:"100%",maxHeight:220}}><rect width={result.container.length} height={result.container.width} fill="#f0f6f7"/>{[...result.placements].sort((a,b)=>Number(a.productId===focused)-Number(b.productId===focused)).map(b=><rect key={b.id} x={b.x} y={b.y} width={b.dx} height={b.dy} fill={b.productId===focused?b.color:"#b9cbd0"} stroke="white" strokeWidth={4}><title>{b.sku} · Z {b.z} mm</title></rect>)}{diagnosis?.candidate?<rect x={diagnosis.candidate.x} y={diagnosis.candidate.y} width={diagnosis.candidate.dx} height={diagnosis.candidate.dy} fill="none" stroke="#c04527" strokeWidth={12} strokeDasharray="30 15"><title>仅候选区域，尚未验证可装；Z {diagnosis.candidate.z} mm</title></rect>:null}</svg><small>红色虚线仅表示诊断候选投影，尚未加入方案。</small></figure>:null}{!items.length?<p>本方案的需求已全部装入。</p>:items.map(p=><article key={p.productId}><strong>{p.sku} · 未装 {p.unloaded} 箱</strong> <button className="button small" onClick={()=>{setFocused(p.productId);onFocus?.(p.productId);}}>定位货物与空间</button><ul>{p.reasons.map(reason=><li key={reason}>{reason}</li>)}</ul></article>)}</div></details>;
 }
 
 export function ManualPlan({result,products,onAdopt,disabled}:{result:PackingResult;products:ProductInput[];onAdopt:(result:PackingResult)=>void;disabled:boolean}) {

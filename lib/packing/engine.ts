@@ -2299,6 +2299,28 @@ export function explainUnloaded(result: PackingResult, products: ProductInput[])
   });
 }
 
+/** Bounded diagnostic probe on demand; absence of a witness is not an infeasibility proof. */
+export function diagnoseUnloadedPosition(result:PackingResult,products:ProductInput[],productId:string){
+  const p=products.find(p=>p.id===productId);if(!p)return {detail:"缺少箱规",candidate:null};
+  const effective=effectiveContainer(result.container,result.clearance),orientations=orientationsForStrategy(p,effective,result.strategy);
+  const spatial=new SpatialIndex(effective),tops=new Map<number,PlacedBox[]>(),rules=new Map(products.map(p=>[p.id,p]));
+  result.placements.forEach((b,i)=>{spatial.add(b,i);appendMapArray(tops,supportLevelKey(b.z+b.dz),b);});
+  const points:Point[]=[{x:0,y:0,z:0},...result.placements.flatMap(b=>[{x:b.x+b.dx,y:b.y,z:b.z},{x:b.x,y:b.y+b.dy,z:b.z},{x:b.x,y:b.y,z:b.z+b.dz}])];
+  const unique=[...new Map(points.map(p=>[[p.x,p.y,p.z].join('/'),p])).values()];
+  const stride=Math.max(1,Math.ceil(unique.length/240));let geometry=0,supportFailures=0,layerFailures=0;let first:PlacedBox|null=null;
+  for(let i=0;i<unique.length;i+=stride)for(const o of orientations){
+    const b=makePlacement(p,0,unique[i],o);
+    if(b.x+b.dx>effective.length+EPS||b.y+b.dy>effective.width+EPS||b.z+b.dz>effective.height+EPS)continue;
+    if([...spatial.query(b)].some(j=>overlaps(b,result.placements[j])))continue;
+    geometry++;first??=b;
+    const support=supportDetails(b,tops,rules);
+    if(p.bottomOnly&&b.z>EPS||support.ratio<(result.strategy==="practical"?PRACTICAL_SUPPORT_RATIO:.68)){supportFailures++;continue;}
+    if(p.maxStackLayers>0&&support.layer>p.maxStackLayers){layerFailures++;continue;}
+    return {detail:"抽样找到满足几何及承托的候选区域；仍需校验整套配比、累计承重、载重与目标上限。可继续优化验证，不能直接加箱。",candidate:b};
+  }
+  return {detail:geometry?`抽样发现 ${geometry} 个无碰撞位置，其中 ${supportFailures} 个不满足承托／底置，${layerFailures} 个超过层数上限。`:(orientations.length?"抽样未找到可容纳当前方向箱体的连续空间，可能受空间碎片限制；有限抽样不证明绝对装不下。":"允许的箱体方向无法通过当前柜门。"),candidate:first};
+}
+
 /** Treat saved coordinates as untrusted input; rebuild all totals with today's validator. */
 export function restorePackingSnapshot(request: PackingRequest, snapshot: unknown): PackingResult {
   assertValidRequest(request);

@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {pack,improvePacking,packWithComparison,validatePacking} from './engine';
+import {pack,improvePacking,packWithComparison,validatePacking,diagnoseUnloadedPosition} from './engine';
 import {bearingErrors,bearingStatus} from './bearing';
 import {restoreWorkspacePlans,serializeWorkspaceBackup,parseWorkspaceBackup,type WorkspaceInputs} from './workspace-file';
 import {compareFleets,fleetEconomics,proposeOrderTopUp,optimizeFleetTail} from './fleet';
@@ -44,3 +44,5 @@ describe('release regression guards',()=>{
  it('merges two final containers without reducing any delivered SKU',()=>{const single=pack(req([{...p,quantity:4}]));const baseline={loads:[{plan:single,cost:100},{plan:single,cost:100}],remaining:[{...p,quantity:0}],complete:true,totalCost:200,reason:''};const result=optimizeFleetTail(req([{...p,quantity:8}]),baseline,[{container:c,cost:100,available:2}],'cost');expect(result.loads).toHaveLength(1);expect(result.totalCost).toBe(100);expect(result.loads[0].plan.metrics.loadedCount).toBe(8);expect(result.complete).toBe(true);});
  it('rejects invalid imported packaging rules',()=>{const value={format:'cargo-fit-catalog',version:1,entries:[{products:[{...p,rotationPolicy:'sideways'}]}],records:[]};expect(()=>parseCatalog(JSON.stringify(value))).toThrow();});
 });
+
+it('diagnostic probe distinguishes insufficient support from unproven fragmented space',()=>{const original=pack(req([{...p,quantity:2,height:2000,length:400,stackable:false}]));const products=[{...p,id:'base',height:2000,length:400,stackable:false},{...p,id:'extra',length:2000,width:1000,height:100}];const placed=original.placements.map(b=>({...b,productId:'base'}));const result={...original,placements:placed};const d=diagnoseUnloadedPosition(result,products,'extra');expect(d.detail).toContain('有限抽样');expect(d.candidate).toBeNull();});
