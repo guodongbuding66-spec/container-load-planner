@@ -10,19 +10,6 @@ const REQUIRED_PRODUCT_COLUMNS = ["sku", "name", "length", "width", "height", "w
 const VALID_COLOR = /^#[0-9a-f]{6}$/i;
 const FORMULA_PREFIX = /^[\t ]*[=+\-@]/;
 
-function finiteNumber(value: string, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function boundedInteger(value: string, fallback: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, Math.floor(finiteNumber(value, fallback))));
-}
-
-function boundedNumber(value: string, fallback: number, min: number, max = Number.MAX_SAFE_INTEGER) {
-  return Math.min(max, Math.max(min, finiteNumber(value, fallback)));
-}
-
 function sanitizeText(value: string, maxLength: number) {
   return value.trim().slice(0, maxLength);
 }
@@ -122,6 +109,20 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
 
   const products = records.map((values, index) => {
     const get = (key: string) => values[headers.indexOf(key)] ?? "";
+    const invalid = (key: string) => new Error(`CSV 第 ${index + 2} 行的 ${key} 无效，请检查该字段；未导入任何行。`);
+    const number = (key: string, min: number, max = Number.MAX_SAFE_INTEGER, fallback?: number, integer = false) => {
+      const text = get(key).trim();
+      if (!text && fallback !== undefined) return fallback;
+      const value = Number(text);
+      if (!text || !Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) throw invalid(key);
+      return value;
+    };
+    const boolean = (key: string, fallback: boolean) => {
+      const value = get(key).trim().toLowerCase();
+      if (!value) return fallback;
+      if (value !== "true" && value !== "false") throw invalid(key);
+      return value === "true";
+    };
     const rawLengthUnit = get("lengthUnit").trim().toLowerCase();
     const rawWeightUnit = get("weightUnit").trim().toLowerCase();
     if (rawLengthUnit && !isLengthUnit(rawLengthUnit)) {
@@ -133,17 +134,34 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
     const lengthUnit = isLengthUnit(rawLengthUnit) ? rawLengthUnit : "mm";
     const weightUnit = isWeightUnit(rawWeightUnit) ? rawWeightUnit : "kg";
     const rawRotation = get("rotationPolicy").trim().toLowerCase();
+    if (rawRotation && !["fixed", "upright", "any"].includes(rawRotation)) throw invalid("rotationPolicy");
+    const allowRotate = boolean("allowRotate", true);
     const rotationPolicy: RotationPolicy = ["fixed", "upright", "any"].includes(rawRotation)
       ? (rawRotation as RotationPolicy)
-      : get("allowRotate").trim().toLowerCase() === "false"
+      : !allowRotate
         ? "fixed"
         : "any";
     const rawColor = get("color").trim();
     const fallbackColor = colors[index % Math.max(1, colors.length)] ?? "#2f7f89";
 
-    const length = toMillimeters(boundedNumber(get("length"), 0, 0), lengthUnit);
-    const width = toMillimeters(boundedNumber(get("width"), 0, 0), lengthUnit);
-    const height = toMillimeters(boundedNumber(get("height"), 0, 0), lengthUnit);
+    const length = toMillimeters(number("length", Number.MIN_VALUE), lengthUnit);
+    const width = toMillimeters(number("width", Number.MIN_VALUE), lengthUnit);
+    const height = toMillimeters(number("height", Number.MIN_VALUE), lengthUnit);
+    if (![length, width, height, length * width * height].every(v => Number.isFinite(v) && v > 0)) throw invalid("length/width/height");
+    // Explicit *Kg columns always use kilograms, matching the bearing editor.
+    const maxTopLoadKg = get("maxTopLoadKg").trim() ? number("maxTopLoadKg", 0) : undefined;
+    const topLoadByVerticalAxis: ProductInput["topLoadByVerticalAxis"] = {};
+    for (const [axis, key] of [["length", "topLoadLengthKg"], ["width", "topLoadWidthKg"], ["height", "topLoadHeightKg"]] as const) {
+      if (get(key).trim()) topLoadByVerticalAxis[axis] = number(key, 0);
+    }
+    let allowedAboveSkus: string[] | undefined;
+    if (get("allowedAboveSkus").trim()) {
+      try {
+        const value: unknown = JSON.parse(get("allowedAboveSkus"));
+        if (!Array.isArray(value) || value.length > 1000 || value.some(v => typeof v !== "string" || !v.trim() || v.length > 80)) throw invalid("allowedAboveSkus");
+        allowedAboveSkus = value.map(v => v.trim());
+      } catch { throw invalid("allowedAboveSkus（JSON 字符串数组）"); }
+    }
     return {
       id: `import-${now}-${index}`,
       sku: sanitizeText(get("sku"), 80),
@@ -152,16 +170,19 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
       width,
       height,
       declaredVolumeCbm: roundedCartonVolumeCbm({ length, width, height }),
-      weight: toKilograms(boundedNumber(get("weight"), 0, 0), weightUnit),
-      quantity: boundedInteger(get("quantity"), 0, 0, 1_000_000),
-      priority: boundedInteger(get("priority"), 50, 0, 100),
+      weight: toKilograms(number("weight", 0), weightUnit),
+      quantity: number("quantity", 0, 1_000_000, undefined, true),
+      priority: number("priority", 0, 100, 50, true),
       rotationPolicy,
-      stackable: get("stackable").trim().toLowerCase() !== "false",
-      maxStackLayers: boundedInteger(get("maxStackLayers"), 0, 0, 99),
-      mustLoad: get("mustLoad").trim().toLowerCase() !== "false",
-      bottomOnly: get("bottomOnly").trim().toLowerCase() === "true",
+      stackable: boolean("stackable", true),
+      maxStackLayers: number("maxStackLayers", 0, 99, 0, true),
+      maxTopLoadKg,
+      ...(Object.keys(topLoadByVerticalAxis).length ? {topLoadByVerticalAxis} : {}),
+      ...(allowedAboveSkus === undefined ? {} : {allowedAboveSkus}),
+      mustLoad: boolean("mustLoad", true),
+      bottomOnly: boolean("bottomOnly", false),
       setCode: sanitizeText(get("setCode"), 80),
-      unitsPerSet: boundedInteger(get("unitsPerSet"), 1, 1, 99),
+      unitsPerSet: number("unitsPerSet", 1, 99, 1, true),
       color: VALID_COLOR.test(rawColor) ? rawColor : fallbackColor,
     } satisfies ProductInput;
   });

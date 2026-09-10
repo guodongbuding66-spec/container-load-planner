@@ -1,5 +1,12 @@
 import type { PackingResult, PlacedBox } from "./types";
 
+/** Progress is tied to cargo identity and executable order, not a transient plan ID. */
+export function fieldPlanFingerprint(plan: PackingResult) {
+  return JSON.stringify([plan.container.id, plan.container.length, plan.container.width, plan.container.height,
+    plan.container.doorWidth, plan.container.doorHeight, plan.clearance, plan.strategy,
+    plan.placements.map(b => [b.id, b.productId, b.sku, b.x, b.y, b.z, b.dx, b.dy, b.dz, b.weight, b.setCode, b.setNumber, b.setItemNumber])]);
+}
+
 /** Conservative straight translation through the door at final Y/Z. Does not model lifting/tilting. */
 export function executionAudit(plan: PackingResult) {
   const blockers: { boxId:string; obstacleIds:string[] }[]=[];

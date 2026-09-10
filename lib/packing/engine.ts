@@ -23,7 +23,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.16.0";
+export const ENGINE_VERSION = "0.16.1";
 
 type Orientation = {
   dx: number;
@@ -404,11 +404,13 @@ function supportDetails(
   let supportedArea = 0;
   let layer = 1;
   for (const box of supporters) {
-    if (products.get(box.productId)?.stackable === false) continue;
     const ix = Math.max(0, Math.min(candidate.x + candidate.dx, box.x + box.dx) - Math.max(candidate.x, box.x));
     const iy = Math.max(0, Math.min(candidate.y + candidate.dy, box.y + box.dy) - Math.max(candidate.y, box.y));
     const overlap = ix * iy;
     if (overlap > EPS) {
+      // A carton touching a forbidden support still loads it, even if other
+      // cartons supply enough area to pass the partial-support threshold.
+      if (products.get(box.productId)?.stackable === false) return { ratio: 0, layer: Math.max(layer, (box.layer || 1) + 1) };
       supportedArea += overlap;
       layer = Math.max(layer, (box.layer || 1) + 1);
     }
@@ -1407,7 +1409,20 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
   const already = new Map<string, number>();
   anchors.forEach(b => already.set(b.productId, (already.get(b.productId) ?? 0) + 1));
   const batches = buildItemBatches({...request, products:request.products.map(p=>({...p,quantity:Math.max(0,p.quantity-(already.get(p.id)??0))}))}, sort);
-  for (const batch of batches) if (batch.setCode) batch.setNumber = (batch.setNumber ?? 0) + Math.max(0,...anchors.filter(b=>b.setCode===batch.setCode).map(b=>b.setNumber??0));
+  const usedSetNumbers = new Map<string, Set<number>>();
+  for (const box of anchors) if (box.setCode && box.setNumber) {
+    const used = usedSetNumbers.get(box.setCode) ?? new Set<number>();
+    used.add(box.setNumber);
+    usedSetNumbers.set(box.setCode, used);
+  }
+  const nextSetNumbers = new Map<string, number>();
+  for (const batch of batches) if (batch.setCode) {
+    const used = usedSetNumbers.get(batch.setCode);
+    let next = nextSetNumbers.get(batch.setCode) ?? 1;
+    while (used?.has(next)) next++;
+    batch.setNumber = next;
+    nextSetNumbers.set(batch.setCode, next + 1);
+  }
   const placements: PlacedBox[] = anchors.map(b=>({...b}));
   let spatial = new SpatialIndex(container);
   let topLevels = new Map<number, PlacedBox[]>();
@@ -1668,6 +1683,9 @@ export function validatePacking(
       box.z + box.dz > effective.height + EPS
     ) {
       errors.push(`${box.sku} 的箱体 ${index + 1} 超出有效柜内边界。`);
+      // Never expand an invalid imported box into potentially millions of
+      // spatial cells. A boundary failure already invalidates this snapshot.
+      return { valid: false, errors };
     }
     for (const otherIndex of spatial.query(box)) {
       if (overlaps(box, placements[otherIndex])) {
@@ -2329,7 +2347,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   const limit=raw.singleCartonLimit??request.singleCartonLimit;
   if(limit!==undefined&&(!Number.isInteger(limit)||Number(limit)<1))throw new Error("归档计划上限无效。");
   if (raw.strategy!=="practical"&&raw.strategy!=="maximum") throw new Error("归档算法标识无效。");
-  if (!Array.isArray(raw.placements)||raw.placements.length>12000) throw new Error("归档箱体坐标数量无效。");
+  if (!Array.isArray(raw.placements)||raw.placements.length>MAX_VISIBLE_PLACEMENTS) throw new Error("归档箱体坐标数量无效。");
   const products=selectProductsForMode(request.products,request.mode);
   const byId=new Map(products.map(p=>[p.id,p]));
   const placements:PlacedBox[]=raw.placements.map((value:unknown)=>{

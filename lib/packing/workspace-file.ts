@@ -3,7 +3,9 @@ import { isLengthUnit, isWeightUnit, type LengthUnit, type WeightUnit } from "./
 import { restorePackingSnapshot } from "./engine";
 import { MAX_CSV_ROWS } from "./csv";
 
-export const MAX_WORKSPACE_BYTES = 5 * 1024 * 1024;
+// Two 20,000-carton plans exceed the former 5 MB import cap.
+// The independent per-plan limit is enforced by restorePackingSnapshot.
+export const MAX_WORKSPACE_BYTES = 50 * 1024 * 1024;
 export type WorkspaceInputs = {
   mode: PackingMode;
   strategy: PackingStrategy;

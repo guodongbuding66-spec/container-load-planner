@@ -1293,7 +1293,7 @@ export function PackingApp() {
   const restoreWorkspace = async (file: File) => {
     const revision = inputRevisionRef.current;
     try {
-      if (file.size > MAX_WORKSPACE_BYTES) throw new Error("工作区备份不能超过 5 MB。");
+      if (file.size > MAX_WORKSPACE_BYTES) throw new Error(`工作区备份不能超过 ${MAX_WORKSPACE_BYTES / 1024 / 1024} MB。`);
       const contents = await file.text();
       const restored = parseWorkspaceBackup(contents);
       const restoredPlan = restoreWorkspacePlans(contents, restored);
@@ -1359,7 +1359,7 @@ export function PackingApp() {
 
   const downloadTemplate = () => {
     const lines = [
-      "sku,name,length,width,height,lengthUnit,weight,weightUnit,quantity,priority,setCode,unitsPerSet,rotationPolicy,stackable,maxStackLayers,mustLoad,bottomOnly,color",
+      "sku,name,length,width,height,lengthUnit,weight,weightUnit,quantity,priority,setCode,unitsPerSet,rotationPolicy,stackable,maxStackLayers,mustLoad,bottomOnly,color,maxTopLoadKg,topLoadLengthKg,topLoadWidthKg,topLoadHeightKg,allowedAboveSkus",
       "SET5-A-128,五箱套装A箱,1280,540,110,mm,40,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#2f7f89",
       "SET5-B-068,五箱套装B箱,680,540,110,mm,14,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#a95e78",
       "SET5-C-103,五箱套装C箱,1030,620,120,mm,30,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#d5a72f",

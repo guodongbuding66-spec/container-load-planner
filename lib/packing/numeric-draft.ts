@@ -12,7 +12,11 @@ export function parseNumericDraft(draft: string, options: NumericDraftOptions = 
   const trimmed = draft.trim();
   if (!trimmed) return { state: "empty" };
 
-  const pattern = options.integer ? /^\d+$/ : /^(?:\d+(?:\.\d*)?|\.\d+)$/;
+  // Signed offsets are valid only for controls that explicitly allow negatives.
+  const signed = (options.min ?? 0) < 0;
+  const pattern = options.integer
+    ? (signed ? /^-?\d+$/ : /^\d+$/)
+    : (signed ? /^-?(?:\d+(?:\.\d*)?|\.\d+)$/ : /^(?:\d+(?:\.\d*)?|\.\d+)$/);
   if (!pattern.test(trimmed)) return { state: "invalid" };
 
   const value = Number(trimmed);

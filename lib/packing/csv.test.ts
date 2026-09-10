@@ -21,10 +21,10 @@ describe("CSV utilities", () => {
     expect(() => parseCsvRecords('sku,name\nA,"未闭合')).toThrow("未闭合");
   });
 
-  it("normalizes imported rows and replaces invalid colors", () => {
+  it("trims imported text and replaces invalid colors without changing quantities", () => {
     const parsed = parseProductsCsv(
       "sku,name,length,width,height,weight,quantity,priority,setCode,unitsPerSet,rotationPolicy,maxStackLayers,color\n" +
-      " A-1 , 测试主箱 ,1000,500,300,20,3.9,999, SET-A ,2.8,upright,120,not-a-color",
+      " A-1 , 测试主箱 ,1000,500,300,20,3,100, SET-A ,2,upright,99,not-a-color",
       colors,
       123,
     );
