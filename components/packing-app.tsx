@@ -94,6 +94,7 @@ import { NumericInput } from "./numeric-input";
 import { SupportAndSites } from "./support-and-sites";
 import { CloudWorkspace } from "./cloud-workspace";
 import { ProductCatalog, CustomerReportPanel } from "./product-catalog";
+import { WorkflowTools } from "./workflow-tools";
 import { ArchiveLibrary, BearingRules, UnloadedReasons, ManualPlan, FieldGuide, FleetPlanner } from "./planning-upgrades";
 import { RemainingCapacity } from "./remaining-capacity";
 import { MAX_WORKSPACE_BYTES, parseWorkspaceBackup, restoreWorkspacePlans, serializeWorkspaceBackup } from "../lib/packing/workspace-file";
@@ -1892,19 +1893,25 @@ export function PackingApp() {
           ) : null}
         </section>
 
-        <section className="planning-upgrades" aria-label="方案管理与高级装载工具">
-          <CloudWorkspace backup={workspaceBackup} plan={result} products={activeProducts} disabled={upgradesDisabled} onRestore={backup=>{void restoreWorkspace(new File([backup],"云端归档.json",{type:"application/json"}));}} onProducts={next=>{setMode("mixed");replaceProductInputs(next);}}/>
-          <ProductCatalog products={activeProducts} plan={result} disabled={upgradesDisabled} onProducts={replaceProductInputs}/>
+        <WorkflowTools
+          projects={<>
           <ArchiveLibrary backup={workspaceBackup} disabled={upgradesDisabled} onRestore={backup=>{void restoreWorkspace(new File([backup],"工作区归档.json",{type:"application/json"}));}} onProducts={replaceProductInputs}/>
+          <ProductCatalog products={activeProducts} plan={result} disabled={upgradesDisabled} onProducts={replaceProductInputs}/>
+          <CloudWorkspace backup={workspaceBackup} plan={result} products={activeProducts} disabled={upgradesDisabled} onRestore={backup=>{void restoreWorkspace(new File([backup],"云端归档.json",{type:"application/json"}));}} onProducts={next=>{setMode("mixed");replaceProductInputs(next);}}/>
+          </>}
+          loading={<>
           <BearingRules key={JSON.stringify(products.map(p=>[p.id,p.maxTopLoadKg]))} products={activeProducts} disabled={upgradesDisabled} onChange={next=>replaceProductInputs(products.map(p=>next.find(n=>n.id===p.id)??p))}/>
           {mode === "mixed" ? <FleetPlanner key={JSON.stringify([fleetRequest,customContainers])} request={fleetRequest} customContainers={customContainers} disabled={upgradesDisabled}/> : null}
-          {result && !hasPendingDimensionChanges ? <>
-            <CustomerReportPanel plan={result} products={activeProducts}/>
+            {result && !hasPendingDimensionChanges ? <>
             <UnloadedReasons result={result} products={activeProducts} onFocus={id=>{setVisibleProducts(new Set(result.summaries.map(s=>s.productId)));setCameraView("top");setPackingProgress(result.placements.length);setMessage(`已在原因面板突出 ${activeProducts.find(p=>p.id===id)?.sku??"当前 SKU"}；三维保留其他货物，避免把隐藏箱位误认为空闲空间。`);}}/>
             <ManualPlan key={result.id} result={result} products={activeProducts} disabled={upgradesDisabled||!result.validation.valid} onAdopt={next=>{clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。");}}/>
+            </> : <p className="tool-empty">计算方案后，可诊断余货并手动调整箱位。</p>}
+          </>}
+          delivery={result && !hasPendingDimensionChanges ? <>
             {result.validation.valid ? <FieldGuide key={`field-${result.id}`} result={result}/> : null}
-          </> : null}
-        </section>
+            <CustomerReportPanel plan={result} products={activeProducts}/>
+          </> : <p className="tool-empty">先完成一次装柜计算，再生成客户报告和现场指导书。</p>}
+        />
 
         {result ? (
           <section className="result-section">
