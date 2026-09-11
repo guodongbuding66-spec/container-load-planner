@@ -1338,7 +1338,7 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 .field-step > label { margin-top:16px; }
 .field-fullscreen { position:fixed; inset:0; z-index:300; background:#f3f8f9; overflow:auto; padding:24px!important; font-size:20px; }
 .field-fullscreen h3 { font-size:36px; }
-.field-fullscreen button { min-height:50px; font-size:18px; }
+.upgrade-panel .field-fullscreen .button { min-height:50px; font-size:18px; }
 .field-fullscreen .upgrade-actions { position:sticky; bottom:0; padding:12px; background:#f3f8f9; }
 .upgrade-panel .scene-shell { min-height:380px; }
 @media(max-width:1000px) { .tool-form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .workflow-switcher small { display:none; } .upgrade-actions label:not(:has(input[type=checkbox])) { flex:1 1 150px; } }
