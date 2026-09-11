@@ -1303,7 +1303,7 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 .upgrade-panel input[type=file] { padding:8px; font-size:13px; background:#f8fbfc; }
 .upgrade-panel input[type=file]::file-selector-button { padding:7px 12px; margin-right:12px; border:1px solid var(--line); border-radius:5px; background:#fff; color:var(--teal-dark); cursor:pointer; }
 .upgrade-actions label:not(:has(input[type=checkbox])) { flex:0 1 180px; }
-.tool-form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:20px; margin:20px 0; align-items:start; }
+.tool-form-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; margin:20px 0; align-items:start; }
 .tool-form-grid .tool-wide { grid-column:1/-1; }
 .upgrade-rule-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:16px; margin:20px 0; align-items:start; }
 .upgrade-rule-grid > fieldset,.upgrade-rule-grid > div { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; min-width:0; padding:20px; border:1px solid var(--line); border-radius:10px; background:#f8fbfc; }
@@ -1341,9 +1341,10 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 .field-fullscreen button { min-height:50px; font-size:18px; }
 .field-fullscreen .upgrade-actions { position:sticky; bottom:0; padding:12px; background:#f3f8f9; }
 .upgrade-panel .scene-shell { min-height:380px; }
-@media(max-width:1000px) { .workflow-switcher small { display:none; } .upgrade-actions label:not(:has(input[type=checkbox])) { flex:1 1 150px; } }
+@media(max-width:1000px) { .tool-form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .workflow-switcher small { display:none; } .upgrade-actions label:not(:has(input[type=checkbox])) { flex:1 1 150px; } }
 @media(max-width:700px) {
   .planning-upgrades { padding:16px; }
+  .tool-form-grid { grid-template-columns:1fr; }
   .workflow-heading { margin-bottom:16px; }
   .workflow-heading h2 { font-size:21px; }
   .workflow-switcher { gap:4px; }
