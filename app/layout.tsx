@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { GalaxyEcosystemMenu } from "../components/galaxy-ecosystem-menu";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "外贸装柜智算",
@@ -24,6 +25,7 @@ export default function RootLayout({
       <body className="antialiased">
         <GalaxyEcosystemMenu />
         {children}
+        <Analytics />
       </body>
     </html>
   );
