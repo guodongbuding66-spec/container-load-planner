@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, BriefcaseBusiness, ExternalLink, Newspaper, Video } from "lucide-react";
+import { Box, BriefcaseBusiness, ExternalLink, Newspaper, Search, Video } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -16,6 +16,12 @@ const TOOLS = [
     name: "iSUNOR 决策级情报",
     description: "行业日报、竞品、贸易政策与业务机会情报",
     icon: Newspaper,
+  },
+  {
+    href: "https://soutu-pro.vercel.app/",
+    name: "搜图 Pro",
+    description: "反向搜图、OCR、商品溯源与批量图片研究",
+    icon: Search,
   },
   {
     href: "https://galaxy-downloader.guodongbuding66.workers.dev/zh",
