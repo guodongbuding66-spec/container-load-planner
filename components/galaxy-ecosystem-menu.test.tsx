@@ -7,6 +7,7 @@ describe("Galaxy ecosystem menu", () => {
     const source = readFileSync(join(process.cwd(), "components/galaxy-ecosystem-menu.tsx"), "utf8");
     expect(source).toContain("https://ai-foreign-trade-os.pages.dev/");
     expect(source).toContain("https://isunor-industry-daily.pages.dev/");
+    expect(source).toContain("https://soutu-pro.vercel.app/");
     expect(source).toContain("https://galaxy-downloader.guodongbuding66.workers.dev/zh");
     expect(source).not.toContain("https://github.com/guodongbuding66-spec/galaxy-downloader");
     expect(source).toContain("createPortal");
