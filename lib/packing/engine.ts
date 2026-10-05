@@ -1,4 +1,4 @@
-import { arrangeFloorPallets, parseFloorPalletConfig, palletAnchors, palletSupportProducts, assignPalletReferences } from "./floor-pallets";
+import { arrangeFloorPallets, parseFloorPalletConfig, palletAnchors, palletSupportProducts, assignPalletReferences, palletCargoCeiling, supportingPalletIds } from "./floor-pallets";
 import { parseLoadingRules, parseOrientations, CARGO_TYPES, requiredSupport, applyTypeSupport } from "./loading-rules";
 import { executionAudit } from "./execution";
 import { bearingErrors, hasBearingRules, bearingStatus, contactArea } from "./bearing";
@@ -26,7 +26,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.18.0";
+export const ENGINE_VERSION = "0.19.0";
 
 type Orientation = {
   dx: number;
@@ -1477,7 +1477,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
     const orientations = orientationsForStrategy(product, container, strategy);
     if (orientations.length === 0) return false;
 
-    let best: { point: Point; orientation: Orientation; layer: number; score: number } | undefined;
+    let best: { point: Point; orientation: Orientation; layer: number; score: number; palletIds: string[] } | undefined;
     const depthMultiplier = request.loadingRules?.search === "deep" ? 2 : 1;
     const candidateBudget = (strategy === "maximum" ? 2600 : 1200) * depthMultiplier;
     const retainedPointBudget = (strategy === "maximum" ? 3200 : 1600) * depthMultiplier;
@@ -1508,6 +1508,8 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
         }
         if (collides) continue;
         const support = supportDetails(candidate, topLevels, productMap);
+        const palletIds = supportingPalletIds(candidate, topLevels.get(supportLevelKey(candidate.z)) ?? []);
+        if (request.floorPallets && palletIds.length && candidate.z + candidate.dz > palletCargoCeiling(request.container, request.clearance, request.floorPallets) + EPS) continue;
         const layerLimit = maxStackLayers(product);
         if (support.ratio + EPS < requiredSupport(product, strategy) || (layerLimit > 0 && support.layer > layerLimit)) continue;
         if (request.products.some(hasBearingRules) && bearingErrors([...placements, candidate], request.products).length) continue;
@@ -1519,12 +1521,12 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
           : candidate.y * 1_000_000 + candidate.x * 100;
         const compactness = candidate.x + candidate.dx + candidate.y + candidate.dy + candidate.z + candidate.dz;
         const score = topPenalty + sidePenalty + compactness;
-        if (!best || score < best.score) best = { point, orientation, layer: support.layer, score };
+        if (!best || score < best.score) best = { point, orientation, layer: support.layer, score, palletIds };
       }
     }
 
     if (!best) return false;
-    const placed = makePlacement(product, placementIndex, best.point, best.orientation, best.layer);
+    const placed = { ...makePlacement(product, placementIndex, best.point, best.orientation, best.layer), palletIds: best.palletIds.length ? best.palletIds : undefined };
     placements.push(placed);
     spatial.add(placed, placements.length - 1);
     totalWeight += product.weight;
@@ -1678,6 +1680,8 @@ export function validatePacking(
 ): ValidationReport {
   if (!Array.isArray(placements) || !Array.isArray(pallets)) return {valid:false,errors:["货物和托盘坐标必须是数组。"]};
   const cargo = placements;
+  if (cargo.some(b=>b?.supportOnly)) return {valid:false,errors:["货物记录不能伪装为托盘支撑。"]};
+  if (floorConfig) {try {parseFloorPalletConfig(floorConfig);}catch(e){return {valid:false,errors:[e instanceof Error?e.message:"托盘配置无效。"]};}}
   if (pallets.length) {
     if (pallets.length > 200 || new Set(pallets.map(p => p.id)).size !== pallets.length || pallets.some(p => !p || typeof p.id !== "string" || !p.id.trim() || typeof p.name!=="string" || typeof p.presetId!=="string" || !["LWH","WLH"].includes(p.orientation) || p.z !== 0 || ![p.x,p.y,p.z,p.dx,p.dy,p.dz,p.weight,p.maxLoad].every(Number.isFinite) || p.dx <= 0 || p.dy <= 0 || p.dz <= 0 || p.weight < 0 || p.maxLoad <= 0 || cargo.some(b => b.id === p.id || b.productId === p.id))) return {valid:false,errors:["底层托盘坐标、承重或标识无效。"]};
     placements = orderForLoading([...palletAnchors(pallets), ...cargo]);
@@ -1768,7 +1772,9 @@ export function validatePacking(
     spatial.add(box, index);
     const top = box.z + box.dz;
     const topKey = supportLevelKey(top);
-    appendMapArray(topLevels, topKey, box);
+    const palletIds = isPallet ? [box.id] : supportingPalletIds(box, topLevels.get(supportLevelKey(box.z)) ?? []);
+    if (!isPallet && floorConfig && palletIds.length && box.z + box.dz > palletCargoCeiling(container, clearance, floorConfig) + EPS) errors.push(`${box.sku} 超出托盘货物限高或整托门洞净高。`);
+    appendMapArray(topLevels, topKey, { ...box, palletIds });
     totalWeight += product?.weight ?? box.weight;
     if (errors.length >= 20) break;
   }
@@ -2008,7 +2014,7 @@ export function pack(request: PackingRequest): PackingResult {
   const palletUnitVolume = normalized.products.reduce((n,p)=>n+p.length*p.width*p.height*(setCode(p)?unitsPerSet(p):1),0);
   const palletUnitWeight = normalized.products.reduce((n,p)=>n+p.weight*(setCode(p)?unitsPerSet(p):1),0);
   const palletUnitCount = normalized.products.reduce((n,p)=>n+(setCode(p)?unitsPerSet(p):1),0);
-  const palletUnitLimit = Math.max(0, Math.floor(Math.min(effectiveVolume/palletUnitVolume, (MAX_VISIBLE_PLACEMENTS-pallets.length)/palletUnitCount, (normalized.singleCartonLimit??MAX_VISIBLE_PLACEMENTS)/palletUnitCount, palletUnitWeight>0?(normalized.container.maxWeight-palletWeight)/palletUnitWeight:Infinity)));
+  const palletUnitLimit = Math.max(0, Math.floor(Math.min((effectiveVolume-pallets.reduce((n,p)=>n+p.dx*p.dy*p.dz,0))/palletUnitVolume, (MAX_VISIBLE_PLACEMENTS-pallets.length)/palletUnitCount, (normalized.singleCartonLimit??MAX_VISIBLE_PLACEMENTS)/palletUnitCount, palletUnitWeight>0?(normalized.container.maxWeight-palletWeight)/palletUnitWeight:Infinity)));
   const palletRequest: PackingRequest = {...normalized, products: [...normalized.products.map(p=>normalized.mode==="single"?{...p,quantity:palletUnitLimit*(setCode(p)?unitsPerSet(p):1)}:p), ...palletSupportProducts(pallets).map(p=>({...p,quantity:0}))]};
   const output = pallets.length ? packMixed(palletRequest, effective, supports) : bearingEnabled ? packMixed(bearingRequest, effective) : normalized.mode === "single"
     ? packSingle(normalized, effective, fieldPracticalSetLimit)
@@ -2392,6 +2398,8 @@ export function diagnoseUnloadedPosition(result:PackingResult,products:ProductIn
     if([...spatial.query(b)].some(j=>overlaps(b,allBoxes[j])))continue;
     geometry++;first??=b;
     const support=supportDetails(b,tops,rules);
+    const ids=supportingPalletIds(b,tops.get(supportLevelKey(b.z))??[]);
+    if(result.floorPallets&&ids.length&&b.z+b.dz>palletCargoCeiling(result.container,result.clearance,result.floorPallets)+EPS){layerFailures++;continue;}
     if(result.floorPallets&&!result.floorPallets.allowFloorCargo&&b.z<=EPS||p.bottomOnly&&b.z>EPS&&!(result.floorPallets&&Math.abs(b.z-result.floorPallets.height)<EPS)||support.ratio+EPS<requiredSupport(p,result.strategy)){supportFailures++;continue;}
     if(p.maxStackLayers>0&&support.layer>p.maxStackLayers){layerFailures++;continue;}
     return {detail:"抽样找到满足几何及承托的候选区域；仍需校验整套配比、累计承重、载重与目标上限。可继续优化验证，不能直接加箱。",candidate:b};

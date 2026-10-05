@@ -10,7 +10,31 @@ export function parseFloorPalletConfig(value: unknown): FloorPalletConfig {
   for (const k of ["weight", "gap"]) if (typeof v[k] !== "number" || !Number.isFinite(v[k]) || Number(v[k]) < 0 || Number(v[k]) > 10000) throw new Error("托盘自重和间隙必须为有效非负数。");
   if (!Number.isInteger(v.count) || Number(v.count) < 0 || Number(v.count) > 200) throw new Error("底层托盘数量必须为 0–200 的整数。");
   if (!["auto", "long", "cross"].includes(String(v.layout)) || typeof v.allowFloorCargo !== "boolean") throw new Error("托盘布局规则无效。");
-  return { presetId: v.presetId as string, name: v.name as string, length: v.length as number, width: v.width as number, height: v.height as number, weight: v.weight as number, maxLoad: v.maxLoad as number, count: v.count as number, gap: v.gap as number, layout: v.layout as FloorPalletConfig["layout"], allowFloorCargo: v.allowFloorCargo };
+  if (v.maxCargoHeight !== undefined && (typeof v.maxCargoHeight !== "number" || !Number.isFinite(v.maxCargoHeight) || v.maxCargoHeight < 0 || v.maxCargoHeight > 100000)) throw new Error("托盘货物限高必须为 0–100000 mm；0 表示按柜高及门洞自动限制。");
+  return { presetId: v.presetId as string, name: v.name as string, length: v.length as number, width: v.width as number, height: v.height as number, weight: v.weight as number, maxLoad: v.maxLoad as number, count: v.count as number, gap: v.gap as number, layout: v.layout as FloorPalletConfig["layout"], allowFloorCargo: v.allowFloorCargo, ...(v.maxCargoHeight === undefined ? {} : {maxCargoHeight:v.maxCargoHeight as number}) };
+}
+
+/** Loaded pallets must clear the door as a unit; heights are measured from the vehicle floor. */
+export function palletCargoCeiling(container: ContainerSpec, clearance: number, config: FloorPalletConfig) {
+  const netHeight = Math.min(container.height, container.loadingAccess === "open" ? container.height : container.doorHeight) - clearance;
+  return Math.min(netHeight, config.maxCargoHeight ? config.height + config.maxCargoHeight : netHeight);
+}
+
+export function supportingPalletIds(box: Pick<PlacedBox,"x"|"y"|"dx"|"dy">, supporters: PlacedBox[]) {
+  const ids = new Set<string>();
+  for (const below of supporters) {
+    if (Math.min(box.x+box.dx,below.x+below.dx)-Math.max(box.x,below.x) <= .0001 || Math.min(box.y+box.dy,below.y+below.dy)-Math.max(box.y,below.y) <= .0001) continue;
+    for (const id of below.supportOnly ? [below.id] : below.palletIds ?? []) ids.add(id);
+  }
+  return [...ids].sort();
+}
+
+/** Pallets reserve their full envelopes, including fork openings; subtract exactly once. */
+export function palletSpaceSummary(container: ContainerSpec, clearance: number, pallets: PlacedPallet[], cargoVolume = 0, cargoWeight = 0) {
+  const effectiveVolume = Math.max(0,container.length-clearance*2)*Math.max(0,container.width-clearance*2)*Math.max(0,container.height-clearance);
+  const reservedVolume = pallets.reduce((n,p)=>n+p.dx*p.dy*p.dz,0);
+  const tareWeight = pallets.reduce((n,p)=>n+p.weight,0);
+  return {effectiveVolume,reservedVolume,tareWeight,cargoVolume,cargoCapacity:Math.max(0,effectiveVolume-reservedVolume),remainingVolume:Math.max(0,effectiveVolume-reservedVolume-cargoVolume),cargoPayload:Math.max(0,container.maxWeight-tareWeight),remainingWeight:Math.max(0,container.maxWeight-tareWeight-cargoWeight)};
 }
 
 /** Rows can use either horizontal orientation; no pallet may overlap or overhang. */

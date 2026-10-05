@@ -65,11 +65,13 @@ test("keeps every prediction label on the selected immutable coordinate plan", a
   assert.match(source, /已按当前\$\{strategy === "practical" \? "现场" : "极限"\}算法生成并独立校验/);
 });
 
-test("auto-recalculates one dual-plan snapshot and hides stale visual data", async () => {
+test("only auto-recalculates in the result step and hides stale visual data", async () => {
   const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
   const calculationState = await readFile(new URL("../lib/packing/calculation-state.ts", import.meta.url), "utf8");
 
   assert.match(source, /AUTO_CALCULATE_DELAY_MS = 280/);
+  assert.match(source, /workflowStep !== 3/);
+  assert.match(source, /const \[autoCalculate, setAutoCalculate\] = useState\(false\)/);
   assert.match(source, /window\.setTimeout\(calculate, AUTO_CALCULATE_DELAY_MS\)/);
   assert.match(source, /\(\) => dirty \? null : selectStrategyResult\(resultBundle, strategy\)/);
   assert.match(source, /calculateReverseCounts\([\s\S]*?strategy: "practical"/);
@@ -79,7 +81,7 @@ test("auto-recalculates one dual-plan snapshot and hides stale visual data", asy
   assert.match(source, /displayedPlanIdRef\.current === plan\.id/);
   assert.match(source, /strategyRef\.current = nextStrategy/);
   assert.match(source, /strategy: "practical"/);
-  assert.match(source, /自动重算同一份双算法快照/);
+  assert.match(source, /统一生成双算法快照/);
   assert.match(source, /当前统一输入快照/);
   assert.match(source, /现场与极限方案统一对比/);
   assert.doesNotMatch(source, /setResult\(\{ \.\.\.cachedPlan/);
@@ -100,10 +102,10 @@ test("batches all dimension fields into one committed recalculation", async () =
   assert.match(source, /stageProductDimension\(product\.id, "width"/);
   assert.match(source, /stageProductDimension\(product\.id, "height"/);
   assert.match(source, /onFocusChange=\{handleDimensionFocusChange\}/);
-  assert.match(source, /if \(!autoCalculate \|\| !hydrated \|\| isEditingDimensions \|\| hasPendingDimensionChanges\) return/);
+  assert.match(source, /workflowStep !== 3 \|\| manualRun \|\| status === "working" \|\| !autoCalculate \|\| !hydrated \|\| isEditingDimensions \|\| hasPendingDimensionChanges/);
   assert.match(source, /if \(!dirty && resultBundle\) return/);
-  assert.match(source, /完成所有长、宽、高并离开尺寸输入区后，将统一重算一次/);
-  assert.match(source, /离开尺寸输入区后仅统一重算一次/);
+  assert.match(source, /完成所有长、宽、高并离开尺寸输入区后，统一提交完整箱规/);
+  assert.match(source, /离开输入区后统一提交；第二步配置完成后再计算/);
 });
 
 test("debounces draft persistence and recognizes a one-code multi-carton CSV as one product", async () => {
@@ -221,7 +223,7 @@ test("runs two independent solvers and exposes actionable strategy guidance", as
   assert.match(engine, /function maximumMultiplierBySlabDp/);
   assert.match(source, /className="strategy-comparison"/);
   assert.match(source, /现场算法 × 高密度参考算法/);
-  assert.match(source, /任一参数变化都会自动重算同一份双算法快照/);
+  assert.match(source, /完成录入后统一生成双算法快照/);
   assert.match(source, /switchStrategy\("practical"\)/);
   assert.match(source, /switchStrategy\("maximum"\)/);
   assert.match(source, /resultBundle\?\.strategyPlans\?\./);

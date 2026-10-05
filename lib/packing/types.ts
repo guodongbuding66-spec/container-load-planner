@@ -16,6 +16,8 @@ export type FloorPalletConfig = {
   gap: number;
   layout: "auto" | "long" | "cross";
   allowFloorCargo: boolean;
+  /** Maximum cargo height above the deck. Omit or use 0 for the vehicle/door limit. */
+  maxCargoHeight?: number;
 };
 export type PlacedPallet = {
   id: string;
