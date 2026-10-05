@@ -36,7 +36,8 @@ export async function createSpreadsheetTemplate() {
   ]); help.getColumn(1).width = 110;
   return new Uint8Array(await book.xlsx.writeBuffer());
 }
-export async function parseSpreadsheet(buffer: ArrayBuffer, colors: readonly string[]) {
+export async function parseSpreadsheet(source: ArrayBuffer | Uint8Array, colors: readonly string[]) {
+  const buffer = source instanceof ArrayBuffer ? source : source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength) as ArrayBuffer;
   validateSpreadsheetZip(buffer); const book = new ExcelJS.Workbook();
   await book.xlsx.load(buffer);
   const sheet = book.getWorksheet("Products") ?? book.worksheets[0];

@@ -1464,7 +1464,7 @@ export function PackingApp() {
   const upgradesDisabled = hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0 || status === "working";
   const fleetRequest: PackingRequest = { loadingRules, mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
 
-  const downloadExcelTemplate = async () => { try { const { createSpreadsheetTemplate } = await import("../lib/packing/spreadsheet"); const bytes=await createSpreadsheetTemplate(); const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));const a=document.createElement("a");a.href=url;a.download="CargoFit_products_template.xlsx";a.click();setTimeout(()=>URL.revokeObjectURL(url),10000); } catch(e) {setMessage(e instanceof Error?e.message:"Excel export failed");} };
+  const downloadExcelTemplate = async () => { setMessage("正在生成 Excel 模板…"); try { const { createSpreadsheetTemplate } = await import("../lib/packing/spreadsheet"); const bytes=await createSpreadsheetTemplate(); const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));const a=document.createElement("a");a.href=url;a.download="CargoFit_products_template.xlsx";document.body.appendChild(a);a.click();a.remove();setMessage("Excel 模板已生成。");setTimeout(()=>URL.revokeObjectURL(url),10000); } catch(e) {setMessage(e instanceof Error?e.message:"Excel export failed");} };
   const downloadPdf = async () => { if(!result?.validation.valid)return;setExportingPdf(true);try{const {downloadPdfGuide}=await import("../lib/packing/pdf-guide");await downloadPdfGuide(result,getAppLanguage());}catch(e){setMessage(e instanceof Error?e.message:"PDF export failed");}finally{setExportingPdf(false);} };
   const loadIndustryCase = (example: IndustryCase) => {clearNumericDraftErrors();setMode("mixed");setContainer({...example.container});setProducts(example.products.map(p=>({...p})));setLoadingRules({...DEFAULT_LOADING_RULES});setClearance(10);setProductPage(0);setAutoCalculate(true);setPracticalTargetPercent(recommendedPracticalTarget(example.container)*100);markDirty();scrollTo("workspace");};
   const tutorialAction = (step: string) => {if(step==="cargo"){setActiveCargo(activeProducts[0]?.id??null);return;}if(step==="rules"){setShowRules(true);return;}if(step==="calculate"){calculate();scrollTo("workspace");return;}if(step==="viewer"){if(result)setShowViewer(true);else setMessage(tr("请先计算有效方案。","Calculate a valid plan first."));return;}if(step==="pdf"){void downloadPdf();return;}if(step==="cloud"){const el=document.getElementById("cloud-workspace");if(el instanceof HTMLDetailsElement)el.open=true;scrollTo("cloud-workspace");return;}scrollTo("products");};
@@ -1477,13 +1477,13 @@ export function PackingApp() {
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-mark"><Container size={22} /></div>
-          <div><strong>装柜智算</strong><span>CargoFit Workspace</span></div>
+          <div><strong>{tr("装柜智算")}</strong><span>CargoFit Workspace</span></div>
         </div>
         <nav className="step-nav" aria-label="页面导航">
-          <button className="active" onClick={() => scrollTo("workspace")}><Gauge size={18} /><span>测算工作台</span><b>01</b></button>
-          <button onClick={() => scrollTo("products")}><Boxes size={18} /><span>产品与订单</span><b>02</b></button>
-          <button onClick={() => scrollTo("result") }><Layers3 size={18} /><span>三维方案</span><b>03</b></button>
-          <button onClick={() => scrollTo("coordinates")}><FileSpreadsheet size={18} /><span>坐标与导出</span><b>04</b></button>
+          <button className="active" onClick={() => scrollTo("workspace")}><Gauge size={18} /><span>{tr("测算工作台")}</span><b>01</b></button>
+          <button onClick={() => scrollTo("products")}><Boxes size={18} /><span>{tr("产品与订单")}</span><b>02</b></button>
+          <button onClick={() => scrollTo("result") }><Layers3 size={18} /><span>{tr("三维方案")}</span><b>03</b></button>
+          <button onClick={() => scrollTo("coordinates")}><FileSpreadsheet size={18} /><span>{tr("坐标与导出")}</span><b>04</b></button>
         </nav>
         <div className="sidebar-note">
           <ShieldCheck size={18} />
@@ -1496,12 +1496,12 @@ export function PackingApp() {
         <header className="topbar">
           <div>
             <span className="eyebrow">外贸报价 · 拼柜计划 · 三维复核</span>
-            <h1>新建装柜测算</h1>
+            <h1>{tr("新建装柜测算")}</h1>
           </div>
           <div className="top-actions">
             <span className={`save-state ${dirty || hasPendingDimensionChanges ? "is-dirty" : ""} ${storageState === "error" ? "is-error" : ""}`}><Save size={15} />{storageState === "error" ? "草稿未能保存" : hasPendingDimensionChanges ? "尺寸录入中 · 尚未提交" : dirty ? "草稿自动保存 · 待重算" : "本机草稿已保存"}</span>
-            <button className="button ghost" onClick={loadSample}><Sparkles size={16} />载入示例</button>
-            <button className="button ghost" onClick={printPlan} disabled={!canExport}><Printer size={16} />现场指导书</button>
+            <button className="button ghost" onClick={loadSample}><Sparkles size={16} />{tr("载入示例")}</button>
+            <button className="button ghost" onClick={printPlan} disabled={!canExport}><Printer size={16} />{tr("现场指导书")}</button>
             <details className="workspace-file-menu">
               <summary className="button ghost"><FileJson size={16} />文件与备份</summary>
               <div className="workspace-file-panel">
@@ -1522,14 +1522,14 @@ export function PackingApp() {
         <div className="feature-action-bar"><button className="button small" onClick={()=>setShowTransport(true)}><Container size={15}/>{tr("装载空间库")}</button><button className="button small" onClick={()=>setShowRules(true)} disabled={hasPendingDimensionChanges}><ShieldCheck size={15}/>{tr("装载规则")}</button><button className="button small" disabled={!canExport} onClick={()=>setShowViewer(true)}><Layers3 size={15}/>{tr("三维方案查看器")}</button><button className="button small" disabled={!canExport||exportingPdf} onClick={()=>void downloadPdf()}><Download size={15}/>{tr("下载 PDF")}</button></div>
         {showTransport && <TransportPicker selected={container} customContainers={customContainers} onCustomChange={setCustomContainers} onSelect={space=>{clearNumericDraftErrors();setContainer(space);setPracticalTargetPercent(recommendedPracticalTarget(space)*100);markDirty();}} onClose={()=>setShowTransport(false)}/>}
         {showRules && <LoadingRuleSettings rules={loadingRules} products={products} onSave={(rules,next)=>{setLoadingRules(rules);setProducts(next);markDirty();}} onClose={()=>setShowRules(false)}/>}
-        {activeCargo && products.find(p=>p.id===activeCargo) && <CargoSettings product={products.find(p=>p.id===activeCargo)!} mode={mode} lengthUnit={lengthUnit} weightUnit={weightUnit} onSave={product=>{clearNumericDraftErrors();setProducts(current=>current.map(p=>p.id===product.id?product:p));markDirty();}} onClose={()=>setActiveCargo(null)}/>}
+        {activeCargo && products.find(p=>p.id===activeCargo) && <CargoSettings product={products.find(p=>p.id===activeCargo)!} mode={mode} lengthUnit={lengthUnit} weightUnit={weightUnit} onSave={product=>{if(product.cargoType !== products.find(p=>p.id===product.id)?.cargoType) product = {...product,minimumSupportRatio:loadingRules.supportByType?.[product.cargoType ?? "carton"]};clearNumericDraftErrors();setProducts(current=>current.map(p=>p.id===product.id?product:p));markDirty();}} onClose={()=>setActiveCargo(null)}/>}
         {showViewer && result && <PlanViewer plans={[result]} onClose={()=>setShowViewer(false)}/>}
 
         <SupportAndSites />
         <section className="calculation-controls" aria-label="计算控制">
           <label><input type="checkbox" checked={autoCalculate} onChange={e=>setAutoCalculate(e.target.checked)}/>尺寸录入完成后自动计算</label>
           <label>计算时限<select aria-label="计算时限" value={calculationBudget} onChange={e=>setCalculationBudget(Number(e.target.value))}><option value={0}>按设备自动</option><option value={15}>15 秒</option><option value={35}>35 秒</option><option value={60}>60 秒</option><option value={120}>120 秒</option></select></label>
-          <button className="button primary" disabled={status === "working" || hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0} onClick={calculate}>计算方案</button>
+          <button className="button primary" disabled={status === "working" || hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0} onClick={calculate}>{tr("计算方案")}</button>
           <button className="button" disabled={status !== "working"} onClick={stopCalculation}>停止并保留已完成方案</button>
         </section>
 
@@ -1549,10 +1549,10 @@ export function PackingApp() {
         <section id="workspace" className="workspace-grid">
           <div className="config-column">
             <article className="panel mode-panel">
-              <div className="panel-head compact"><div><span className="section-kicker">01</span><h2>计算模式</h2></div></div>
-              <div className="segmented" role="group" aria-label="计算模式">
-                <button aria-pressed={mode === "single"} className={mode === "single" ? "active" : ""} onClick={() => { if (mode !== "single") { clearNumericDraftErrors(); setMode("single"); markDirty(); } }}><Box size={17} />单品最大装柜</button>
-                <button aria-pressed={mode === "mixed"} className={mode === "mixed" ? "active" : ""} onClick={() => { if (mode !== "mixed") { clearNumericDraftErrors(); setMode("mixed"); markDirty(); } }}><Boxes size={17} />多 SKU 拼柜</button>
+              <div className="panel-head compact"><div><span className="section-kicker">01</span><h2>{tr("计算模式")}</h2></div></div>
+              <div className="segmented" role="group" aria-label={tr("计算模式")}>
+                <button aria-pressed={mode === "single"} className={mode === "single" ? "active" : ""} onClick={() => { if (mode !== "single") { clearNumericDraftErrors(); setMode("single"); markDirty(); } }}><Box size={17} />{tr("单品最大装柜")}</button>
+                <button aria-pressed={mode === "mixed"} className={mode === "mixed" ? "active" : ""} onClick={() => { if (mode !== "mixed") { clearNumericDraftErrors(); setMode("mixed"); markDirty(); } }}><Boxes size={17} />{tr("多 SKU 拼柜")}</button>
               </div>
               <p className="helper-text">{mode === "single"
                 ? isSingleProductSet
@@ -1562,14 +1562,14 @@ export function PackingApp() {
               <div className="strategy-divider" />
               <div className="strategy-heading"><strong>独立求解算法</strong><span>{strategy === "practical" ? "工人可直接照做" : "高密度搜索参考"}</span></div>
               <div className="segmented strategy-segmented" role="group" aria-label="装柜执行策略">
-                <button aria-pressed={strategy === "practical"} className={strategy === "practical" ? "active" : ""} onClick={() => switchStrategy("practical")}><ShieldCheck size={16} /><span>现场易执行<small className="strategy-count">{dirty
+                <button aria-pressed={strategy === "practical"} className={strategy === "practical" ? "active" : ""} onClick={() => switchStrategy("practical")}><ShieldCheck size={16} /><span>{tr("现场易执行")}<small className="strategy-count">{dirty
                   ? "实时重算中"
                   : cachedPracticalPlan
                     ? `${formatNumber(practicalPredictionDisplay ?? 0)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`
                     : status === "working"
                       ? "计算中"
                       : practicalPredictionDisplay === null ? "待计算" : `目标 ${formatNumber(practicalPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</small></span></button>
-                <button aria-pressed={strategy === "maximum"} className={strategy === "maximum" ? "active" : ""} onClick={() => switchStrategy("maximum")}><Gauge size={16} /><span>高密度参考<small className="strategy-count">{dirty
+                <button aria-pressed={strategy === "maximum"} className={strategy === "maximum" ? "active" : ""} onClick={() => switchStrategy("maximum")}><Gauge size={16} /><span>{tr("高密度参考")}<small className="strategy-count">{dirty
                   ? "实时重算中"
                   : cachedMaximumPlan
                     ? `${formatNumber(maximumPredictionDisplay ?? 0)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`
@@ -1581,16 +1581,16 @@ export function PackingApp() {
               ) : null}
               {strategy === "practical" ? (
                 <div className="practical-target">
-                  <div><strong>现场经验装载率</strong><span>仅影响现场算法 · 完整支撑</span></div>
+                  <div><strong>{tr("现场经验装载率")}</strong><span>仅影响现场算法 · 完整支撑</span></div>
                   <div className="target-input"><input aria-label="现场经验装载率滑块" type="range" min="50" max="95" step="0.5" value={practicalTargetPercent} onChange={(event) => { setNumericFieldValidity("target:practical", true); setPracticalTargetPercent(clampNumber(event.target.value, DEFAULT_PRACTICAL_TARGET * 100, 50, 95)); markDirty(); }} /><NumericInput resetToken={numericResetVersion} ariaLabel="现场经验装载率" value={practicalTargetPercent} min={50} max={95} precision={1} onValueChange={(value) => { setPracticalTargetPercent(value); markDirty(); }} onValidityChange={(valid) => setNumericFieldValidity("target:practical", valid)} /><b>%</b></div>
                 </div>
               ) : <p className="strategy-warning">独立运行三维分区动态规划和多起点自由空间搜索；允许侧翻与 68% 以上局部承托。它是高密度启发式参考，不是全局最优证明，也不能直接替代现场指导书。</p>}
             </article>
 
             <article className="panel">
-              <div className="panel-head"><div><span className="section-kicker">02</span><h2>集装箱参数</h2></div><span className="pill">可编辑</span></div>
+              <div className="panel-head"><div><span className="section-kicker">02</span><h2>{tr("集装箱参数")}</h2></div><span className="pill">可编辑</span></div>
               <label className="select-wrap">
-                <span>柜型预设</span>
+                <span>{tr("柜型预设")}</span>
                 <select value={hasKnownContainer ? container.id : "custom-draft"} onChange={(event) => selectPreset(event.target.value)}>
                   <optgroup label="常用海运柜型">
                     {TRANSPORT_PRESETS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
@@ -1613,8 +1613,8 @@ export function PackingApp() {
                 <Field label="最大载重" unit="kg"><NumericInput resetToken={numericResetVersion} ariaLabel="柜体最大载重" value={container.maxWeight} precision={2} onValueChange={(value) => updateContainer("maxWeight", value)} onValidityChange={(valid) => setNumericFieldValidity("container:maxWeight", valid)} /></Field>
               </div>
               <div className="clearance-row">
-                <div><strong>安全间隙</strong><span>自动从有效柜内空间扣除</span></div>
-                <div className="range-control"><input aria-label="安全间隙" type="range" min="0" max="50" step="5" value={clearance} onChange={(event) => { setClearance(numberValue(event.target.value)); markDirty(); }} /><output>{clearance} mm</output></div>
+                <div><strong>{tr("安全间隙")}</strong><span>自动从有效柜内空间扣除</span></div>
+                <div className="range-control"><input aria-label={tr("安全间隙")} type="range" min="0" max="50" step="5" value={clearance} onChange={(event) => { setClearance(numberValue(event.target.value)); markDirty(); }} /><output>{clearance} mm</output></div>
               </div>
               <div className="container-save-actions">
                 <button className="button ghost small" onClick={() => { setShowContainerSave((current) => !current); setCustomContainerName(container.name.includes("未保存") ? "" : container.name); }}><Save size={14} />另存为自定义柜型</button>
@@ -1623,7 +1623,7 @@ export function PackingApp() {
               {showContainerSave ? (
                 <div className="container-save-row">
                   <input aria-label="自定义柜型名称" maxLength={120} placeholder="例如：45HQ 客户专用柜" value={customContainerName} onChange={(event) => setCustomContainerName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") saveCustomContainer(); }} />
-                  <button className="button primary small" onClick={saveCustomContainer}>保存</button>
+                  <button className="button primary small" onClick={saveCustomContainer}>{tr("保存")}</button>
                   <button className="icon-button" aria-label="取消保存柜型" onClick={() => setShowContainerSave(false)}><X size={16} /></button>
                 </div>
               ) : null}
@@ -1702,13 +1702,13 @@ export function PackingApp() {
                     : <><strong>{formatNumber(packingProgress)} / {formatNumber(result.placements.length)} 箱</strong><span>码垛进度 · {result.placements.length ? Math.round((packingProgress / result.placements.length) * 100) : 0}% · 柜内 → 箱门</span></>}</div>
                   <input aria-label={progressSummary?.isSetMode ? "套装箱级码垛进度" : "码垛进度"} type="range" min="0" max={Math.max(1, result.placements.length)} value={packingProgress} onChange={(event) => { setIsPlaying(false); setPackingProgress(numberValue(event.target.value)); }} />
                   <div className="timeline-step-controls" aria-label="逐箱码垛控制">
-                    <button onClick={() => movePackingProgress(-1)} disabled={packingProgress <= 0} aria-label="上一步"><ChevronLeft size={14} /></button>
+                    <button onClick={() => movePackingProgress(-1)} disabled={packingProgress <= 0} aria-label={tr("上一步")}><ChevronLeft size={14} /></button>
                     <select aria-label="播放速度" value={playbackSpeed} onChange={(event) => setPlaybackSpeed(numberValue(event.target.value))}>
                       <option value={1}>1×</option>
                       <option value={2}>2×</option>
                       <option value={4}>4×</option>
                     </select>
-                    <button onClick={() => movePackingProgress(1)} disabled={packingProgress >= result.placements.length} aria-label="下一步"><ChevronRight size={14} /></button>
+                    <button onClick={() => movePackingProgress(1)} disabled={packingProgress >= result.placements.length} aria-label={tr("下一步")}><ChevronRight size={14} /></button>
                   </div>
                   <button className="timeline-all" onClick={() => { setIsPlaying(false); setPackingProgress(result.placements.length); }}>显示全部</button>
                 </div>
@@ -1773,8 +1773,8 @@ export function PackingApp() {
                 </div>
                 <section className="viewer-decision-grid" aria-label="现场与极限方案统一对比">
                   <article className="current"><span>当前可视方案</span><strong>{formatNumber(resultLoadedDisplay)} {resultDisplayUnit === "set" ? "套" : "箱"}</strong><small>{formatNumber(result.metrics.loadedCount)} 箱 · 体积 {formatPercent(result.metrics.volumeUtilization)}</small></article>
-                  <article><span>现场易执行</span><strong>{practicalPredictionDisplay === null ? "—" : `${formatNumber(practicalPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</strong><small>经验率 {practicalTargetPercent.toFixed(1)}% · 完整承托</small></article>
-                  <article className="maximum"><span>高密度参考</span><strong>{maximumPredictionDisplay === null ? "—" : `${formatNumber(maximumPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</strong><small>启发式独立搜索 · 非全局最优证明</small></article>
+                  <article><span>{tr("现场易执行")}</span><strong>{practicalPredictionDisplay === null ? "—" : `${formatNumber(practicalPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</strong><small>经验率 {practicalTargetPercent.toFixed(1)}% · 完整承托</small></article>
+                  <article className="maximum"><span>{tr("高密度参考")}</span><strong>{maximumPredictionDisplay === null ? "—" : `${formatNumber(maximumPredictionDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</strong><small>启发式独立搜索 · 非全局最优证明</small></article>
                   <article className="delta"><span>搜索增量</span><strong>{theoreticalGainDisplay === null ? "—" : `+${formatNumber(theoreticalGainDisplay)} ${reversePlan.displayUnit === "set" ? "套" : "箱"}`}</strong><small>{theoreticalGainDisplay ? "用于反向优化现场分区" : "当前两套算法数量一致，继续比较复杂度"}</small></article>
                 </section>
               </>
@@ -1797,10 +1797,10 @@ export function PackingApp() {
               <button className="button ghost small" onClick={loadDimensionTest}><PackageOpen size={15} />载入尺寸测试</button>
               <button className="button ghost small" onClick={loadTwoCartonSetTest}><Boxes size={15} />载入 1 套 2 箱</button>
               <button className="button ghost small" onClick={loadMultiCartonSetTest}><Boxes size={15} />载入 1 套 5 箱</button>
-              <button className="button ghost small" onClick={() => void downloadExcelTemplate()}><FileSpreadsheet size={15}/>{tr("下载 Excel 模板")}</button>
-              <button className="button ghost small" onClick={downloadTemplate}><Download size={15} />下载模板</button>
-              <button className="button ghost small" onClick={() => fileInputRef.current?.click()}><Upload size={15} />导入 CSV / Excel</button>
-              {mode === "mixed" ? <button className="button primary small" onClick={addProduct}><Plus size={15} />添加 SKU</button> : null}
+              <button className="button ghost small" disabled={!hydrated} onClick={() => void downloadExcelTemplate()}><FileSpreadsheet size={15}/>{tr("下载 Excel 模板")}</button>
+              <button className="button ghost small" onClick={downloadTemplate}><Download size={15} />{tr("下载模板")}</button>
+              <button className="button ghost small" onClick={() => fileInputRef.current?.click()}><Upload size={15} />{tr("导入 CSV / Excel")}</button>
+              {mode === "mixed" ? <button className="button primary small" onClick={addProduct}><Plus size={15} />{tr("添加 SKU")}</button> : null}
             </div>
           </div>
           <div className="unit-toolbar" role="group" aria-label="箱规录入单位">
@@ -1819,7 +1819,7 @@ export function PackingApp() {
               </select>
             </label>
             <label>
-              <span>重量</span>
+              <span>{tr("重量")}</span>
               <select aria-label="重量单位" value={weightUnit} onChange={(event) => {
                 if (!isWeightUnit(event.target.value)) return;
                 clearNumericDraftErrors();
@@ -1888,7 +1888,7 @@ export function PackingApp() {
           ) : null}
           <div className="product-table-wrap">
             <table className="product-table">
-              <thead><tr><th>标识</th><th>SKU / 品名</th><th>外箱长</th><th>外箱宽</th><th>外箱高</th><th>CBM 自动</th><th>毛重</th>{mode === "mixed" ? <th>需求箱数</th> : null}{mode === "mixed" || isSingleProductSet ? <><th>套装编码</th><th>套内数量</th></> : null}{mode === "mixed" ? <><th>装载优先级</th><th>必装</th></> : null}<th>方向规则</th><th>可承托</th><th>必须底置</th><th>层数上限</th><th aria-label="操作" /></tr></thead>
+              <thead><tr><th>{tr("标识")}</th><th>{tr("SKU / 品名")}</th><th>{tr("外箱长")}</th><th>{tr("外箱宽")}</th><th>{tr("外箱高")}</th><th>{tr("CBM 自动")}</th><th>{tr("毛重")}</th>{mode === "mixed" ? <th>{tr("需求箱数")}</th> : null}{mode === "mixed" || isSingleProductSet ? <><th>{tr("套装编码")}</th><th>{tr("套内数量")}</th></> : null}{mode === "mixed" ? <><th>{tr("装载优先级")}</th><th>{tr("必装")}</th></> : null}<th>{tr("方向规则")}</th><th>{tr("可承托")}</th><th>{tr("必须底置")}</th><th>{tr("层数上限")}</th><th aria-label="操作" /></tr></thead>
               <tbody>
                 {pagedActiveProducts.map((product) => {
                   const calculatedCbm = exactCartonVolumeCbm(product);
@@ -1953,7 +1953,7 @@ export function PackingApp() {
 
         {result ? (
           <section className="result-section">
-            <div className="result-title"><div><span className="section-kicker">CALCULATED PLAN</span><h2>方案结果</h2></div><span className="run-meta">{resultPlanLimitDisplay !== null
+            <div className="result-title"><div><span className="section-kicker">CALCULATED PLAN</span><h2>{tr("方案结果")}</h2></div><span className="run-meta">{resultPlanLimitDisplay !== null
               ? `现场计划方案 · ${formatNumber(resultLoadedDisplay)} ${resultDisplayUnit === "set" ? "套" : "箱"}可执行${resultPlanLimitDisplay !== resultLoadedDisplay ? ` · 算术上限 ${formatNumber(resultPlanLimitDisplay)} ${resultDisplayUnit === "set" ? "套" : "箱"}` : ""}`
               : result.strategy === "practical" ? `现场可执行上限 · 经验率 ${(result.practicalTargetUtilization * 100).toFixed(1)}%` : "高密度启发式结果 · 非最优性证明"} · 算法 {result.engineVersion} · {formatNumber(result.metrics.solveTimeMs, 1)} ms</span></div>
             <div className="metrics-grid">
@@ -2120,7 +2120,7 @@ export function PackingApp() {
               </div>
               <div className="coordinate-wrap">
                 <table className="coordinate-table">
-                  <thead><tr><th>#</th><th>SKU</th><th>套装 / 套号</th><th>X</th><th>Y</th><th>Z</th><th>摆放尺寸（长×宽×高）</th><th>方向</th><th>层级</th><th>重量</th></tr></thead>
+                  <thead><tr><th>#</th><th>SKU</th><th>套装 / 套号</th><th>X</th><th>Y</th><th>Z</th><th>摆放尺寸（长×宽×高）</th><th>方向</th><th>层级</th><th>{tr("重量")}</th></tr></thead>
                   <tbody>{result.placements.slice(0, 80).map((box, index) => <tr key={box.id}><td>{index + 1}</td><td><i style={{ background: box.color }} />{box.sku}</td><td>{box.setCode ? `${box.setCode} · 第 ${box.setNumber} 套 · ${box.setItemNumber}/${result.setSummaries.find((item) => item.setCode === box.setCode)?.cartonsPerSet ?? ""}` : "散箱"}</td><td>{formatNumber(box.x)}</td><td>{formatNumber(box.y)}</td><td>{formatNumber(box.z)}</td><td>{formatNumber(box.dx)} × {formatNumber(box.dy)} × {formatNumber(box.dz)} mm</td><td>{box.orientation}</td><td>第 {box.layer} 层</td><td>{box.weight} kg</td></tr>)}</tbody>
                 </table>
               </div>

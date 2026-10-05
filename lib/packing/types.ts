@@ -7,6 +7,7 @@ export type LoadingRules = {
   layout: "auto" | "deep-first" | "layers";
   search: "smart" | "deep";
   cargoOrder: "auto" | "large-first" | "small-first";
+  supportByType?: Partial<Record<CargoType, number>>;
 };
 
 export type ContainerSpec = {

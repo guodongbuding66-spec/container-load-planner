@@ -1,4 +1,4 @@
-import { parseLoadingRules, parseOrientations, CARGO_TYPES, requiredSupport } from "./loading-rules";
+import { parseLoadingRules, parseOrientations, CARGO_TYPES, requiredSupport, applyTypeSupport } from "./loading-rules";
 import { executionAudit } from "./execution";
 import { bearingErrors, hasBearingRules, bearingStatus, contactArea } from "./bearing";
 import type {
@@ -1929,7 +1929,7 @@ function calculateExecutionComplexity(
 export function pack(request: PackingRequest): PackingResult {
   const started = performance.now();
   assertValidRequest(request);
-  const normalizedProducts = request.products.map((product) => ({
+  const normalizedProducts = applyTypeSupport(request.products, request.loadingRules).map((product) => ({
     ...product,
     length: positive(product.length),
     width: positive(product.width),
@@ -2297,6 +2297,7 @@ export function packWithComparison(request: PackingRequest): PackingResult {
 
 /** Revalidate a manual edit and rebuild every geometry-dependent metric. */
 export function revisePackingResult(original: PackingResult, placements: PlacedBox[], products: ProductInput[]): PackingResult {
+  products = applyTypeSupport(products, original.loadingRules);
   if (placements.length !== original.placements.length || new Set(placements.map(b => b.id)).size !== placements.length) throw new Error("手动调整不能增删箱体或重复追踪 ID。");
   const before = new Map(original.placements.map(b => [b.id, b]));
   for (const b of placements) {
@@ -2371,7 +2372,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   if(limit!==undefined&&(!Number.isInteger(limit)||Number(limit)<1))throw new Error("归档计划上限无效。");
   if (raw.strategy!=="practical"&&raw.strategy!=="maximum") throw new Error("归档算法标识无效。");
   if (!Array.isArray(raw.placements)||raw.placements.length>MAX_VISIBLE_PLACEMENTS) throw new Error("归档箱体坐标数量无效。");
-  const products=selectProductsForMode(request.products,request.mode);
+  const products=selectProductsForMode(applyTypeSupport(request.products, request.loadingRules),request.mode);
   const byId=new Map(products.map(p=>[p.id,p]));
   const placements:PlacedBox[]=raw.placements.map((value:unknown)=>{
     if(!value||typeof value!=="object")throw new Error("归档箱体格式无效。");

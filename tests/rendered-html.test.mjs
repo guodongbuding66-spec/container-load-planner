@@ -129,9 +129,9 @@ test("defers the heavy 3D bundle until a result exists and isolates render failu
 test("provides accessible names for mode, ranges, and product data fields", async () => {
   const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
 
-  assert.match(source, /role="group" aria-label="计算模式"/);
+  assert.match(source, /role="group" aria-label=\{tr\("计算模式"\)\}/);
   assert.match(source, /aria-pressed=\{mode === "single"\}/);
-  assert.match(source, /aria-label="安全间隙"/);
+  assert.match(source, /aria-label=\{tr\("安全间隙"\)\}/);
   assert.match(source, /aria-label="目标体积利用率滑块"/);
   assert.match(source, /ariaLabel=\{`\$\{product\.sku\} 外箱长`\}/);
   assert.match(source, /ariaLabel=\{`\$\{product\.sku\} 层数上限`\}/);
@@ -167,7 +167,7 @@ test("keeps a multi-carton product in single-product mode without carton demand 
 
   assert.match(source, /loadTwoCartonSetTest[\s\S]*?setMode\("single"\)/);
   assert.match(source, /不需要填写需求箱数/);
-  assert.match(source, /mode === "mixed" \? <th>需求箱数<\/th> : null/);
+  assert.match(source, /mode === "mixed" \? <th>\{tr\("需求箱数"\)\}<\/th> : null/);
   assert.doesNotMatch(source, /const addCartonSet[\s\S]{0,160}setMode\("mixed"\)/);
   assert.match(engine, /function packSingleSet/);
   assert.match(engine, /products: selectProductsForMode\(normalizedProducts, request\.mode\)/);
@@ -328,7 +328,7 @@ test("auto-calculates CBM and displays complete sets before carton details", asy
   const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
   const engine = await readFile(new URL("../lib/packing/engine.ts", import.meta.url), "utf8");
 
-  assert.match(source, /<th>CBM 自动<\/th>/);
+  assert.match(source, /<th>\{tr\("CBM 自动"\)\}<\/th>/);
   assert.match(source, /className="cbm-auto-value"/);
   assert.match(source, /精确值 \{calculatedCbm\.toFixed\(4\)\}/);
   assert.doesNotMatch(source, /aria-label=\{`\$\{product\.sku\} 标称 CBM`\}/);

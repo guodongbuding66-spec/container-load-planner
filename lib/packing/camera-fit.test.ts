@@ -27,7 +27,7 @@ describe("3D camera fitting", () => {
     },
   );
 
-  it.each(["perspective", "top", "side", "door"] satisfies CameraPresetView[])(
+  it.each(["perspective", "top", "side", "door", "bottom", "rear", "left"] satisfies CameraPresetView[])(
     "fits the full container when switching to the %s preset",
     (view) => {
       const fit = calculateCameraViewFit([5.6, 1.26, 1.09], { width: 920, height: 420 }, view);
