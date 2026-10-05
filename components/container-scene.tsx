@@ -2,9 +2,11 @@
 
 import { Edges, OrbitControls, OrthographicCamera, PerspectiveCamera } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Box, DoorOpen, Eye, ScanLine, ImageDown, RotateCcw } from "lucide-react";
+import { Box, DoorOpen, Eye, ScanLine, ImageDown, RotateCcw, Tag, Ruler, ZoomIn } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import * as THREE from "three";
+import { boxFaceTexture, PalletStructures, SceneRulers, SelectedBoxDimensions } from "./scene-details";
+import { palletParts, palletAnchors } from "../lib/packing/floor-pallets";
 import { tr, useLanguage } from "./language";
 import {
   calculateCameraFit,
@@ -86,30 +88,40 @@ function TopViewFallback({ result, visibleProducts, visibleCount }: { result: Pa
   );
 }
 
-function InstancedBoxes({ group, scale, offset, reducedRendering }: { group: InstanceGroup; scale: number; offset: THREE.Vector3; reducedRendering: boolean }) {
+function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSelect }: { group: InstanceGroup; scale: number; offset: THREE.Vector3; reducedRendering: boolean; labels:boolean; onSelect:(box:PlacedBox)=>void }) {
   const meshRef = useRef<THREE.InstancedMesh>(null), baseRef = useRef<THREE.InstancedMesh>(null);
   const transform = useMemo(() => new THREE.Object3D(), []);
-  const texture = useMemo(() => {
-    const canvas = document.createElement("canvas"); canvas.width = 512; canvas.height = 256;
-    const ctx = canvas.getContext("2d"); if (!ctx) return undefined;
-    ctx.fillStyle = group.color; ctx.fillRect(0,0,512,256); ctx.strokeStyle = "rgba(255,255,255,.36)"; ctx.lineWidth = 3; ctx.strokeRect(12,12,488,232);
-    ctx.fillStyle = "#ffffff"; ctx.textAlign="center"; ctx.font="bold 42px sans-serif"; ctx.fillText(group.sku.slice(0,20),256,125); ctx.font="32px sans-serif"; ctx.fillText(`${group.orientation[2]} ↑`,256,185);
-    const result = new THREE.CanvasTexture(canvas); result.colorSpace=THREE.SRGBColorSpace; return result;
-  }, [group.sku,group.orientation,group.color]);
-  useEffect(()=>()=>texture?.dispose(),[texture]);
+  const first=group.boxes[0];
+  const materials = useMemo(() => {
+    const dims=[first.dx,first.dz,first.dy], axis=first.orientation.indexOf("H");
+    if(group.cargoType==="pallet")dims[axis===0?0:axis===1?2:1]-=group.baseHeight??0;
+    const textures=labels?[boxFaceTexture(group.sku,group.color,dims[2],dims[1],group.orientation[2]),boxFaceTexture(group.sku,group.color,dims[0],dims[2]),boxFaceTexture(group.sku,group.color,dims[0],dims[1],group.orientation[2])]:[];
+    const maps=[textures[0],textures[0],textures[1],textures[1],textures[2],textures[2]];
+    return maps.map(map=>new THREE.MeshStandardMaterial({map,color:map?"white":group.color,roughness:.82}));
+  },[first.dx,first.dy,first.dz,first.orientation,group.baseHeight,group.cargoType,group.sku,group.color,group.orientation,labels]);
+  useEffect(()=>()=>{new Set(materials.map(m=>m.map)).forEach(t=>t?.dispose());materials.forEach(m=>m.dispose());},[materials]);
+  const parts=useMemo(()=>group.cargoType!=="pallet"||!group.baseHeight?[]:group.boxes.flatMap(box=>{
+    const world=[box.dx,box.dy,box.dz];
+    const l=world[box.orientation.indexOf("L")],w=world[box.orientation.indexOf("W")];
+    return palletParts(l,w,group.baseHeight!).map(p=>{
+      const positions={L:p.x,W:p.y,H:p.z},dimensions={L:p.dx,W:p.dy,H:p.dz};
+      const letters=box.orientation.split("") as Array<"L"|"W"|"H">;
+      return {x:box.x+positions[letters[0]],y:box.y+positions[letters[1]],z:box.z+positions[letters[2]],dx:dimensions[letters[0]],dy:dimensions[letters[1]],dz:dimensions[letters[2]],kind:p.kind};
+    });
+  }),[group.boxes,group.baseHeight,group.cargoType]);
   useLayoutEffect(() => {
     if (!meshRef.current) return;
     group.boxes.forEach((box,index)=>{
       const dims=[box.dx,box.dz,box.dy], pos=[(box.x+box.dx/2)*scale+offset.x,(box.z+box.dz/2)*scale+offset.y,(box.y+box.dy/2)*scale+offset.z];
       const originalAxis=box.orientation.indexOf("H"), axis=originalAxis===0?0:originalAxis===1?2:1;
       const base=group.cargoType==="pallet"?Math.min(group.baseHeight??0,dims[axis]*.95):0;
-      const bodyDims=[...dims], bodyPos=[...pos];bodyDims[axis]-=base;bodyPos[axis]+=base*scale/2;
-      transform.position.set(...bodyPos as [number,number,number]); transform.scale.set(...bodyDims.map(d=>d*scale*.985) as [number,number,number]);transform.updateMatrix();meshRef.current?.setMatrixAt(index,transform.matrix);
-      if(baseRef.current){const baseDims=[...dims],basePos=[...pos];baseDims[axis]=base;basePos[axis]-=(dims[axis]-base)*scale/2;transform.position.set(...basePos as [number,number,number]);transform.scale.set(...baseDims.map(d=>d*scale*.985) as [number,number,number]);transform.updateMatrix();baseRef.current.setMatrixAt(index,transform.matrix);}
+      dims[axis]-=base;pos[axis]+=base*scale/2;
+      transform.position.set(...pos as [number,number,number]); transform.scale.set(...dims.map(d=>d*scale) as [number,number,number]);transform.updateMatrix();meshRef.current?.setMatrixAt(index,transform.matrix);
     });
-    meshRef.current.instanceMatrix.needsUpdate=true;meshRef.current.computeBoundingSphere();if(baseRef.current){baseRef.current.instanceMatrix.needsUpdate=true;baseRef.current.computeBoundingSphere();}
-  },[group.boxes,group.baseHeight,group.cargoType,offset,scale,transform]);
-  return <><instancedMesh ref={meshRef} args={[undefined,undefined,group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering}><boxGeometry args={[1,1,1]}/><meshStandardMaterial map={texture} color={texture?"white":group.color} roughness={.72}/></instancedMesh>{group.cargoType==="pallet" && !!group.baseHeight && <instancedMesh ref={baseRef} args={[undefined,undefined,group.boxes.length]}><boxGeometry args={[1,1,1]}/><meshStandardMaterial color="#956641" roughness={.9}/></instancedMesh>}</>;
+    meshRef.current.instanceMatrix.needsUpdate=true;meshRef.current.computeBoundingSphere();
+    if(baseRef.current){parts.forEach((p,i)=>{transform.position.set((p.x+p.dx/2)*scale+offset.x,(p.z+p.dz/2)*scale+offset.y,(p.y+p.dy/2)*scale+offset.z);transform.scale.set(p.dx*scale*.997,p.dz*scale*.995,p.dy*scale*.997);transform.updateMatrix();baseRef.current!.setMatrixAt(i,transform.matrix);baseRef.current!.setColorAt(i,new THREE.Color(p.kind==="block"?"#ac8151":"#d4af7b"));});baseRef.current.instanceMatrix.needsUpdate=true;if(baseRef.current.instanceColor)baseRef.current.instanceColor.needsUpdate=true;baseRef.current.computeBoundingSphere();}
+  },[group.boxes,group.baseHeight,group.cargoType,parts,materials,offset,scale,transform]);
+  return <><instancedMesh ref={meshRef} args={[undefined,materials,group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering} onClick={e=>{e.stopPropagation();if(e.instanceId!==undefined)onSelect(group.boxes[e.instanceId]);}}><boxGeometry args={[1,1,1]}/></instancedMesh>{parts.length>0&&<instancedMesh ref={baseRef} args={[undefined,undefined,parts.length]}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>}</>;
 }
 
 function SceneCapture({ register }: { register: (capture: () => Promise<Blob>) => void }) {
@@ -131,23 +143,25 @@ function CameraRig({
   view,
   projection,
   onInteraction,
+  focus,
 }: {
   containerSize: SceneSize;
   view: CameraView;
   projection: CameraProjection;
   onInteraction: () => void;
+  focus?: {size:SceneSize;origin:SceneSize};
 }) {
   const { size: viewport } = useThree();
   const perspectiveRef = useRef<THREE.PerspectiveCamera>(null);
   const orthographicRef = useRef<THREE.OrthographicCamera>(null);
   const baseFit = useMemo(
-    () => calculateCameraFit(containerSize, { width: viewport.width, height: viewport.height }),
-    [containerSize, viewport.height, viewport.width],
+    () => calculateCameraFit(focus?.size??containerSize, { width: viewport.width, height: viewport.height }),
+    [containerSize, focus, viewport.height, viewport.width],
   );
   const presetView: CameraPresetView = view === "free" ? "perspective" : view;
   const targetFit = useMemo(
-    () => calculateCameraViewFit(containerSize, { width: viewport.width, height: viewport.height }, presetView),
-    [containerSize, presetView, viewport.height, viewport.width],
+    () => {const fit=calculateCameraViewFit(focus?.size??containerSize, { width: viewport.width, height: viewport.height }, presetView);if(!focus)return fit;return {...fit,target:fit.target.map((n,i)=>n+focus.origin[i]) as SceneSize,position:fit.position.map((n,i)=>n+focus.origin[i]) as SceneSize};},
+    [containerSize, focus, presetView, viewport.height, viewport.width],
   );
   const targetPosition = useMemo(() => new THREE.Vector3(...targetFit.position), [targetFit.position]);
   const targetUp = useMemo(() => new THREE.Vector3(...targetFit.up), [targetFit.up]);
@@ -182,7 +196,7 @@ function CameraRig({
         <PerspectiveCamera
           ref={perspectiveRef}
           makeDefault
-          position={baseFit.position}
+          position={targetFit.position}
           up={baseFit.up}
           fov={34}
           near={Math.min(baseFit.near, targetFit.near)}
@@ -194,7 +208,7 @@ function CameraRig({
         makeDefault
         enableDamping
         dampingFactor={0.08}
-        minDistance={Math.min(baseFit.minDistance, targetFit.minDistance)}
+        minDistance={focus?Math.max(.12,targetFit.distance*.25):Math.min(baseFit.minDistance, targetFit.minDistance)}
         maxDistance={Math.max(baseFit.maxDistance, targetFit.maxDistance)}
         minZoom={0.45}
         maxZoom={4}
@@ -205,7 +219,7 @@ function CameraRig({
   );
 }
 
-function ContainerModel({ result, visibleProducts, visibleCount, reducedRendering, presentation }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number; reducedRendering: boolean; presentation?: boolean }) {
+function ContainerModel({ result, visibleProducts, visibleCount, reducedRendering, presentation, labels, rulers, selected, onSelect }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number; reducedRendering: boolean; presentation?: boolean; labels:boolean; rulers:boolean; selected:PlacedBox|null;onSelect:(b:PlacedBox)=>void }) {
   const effective = {
     length: result.container.length - result.clearance * 2,
     width: result.container.width - result.clearance * 2,
@@ -239,14 +253,17 @@ function ContainerModel({ result, visibleProducts, visibleCount, reducedRenderin
         <meshStandardMaterial color="#8bb8c0" transparent opacity={0.055} roughness={0.8} side={THREE.DoubleSide} />
         <Edges color="#4e7380" threshold={15} />
       </mesh>}
-      {baseHeight > 0 && <mesh position={[0, baseHeight * scale / 2, 0]}><boxGeometry args={[size[0], baseHeight * scale, size[2]]}/><meshStandardMaterial color="#956641" roughness={.9}/></mesh>}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, baseHeight * scale - 0.015, 0]} receiveShadow={!reducedRendering}>
+      {baseHeight > 0 && <PalletStructures pallets={[{id:"space-base",presetId:result.container.id,name:result.container.name,x:0,y:0,z:-baseHeight,dx:effective.length,dy:effective.width,dz:baseHeight,weight:0,maxLoad:result.container.maxWeight,orientation:"LWH"}]} scale={scale} offset={offset}/>}
+      <PalletStructures pallets={result.pallets??[]} scale={scale} offset={offset} onSelect={p=>onSelect(palletAnchors([p])[0])}/>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.015, 0]} receiveShadow={!reducedRendering}>
         <planeGeometry args={[size[0], size[2]]} />
         <meshStandardMaterial color="#dbe4e6" roughness={0.95} />
       </mesh>
       {groups.map((group) => (
-        <InstancedBoxes key={group.productId} group={group} scale={scale} offset={offset} reducedRendering={reducedRendering} />
+        <InstancedBoxes key={group.productId} group={group} scale={scale} offset={offset} reducedRendering={reducedRendering} labels={labels} onSelect={onSelect} />
       ))}
+      {rulers && <SceneRulers length={effective.length} width={effective.width} height={effective.height} scale={scale} offset={offset}/>}
+      {selected && <SelectedBoxDimensions box={selected} scale={scale} offset={offset}/>}
       {!presentation && <gridHelper args={[Math.max(size[0], size[2]) * 1.25, 16, "#91a6ab", "#d9e1e3"]} position={[0, -0.02, 0]} />}
     </group>
   );
@@ -275,6 +292,9 @@ export function ContainerScene({
   useLanguage();
   const captureRef=useRef<(() => Promise<Blob>) | null>(null);
   const registerCapture=useMemo(()=> (capture: () => Promise<Blob>) => { captureRef.current=capture; },[]);
+  const [labels,setLabels]=useState(true),[rulers,setRulers]=useState(true),[selection,setSelection]=useState<{planId:string;box:PlacedBox}|null>(null),[focusId,setFocusId]=useState<string|null>(null);
+  const selected=selection&&selection.planId===result?.id&&(selection.box.supportOnly?result?.pallets?.some(p=>p.id===selection.box.id):result?.placements.slice(0,visibleCount).some(b=>b.id===selection.box.id)&&visibleProducts.has(selection.box.productId))?selection.box:null;
+  const focus=useMemo(()=>{if(!selected||!result||focusId!==selected.id)return undefined;const l=result.container.length-result.clearance*2,w=result.container.width-result.clearance*2,h=result.container.height-result.clearance,base=result.container.baseHeight??0,scale=5.6/Math.max(l,w,h+base);return {size:[selected.dx*scale,selected.dz*scale,selected.dy*scale] as SceneSize,origin:[(selected.x+selected.dx/2-l/2)*scale,(selected.z+base)*scale,(selected.y+selected.dy/2-w/2)*scale] as SceneSize};},[selected,result,focusId]);
   const [captureError,setCaptureError] = useState("");
   const saveImage=async()=>{ try { const blob=await captureRef.current?.();if(!blob)throw new Error(tr("图形尚未准备完成。", "Scene is not ready."));const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download="CargoFit_3D.png";link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);setCaptureError(""); } catch(e) {setCaptureError(e instanceof Error?e.message:"Image export failed");}};
   const clientReady = useSyncExternalStore(subscribeToClientReady, getClientReady, getServerNotReady);
@@ -302,16 +322,16 @@ export function ContainerScene({
               gl={{ antialias: !reducedRendering, alpha: true, powerPreference: reducedRendering ? "low-power" : "high-performance" }}
             >
               <color attach="background" args={["#eef4f5"]} />
-              <fog attach="fog" args={["#eef4f5", 12, 24]} />
-              <ambientLight intensity={1.45} />
-              <hemisphereLight args={["#ffffff", "#61747a", 1.5]} />
+              <ambientLight intensity={.8} />
+              <hemisphereLight args={["#ffffff", "#61747a", .8]} />
               <directionalLight castShadow={!reducedRendering} position={[5, 9, 4]} intensity={2.1} shadow-mapSize-width={reducedRendering ? 256 : 1024} shadow-mapSize-height={reducedRendering ? 256 : 1024} />
-              <ContainerModel result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} reducedRendering={reducedRendering} presentation={presentation} />
+              <ContainerModel result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} reducedRendering={reducedRendering} presentation={presentation} labels={labels} rulers={rulers&&!focus} selected={selected} onSelect={box=>setSelection({planId:result.id,box})} />
               <SceneCapture register={registerCapture}/>
               <CameraRig
                 containerSize={containerSize}
                 view={cameraView}
                 projection={projectionMode}
+                focus={focus}
                 onInteraction={() => onCameraViewChange("free")}
               />
             </Canvas>
@@ -336,8 +356,8 @@ export function ContainerScene({
               ))}
             </div>
           </div>
-          <div className="scene-tools"><button type="button" onClick={()=>{onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
-          {!presentation && <div className="scene-rulers"><span>L {result.container.length-result.clearance*2} mm</span><span>W {result.container.width-result.clearance*2} mm</span><span>H {result.container.height-result.clearance} mm</span></div>}
+          <div className="scene-tools"><button type="button" aria-pressed={labels} onClick={()=>setLabels(v=>!v)}><Tag size={14}/>{tr("箱标","Labels")}</button><button type="button" aria-pressed={rulers} onClick={()=>setRulers(v=>!v)}><Ruler size={14}/>{tr("尺寸","Dimensions")}</button><button type="button" onClick={()=>{setSelection(null);setFocusId(null);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
+          {selected && <div className="scene-selection-info"><button aria-label={tr("关闭箱体详情","Close box details")} onClick={()=>{setSelection(null);setFocusId(null);}}>×</button><strong>{selected.supportOnly?`${selected.name} · ${selected.id.replace("floor-pallet-","P")}`:selected.sku}</strong><button className="scene-focus-button" onClick={()=>{setFocusId(selected.id);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><ZoomIn size={13}/>{tr("放大查看","Focus on box")}</button><span>{selected.dx} × {selected.dy} × {selected.dz} mm</span><span>X {selected.x} · Y {selected.y} · Z {selected.z} mm</span>{selected.supportOnly&&<span>{tr("自重 / 承重","Tare / payload")} {selected.weight} / {result.pallets?.find(p=>p.id===selected.id)?.maxLoad} kg</span>}{selected.palletIds?.length?<span>{tr("托盘","Pallet")} {selected.palletIds.map(id=>id.replace("floor-pallet-","P")).join(" / ")}</span>:null}</div>}
           {!presentation && <div className="orientation-cube" aria-label={tr("方向立方体", "Orientation cube")}>{CAMERA_VIEWS.filter(v=>v.id!=="perspective").map(v=><button key={v.id} aria-label={`${tr("方向立方体", "Orientation cube")} · ${tr(v.label)}`} onClick={()=>{onProjectionModeChange("orthographic");onCameraViewChange(v.id);}}>{tr(v.label)}</button>)}</div>}
           {captureError && <p role="alert" className="scene-export-error">{captureError}</p>}
           {!presentation && <div className="scene-hint">

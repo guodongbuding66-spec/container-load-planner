@@ -3,6 +3,30 @@ export type PackingStrategy = "practical" | "maximum";
 export type RotationPolicy = "fixed" | "upright" | "any";
 export type OrientationCode = "LWH" | "LHW" | "WLH" | "WHL" | "HLW" | "HWL";
 export type CargoType = "carton" | "pallet" | "crate" | "drum" | "roll" | "loose";
+export type FloorPalletConfig = {
+  presetId: string;
+  name: string;
+  length: number;
+  width: number;
+  height: number;
+  weight: number;
+  maxLoad: number;
+  /** 0 fills the floor with the selected layout; otherwise a fixed count. */
+  count: number;
+  gap: number;
+  layout: "auto" | "long" | "cross";
+  allowFloorCargo: boolean;
+};
+export type PlacedPallet = {
+  id: string;
+  presetId: string;
+  name: string;
+  x: number; y: number; z: number;
+  dx: number; dy: number; dz: number;
+  weight: number;
+  maxLoad: number;
+  orientation: "LWH" | "WLH";
+};
 export type LoadingRules = {
   layout: "auto" | "deep-first" | "layers";
   search: "smart" | "deep";
@@ -60,6 +84,7 @@ export type ProductInput = {
 };
 
 export type PackingRequest = {
+  floorPallets?: FloorPalletConfig;
   loadingRules?: LoadingRules;
   searchPass?: number;
   mode: PackingMode;
@@ -103,6 +128,9 @@ export type ReverseCountResult = {
 };
 
 export type PlacedBox = {
+  /** Internal support envelope; never used for a customer carton. */
+  supportOnly?: boolean;
+  palletIds?: string[];
   locked?: boolean;
   id: string;
   productId: string;
@@ -242,6 +270,8 @@ export type QuoteEstimate = {
 };
 
 export type PackingResult = {
+  floorPallets?: FloorPalletConfig;
+  pallets?: PlacedPallet[];
   loadingRules?: LoadingRules;
   cargoDetails?: Record<string, Pick<ProductInput, "cargoType" | "palletBaseHeight">>;
   id: string;

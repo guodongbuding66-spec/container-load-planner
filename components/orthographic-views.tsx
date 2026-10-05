@@ -1,5 +1,6 @@
 "use client";
 
+import { palletAnchors } from "../lib/packing/floor-pallets";
 import { Check, Rotate3D } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import type { CameraView } from "../lib/packing/camera-fit";
@@ -289,8 +290,8 @@ export function OrthographicViews({
   onViewSelect,
 }: Props) {
   const boxes = useMemo(
-    () => result.placements.slice(0, Math.max(0, visibleCount)).filter((box) => visibleProducts.has(box.productId)),
-    [result.placements, visibleCount, visibleProducts],
+    () => [...palletAnchors(result.pallets??[]), ...result.placements.slice(0, Math.max(0, visibleCount)).filter((box) => visibleProducts.has(box.productId))],
+    [result.placements, result.pallets, visibleCount, visibleProducts],
   );
   const effective = {
     length: Math.max(1, result.container.length - result.clearance * 2),

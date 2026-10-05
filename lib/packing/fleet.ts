@@ -1,3 +1,4 @@
+import { arrangeFloorPallets } from "./floor-pallets";
 import { pack } from "./engine";
 import type { ContainerSpec, PackingRequest, PackingResult, ProductInput } from "./types";
 
@@ -19,6 +20,7 @@ export function allocateFleet(request: PackingRequest, options: FleetOption[], m
     if (remaining.every(p=>p.quantity===0)) { reason="订单已全部分配"; break; }
     const candidates = options.flatMap((o,index)=> {
       if (counts[index]>=o.available) return [];
+      if(request.floorPallets){try{arrangeFloorPallets(o.container,request.clearance,request.floorPallets);}catch{return [];}}
       const plan=pack({...request,products:remaining,container:o.container});
       plan.id = `fleet-${i+1}-${index}-${plan.id}`;
       return plan.validation.valid && plan.metrics.loadedCount>0 ? [{plan,cost:o.cost,index}] : [];
@@ -29,7 +31,7 @@ export function allocateFleet(request: PackingRequest, options: FleetOption[], m
       const bComplete=b.plan.metrics.loadedCount===remaining.reduce((n,p)=>n+p.quantity,0);
       if(aComplete&&bComplete) return a.cost-b.cost;
       if(objective==="count"&&aComplete!==bComplete) return aComplete?-1:1;
-      const score=(c:typeof a)=> objective==="cost" ? c.cost/Math.max(1,c.plan.metrics.loadedVolume) : -c.plan.metrics.loadedCount;
+      const score=(c:typeof a)=> objective==="cost" ? c.cost/Math.max(1,c.plan.summaries.reduce((n,s)=>n+s.loadedVolume,0)) : -c.plan.metrics.loadedCount;
       return score(a)-score(b)||a.cost-b.cost;
     });
     const selected=candidates[0]; counts[selected.index]++;
@@ -54,6 +56,7 @@ export function optimizeFleetTail(request:PackingRequest, baseline:FleetResult, 
     const products=request.products.map(p=>({...p,quantity:quantities.get(p.id)??0}));
     for(const option of options){
       if(prefix.filter(l=>l.plan.container.id===option.container.id).length>=option.available)continue;
+      if(request.floorPallets){try{arrangeFloorPallets(option.container,request.clearance,request.floorPallets);}catch{continue;}}
       const plan=pack({...request,products,container:option.container});
       if(!plan.validation.valid||!plan.metrics.loadedCount)continue;
       const loaded=new Map(plan.summaries.map(s=>[s.productId,s.loaded]));
@@ -74,8 +77,8 @@ export function fleetEconomics(result:FleetResult){
   const allocations=new Map<string,{code:string;sets:number;volume:number;cost:number}>();
   for(const l of result.loads){
     const grouped=new Set<string>();
-    for(const s of l.plan.setSummaries){const volume=s.items.reduce((n,i)=>n+(l.plan.summaries.find(p=>p.productId===i.productId)?.loadedVolume??0),0);s.items.forEach(i=>grouped.add(i.productId));const old=allocations.get(s.setCode)??{code:s.setCode,sets:0,volume:0,cost:0};old.sets+=s.loadedSets;old.volume+=volume;old.cost+=l.cost*volume/Math.max(1,l.plan.metrics.loadedVolume);allocations.set(s.setCode,old);}
-    for(const s of l.plan.summaries)if(!grouped.has(s.productId)&&s.loaded){const key=`SKU:${s.sku}`,old=allocations.get(key)??{code:key,sets:0,volume:0,cost:0};old.sets+=s.loaded;old.volume+=s.loadedVolume;old.cost+=l.cost*s.loadedVolume/Math.max(1,l.plan.metrics.loadedVolume);allocations.set(key,old);}
+    for(const s of l.plan.setSummaries){const volume=s.items.reduce((n,i)=>n+(l.plan.summaries.find(p=>p.productId===i.productId)?.loadedVolume??0),0);s.items.forEach(i=>grouped.add(i.productId));const old=allocations.get(s.setCode)??{code:s.setCode,sets:0,volume:0,cost:0};old.sets+=s.loadedSets;old.volume+=volume;old.cost+=l.cost*volume/Math.max(1,l.plan.summaries.reduce((n,s)=>n+s.loadedVolume,0));allocations.set(s.setCode,old);}
+    for(const s of l.plan.summaries)if(!grouped.has(s.productId)&&s.loaded){const key=`SKU:${s.sku}`,old=allocations.get(key)??{code:key,sets:0,volume:0,cost:0};old.sets+=s.loaded;old.volume+=s.loadedVolume;old.cost+=l.cost*s.loadedVolume/Math.max(1,l.plan.summaries.reduce((n,s)=>n+s.loadedVolume,0));allocations.set(key,old);}
   }
   return [...allocations.values()].map(a=>({...a,costPerSet:a.sets?a.cost/a.sets:null}));
 }

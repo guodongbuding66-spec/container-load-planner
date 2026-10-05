@@ -5,7 +5,7 @@ import { roundedCartonVolumeCbm } from "./volume";
 
 export const MAX_CSV_BYTES = 5 * 1024 * 1024;
 export const MAX_CSV_ROWS = 10_000;
-export const PLACEMENT_CSV_HEADER = "序号,SKU,品名,套装编码,套号,套内序号,X(mm),Y(mm),Z(mm),长(mm),宽(mm),高(mm),方向,层级,重量(kg)";
+export const PLACEMENT_CSV_HEADER = "序号,SKU,品名,套装编码,套号,套内序号,X(mm),Y(mm),Z(mm),长(mm),宽(mm),高(mm),方向,层级,重量(kg),记录类型,托盘关联";
 
 const REQUIRED_PRODUCT_COLUMNS = ["sku", "name", "length", "width", "height", "weight", "quantity"];
 const VALID_COLOR = /^#[0-9a-f]{6}$/i;
@@ -42,9 +42,12 @@ export function buildPlacementCsv(result: PackingResult) {
     box.orientation,
     box.layer,
     box.weight,
+    "cargo",
+    box.palletIds?.join("|") ?? "",
   ].map(toCsvCell).join(","));
 
-  return [PLACEMENT_CSV_HEADER, ...rows].join("\r\n");
+  const palletRows=(result.pallets??[]).map(p=>[0,p.id,p.name,"","","",p.x,p.y,p.z,p.dx,p.dy,p.dz,p.orientation,0,p.weight,"pallet",p.id].map(toCsvCell).join(","));
+  return [PLACEMENT_CSV_HEADER, ...palletRows, ...rows].join("\r\n");
 }
 
 export function parseCsvRecords(source: string) {

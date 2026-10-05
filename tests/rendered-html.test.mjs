@@ -73,7 +73,7 @@ test("auto-recalculates one dual-plan snapshot and hides stale visual data", asy
   assert.match(source, /window\.setTimeout\(calculate, AUTO_CALCULATE_DELAY_MS\)/);
   assert.match(source, /\(\) => dirty \? null : selectStrategyResult\(resultBundle, strategy\)/);
   assert.match(source, /calculateReverseCounts\([\s\S]*?strategy: "practical"/);
-  assert.match(source, /\[activeProducts, clearance, container, mode, practicalTargetPercent, targetVolumePercent, targetWeightPercent\]/);
+  assert.match(source, /\[floorPallets, activeProducts, clearance, container, mode, practicalTargetPercent, targetVolumePercent, targetWeightPercent\]/);
   assert.match(source, /const acceptedPlan = selectStrategyResult\(nextResult, strategyRef\.current\) \?\? nextResult/);
   assert.match(source, /presentPlan\(acceptedPlan\)/);
   assert.match(source, /displayedPlanIdRef\.current === plan\.id/);
@@ -202,7 +202,7 @@ test("offers a worker-executable strategy and a unit-safe real loading benchmark
   assert.match(engine, /function buildPracticalZonedSet/);
   assert.match(engine, /function buildPracticalSingleSideStrip/);
   assert.match(engine, /function orderForLoading/);
-  assert.match(engine, /const orderedPlacements = orderForLoading\(output\.placements\)/);
+  assert.match(engine, /assignPalletReferences\(orderForLoading\(output\.placements\.filter/);
   assert.match(engine, /PRACTICAL_SUPPORT_RATIO = 0\.995/);
   assert.match(presets, /"40hq": \{ cartons: 792, sets: 396 \}/);
   assert.match(estimator, /loadingSets: \{ "20gp": 110, "40gp": 230, "40hq": 275 \}/);

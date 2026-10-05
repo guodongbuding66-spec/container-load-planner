@@ -1,10 +1,11 @@
+import { palletAnchors } from "./floor-pallets";
 import type { PackingResult, PlacedBox } from "./types";
 
 /** Progress is tied to cargo identity and executable order, not a transient plan ID. */
 export function fieldPlanFingerprint(plan: PackingResult) {
   return JSON.stringify([plan.container.id, plan.container.length, plan.container.width, plan.container.height,
     plan.container.doorWidth, plan.container.doorHeight, plan.clearance, plan.strategy,
-    plan.placements.map(b => [b.id, b.productId, b.sku, b.x, b.y, b.z, b.dx, b.dy, b.dz, b.weight, b.setCode, b.setNumber, b.setItemNumber])]);
+    plan.pallets??[], plan.floorPallets??null, plan.placements.map(b => [b.id, b.productId, b.sku, b.x, b.y, b.z, b.dx, b.dy, b.dz, b.weight, b.setCode, b.setNumber, b.setItemNumber])]);
 }
 
 /** Conservative straight translation through the door at final Y/Z. Does not model lifting/tilting. */
@@ -25,7 +26,7 @@ export function executionAudit(plan: PackingResult) {
 }
 export function snapTranslation(box:PlacedBox, delta:{x:number;y:number;z:number}, plan:PackingResult, tolerance=30){
   const out={...delta};const bounds={x:plan.container.length-2*plan.clearance,y:plan.container.width-2*plan.clearance,z:plan.container.height-plan.clearance};
-  for(const axis of ["x","y","z"] as const){const size=({x:"dx",y:"dy",z:"dz"} as const)[axis];const target=box[axis]+delta[axis];const positions=[0,bounds[axis]-box[size],...plan.placements.filter(b=>b.id!==box.id).flatMap(b=>[b[axis]-box[size],b[axis]+b[size]])];const nearest=positions.sort((a,b)=>Math.abs(a-target)-Math.abs(b-target))[0];if(Math.abs(nearest-target)<=tolerance)out[axis]=nearest-box[axis];}
+  for(const axis of ["x","y","z"] as const){const size=({x:"dx",y:"dy",z:"dz"} as const)[axis];const target=box[axis]+delta[axis];const positions=[0,bounds[axis]-box[size],...[...palletAnchors(plan.pallets??[]),...plan.placements].filter(b=>b.id!==box.id).flatMap(b=>[b[axis]-box[size],b[axis]+b[size]])];const nearest=positions.sort((a,b)=>Math.abs(a-target)-Math.abs(b-target))[0];if(Math.abs(nearest-target)<=tolerance)out[axis]=nearest-box[axis];}
   return out;
 }
 export function fieldBlocks(plan:PackingResult){

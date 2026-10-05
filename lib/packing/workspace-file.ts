@@ -1,5 +1,6 @@
+import { parseFloorPalletConfig } from "./floor-pallets";
 import { parseLoadingRules, parseOrientations, CARGO_TYPES } from "./loading-rules";
-import type { ContainerSpec, PackingMode, PackingResult, PackingStrategy, ProductInput, LoadingRules } from "./types";
+import type { ContainerSpec, PackingMode, PackingResult, PackingStrategy, ProductInput, LoadingRules, FloorPalletConfig } from "./types";
 import { isLengthUnit, isWeightUnit, type LengthUnit, type WeightUnit } from "./units";
 import { restorePackingSnapshot } from "./engine";
 import { MAX_CSV_ROWS } from "./csv";
@@ -8,6 +9,7 @@ import { MAX_CSV_ROWS } from "./csv";
 // The independent per-plan limit is enforced by restorePackingSnapshot.
 export const MAX_WORKSPACE_BYTES = 50 * 1024 * 1024;
 export type WorkspaceInputs = {
+  floorPallets?: FloorPalletConfig;
   loadingRules?: LoadingRules;
   mode: PackingMode;
   strategy: PackingStrategy;
@@ -83,7 +85,7 @@ export function parseWorkspaceBackup(contents: string): WorkspaceInputs {
   if (!isLengthUnit(v.lengthUnit) || !isWeightUnit(v.weightUnit)) throw new Error("录入单位无效。");
   if (!Array.isArray(v.products) || !v.products.length || v.products.length > MAX_CSV_ROWS) throw new Error("备份的箱型数量无效。");
   if (!Array.isArray(v.customContainers) || v.customContainers.length > 100) throw new Error("自定义柜型数量无效。");
-  return { ...(v.loadingRules === undefined ? {} : { loadingRules: parseLoadingRules(v.loadingRules) }), mode: v.mode, strategy: v.strategy, practicalTargetPercent: number(v.practicalTargetPercent, 50, 95),
+  return { ...(v.floorPallets === undefined ? {} : {floorPallets:parseFloorPalletConfig(v.floorPallets)}), ...(v.loadingRules === undefined ? {} : { loadingRules: parseLoadingRules(v.loadingRules) }), mode: v.mode, strategy: v.strategy, practicalTargetPercent: number(v.practicalTargetPercent, 50, 95),
     container: container(v.container), clearance: number(v.clearance, 0, 50),
     products: v.products.map(parseProductInput), customContainers: v.customContainers.map(container),
     targetVolumePercent: integer(v.targetVolumePercent, 1, 100), targetWeightPercent: integer(v.targetWeightPercent, 1, 100),
@@ -92,14 +94,14 @@ export function parseWorkspaceBackup(contents: string): WorkspaceInputs {
 export function serializeWorkspaceBackup(inputs: WorkspaceInputs, engineVersion: string, plan?: PackingResult | null, plans?: PackingResult["strategyPlans"]): string {
   return JSON.stringify({ format: "cargo-fit-workspace", version: 1, engineVersion,
     createdAt: new Date().toISOString(), inputs,
-    coordinatePlans: Object.fromEntries(Object.entries(plan?.validation.valid?(plans??plan.strategyPlans??{}):{}).filter(([,p])=>p?.validation.valid).map(([key,p])=>[key,{strategy:p!.strategy,singleCartonLimit:p!.singleCartonLimit,placements:p!.placements}])),
-    ...(plan?.validation.valid ? { coordinatePlan: { strategy: plan.strategy, singleCartonLimit: plan.singleCartonLimit, placements: plan.placements } } : {}) }, null, 2);
+    coordinatePlans: Object.fromEntries(Object.entries(plan?.validation.valid?(plans??plan.strategyPlans??{}):{}).filter(([,p])=>p?.validation.valid).map(([key,p])=>[key,{strategy:p!.strategy,singleCartonLimit:p!.singleCartonLimit,placements:p!.placements,pallets:p!.pallets}])),
+    ...(plan?.validation.valid ? { coordinatePlan: { strategy: plan.strategy, singleCartonLimit: plan.singleCartonLimit, placements: plan.placements,pallets:plan.pallets } } : {}) }, null, 2);
 }
 
 
 export function restoreWorkspacePlans(contents: string, inputs: WorkspaceInputs) {
   const raw=record(JSON.parse(contents));
-  const request={loadingRules:inputs.loadingRules,mode:inputs.mode,strategy:inputs.strategy,practicalTargetUtilization:inputs.practicalTargetPercent/100,container:inputs.container,clearance:inputs.clearance,products:inputs.products};
+  const request={floorPallets:inputs.floorPallets,loadingRules:inputs.loadingRules,mode:inputs.mode,strategy:inputs.strategy,practicalTargetUtilization:inputs.practicalTargetPercent/100,container:inputs.container,clearance:inputs.clearance,products:inputs.products};
   const plans:NonNullable<PackingResult["strategyPlans"]>={};
   if(raw.coordinatePlans!==undefined)for(const [key,snapshot] of Object.entries(record(raw.coordinatePlans))){if(key!=="practical"&&key!=="maximum")throw new Error("归档算法无效");const p=restorePackingSnapshot(request,snapshot);if(p.strategy!==key)throw new Error("算法与坐标不一致");plans[key]=p;}
   const selected=raw.coordinatePlan===undefined?plans[inputs.strategy]??plans.practical??plans.maximum:restorePackingSnapshot(request,raw.coordinatePlan);

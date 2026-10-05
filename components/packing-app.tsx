@@ -109,7 +109,9 @@ import { PlanViewer } from "./plan-viewer";
 import { DEFAULT_LOADING_RULES, parseLoadingRules } from "../lib/packing/loading-rules";
 import { TRANSPORT_PRESETS } from "../lib/packing/transport-library";
 import { importSpreadsheet } from "../lib/packing/spreadsheet-client";
-import type { LoadingRules } from "../lib/packing/types";
+import { FloorPalletSettings } from "./floor-pallet-settings";
+import { parseFloorPalletConfig } from "../lib/packing/floor-pallets";
+import type { FloorPalletConfig, LoadingRules } from "../lib/packing/types";
 import type { IndustryCase } from "../lib/packing/industry-cases";
 import { tr, useLanguage, getAppLanguage } from "./language";
 
@@ -320,6 +322,8 @@ function MetricCard({ icon, label, value, detail, tone = "teal" }: { icon: React
 
 export function PackingApp() {
   useLanguage();
+  const [floorPallets, setFloorPallets] = useState<FloorPalletConfig | undefined>();
+  const [showFloorPallets, setShowFloorPallets] = useState(false);
   const [loadingRules, setLoadingRules] = useState<LoadingRules>({...DEFAULT_LOADING_RULES});
   const [activeCargo, setActiveCargo] = useState<string | null>(null);
   const [showRules, setShowRules] = useState(false);
@@ -457,6 +461,7 @@ export function PackingApp() {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const data = JSON.parse(saved) as {
+            floorPallets?: FloorPalletConfig;
             loadingRules?: LoadingRules;
             mode?: PackingMode;
             strategy?: PackingStrategy;
@@ -470,6 +475,7 @@ export function PackingApp() {
             lengthUnit?: LengthUnit;
             weightUnit?: WeightUnit;
           };
+          if (data.floorPallets) setFloorPallets(parseFloorPalletConfig(data.floorPallets));
           if (data.loadingRules) setLoadingRules(parseLoadingRules(data.loadingRules));
           if (data.mode === "single" || data.mode === "mixed") setMode(data.mode);
           if (data.strategy === "practical" || data.strategy === "maximum") setStrategy(data.strategy);
@@ -505,7 +511,7 @@ export function PackingApp() {
   const persistDraft = useCallback((patch: Partial<WorkspaceInputs> = {}) => {
     if (!hydrated) return;
     try {
-      const snapshot = { loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit, ...patch };
+      const snapshot = { floorPallets, loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit, ...patch };
       lastSavedDraftRef.current = snapshot;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
       setStorageState("saved");
@@ -513,16 +519,16 @@ export function PackingApp() {
       setStorageState("error");
       setMessage("本机草稿保存失败：浏览器存储不可用或空间不足");
     }
-  }, [loadingRules, clearance, container, customContainers, hydrated, lengthUnit, mode, practicalTargetPercent, products, strategy, targetVolumePercent, targetWeightPercent, weightUnit]);
+  }, [floorPallets,loadingRules, clearance, container, customContainers, hydrated, lengthUnit, mode, practicalTargetPercent, products, strategy, targetVolumePercent, targetWeightPercent, weightUnit]);
 
   useEffect(() => {
     if (!hydrated) return;
-    lastSavedDraftRef.current = { loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit };
+    lastSavedDraftRef.current = { floorPallets, loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit };
     const saveTimer = window.setTimeout(() => persistDraft(), STORAGE_SAVE_DELAY_MS);
     const saveBeforeLeaving = () => persistDraft(lastSavedDraftRef.current);
     window.addEventListener("pagehide", saveBeforeLeaving);
     return () => { window.clearTimeout(saveTimer); window.removeEventListener("pagehide", saveBeforeLeaving); };
-  }, [hydrated, persistDraft, loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit]);
+  }, [hydrated, persistDraft, floorPallets, loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit]);
 
   useEffect(() => () => {
     terminateActiveWorkers();
@@ -653,11 +659,11 @@ export function PackingApp() {
 
   const reversePlan = useMemo(
     () => calculateReverseCounts(
-      { mode, strategy: "practical", practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts },
+      { floorPallets, mode, strategy: "practical", practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts },
       targetVolumePercent / 100,
       targetWeightPercent / 100,
     ),
-    [activeProducts, clearance, container, mode, practicalTargetPercent, targetVolumePercent, targetWeightPercent],
+    [floorPallets, activeProducts, clearance, container, mode, practicalTargetPercent, targetVolumePercent, targetWeightPercent],
   );
   const resultDisplayUnit = result?.mode === "single" && result.setSummaries.length ? "set" : "carton";
   const resultLoadedDisplay = resultDisplayQuantity(result);
@@ -1240,7 +1246,7 @@ export function PackingApp() {
       return;
     }
     submitPacking({
-      loadingRules,
+      floorPallets, loadingRules,
       mode,
       strategy: "practical",
       practicalTargetUtilization: practicalTargetPercent / 100,
@@ -1251,7 +1257,7 @@ export function PackingApp() {
     }, mode === "single"
       ? `正在实时重算现场与极限方案；计划上限 ${reversePlan.recommendedDisplay.toLocaleString()} ${reversePlan.displayUnit === "set" ? "套" : "箱"}…`
       : "正在实时重算双算法坐标，并执行边界、重叠与载重校验…");
-  }, [loadingRules, activeProducts, clearance, clearActiveCalculation, container, hasPendingDimensionChanges, isEditingDimensions, mode, practicalTargetPercent, reversePlan, submitPacking, validateInputs]);
+  }, [floorPallets,loadingRules, activeProducts, clearance, clearActiveCalculation, container, hasPendingDimensionChanges, isEditingDimensions, mode, practicalTargetPercent, reversePlan, submitPacking, validateInputs]);
 
   useEffect(() => {
     if (!autoCalculate || !hydrated || isEditingDimensions || hasPendingDimensionChanges) return;
@@ -1313,7 +1319,7 @@ export function PackingApp() {
       return;
     }
     const contents = serializeWorkspaceBackup(
-      { loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers,
+      { floorPallets, loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers,
         targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit }, ENGINE_VERSION, result, resultBundle?.strategyPlans,
     );
     downloadFile(`装柜工作区_${new Date().toISOString().slice(0, 10)}.json`, contents, "application/json");
@@ -1336,6 +1342,7 @@ export function PackingApp() {
       setPendingRestore(null);
       clearActiveCalculation();
       clearNumericDraftErrors();
+      setFloorPallets(restored.floorPallets);
       setLoadingRules(restored.loadingRules ?? {...DEFAULT_LOADING_RULES});
       setMode(restored.mode);
       strategyRef.current = restored.strategy;
@@ -1466,13 +1473,13 @@ export function PackingApp() {
     setProductPage(0);
     markDirty();
   };
-  const workspaceBackup = useMemo(() => serializeWorkspaceBackup({loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,result,resultBundle?.strategyPlans), [loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit,result,resultBundle?.strategyPlans]);
+  const workspaceBackup = useMemo(() => serializeWorkspaceBackup({floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,result,resultBundle?.strategyPlans), [floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit,result,resultBundle?.strategyPlans]);
   const upgradesDisabled = hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0 || status === "working";
-  const fleetRequest: PackingRequest = { loadingRules, mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
+  const fleetRequest: PackingRequest = { floorPallets, loadingRules, mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
 
   const downloadExcelTemplate = async () => { setMessage("正在生成 Excel 模板…"); try { const { createSpreadsheetTemplate } = await import("../lib/packing/spreadsheet"); const bytes=await createSpreadsheetTemplate(); const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));const a=document.createElement("a");a.href=url;a.download="CargoFit_products_template.xlsx";document.body.appendChild(a);a.click();a.remove();setMessage("Excel 模板已生成。");setTimeout(()=>URL.revokeObjectURL(url),10000); } catch(e) {setMessage(e instanceof Error?e.message:"Excel export failed");} };
   const downloadPdf = async () => { if(!result?.validation.valid)return;setExportingPdf(true);try{const {downloadPdfGuide}=await import("../lib/packing/pdf-guide");await downloadPdfGuide(result,getAppLanguage());}catch(e){setMessage(e instanceof Error?e.message:"PDF export failed");}finally{setExportingPdf(false);} };
-  const loadIndustryCase = (example: IndustryCase) => {clearNumericDraftErrors();setMode("mixed");setContainer({...example.container});setProducts(example.products.map(p=>({...p})));setLoadingRules({...DEFAULT_LOADING_RULES});setClearance(10);setProductPage(0);setAutoCalculate(true);setPracticalTargetPercent(recommendedPracticalTarget(example.container)*100);markDirty();scrollTo("workspace");};
+  const loadIndustryCase = (example: IndustryCase) => {clearNumericDraftErrors();setMode("mixed");setContainer({...example.container});setProducts(example.products.map(p=>({...p})));setFloorPallets(undefined);setLoadingRules({...DEFAULT_LOADING_RULES});setClearance(10);setProductPage(0);setAutoCalculate(true);setPracticalTargetPercent(recommendedPracticalTarget(example.container)*100);markDirty();scrollTo("workspace");};
   const tutorialAction = (step: string) => {if(step==="cargo"){setActiveCargo(activeProducts[0]?.id??null);return;}if(step==="rules"){setShowRules(true);return;}if(step==="calculate"){calculate();scrollTo("workspace");return;}if(step==="viewer"){if(result)setShowViewer(true);else setMessage(tr("请先计算有效方案。","Calculate a valid plan first."));return;}if(step==="pdf"){void downloadPdf();return;}if(step==="cloud"){const el=document.getElementById("cloud-workspace");if(el instanceof HTMLDetailsElement)el.open=true;scrollTo("cloud-workspace");return;}scrollTo("products");};
 
   const canExport = Boolean(result?.validation.valid && !dirty && !hasPendingDimensionChanges);
@@ -1525,8 +1532,9 @@ export function PackingApp() {
           </div>
         </header>
         <LearningHub onCase={loadIndustryCase} onStep={tutorialAction} integration={JSON.stringify({schema:"cargo-fit-integration-v1",units:{length:"mm",weight:"kg",volume:"mm3"},runtime:"local-web-worker",request:fleetRequest,result:result?{...result,strategyPlans:undefined}:null},null,2)}/>
-        <div className="feature-action-bar"><button className="button small" onClick={()=>setShowTransport(true)}><Container size={15}/>{tr("装载空间库")}</button><button className="button small" onClick={()=>setShowRules(true)} disabled={hasPendingDimensionChanges}><ShieldCheck size={15}/>{tr("装载规则")}</button><button className="button small" disabled={!canExport} onClick={()=>setShowViewer(true)}><Layers3 size={15}/>{tr("三维方案查看器")}</button><button className="button small" disabled={!canExport||exportingPdf} onClick={()=>void downloadPdf()}><Download size={15}/>{tr("下载 PDF")}</button></div>
+        <div className="feature-action-bar"><button className="button small" onClick={()=>setShowTransport(true)}><Container size={15}/>{tr("装载空间库")}</button><button className="button small" onClick={()=>setShowRules(true)} disabled={hasPendingDimensionChanges}><ShieldCheck size={15}/>{tr("装载规则")}</button><button className={`button small ${floorPallets?"pallet-enabled":""}`} onClick={()=>setShowFloorPallets(true)} disabled={hasPendingDimensionChanges}><Layers3 size={15}/>{tr("柜内底层托盘", "Floor pallets")}{floorPallets?<span className="pallet-state-dot"/>:null}</button><button className="button small" disabled={!canExport} onClick={()=>setShowViewer(true)}><Layers3 size={15}/>{tr("三维方案查看器")}</button><button className="button small" disabled={!canExport||exportingPdf} onClick={()=>void downloadPdf()}><Download size={15}/>{tr("下载 PDF")}</button></div>
         {showTransport && <TransportPicker selected={container} customContainers={customContainers} onCustomChange={spaces=>{setCustomContainers(spaces);persistDraft({customContainers:spaces});}} onSelect={space=>{persistDraft({container:space,practicalTargetPercent:recommendedPracticalTarget(space)*100});clearNumericDraftErrors();setContainer(space);setPracticalTargetPercent(recommendedPracticalTarget(space)*100);markDirty();}} onClose={()=>setShowTransport(false)}/>}
+        {showFloorPallets && <FloorPalletSettings config={floorPallets} container={container} clearance={clearance} customSpaces={customContainers} onClose={()=>setShowFloorPallets(false)} onSave={next=>{persistDraft({floorPallets:next});setFloorPallets(next);markDirty();}}/>}
         {showRules && <LoadingRuleSettings rules={loadingRules} products={products} onSave={(rules,next)=>{persistDraft({loadingRules:rules,products:next});setLoadingRules(rules);setProducts(next);markDirty();}} onClose={()=>setShowRules(false)}/>}
         {activeCargo && products.find(p=>p.id===activeCargo) && <CargoSettings product={products.find(p=>p.id===activeCargo)!} mode={mode} lengthUnit={lengthUnit} weightUnit={weightUnit} onSave={product=>{if(product.cargoType !== products.find(p=>p.id===product.id)?.cargoType) product = {...product,minimumSupportRatio:loadingRules.supportByType?.[product.cargoType ?? "carton"]};persistDraft({products:products.map(p=>p.id===product.id?product:p)});clearNumericDraftErrors();setProducts(current=>current.map(p=>p.id===product.id?product:p));markDirty();}} onClose={()=>setActiveCargo(null)}/>}
         {showViewer && result && <PlanViewer plans={[result]} onClose={()=>setShowViewer(false)}/>}
