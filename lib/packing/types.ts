@@ -1,8 +1,20 @@
 export type PackingMode = "single" | "mixed";
 export type PackingStrategy = "practical" | "maximum";
 export type RotationPolicy = "fixed" | "upright" | "any";
+export type OrientationCode = "LWH" | "LHW" | "WLH" | "WHL" | "HLW" | "HWL";
+export type CargoType = "carton" | "pallet" | "crate" | "drum" | "roll" | "loose";
+export type LoadingRules = {
+  layout: "auto" | "deep-first" | "layers";
+  search: "smart" | "deep";
+  cargoOrder: "auto" | "large-first" | "small-first";
+};
 
 export type ContainerSpec = {
+  category?: "container" | "truck" | "pallet" | "other";
+  loadingAccess?: "rear" | "open";
+  /** Physical base below the cargo envelope; excluded from cargo capacity. */
+  baseHeight?: number;
+  specificationNote?: string;
   id: string;
   name: string;
   length: number;
@@ -14,6 +26,11 @@ export type ContainerSpec = {
 };
 
 export type ProductInput = {
+  cargoType?: CargoType;
+  allowedOrientations?: OrientationCode[];
+  minimumSupportRatio?: number;
+  /** Already included in outer height; never added to the cargo envelope. */
+  palletBaseHeight?: number;
   id: string;
   sku: string;
   name: string;
@@ -42,6 +59,7 @@ export type ProductInput = {
 };
 
 export type PackingRequest = {
+  loadingRules?: LoadingRules;
   searchPass?: number;
   mode: PackingMode;
   strategy?: PackingStrategy;
@@ -223,6 +241,8 @@ export type QuoteEstimate = {
 };
 
 export type PackingResult = {
+  loadingRules?: LoadingRules;
+  cargoDetails?: Record<string, Pick<ProductInput, "cargoType" | "palletBaseHeight">>;
   id: string;
   mode: PackingMode;
   strategy: PackingStrategy;

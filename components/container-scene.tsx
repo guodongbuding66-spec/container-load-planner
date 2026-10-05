@@ -2,9 +2,10 @@
 
 import { Edges, OrbitControls, OrthographicCamera, PerspectiveCamera } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Box, DoorOpen, Eye, ScanLine } from "lucide-react";
-import { useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { Box, DoorOpen, Eye, ScanLine, ImageDown, RotateCcw } from "lucide-react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import * as THREE from "three";
+import { tr, useLanguage } from "./language";
 import {
   calculateCameraFit,
   calculateCameraViewFit,
@@ -17,6 +18,7 @@ import { detectRuntimePolicy } from "../lib/packing/runtime-policy";
 import type { PackingResult, PlacedBox } from "../lib/packing/types";
 
 type Props = {
+  presentation?: boolean;
   result: PackingResult | null;
   visibleProducts: Set<string>;
   visibleCount: number;
@@ -28,6 +30,10 @@ type Props = {
 
 type InstanceGroup = {
   productId: string;
+  sku: string;
+  orientation: string;
+  cargoType?: string;
+  baseHeight?: number;
   color: string;
   boxes: PlacedBox[];
 };
@@ -81,37 +87,41 @@ function TopViewFallback({ result, visibleProducts, visibleCount }: { result: Pa
 }
 
 function InstancedBoxes({ group, scale, offset, reducedRendering }: { group: InstanceGroup; scale: number; offset: THREE.Vector3; reducedRendering: boolean }) {
-  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const meshRef = useRef<THREE.InstancedMesh>(null), baseRef = useRef<THREE.InstancedMesh>(null);
   const transform = useMemo(() => new THREE.Object3D(), []);
-
+  const texture = useMemo(() => {
+    const canvas = document.createElement("canvas"); canvas.width = 512; canvas.height = 256;
+    const ctx = canvas.getContext("2d"); if (!ctx) return undefined;
+    ctx.fillStyle = group.color; ctx.fillRect(0,0,512,256); ctx.strokeStyle = "rgba(255,255,255,.36)"; ctx.lineWidth = 3; ctx.strokeRect(12,12,488,232);
+    ctx.fillStyle = "#ffffff"; ctx.textAlign="center"; ctx.font="bold 42px sans-serif"; ctx.fillText(group.sku.slice(0,20),256,125); ctx.font="32px sans-serif"; ctx.fillText(`${group.orientation[2]} ↑`,256,185);
+    const result = new THREE.CanvasTexture(canvas); result.colorSpace=THREE.SRGBColorSpace; return result;
+  }, [group.sku,group.orientation,group.color]);
+  useEffect(()=>()=>texture?.dispose(),[texture]);
   useLayoutEffect(() => {
     if (!meshRef.current) return;
-    group.boxes.forEach((box, index) => {
-      transform.position.set(
-        (box.x + box.dx / 2) * scale + offset.x,
-        (box.z + box.dz / 2) * scale + offset.y,
-        (box.y + box.dy / 2) * scale + offset.z,
-      );
-      transform.scale.set(box.dx * scale * 0.985, box.dz * scale * 0.985, box.dy * scale * 0.985);
-      transform.updateMatrix();
-      meshRef.current?.setMatrixAt(index, transform.matrix);
+    group.boxes.forEach((box,index)=>{
+      const dims=[box.dx,box.dz,box.dy], pos=[(box.x+box.dx/2)*scale+offset.x,(box.z+box.dz/2)*scale+offset.y,(box.y+box.dy/2)*scale+offset.z];
+      const originalAxis=box.orientation.indexOf("H"), axis=originalAxis===0?0:originalAxis===1?2:1;
+      const base=group.cargoType==="pallet"?Math.min(group.baseHeight??0,dims[axis]*.95):0;
+      const bodyDims=[...dims], bodyPos=[...pos];bodyDims[axis]-=base;bodyPos[axis]+=base*scale/2;
+      transform.position.set(...bodyPos as [number,number,number]); transform.scale.set(...bodyDims.map(d=>d*scale*.985) as [number,number,number]);transform.updateMatrix();meshRef.current?.setMatrixAt(index,transform.matrix);
+      if(baseRef.current){const baseDims=[...dims],basePos=[...pos];baseDims[axis]=base;basePos[axis]-=(dims[axis]-base)*scale/2;transform.position.set(...basePos as [number,number,number]);transform.scale.set(...baseDims.map(d=>d*scale*.985) as [number,number,number]);transform.updateMatrix();baseRef.current.setMatrixAt(index,transform.matrix);}
     });
-    meshRef.current.instanceMatrix.needsUpdate = true;
-    meshRef.current.computeBoundingSphere();
-  }, [group.boxes, offset, scale, transform]);
+    meshRef.current.instanceMatrix.needsUpdate=true;meshRef.current.computeBoundingSphere();if(baseRef.current){baseRef.current.instanceMatrix.needsUpdate=true;baseRef.current.computeBoundingSphere();}
+  },[group.boxes,group.baseHeight,group.cargoType,offset,scale,transform]);
+  return <><instancedMesh ref={meshRef} args={[undefined,undefined,group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering}><boxGeometry args={[1,1,1]}/><meshStandardMaterial map={texture} color={texture?"white":group.color} roughness={.72}/></instancedMesh>{group.cargoType==="pallet" && !!group.baseHeight && <instancedMesh ref={baseRef} args={[undefined,undefined,group.boxes.length]}><boxGeometry args={[1,1,1]}/><meshStandardMaterial color="#956641" roughness={.9}/></instancedMesh>}</>;
+}
 
-  return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color={group.color} roughness={0.72} metalness={0.08} />
-    </instancedMesh>
-  );
+function SceneCapture({ register }: { register: (capture: () => Promise<Blob>) => void }) {
+  const { gl,scene,camera } = useThree();
+  useEffect(()=>{register(()=>new Promise((resolve,reject)=>{gl.render(scene,camera);gl.domElement.toBlob(blob=>blob?resolve(blob):reject(new Error("Image export failed")),"image/png");}));},[gl,scene,camera,register]);
+  return null;
 }
 
 function normalizedSceneSize(result: PackingResult): SceneSize {
   const effectiveLength = Math.max(1, result.container.length - result.clearance * 2);
   const effectiveWidth = Math.max(1, result.container.width - result.clearance * 2);
-  const effectiveHeight = Math.max(1, result.container.height - result.clearance);
+  const effectiveHeight = Math.max(1, result.container.height - result.clearance + (result.container.baseHeight ?? 0));
   const scale = 5.6 / Math.max(effectiveLength, effectiveWidth, effectiveHeight);
   return [effectiveLength * scale, effectiveHeight * scale, effectiveWidth * scale];
 }
@@ -195,45 +205,49 @@ function CameraRig({
   );
 }
 
-function ContainerModel({ result, visibleProducts, visibleCount, reducedRendering }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number; reducedRendering: boolean }) {
+function ContainerModel({ result, visibleProducts, visibleCount, reducedRendering, presentation }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number; reducedRendering: boolean; presentation?: boolean }) {
   const effective = {
     length: result.container.length - result.clearance * 2,
     width: result.container.width - result.clearance * 2,
     height: result.container.height - result.clearance,
   };
-  const maxDimension = Math.max(effective.length, effective.width, effective.height);
+  const baseHeight = result.container.baseHeight ?? 0;
+  const maxDimension = Math.max(effective.length, effective.width, effective.height + baseHeight);
   const scale = 5.6 / maxDimension;
   const offset = useMemo(
-    () => new THREE.Vector3(-effective.length * scale * 0.5, 0, -effective.width * scale * 0.5),
-    [effective.length, effective.width, scale],
+    () => new THREE.Vector3(-effective.length * scale * 0.5, baseHeight * scale, -effective.width * scale * 0.5),
+    [baseHeight, effective.length, effective.width, scale],
   );
   const groups = useMemo(() => {
     const map = new Map<string, InstanceGroup>();
     for (const box of result.placements.slice(0, visibleCount)) {
       if (!visibleProducts.has(box.productId)) continue;
-      const current = map.get(box.productId) ?? { productId: box.productId, color: box.color, boxes: [] };
+      const key = `${box.productId}:${box.orientation}`;
+      const meta = result.cargoDetails?.[box.productId];
+      const current = map.get(key) ?? { productId: key, sku: box.sku, orientation: box.orientation, cargoType: meta?.cargoType, baseHeight: meta?.palletBaseHeight, color: box.color, boxes: [] };
       current.boxes.push(box);
-      map.set(box.productId, current);
+      map.set(key, current);
     }
     return [...map.values()];
-  }, [result.placements, visibleCount, visibleProducts]);
+  }, [result.placements, result.cargoDetails, visibleCount, visibleProducts]);
   const size: [number, number, number] = [effective.length * scale, effective.height * scale, effective.width * scale];
 
   return (
     <group>
-      <mesh position={[0, size[1] / 2, 0]} receiveShadow={!reducedRendering}>
+      {!presentation && <mesh position={[0, size[1] / 2 + baseHeight * scale, 0]} receiveShadow={!reducedRendering}>
         <boxGeometry args={size} />
         <meshStandardMaterial color="#8bb8c0" transparent opacity={0.055} roughness={0.8} side={THREE.DoubleSide} />
         <Edges color="#4e7380" threshold={15} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.015, 0]} receiveShadow={!reducedRendering}>
+      </mesh>}
+      {baseHeight > 0 && <mesh position={[0, baseHeight * scale / 2, 0]}><boxGeometry args={[size[0], baseHeight * scale, size[2]]}/><meshStandardMaterial color="#956641" roughness={.9}/></mesh>}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, baseHeight * scale - 0.015, 0]} receiveShadow={!reducedRendering}>
         <planeGeometry args={[size[0], size[2]]} />
         <meshStandardMaterial color="#dbe4e6" roughness={0.95} />
       </mesh>
       {groups.map((group) => (
         <InstancedBoxes key={group.productId} group={group} scale={scale} offset={offset} reducedRendering={reducedRendering} />
       ))}
-      <gridHelper args={[Math.max(size[0], size[2]) * 1.25, 16, "#91a6ab", "#d9e1e3"]} position={[0, -0.02, 0]} />
+      {!presentation && <gridHelper args={[Math.max(size[0], size[2]) * 1.25, 16, "#91a6ab", "#d9e1e3"]} position={[0, -0.02, 0]} />}
     </group>
   );
 }
@@ -243,10 +257,14 @@ const CAMERA_VIEWS: Array<{ id: CameraPresetView; label: string; icon: React.Rea
   { id: "top", label: "俯视", icon: <ScanLine size={13} /> },
   { id: "side", label: "侧视", icon: <Eye size={13} /> },
   { id: "door", label: "箱门", icon: <DoorOpen size={13} /> },
+  { id: "bottom", label: "底视", icon: <ScanLine size={13}/> },
+  { id: "rear", label: "后视", icon: <DoorOpen size={13}/> },
+  { id: "left", label: "左视", icon: <Eye size={13}/> },
 ];
 
 export function ContainerScene({
   result,
+  presentation = false,
   visibleProducts,
   visibleCount,
   cameraView,
@@ -254,6 +272,11 @@ export function ContainerScene({
   onCameraViewChange,
   onProjectionModeChange,
 }: Props) {
+  useLanguage();
+  const captureRef=useRef<(() => Promise<Blob>) | null>(null);
+  const registerCapture=useMemo(()=> (capture: () => Promise<Blob>) => { captureRef.current=capture; },[]);
+  const [captureError,setCaptureError] = useState("");
+  const saveImage=async()=>{ try { const blob=await captureRef.current?.();if(!blob)throw new Error(tr("图形尚未准备完成。", "Scene is not ready."));const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download="CargoFit_3D.png";link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);setCaptureError(""); } catch(e) {setCaptureError(e instanceof Error?e.message:"Image export failed");}};
   const clientReady = useSyncExternalStore(subscribeToClientReady, getClientReady, getServerNotReady);
   const webglSupported = clientReady ? supportsWebGL() : null;
   const reducedRendering = clientReady ? detectRuntimePolicy().reducedRendering : false;
@@ -283,7 +306,8 @@ export function ContainerScene({
               <ambientLight intensity={1.45} />
               <hemisphereLight args={["#ffffff", "#61747a", 1.5]} />
               <directionalLight castShadow={!reducedRendering} position={[5, 9, 4]} intensity={2.1} shadow-mapSize-width={reducedRendering ? 256 : 1024} shadow-mapSize-height={reducedRendering ? 256 : 1024} />
-              <ContainerModel result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} reducedRendering={reducedRendering} />
+              <ContainerModel result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} reducedRendering={reducedRendering} presentation={presentation} />
+              <SceneCapture register={registerCapture}/>
               <CameraRig
                 containerSize={containerSize}
                 view={cameraView}
@@ -307,16 +331,20 @@ export function ContainerScene({
                   onClick={() => onCameraViewChange(view.id)}
                 >
                   {view.icon}
-                  {view.label}
+                  {tr(view.label)}
                 </button>
               ))}
             </div>
           </div>
-          <div className="scene-hint">
+          <div className="scene-tools"><button type="button" onClick={()=>{onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
+          {!presentation && <div className="scene-rulers"><span>L {result.container.length-result.clearance*2} mm</span><span>W {result.container.width-result.clearance*2} mm</span><span>H {result.container.height-result.clearance} mm</span></div>}
+          {!presentation && <div className="orientation-cube" aria-label={tr("方向立方体", "Orientation cube")}>{CAMERA_VIEWS.filter(v=>v.id!=="perspective").map(v=><button key={v.id} aria-label={`${tr("方向立方体", "Orientation cube")} · ${tr(v.label)}`} onClick={()=>{onProjectionModeChange("orthographic");onCameraViewChange(v.id);}}>{tr(v.label)}</button>)}</div>}
+          {captureError && <p role="alert" className="scene-export-error">{captureError}</p>}
+          {!presentation && <div className="scene-hint">
             <span>拖动旋转</span>
             <span>滚轮缩放</span>
             <span>右键平移</span>
-          </div>
+          </div>}
           <div className="door-marker">箱门方向</div>
         </>
       )}

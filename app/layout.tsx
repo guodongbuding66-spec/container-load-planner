@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./features.css";
 import { GalaxyEcosystemMenu } from "../components/galaxy-ecosystem-menu";
 
 export const metadata: Metadata = {

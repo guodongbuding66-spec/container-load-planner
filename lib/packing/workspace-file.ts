@@ -1,4 +1,5 @@
-import type { ContainerSpec, PackingMode, PackingResult, PackingStrategy, ProductInput } from "./types";
+import { parseLoadingRules, parseOrientations, CARGO_TYPES } from "./loading-rules";
+import type { ContainerSpec, PackingMode, PackingResult, PackingStrategy, ProductInput, LoadingRules } from "./types";
 import { isLengthUnit, isWeightUnit, type LengthUnit, type WeightUnit } from "./units";
 import { restorePackingSnapshot } from "./engine";
 import { MAX_CSV_ROWS } from "./csv";
@@ -7,6 +8,7 @@ import { MAX_CSV_ROWS } from "./csv";
 // The independent per-plan limit is enforced by restorePackingSnapshot.
 export const MAX_WORKSPACE_BYTES = 50 * 1024 * 1024;
 export type WorkspaceInputs = {
+  loadingRules?: LoadingRules;
   mode: PackingMode;
   strategy: PackingStrategy;
   practicalTargetPercent: number;
@@ -43,7 +45,9 @@ function bool(value: unknown): boolean {
 }
 function container(value: unknown): ContainerSpec {
   const v = record(value);
-  return { id: text(v.id, 120), name: text(v.name, 120), length: number(v.length),
+  if (v.category !== undefined && !["container", "truck", "pallet", "other"].includes(v.category as string)) throw new Error("装载空间类别无效。");
+  if (v.loadingAccess !== undefined && !["rear", "open"].includes(v.loadingAccess as string)) throw new Error("装载入口无效。");
+  return { ...(v.category === undefined ? {} : { category: v.category as ContainerSpec["category"] }), ...(v.loadingAccess === undefined ? {} : { loadingAccess: v.loadingAccess as ContainerSpec["loadingAccess"] }), ...(v.baseHeight === undefined ? {} : { baseHeight: number(v.baseHeight) }), ...(v.specificationNote === undefined ? {} : { specificationNote: text(v.specificationNote, 1000) }), id: text(v.id, 120), name: text(v.name, 120), length: number(v.length),
     width: number(v.width), height: number(v.height), doorWidth: number(v.doorWidth),
     doorHeight: number(v.doorHeight), maxWeight: number(v.maxWeight) };
 }
@@ -52,7 +56,8 @@ export function parseProductInput(value: unknown): ProductInput {
   if (v.rotationPolicy !== "fixed" && v.rotationPolicy !== "upright" && v.rotationPolicy !== "any") throw new Error("箱型方向规则无效。");
   const color = text(v.color, 7);
   if (!/^#[0-9a-f]{6}$/i.test(color)) throw new Error("箱型颜色无效。");
-  return { id: text(v.id, 120), sku: text(v.sku, 80), name: text(v.name, 200),
+  if (v.cargoType !== undefined && !CARGO_TYPES.includes(v.cargoType as never)) throw new Error("货物类型无效。");
+  return { ...(v.cargoType === undefined ? {} : { cargoType: v.cargoType as ProductInput["cargoType"] }), ...(v.allowedOrientations === undefined ? {} : { allowedOrientations: parseOrientations(v.allowedOrientations) }), ...(v.minimumSupportRatio === undefined ? {} : { minimumSupportRatio: number(v.minimumSupportRatio, Number.MIN_VALUE, 1) }), ...(v.palletBaseHeight === undefined ? {} : { palletBaseHeight: (() => { const base = number(v.palletBaseHeight); if (base >= number(v.height)) throw new Error("底座必须小于总高。"); return base; })() }), id: text(v.id, 120), sku: text(v.sku, 80), name: text(v.name, 200),
     length: number(v.length), width: number(v.width), height: number(v.height),
     weight: number(v.weight), quantity: integer(v.quantity, 0, 1_000_000),
     priority: integer(v.priority, 0, 100), rotationPolicy: v.rotationPolicy,
@@ -78,7 +83,7 @@ export function parseWorkspaceBackup(contents: string): WorkspaceInputs {
   if (!isLengthUnit(v.lengthUnit) || !isWeightUnit(v.weightUnit)) throw new Error("录入单位无效。");
   if (!Array.isArray(v.products) || !v.products.length || v.products.length > MAX_CSV_ROWS) throw new Error("备份的箱型数量无效。");
   if (!Array.isArray(v.customContainers) || v.customContainers.length > 100) throw new Error("自定义柜型数量无效。");
-  return { mode: v.mode, strategy: v.strategy, practicalTargetPercent: number(v.practicalTargetPercent, 50, 95),
+  return { ...(v.loadingRules === undefined ? {} : { loadingRules: parseLoadingRules(v.loadingRules) }), mode: v.mode, strategy: v.strategy, practicalTargetPercent: number(v.practicalTargetPercent, 50, 95),
     container: container(v.container), clearance: number(v.clearance, 0, 50),
     products: v.products.map(parseProductInput), customContainers: v.customContainers.map(container),
     targetVolumePercent: integer(v.targetVolumePercent, 1, 100), targetWeightPercent: integer(v.targetWeightPercent, 1, 100),
@@ -94,7 +99,7 @@ export function serializeWorkspaceBackup(inputs: WorkspaceInputs, engineVersion:
 
 export function restoreWorkspacePlans(contents: string, inputs: WorkspaceInputs) {
   const raw=record(JSON.parse(contents));
-  const request={mode:inputs.mode,strategy:inputs.strategy,practicalTargetUtilization:inputs.practicalTargetPercent/100,container:inputs.container,clearance:inputs.clearance,products:inputs.products};
+  const request={loadingRules:inputs.loadingRules,mode:inputs.mode,strategy:inputs.strategy,practicalTargetUtilization:inputs.practicalTargetPercent/100,container:inputs.container,clearance:inputs.clearance,products:inputs.products};
   const plans:NonNullable<PackingResult["strategyPlans"]>={};
   if(raw.coordinatePlans!==undefined)for(const [key,snapshot] of Object.entries(record(raw.coordinatePlans))){if(key!=="practical"&&key!=="maximum")throw new Error("归档算法无效");const p=restorePackingSnapshot(request,snapshot);if(p.strategy!==key)throw new Error("算法与坐标不一致");plans[key]=p;}
   const selected=raw.coordinatePlan===undefined?plans[inputs.strategy]??plans.practical??plans.maximum:restorePackingSnapshot(request,raw.coordinatePlan);

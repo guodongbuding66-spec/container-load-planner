@@ -1,3 +1,4 @@
+import { CARGO_TYPES, parseOrientations } from "./loading-rules";
 import type { PackingResult, ProductInput, RotationPolicy } from "./types";
 import { isLengthUnit, isWeightUnit, toKilograms, toMillimeters } from "./units";
 import { roundedCartonVolumeCbm } from "./volume";
@@ -162,7 +163,17 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
         allowedAboveSkus = value.map(v => v.trim());
       } catch { throw invalid("allowedAboveSkus（JSON 字符串数组）"); }
     }
+    const rawCargo = get("cargoType").trim();
+    if (rawCargo && !CARGO_TYPES.includes(rawCargo as never)) throw invalid("cargoType");
+    const allowedOrientations = get("allowedOrientations").trim() ? (() => { try { return parseOrientations(JSON.parse(get("allowedOrientations"))); } catch { throw invalid("allowedOrientations"); } })() : undefined;
+    const minimumSupportRatio = get("minimumSupportRatio").trim() ? number("minimumSupportRatio", Number.MIN_VALUE, 1) : undefined;
+    const palletBaseHeight = get("palletBaseHeight").trim() ? toMillimeters(number("palletBaseHeight", 0), lengthUnit) : undefined;
+    if (palletBaseHeight !== undefined && palletBaseHeight >= height) throw invalid("palletBaseHeight");
     return {
+      ...(rawCargo ? { cargoType: rawCargo as ProductInput["cargoType"] } : {}),
+      ...(allowedOrientations ? { allowedOrientations } : {}),
+      ...(minimumSupportRatio === undefined ? {} : { minimumSupportRatio }),
+      ...(palletBaseHeight === undefined ? {} : { palletBaseHeight }),
       id: `import-${now}-${index}`,
       sku: sanitizeText(get("sku"), 80),
       name: sanitizeText(get("name"), 200),

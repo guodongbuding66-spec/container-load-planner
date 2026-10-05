@@ -1,0 +1,20 @@
+"use client";
+import { useState } from "react";
+import { ShieldCheck } from "lucide-react";
+import { CARGO_TYPES, CARGO_LABELS } from "../lib/packing/loading-rules";
+import type { LoadingRules, ProductInput } from "../lib/packing/types";
+import { FeatureDialog } from "./feature-dialog";
+import { tr, useLanguage } from "./language";
+export function LoadingRuleSettings({ rules, products, onSave, onClose }: { rules: LoadingRules; products: ProductInput[]; onSave: (rules: LoadingRules, products: ProductInput[]) => void; onClose: () => void }) {
+  useLanguage(); const [draft, setDraft] = useState(rules); const [enabled, setEnabled] = useState(products.some(p => p.minimumSupportRatio !== undefined));
+  const [support, setSupport] = useState(Object.fromEntries(CARGO_TYPES.map(type => [type, Math.round((products.find(p => (p.cargoType ?? "carton") === type)?.minimumSupportRatio ?? 1) * 100)])));
+  const [types, setTypes] = useState<string[]>(CARGO_TYPES.filter(type => products.some(p => (p.cargoType ?? "carton") === type && p.minimumSupportRatio !== undefined)));
+  const groups = [ ["layout", "填充布局", [ ["auto", "自动布局"], ["deep-first", "纵深优先"], ["layers", "逐层填充"] ]], ["search", "搜索深度", [ ["smart", "智能搜索"], ["deep", "深度搜索"] ]], ["cargoOrder", "货物顺序", [ ["auto", "自动顺序"], ["large-first", "大件优先"], ["small-first", "小件优先"] ]] ] as const;
+  return <FeatureDialog title={tr("装载规则")} subtitle={tr("规则同时用于计算、手动调整和独立校验。", "Rules apply to solving, manual edits and independent validation.")} onClose={onClose} footer={<><span className="feature-muted">{tr("保存后统一更新方案。", "Save to update the plan once.")}</span><button className="button" onClick={onClose}>{tr("取消")}</button><button className="button primary" onClick={() => { onSave(draft, products.map(p => ({ ...p, minimumSupportRatio: enabled && types.includes(p.cargoType ?? "carton") ? support[p.cargoType ?? "carton"] / 100 : undefined }))); onClose(); }}>{tr("保存并重算")}</button></>}>
+    {groups.map(([field, title, choices]) => <section key={field}><h3 className="feature-section-heading">{tr(title)}</h3><div className="feature-choice-grid">{choices.map(([value, label]) => <button key={value} className={`feature-choice ${draft[field] === value ? "selected" : ""}`} aria-pressed={draft[field] === value} onClick={() => setDraft(v => ({ ...v, [field]: value }))}><strong>{tr(label)}</strong></button>)}</div></section>)}
+    <p className="feature-note">{tr("深度搜索会增加计算时间；大件／小件顺序仍遵守必装与优先级。", "Deep search takes longer. Size ordering still respects required cargo and priorities.")}</p>
+    <h3 className="feature-section-heading"><ShieldCheck size={18}/>{tr("底部承托比例")}</h3><label className="feature-toggle-row"><input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)}/>{tr("启用自定义承托")}</label>
+    <div className="support-rule-grid">{CARGO_TYPES.map(type => <label key={type} className="support-rule-card"><span><input type="checkbox" disabled={!enabled} checked={types.includes(type)} onChange={e => setTypes(v => e.target.checked ? [...v, type] : v.filter(t => t !== type))}/>{tr(CARGO_LABELS[type])}</span><strong>{support[type]}%</strong><input type="range" aria-label={`${tr(CARGO_LABELS[type])} ${tr("底部承托比例")}`} min={50} max={100} disabled={!enabled || !types.includes(type)} value={support[type]} onChange={e => setSupport(v => ({ ...v, [type]: Number(e.target.value) }))}/><div className="support-preview"><i style={{ width: `${support[type]}%` }}/></div></label>)}</div>
+    <div className="feature-toolbar">{[100, 95, 90, 80].map(n => <button className="button small" disabled={!enabled} key={n} onClick={() => setSupport(Object.fromEntries(CARGO_TYPES.map(type => [type, n])))}>{n}%</button>)}<button className="button small" onClick={() => { setEnabled(false); setTypes([]); }}>{tr("恢复默认")}</button></div><p className="feature-note">{tr("未自定义的货物仍使用算法默认承托要求。减少承托面积并不代表包装能承受上方重量。", "Uncustomized cargo uses each solver's default support threshold. Lower support area does not verify top-load strength.")}</p>
+  </FeatureDialog>;
+}

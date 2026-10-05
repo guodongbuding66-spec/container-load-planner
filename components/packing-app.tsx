@@ -101,6 +101,18 @@ import { MAX_WORKSPACE_BYTES, parseWorkspaceBackup, restoreWorkspacePlans, seria
 import { OrthographicViews } from "./orthographic-views";
 import { SceneErrorBoundary } from "./scene-error-boundary";
 
+import { CargoSettings } from "./cargo-settings";
+import { LoadingRuleSettings } from "./loading-rule-settings";
+import { TransportPicker } from "./transport-picker";
+import { LearningHub } from "./learning-hub";
+import { PlanViewer } from "./plan-viewer";
+import { DEFAULT_LOADING_RULES, parseLoadingRules } from "../lib/packing/loading-rules";
+import { TRANSPORT_PRESETS } from "../lib/packing/transport-library";
+import { importSpreadsheet } from "../lib/packing/spreadsheet-client";
+import type { LoadingRules } from "../lib/packing/types";
+import type { IndustryCase } from "../lib/packing/industry-cases";
+import { tr, useLanguage, getAppLanguage } from "./language";
+
 const ContainerScene = dynamic(() => import("./container-scene").then((module) => module.ContainerScene), {
   ssr: false,
   loading: () => <div className="scene-loading">正在准备三维视图…</div>,
@@ -253,6 +265,7 @@ function normalizeProductDraft(product: Partial<ProductInput>, index: number): P
 function normalizeContainerDraft(value: unknown, fallback: ContainerSpec): ContainerSpec {
   const candidate = value && typeof value === "object" ? value as Partial<ContainerSpec> : {};
   return {
+    category: candidate.category ?? fallback.category, loadingAccess: candidate.loadingAccess ?? fallback.loadingAccess, baseHeight: candidate.baseHeight ?? fallback.baseHeight, specificationNote: candidate.specificationNote ?? fallback.specificationNote,
     id: safeText(candidate.id, fallback.id, 120),
     name: safeText(candidate.name, fallback.name, 120),
     length: clampNumber(candidate.length, fallback.length, 0),
@@ -306,6 +319,13 @@ function MetricCard({ icon, label, value, detail, tone = "teal" }: { icon: React
 }
 
 export function PackingApp() {
+  useLanguage();
+  const [loadingRules, setLoadingRules] = useState<LoadingRules>({...DEFAULT_LOADING_RULES});
+  const [activeCargo, setActiveCargo] = useState<string | null>(null);
+  const [showRules, setShowRules] = useState(false);
+  const [showTransport, setShowTransport] = useState(false);
+  const [showViewer, setShowViewer] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [mode, setMode] = useState<PackingMode>("mixed");
   const [strategy, setStrategy] = useState<PackingStrategy>("practical");
   const [practicalTargetPercent, setPracticalTargetPercent] = useState(
@@ -437,6 +457,7 @@ export function PackingApp() {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const data = JSON.parse(saved) as {
+            loadingRules?: LoadingRules;
             mode?: PackingMode;
             strategy?: PackingStrategy;
             practicalTargetPercent?: number;
@@ -449,6 +470,7 @@ export function PackingApp() {
             lengthUnit?: LengthUnit;
             weightUnit?: WeightUnit;
           };
+          if (data.loadingRules) setLoadingRules(parseLoadingRules(data.loadingRules));
           if (data.mode === "single" || data.mode === "mixed") setMode(data.mode);
           if (data.strategy === "practical" || data.strategy === "maximum") setStrategy(data.strategy);
           if (typeof data.practicalTargetPercent === "number") {
@@ -485,7 +507,7 @@ export function PackingApp() {
       try {
         localStorage.setItem(
           STORAGE_KEY,
-          JSON.stringify({ mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit }),
+          JSON.stringify({ loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit }),
         );
         setStorageState("saved");
       } catch {
@@ -494,7 +516,7 @@ export function PackingApp() {
       }
     }, STORAGE_SAVE_DELAY_MS);
     return () => window.clearTimeout(saveTimer);
-  }, [clearance, container, customContainers, hydrated, lengthUnit, mode, practicalTargetPercent, products, strategy, targetVolumePercent, targetWeightPercent, weightUnit]);
+  }, [loadingRules, clearance, container, customContainers, hydrated, lengthUnit, mode, practicalTargetPercent, products, strategy, targetVolumePercent, targetWeightPercent, weightUnit]);
 
   useEffect(() => () => {
     terminateActiveWorkers();
@@ -674,7 +696,7 @@ export function PackingApp() {
       ? selectedCachedPlan.summaries.map((item) => ({ productId: item.productId, sku: item.sku, suggestedQuantity: item.loaded }))
       : reversePlan.quantities;
 
-  const containerChoices = useMemo(() => [...CONTAINER_PRESETS, ...customContainers], [customContainers]);
+  const containerChoices = useMemo(() => [...TRANSPORT_PRESETS, ...customContainers], [customContainers]);
   const hasKnownContainer = containerChoices.some((item) => item.id === container.id);
 
   const updateContainer = (field: keyof ContainerSpec, value: number) => {
@@ -1212,6 +1234,7 @@ export function PackingApp() {
       return;
     }
     submitPacking({
+      loadingRules,
       mode,
       strategy: "practical",
       practicalTargetUtilization: practicalTargetPercent / 100,
@@ -1222,7 +1245,7 @@ export function PackingApp() {
     }, mode === "single"
       ? `正在实时重算现场与极限方案；计划上限 ${reversePlan.recommendedDisplay.toLocaleString()} ${reversePlan.displayUnit === "set" ? "套" : "箱"}…`
       : "正在实时重算双算法坐标，并执行边界、重叠与载重校验…");
-  }, [activeProducts, clearance, clearActiveCalculation, container, hasPendingDimensionChanges, isEditingDimensions, mode, practicalTargetPercent, reversePlan, submitPacking, validateInputs]);
+  }, [loadingRules, activeProducts, clearance, clearActiveCalculation, container, hasPendingDimensionChanges, isEditingDimensions, mode, practicalTargetPercent, reversePlan, submitPacking, validateInputs]);
 
   useEffect(() => {
     if (!autoCalculate || !hydrated || isEditingDimensions || hasPendingDimensionChanges) return;
@@ -1284,7 +1307,7 @@ export function PackingApp() {
       return;
     }
     const contents = serializeWorkspaceBackup(
-      { mode, strategy, practicalTargetPercent, container, clearance, products, customContainers,
+      { loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers,
         targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit }, ENGINE_VERSION, result, resultBundle?.strategyPlans,
     );
     downloadFile(`装柜工作区_${new Date().toISOString().slice(0, 10)}.json`, contents, "application/json");
@@ -1307,6 +1330,7 @@ export function PackingApp() {
       setPendingRestore(null);
       clearActiveCalculation();
       clearNumericDraftErrors();
+      setLoadingRules(restored.loadingRules ?? {...DEFAULT_LOADING_RULES});
       setMode(restored.mode);
       strategyRef.current = restored.strategy;
       setStrategy(restored.strategy);
@@ -1373,11 +1397,13 @@ export function PackingApp() {
   const importCsv = async (file: File) => {
     if (file.size > MAX_CSV_BYTES) {
       setStatus("error");
-      setMessage(`CSV 文件不能超过 ${Math.round(MAX_CSV_BYTES / 1024 / 1024)} MB。`);
+      setMessage(`CSV / Excel 文件不能超过 ${Math.round(MAX_CSV_BYTES / 1024 / 1024)} MB。`);
       return;
     }
     try {
-      const parsed = parseProductsCsv(await file.text(), COLORS);
+      const importRevision = inputRevisionRef.current;
+      const parsed = file.name.toLowerCase().endsWith(".xlsx") ? await importSpreadsheet(file, COLORS) : parseProductsCsv(await file.text(), COLORS);
+      if (importRevision !== inputRevisionRef.current || pendingDimensionChangesRef.current.size > 0) throw new Error("导入期间输入发生变化，请完成录入后重新导入。");
       const importedMode = inferImportedPackingMode(parsed);
       clearNumericDraftErrors();
       setProducts(parsed);
@@ -1434,9 +1460,14 @@ export function PackingApp() {
     setProductPage(0);
     markDirty();
   };
-  const workspaceBackup = useMemo(() => serializeWorkspaceBackup({mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,result,resultBundle?.strategyPlans), [mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit,result,resultBundle?.strategyPlans]);
+  const workspaceBackup = useMemo(() => serializeWorkspaceBackup({loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,result,resultBundle?.strategyPlans), [loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit,result,resultBundle?.strategyPlans]);
   const upgradesDisabled = hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0 || status === "working";
-  const fleetRequest: PackingRequest = { mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
+  const fleetRequest: PackingRequest = { loadingRules, mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
+
+  const downloadExcelTemplate = async () => { try { const { createSpreadsheetTemplate } = await import("../lib/packing/spreadsheet"); const bytes=await createSpreadsheetTemplate(); const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));const a=document.createElement("a");a.href=url;a.download="CargoFit_products_template.xlsx";a.click();setTimeout(()=>URL.revokeObjectURL(url),10000); } catch(e) {setMessage(e instanceof Error?e.message:"Excel export failed");} };
+  const downloadPdf = async () => { if(!result?.validation.valid)return;setExportingPdf(true);try{const {downloadPdfGuide}=await import("../lib/packing/pdf-guide");await downloadPdfGuide(result,getAppLanguage());}catch(e){setMessage(e instanceof Error?e.message:"PDF export failed");}finally{setExportingPdf(false);} };
+  const loadIndustryCase = (example: IndustryCase) => {clearNumericDraftErrors();setMode("mixed");setContainer({...example.container});setProducts(example.products.map(p=>({...p})));setLoadingRules({...DEFAULT_LOADING_RULES});setClearance(10);setProductPage(0);setAutoCalculate(true);setPracticalTargetPercent(recommendedPracticalTarget(example.container)*100);markDirty();scrollTo("workspace");};
+  const tutorialAction = (step: string) => {if(step==="cargo"){setActiveCargo(activeProducts[0]?.id??null);return;}if(step==="rules"){setShowRules(true);return;}if(step==="calculate"){calculate();scrollTo("workspace");return;}if(step==="viewer"){if(result)setShowViewer(true);else setMessage(tr("请先计算有效方案。","Calculate a valid plan first."));return;}if(step==="pdf"){void downloadPdf();return;}if(step==="cloud"){const el=document.getElementById("cloud-workspace");if(el instanceof HTMLDetailsElement)el.open=true;scrollTo("cloud-workspace");return;}scrollTo("products");};
 
   const canExport = Boolean(result?.validation.valid && !dirty && !hasPendingDimensionChanges);
 
@@ -1487,6 +1518,12 @@ export function PackingApp() {
             }} />
           </div>
         </header>
+        <LearningHub onCase={loadIndustryCase} onStep={tutorialAction} integration={JSON.stringify({schema:"cargo-fit-integration-v1",units:{length:"mm",weight:"kg",volume:"mm3"},runtime:"local-web-worker",request:fleetRequest,result:result?{...result,strategyPlans:undefined}:null},null,2)}/>
+        <div className="feature-action-bar"><button className="button small" onClick={()=>setShowTransport(true)}><Container size={15}/>{tr("装载空间库")}</button><button className="button small" onClick={()=>setShowRules(true)} disabled={hasPendingDimensionChanges}><ShieldCheck size={15}/>{tr("装载规则")}</button><button className="button small" disabled={!canExport} onClick={()=>setShowViewer(true)}><Layers3 size={15}/>{tr("三维方案查看器")}</button><button className="button small" disabled={!canExport||exportingPdf} onClick={()=>void downloadPdf()}><Download size={15}/>{tr("下载 PDF")}</button></div>
+        {showTransport && <TransportPicker selected={container} customContainers={customContainers} onCustomChange={setCustomContainers} onSelect={space=>{clearNumericDraftErrors();setContainer(space);setPracticalTargetPercent(recommendedPracticalTarget(space)*100);markDirty();}} onClose={()=>setShowTransport(false)}/>}
+        {showRules && <LoadingRuleSettings rules={loadingRules} products={products} onSave={(rules,next)=>{setLoadingRules(rules);setProducts(next);markDirty();}} onClose={()=>setShowRules(false)}/>}
+        {activeCargo && products.find(p=>p.id===activeCargo) && <CargoSettings product={products.find(p=>p.id===activeCargo)!} mode={mode} lengthUnit={lengthUnit} weightUnit={weightUnit} onSave={product=>{clearNumericDraftErrors();setProducts(current=>current.map(p=>p.id===product.id?product:p));markDirty();}} onClose={()=>setActiveCargo(null)}/>}
+        {showViewer && result && <PlanViewer plans={[result]} onClose={()=>setShowViewer(false)}/>}
 
         <SupportAndSites />
         <section className="calculation-controls" aria-label="计算控制">
@@ -1556,7 +1593,7 @@ export function PackingApp() {
                 <span>柜型预设</span>
                 <select value={hasKnownContainer ? container.id : "custom-draft"} onChange={(event) => selectPreset(event.target.value)}>
                   <optgroup label="常用海运柜型">
-                    {CONTAINER_PRESETS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                    {TRANSPORT_PRESETS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                   </optgroup>
                   {customContainers.length ? (
                     <optgroup label="我的自定义柜型">
@@ -1749,7 +1786,7 @@ export function PackingApp() {
           <div className="panel-head">
             <div><span className="section-kicker">PRODUCTS</span><h2>{mode === "single" ? isSingleProductSet ? "单品多箱包装参数" : "单品包装参数" : "产品与拼柜订单"}</h2></div>
             <div className="panel-actions">
-              <input ref={fileInputRef} hidden type="file" accept=".csv,text/csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importCsv(file); event.currentTarget.value = ""; }} />
+              <input ref={fileInputRef} hidden type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importCsv(file); event.currentTarget.value = ""; }} />
               <select className="real-record-select" aria-label="载入用户提供的真实装柜记录" value="" onChange={(event) => loadSuppliedRealRecord(event.target.value)}>
                 <option value="" disabled>载入真实记录…</option>
                 {HISTORICAL_LOADING_RECORDS.filter((record) => record.models[0].startsWith("实装记录·")).map((record) => (
@@ -1760,8 +1797,9 @@ export function PackingApp() {
               <button className="button ghost small" onClick={loadDimensionTest}><PackageOpen size={15} />载入尺寸测试</button>
               <button className="button ghost small" onClick={loadTwoCartonSetTest}><Boxes size={15} />载入 1 套 2 箱</button>
               <button className="button ghost small" onClick={loadMultiCartonSetTest}><Boxes size={15} />载入 1 套 5 箱</button>
+              <button className="button ghost small" onClick={() => void downloadExcelTemplate()}><FileSpreadsheet size={15}/>{tr("下载 Excel 模板")}</button>
               <button className="button ghost small" onClick={downloadTemplate}><Download size={15} />下载模板</button>
-              <button className="button ghost small" onClick={() => fileInputRef.current?.click()}><Upload size={15} />导入 CSV</button>
+              <button className="button ghost small" onClick={() => fileInputRef.current?.click()}><Upload size={15} />导入 CSV / Excel</button>
               {mode === "mixed" ? <button className="button primary small" onClick={addProduct}><Plus size={15} />添加 SKU</button> : null}
             </div>
           </div>
@@ -1857,7 +1895,7 @@ export function PackingApp() {
                   const roundedCbm = roundedCartonVolumeCbm(product);
                   return <tr key={product.id}>
                     <td><input className="color-input" aria-label={`${product.sku} 颜色`} type="color" value={product.color} onChange={(event) => updateProduct(product.id, "color", event.target.value)} /></td>
-                    <td><input aria-label={`${product.sku} SKU`} maxLength={80} className="sku-input" value={product.sku} onChange={(event) => updateProduct(product.id, "sku", event.target.value)} /><input aria-label={`${product.sku} 品名`} maxLength={200} className="name-input" value={product.name} onChange={(event) => updateProduct(product.id, "name", event.target.value)} /></td>
+                    <td><input aria-label={`${product.sku} SKU`} maxLength={80} className="sku-input" value={product.sku} onChange={(event) => updateProduct(product.id, "sku", event.target.value)} /><input aria-label={`${product.sku} 品名`} maxLength={200} className="name-input" value={product.name} onChange={(event) => updateProduct(product.id, "name", event.target.value)} /><button className="cargo-settings-link" disabled={hasPendingDimensionChanges} onClick={()=>setActiveCargo(product.id)} aria-label={`${product.sku} ${tr("货物设置")}`}><Box size={11}/>{tr("货物详情")}</button></td>
                     <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 外箱长`} value={fromMillimeters(product.length, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => stageProductDimension(product.id, "length", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setDimensionFieldValidity(product.id, "length", valid)} onFocusChange={handleDimensionFocusChange} /><small className="cell-unit">{lengthUnit}</small></td>
                     <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 外箱宽`} value={fromMillimeters(product.width, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => stageProductDimension(product.id, "width", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setDimensionFieldValidity(product.id, "width", valid)} onFocusChange={handleDimensionFocusChange} /><small className="cell-unit">{lengthUnit}</small></td>
                     <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={`${product.sku} 外箱高`} value={fromMillimeters(product.height, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => stageProductDimension(product.id, "height", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setDimensionFieldValidity(product.id, "height", valid)} onFocusChange={handleDimensionFocusChange} /><small className="cell-unit">{lengthUnit}</small></td>

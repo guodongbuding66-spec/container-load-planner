@@ -9,7 +9,9 @@ import { bearingLoads, bearingStatus } from "../lib/packing/bearing";
 import { explainUnloaded, diagnoseUnloadedPosition, revisePackingResult } from "../lib/packing/engine";
 import { fleetEconomics, type FleetComparison, type FleetOption, type FleetResult } from "../lib/packing/fleet";
 import type { ContainerSpec, PackingRequest, PackingResult, ProductInput } from "../lib/packing/types";
-import { CONTAINER_PRESETS } from "../lib/packing/presets";
+import { TRANSPORT_PRESETS } from "../lib/packing/transport-library";
+import { PlanViewer } from "./plan-viewer";
+import type { CameraView } from "../lib/packing/camera-fit";
 import { RemainingCapacity } from "./remaining-capacity";
 import { NumericInput } from "./numeric-input";
 import { SceneErrorBoundary } from "./scene-error-boundary";
@@ -79,7 +81,7 @@ export function ManualPlan({result,products,onAdopt,disabled}:{result:PackingRes
       const minX=Math.min(...affectedBoxes.map(b=>b.x)),minY=Math.min(...affectedBoxes.map(b=>b.y)),maxX=Math.max(...affectedBoxes.map(b=>b.x+b.dx));
       const next=draft.placements.map(b=>{
         const affected=b.id===id||(group&&target.setCode&&b.setCode===target.setCode&&b.setNumber===target.setNumber);
-        return affected?{...b,x:b.x+dx,y:b.y+dy,z:b.z+dz,...(rotate?{x:minX+b.y-minY+dx,y:minY+maxX-b.x-b.dx+dy,dx:b.dy,dy:b.dx,orientation:`${b.dy}×${b.dx}×${b.dz}`}:{})}:b;
+        return affected?{...b,x:b.x+dx,y:b.y+dy,z:b.z+dz,...(rotate?{x:minX+b.y-minY+dx,y:minY+maxX-b.x-b.dx+dy,dx:b.dy,dy:b.dx,orientation:/^[LWH]{3}$/.test(b.orientation)?`${b.orientation[1]}${b.orientation[0]}${b.orientation[2]}`:`${b.dy}×${b.dx}×${b.dz}`}:{})}:b;
       });commit(revisePackingResult(draft,next,products));
     }catch(e){setMessage(`调整未采用，原方案保持有效：${errorMessage(e)}`);}
   };
@@ -114,8 +116,9 @@ export function FieldGuide({result}:{result:PackingResult}) {
 export function FleetPlanner({request,disabled,customContainers=[]}:{request:PackingRequest;disabled:boolean;customContainers?:ContainerSpec[]}) {
   const [open,setOpen]=useState(false);
   const [runSettings,setRunSettings]=useState<{options:FleetOption[];objective:string;limit:number;topUp:number;compare:boolean}|null>(null);
-  const [options,setOptions]=useState<FleetOption[]>(()=>[...new Map([...CONTAINER_PRESETS,...customContainers,request.container].map(c=>[c.id,c])).values()].map(container=>({container,cost:0,available:10})));
-  const [enabled,setEnabled]=useState(()=>options.map((_,i)=>i<3));
+  const [viewer,setViewer]=useState(false);
+  const [options,setOptions]=useState<FleetOption[]>(()=>[...new Map([...TRANSPORT_PRESETS.filter(c=>(c.category??"container")===(request.container.category??"container")),...customContainers.filter(c=>(c.category??"container")===(request.container.category??"container")),request.container].map(c=>[c.id,c])).values()].map(container=>({container,cost:0,available:10})));
+  const [enabled,setEnabled]=useState(()=>options.map(o=>o.container.id===request.container.id || ((request.container.category??"container")==="container" && ["20gp","40gp","40hq"].includes(o.container.id))));
   const [limit,setLimit]=useState(10);
   const [comparisons,setComparisons]=useState<FleetComparison[]>([]);
   const [topUp,setTopUp]=useState(0);
@@ -125,7 +128,7 @@ export function FleetPlanner({request,disabled,customContainers=[]}:{request:Pac
   const [running,setRunning]=useState(false);
   const [message,setMessage]=useState("");
   const [selected,setSelected]=useState(0);
-  const [view,setView]=useState<"perspective"|"top"|"side"|"door">("perspective");
+  const [view,setView]=useState<CameraView>("perspective");
   const [projection,setProjection]=useState<"perspective"|"orthographic">("perspective");
   const [validity,setValidity]=useState<Record<string,boolean>>({});
   const worker=useRef<Worker|null>(null);
@@ -141,7 +144,7 @@ export function FleetPlanner({request,disabled,customContainers=[]}:{request:Pac
   }catch(e){stop();setMessage(errorMessage(e));}};
   const invalidOptions=validity.limit===false||enabled.some((use,i)=>use&&(validity[`cost${i}`]===false||validity[`count${i}`]===false));
   const selectedPlan=state?.loads[selected]?.plan;
-  return <details className="upgrade-panel" onToggle={e=>setOpen(e.currentTarget.open)}><ToolSummary kind="fleet" title="整单多柜分配与费用比较" description="设置可用柜型和运费，比较整单分配与尾柜方案。"/><div className="upgrade-body"><p>逐柜比较可用柜型，保留完整套装；柜数优先选择当前能多装货的方案，费用优先按已装体积比较单柜费用。属于启发式分配，不保证全局最低费用。费用使用同一币种。费用优先模式必须填写各候选柜型的实际费用；更改设置在下次分配时生效。</p>
+  return <details className="upgrade-panel" onToggle={e=>setOpen(e.currentTarget.open)}>{viewer && state && <PlanViewer plans={state.loads.map(l=>l.plan)} onClose={()=>setViewer(false)}/>}<ToolSummary kind="fleet" title="整单多柜分配与费用比较" description="设置可用柜型和运费，比较整单分配与尾柜方案。"/><div className="upgrade-body">{state?.loads.length?<button className="button" onClick={()=>setViewer(true)}>多柜三维查看器</button>:null}<p>逐柜比较可用柜型，保留完整套装；柜数优先选择当前能多装货的方案，费用优先按已装体积比较单柜费用。属于启发式分配，不保证全局最低费用。费用使用同一币种。费用优先模式必须填写各候选柜型的实际费用；更改设置在下次分配时生效。</p>
     <div className="upgrade-rule-grid">{options.map((o,i)=><div key={o.container.id}><label><input disabled={running} type="checkbox" checked={enabled[i]} onChange={e=>setEnabled(a=>a.map((v,j)=>i===j?e.target.checked:v))}/>{o.container.name}</label><label>每柜费用<NumericInput ariaLabel={`${o.container.name} 每柜费用`} value={o.cost} onValueChange={cost=>setOptions(a=>a.map((v,j)=>i===j?{...v,cost}:v))} onValidityChange={valid=>setValidity(a=>({...a,[`cost${i}`]:valid}))}/></label><label>可用柜数<NumericInput ariaLabel={`${o.container.name} 可用柜数`} integer min={1} max={50} value={o.available} onValueChange={available=>setOptions(a=>a.map((v,j)=>i===j?{...v,available}:v))} onValidityChange={valid=>setValidity(a=>({...a,[`count${i}`]:valid}))}/></label></div>)}</div>
     <div className="upgrade-actions"><label>最多分配柜数<NumericInput ariaLabel="最多分配柜数" integer min={1} max={50} value={limit} onValueChange={setLimit} onValidityChange={valid=>setValidity(a=>({...a,limit:valid}))}/></label><label>优化目标<select aria-label="多柜优化目标" value={objective} onChange={e=>setObjective(e.target.value as "count"|"cost")}><option value="count">柜数优先</option><option value="cost">费用优先</option></select></label><button className="button primary" disabled={disabled||running||!enabled.some(Boolean)||invalidOptions} onClick={()=>calculate()}>分配整张订单</button><button className="button" disabled={!running} onClick={()=>{stop();setMessage("已停止，保留已完成柜；剩余订单尚未全部处理。");}}>停止并保留已完成柜</button></div><div className="upgrade-actions"><label>允许增加数量 %<NumericInput ariaLabel="订单允许增加比例" min={0} max={20} value={topUp} onValueChange={setTopUp} onValidityChange={valid=>setValidity(a=>({...a,topUp:valid}))}/></label><button className="button" disabled={disabled||running||!enabled.some(Boolean)||invalidOptions||validity.topUp===false} onClick={()=>calculate(true)}>比较柜型组合与尾柜</button></div><p role="status">{message}</p>
     {comparisons.length?<div className="upgrade-table-wrap"><table><thead><tr><th>组合</th><th>柜数</th><th>完整套／散箱单位</th><th>余货箱</th><th>总费／每单位</th><th>查看</th></tr></thead><tbody>{comparisons.map((c,i)=><tr key={i}><td>{c.label}</td><td>{c.result.loads.length}</td><td>{c.allocatedSets}</td><td>{c.result.remaining.reduce((n,p)=>n+p.quantity,0)}</td><td>{c.costPerSet===null?"费用未填写":`${c.result.totalCost.toFixed(2)} / ${c.costPerSet.toFixed(2)}`}</td><td><button className="button small" disabled={running} onClick={()=>{setState(c.result);setSelected(0);}}>查看组合 {i+1}</button></td></tr>)}</tbody></table></div>:null}

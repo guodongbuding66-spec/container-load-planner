@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 export type SceneSize = [number, number, number];
 
-export type CameraView = "free" | "perspective" | "top" | "side" | "door";
+export type CameraView = "free" | "perspective" | "top" | "side" | "door" | "bottom" | "rear" | "left";
 export type CameraPresetView = Exclude<CameraView, "free">;
 export type CameraProjection = "perspective" | "orthographic";
 
@@ -25,6 +25,9 @@ const VIEW_BASIS: Record<CameraPresetView, { direction: [number, number, number]
   top: { direction: [0, 1, 0], up: [0, 0, -1] },
   side: { direction: [0, 0, 1], up: [0, 1, 0] },
   door: { direction: [1, 0, 0], up: [0, 1, 0] },
+  bottom: { direction: [0, -1, 0], up: [0, 0, 1] },
+  rear: { direction: [-1, 0, 0], up: [0, 1, 0] },
+  left: { direction: [0, 0, -1], up: [0, 1, 0] },
 };
 
 export function calculateCameraViewFit(
