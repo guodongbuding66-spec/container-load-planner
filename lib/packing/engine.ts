@@ -2323,6 +2323,7 @@ export function revisePackingResult(original: PackingResult, placements: PlacedB
 }
 
 export function explainUnloaded(result: PackingResult, products: ProductInput[]) {
+  products = applyTypeSupport(products, result.loadingRules);
   const effective = effectiveContainer(result.container,result.clearance);
   return result.summaries.filter(s => s.unloaded > 0).map(s => {
     const p = products.find(p => p.id===s.productId);
@@ -2343,6 +2344,7 @@ export function explainUnloaded(result: PackingResult, products: ProductInput[])
 
 /** Bounded diagnostic probe on demand; absence of a witness is not an infeasibility proof. */
 export function diagnoseUnloadedPosition(result:PackingResult,products:ProductInput[],productId:string){
+  products = applyTypeSupport(products, result.loadingRules);
   const p=products.find(p=>p.id===productId);if(!p)return {detail:"缺少箱规",candidate:null};
   const effective=effectiveContainer(result.container,result.clearance),orientations=orientationsForStrategy(p,effective,result.strategy);
   const spatial=new SpatialIndex(effective),tops=new Map<number,PlacedBox[]>(),rules=new Map(products.map(p=>[p.id,p]));
@@ -2409,6 +2411,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
 
 /** Retain locked boxes, their support closure and complete kits; only rebuild the free remainder. */
 export function improvePacking(original: PackingResult, products: ProductInput[], pass = 0): PackingResult {
+  products = applyTypeSupport(products, original.loadingRules);
   const request: PackingRequest = {loadingRules:original.loadingRules,mode:original.mode,strategy:original.strategy,container:original.container,clearance:original.clearance,practicalTargetUtilization:original.practicalTargetUtilization,products};
   const baseline=restorePackingSnapshot(request,{strategy:original.strategy,placements:original.placements});
   const fixed=new Set(original.placements.filter(b=>b.locked).map(b=>b.id));

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import ExcelJS from "exceljs";
 import { pack, revisePackingResult, restorePackingSnapshot, validatePacking } from "./engine";
-import { ORIENTATION_CODES, parseLoadingRules } from "./loading-rules";
+import { ORIENTATION_CODES, parseLoadingRules, applyTypeSupport } from "./loading-rules";
 import { TRANSPORT_PRESETS } from "./transport-library";
 import { parseProductsCsv, toCsvCell } from "./csv";
 import { parseWorkspaceBackup, serializeWorkspaceBackup, restoreWorkspacePlans, type WorkspaceInputs } from "./workspace-file";
@@ -34,6 +34,7 @@ describe("upgrade data persistence and exports",()=>{
   it("round-trips a real Excel template",async()=>{const bytes=await createSpreadsheetTemplate();const items=await parseSpreadsheet(bytes.buffer as ArrayBuffer,["#2f7f89"]);expect(items).toHaveLength(2);expect(items[1].height).toBe(290);expect(items[0].allowedOrientations).toEqual(["LWH","WLH"]);});
   it("rejects formulas atomically",async()=>{const book=new ExcelJS.Workbook(),sheet=book.addWorksheet("Products");sheet.addRow(["sku","name","length","width","height","weight","quantity"]);sheet.addRow(["A","A",{formula:"1+1",result:2},2,2,1,1]);const bytes=await book.xlsx.writeBuffer();await expect(parseSpreadsheet(bytes as ArrayBuffer,["#2f7f89"])).rejects.toThrow(/公式/);});
   it("persists support rules for types absent from the manifest",()=>{expect(parseLoadingRules({layout:"auto",search:"smart",cargoOrder:"auto",supportByType:{crate:.9}}).supportByType).toEqual({crate:.9});expect(()=>parseLoadingRules({layout:"auto",search:"smart",cargoOrder:"auto",supportByType:{crate:2}})).toThrow();});
+  it("uses type support defaults without overriding explicit product rules",()=>{const a=product({cargoType:"crate"}),b=product({minimumSupportRatio:1,cargoType:"crate"});expect(applyTypeSupport([a,b],{layout:"auto",search:"smart",cargoOrder:"auto",supportByType:{crate:.8}}).map(p=>p.minimumSupportRatio)).toEqual([.8,1]);expect(a.minimumSupportRatio).toBeUndefined();});
   it("rejects a malformed spreadsheet",()=>expect(()=>validateSpreadsheetZip(new ArrayBuffer(24))).toThrow());
   it("rejects excessive expanded ZIP sizes before inflation",async()=>{const bytes=await createSpreadsheetTemplate();const view=new DataView(bytes.buffer);for(let i=0;i<bytes.length-46;i++)if(view.getUint32(i,true)===0x02014b50){view.setUint32(i+24,65*1024*1024,true);break;}expect(()=>validateSpreadsheetZip(bytes.buffer as ArrayBuffer)).toThrow(/过大/);});
   it("creates real PDF pages and correct byte offsets",()=>{const bytes=buildRasterPdf([{jpeg:new Uint8Array([255,216,255,217]),width:10,height:10},{jpeg:new Uint8Array([255,216,255,217]),width:10,height:10}]);const text=new TextDecoder().decode(bytes);expect(text).toContain("/Count 2");const offset=Number(text.match(/startxref\n(\d+)/)?.[1]);expect(new TextDecoder().decode(bytes.slice(offset,offset+4))).toBe("xref");const entries=text.slice(text.indexOf("xref\n")).split("\n").slice(3,11);entries.filter(e=>/\d{10} 00000 n/.test(e)).forEach((entry,i)=>expect(new TextDecoder().decode(bytes.slice(Number(entry.slice(0,10)),Number(entry.slice(0,10))+8))).toContain(`${i+1} 0 obj`));});

@@ -97,7 +97,7 @@ import { ProductCatalog, CustomerReportPanel } from "./product-catalog";
 import { WorkflowTools } from "./workflow-tools";
 import { ArchiveLibrary, BearingRules, UnloadedReasons, ManualPlan, FieldGuide, FleetPlanner } from "./planning-upgrades";
 import { RemainingCapacity } from "./remaining-capacity";
-import { MAX_WORKSPACE_BYTES, parseWorkspaceBackup, restoreWorkspacePlans, serializeWorkspaceBackup } from "../lib/packing/workspace-file";
+import { MAX_WORKSPACE_BYTES, parseWorkspaceBackup, restoreWorkspacePlans, serializeWorkspaceBackup, type WorkspaceInputs } from "../lib/packing/workspace-file";
 import { OrthographicViews } from "./orthographic-views";
 import { SceneErrorBoundary } from "./scene-error-boundary";
 
@@ -501,22 +501,28 @@ export function PackingApp() {
     return () => window.clearTimeout(timer);
   }, []);
 
+  const lastSavedDraftRef = useRef<Partial<WorkspaceInputs>>({});
+  const persistDraft = useCallback((patch: Partial<WorkspaceInputs> = {}) => {
+    if (!hydrated) return;
+    try {
+      const snapshot = { loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit, ...patch };
+      lastSavedDraftRef.current = snapshot;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+      setStorageState("saved");
+    } catch {
+      setStorageState("error");
+      setMessage("本机草稿保存失败：浏览器存储不可用或空间不足");
+    }
+  }, [loadingRules, clearance, container, customContainers, hydrated, lengthUnit, mode, practicalTargetPercent, products, strategy, targetVolumePercent, targetWeightPercent, weightUnit]);
+
   useEffect(() => {
     if (!hydrated) return;
-    const saveTimer = window.setTimeout(() => {
-      try {
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({ loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit }),
-        );
-        setStorageState("saved");
-      } catch {
-        setStorageState("error");
-        setMessage("本机草稿保存失败：浏览器存储不可用或空间不足");
-      }
-    }, STORAGE_SAVE_DELAY_MS);
-    return () => window.clearTimeout(saveTimer);
-  }, [loadingRules, clearance, container, customContainers, hydrated, lengthUnit, mode, practicalTargetPercent, products, strategy, targetVolumePercent, targetWeightPercent, weightUnit]);
+    lastSavedDraftRef.current = { loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit };
+    const saveTimer = window.setTimeout(() => persistDraft(), STORAGE_SAVE_DELAY_MS);
+    const saveBeforeLeaving = () => persistDraft(lastSavedDraftRef.current);
+    window.addEventListener("pagehide", saveBeforeLeaving);
+    return () => { window.clearTimeout(saveTimer); window.removeEventListener("pagehide", saveBeforeLeaving); };
+  }, [hydrated, persistDraft, loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit]);
 
   useEffect(() => () => {
     terminateActiveWorkers();
@@ -1520,9 +1526,9 @@ export function PackingApp() {
         </header>
         <LearningHub onCase={loadIndustryCase} onStep={tutorialAction} integration={JSON.stringify({schema:"cargo-fit-integration-v1",units:{length:"mm",weight:"kg",volume:"mm3"},runtime:"local-web-worker",request:fleetRequest,result:result?{...result,strategyPlans:undefined}:null},null,2)}/>
         <div className="feature-action-bar"><button className="button small" onClick={()=>setShowTransport(true)}><Container size={15}/>{tr("装载空间库")}</button><button className="button small" onClick={()=>setShowRules(true)} disabled={hasPendingDimensionChanges}><ShieldCheck size={15}/>{tr("装载规则")}</button><button className="button small" disabled={!canExport} onClick={()=>setShowViewer(true)}><Layers3 size={15}/>{tr("三维方案查看器")}</button><button className="button small" disabled={!canExport||exportingPdf} onClick={()=>void downloadPdf()}><Download size={15}/>{tr("下载 PDF")}</button></div>
-        {showTransport && <TransportPicker selected={container} customContainers={customContainers} onCustomChange={setCustomContainers} onSelect={space=>{clearNumericDraftErrors();setContainer(space);setPracticalTargetPercent(recommendedPracticalTarget(space)*100);markDirty();}} onClose={()=>setShowTransport(false)}/>}
-        {showRules && <LoadingRuleSettings rules={loadingRules} products={products} onSave={(rules,next)=>{setLoadingRules(rules);setProducts(next);markDirty();}} onClose={()=>setShowRules(false)}/>}
-        {activeCargo && products.find(p=>p.id===activeCargo) && <CargoSettings product={products.find(p=>p.id===activeCargo)!} mode={mode} lengthUnit={lengthUnit} weightUnit={weightUnit} onSave={product=>{if(product.cargoType !== products.find(p=>p.id===product.id)?.cargoType) product = {...product,minimumSupportRatio:loadingRules.supportByType?.[product.cargoType ?? "carton"]};clearNumericDraftErrors();setProducts(current=>current.map(p=>p.id===product.id?product:p));markDirty();}} onClose={()=>setActiveCargo(null)}/>}
+        {showTransport && <TransportPicker selected={container} customContainers={customContainers} onCustomChange={spaces=>{setCustomContainers(spaces);persistDraft({customContainers:spaces});}} onSelect={space=>{persistDraft({container:space,practicalTargetPercent:recommendedPracticalTarget(space)*100});clearNumericDraftErrors();setContainer(space);setPracticalTargetPercent(recommendedPracticalTarget(space)*100);markDirty();}} onClose={()=>setShowTransport(false)}/>}
+        {showRules && <LoadingRuleSettings rules={loadingRules} products={products} onSave={(rules,next)=>{persistDraft({loadingRules:rules,products:next});setLoadingRules(rules);setProducts(next);markDirty();}} onClose={()=>setShowRules(false)}/>}
+        {activeCargo && products.find(p=>p.id===activeCargo) && <CargoSettings product={products.find(p=>p.id===activeCargo)!} mode={mode} lengthUnit={lengthUnit} weightUnit={weightUnit} onSave={product=>{if(product.cargoType !== products.find(p=>p.id===product.id)?.cargoType) product = {...product,minimumSupportRatio:loadingRules.supportByType?.[product.cargoType ?? "carton"]};persistDraft({products:products.map(p=>p.id===product.id?product:p)});clearNumericDraftErrors();setProducts(current=>current.map(p=>p.id===product.id?product:p));markDirty();}} onClose={()=>setActiveCargo(null)}/>}
         {showViewer && result && <PlanViewer plans={[result]} onClose={()=>setShowViewer(false)}/>}
 
         <SupportAndSites />

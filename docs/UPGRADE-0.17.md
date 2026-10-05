@@ -14,11 +14,14 @@
 The services page provides monthly/yearly inquiry choices and comparison; paid billing, subscriptions and quota enforcement are not enabled. Enterprise guidance uses the existing authenticated OS bridge and downloadable data contract; it does not create a public server API. These require explicit account/billing/backend configuration.
 
 ## Verification
-- 223 unit tests, including orientation whitelist validation, support thresholds, open-load access, complete kit rollback, backup restoration, Excel parsing and PDF byte offsets.
+- 224 unit tests, including orientation whitelist validation, support thresholds, open-load access, complete kit rollback, backup restoration, Excel parsing and PDF byte offsets.
 - 21 source/structure regression checks; lint and TypeScript checks.
 - Real Chromium: transport/cargo/rules dialogs, seven camera actions, playback, PNG and PDF downloads, tutorial at 320/768/1024/1440 px, English persistence; no page errors in completed viewer smoke test.
 - Real Chromium downloaded the XLSX template and imported it through the worker; two kit rows and automatic single-product mode were retained.
+- Production static build passed the same viewer/export smoke test. Custom-space creation, immediate-refresh restoration, search, invalid-name handling, editing and deletion passed in real Chromium.
 - Downloaded PDF opened and first page visually inspected. Desktop viewer and mobile tutorial screenshots visually inspected.
 
 ## Input behavior
 Cargo/rule dialogs stage edits until Save. Main table preserves the existing staged dimension-entry behavior; import revision checks prevent delayed files overwriting newer input.
+
+Explicit settings/custom-space saves now persist immediately; pagehide flushes the latest draft so navigation cannot discard a pending debounce. Type support defaults are shared by solving, restoration, manual edits, improvement and diagnostics.
