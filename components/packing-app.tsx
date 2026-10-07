@@ -1647,7 +1647,7 @@ export function PackingApp() {
               <details className="product-examples-menu"><summary className="button small"><Sparkles size={14}/>{tr("示例与真实记录")}</summary><div className="product-examples-panel">
               <select className="real-record-select" aria-label={tr("载入用户提供的真实装柜记录")} value="" onChange={(event) => loadSuppliedRealRecord(event.target.value)}>
                 <option value="" disabled>{tr("载入真实记录…")}</option>
-                {HISTORICAL_LOADING_RECORDS.filter((record) => record.models[0].startsWith(tr("实装记录·"))).map((record) => (
+                {HISTORICAL_LOADING_RECORDS.filter((record) => record.models[0].startsWith("实装记录·")).map((record) => (
                   <option key={record.models[0]} value={record.models[0]}>{record.models[0]} · HQ {record.loadingSets["40hq"]}{tr(" 套")}</option>
                 ))}
               </select>
@@ -1831,7 +1831,7 @@ export function PackingApp() {
                 <div className="range-control"><input aria-label={tr("安全间隙")} type="range" min="0" max="50" step="5" value={clearance} onChange={(event) => { setClearance(numberValue(event.target.value)); markDirty(); }} /><output>{clearance} mm</output></div>
               </div>
               <div className="container-save-actions">
-                <button className="button ghost small" onClick={() => { setShowContainerSave((current) => !current); setCustomContainerName(tr(container.name).includes(tr("未保存")) ? "" : tr(container.name)); }}><Save size={14} />{tr("另存为自定义柜型")}</button>
+                <button className="button ghost small" onClick={() => { setShowContainerSave((current) => !current); setCustomContainerName(container.name.includes("未保存") ? "" : tr(container.name)); }}><Save size={14} />{tr("另存为自定义柜型")}</button>
                 {container.id.startsWith("custom-") && container.id !== "custom-draft" ? <button className="button text-danger small" onClick={removeSelectedCustomContainer}><Trash2 size={14} />{tr("删除当前柜型")}</button> : null}
               </div>
               {showContainerSave ? (
@@ -1970,7 +1970,7 @@ export function PackingApp() {
                   {progressSummary?.currentPlacement
                     ? <><span>{progressSummary.isSetMode && progressSummary.currentSetNumber
                       ? tt`已完成 ${formatNumber(progressSummary.completedSets)}/${formatNumber(progressSummary.totalSets)} 套 · 当前箱归属套号 ${formatNumber(progressSummary.currentSetNumber)} · 套内 ${formatNumber(progressSummary.currentSetItemNumber ?? 1)}/${formatNumber(progressSummary.currentSetCartons ?? 1)} 箱`
-                      : tt`当前第 ${formatNumber(progressSummary.visibleCartons)} 箱`}</span><strong>{progressSummary.currentPlacement.sku}{progressSummary.currentPlacement.setCode ? ` · ${progressSummary.currentPlacement.setCode}` : ""}</strong><b>{tr("坐标 ")}{formatNumber(progressSummary.currentPlacement.x)} / {formatNumber(progressSummary.currentPlacement.y)} / {formatNumber(progressSummary.currentPlacement.z)}{tr(" mm · 第 ")}{progressSummary.currentPlacement.layer}{tr(" 层")}</b></>
+                      : tt`当前第 ${formatNumber(progressSummary.visibleCartons)} 箱`}</span><strong>{progressSummary.currentPlacement.sku}{progressSummary.currentPlacement.setCode ? ` · ${progressSummary.currentPlacement.setCode}` : ""}</strong><b>{tt`坐标 ${formatNumber(progressSummary.currentPlacement.x)} / ${formatNumber(progressSummary.currentPlacement.y)} / ${formatNumber(progressSummary.currentPlacement.z)} mm · 第 ${progressSummary.currentPlacement.layer} 层`}</b></>
                     : <><span>{tr("准备开始")}</span><strong>{tr("尚未装入箱体")}</strong><b>{tr("点击播放或下一步查看装柜顺序")}</b></>}
                 </div>
                 <section className="viewer-projections" aria-label={tr("三视图相机控制")}>
@@ -2207,7 +2207,7 @@ export function PackingApp() {
               <div className="coordinate-wrap">
                 <table className="coordinate-table">
                   <thead><tr><th>#</th><th>SKU</th><th>{tr("套装 / 套号")}</th><th>X</th><th>Y</th><th>Z</th><th>{tr("摆放尺寸（长×宽×高）")}</th><th>{tr("方向")}</th><th>{tr("层级")}</th><th>{tr("重量")}</th></tr></thead>
-                  <tbody>{result.placements.slice(0, 80).map((box, index) => <tr key={box.id}><td>{index + 1}</td><td><i style={{ background: box.color }} />{box.sku}</td><td>{box.setCode ? tt`${box.setCode} · 第 ${box.setNumber} 套 · ${box.setItemNumber}/${result.setSummaries.find((item) => item.setCode === box.setCode)?.cartonsPerSet ?? ""}` : tr("散箱")}</td><td>{formatNumber(box.x)}</td><td>{formatNumber(box.y)}</td><td>{formatNumber(box.z)}</td><td>{formatNumber(box.dx)} × {formatNumber(box.dy)} × {formatNumber(box.dz)} mm</td><td>{box.orientation}</td><td>{tr("第 ")}{box.layer}{tr(" 层")}</td><td>{box.weight} kg</td></tr>)}</tbody>
+                  <tbody>{result.placements.slice(0, 80).map((box, index) => <tr key={box.id}><td>{index + 1}</td><td><i style={{ background: box.color }} />{box.sku}</td><td>{box.setCode ? tt`${box.setCode} · 第 ${box.setNumber} 套 · ${box.setItemNumber}/${result.setSummaries.find((item) => item.setCode === box.setCode)?.cartonsPerSet ?? ""}` : tr("散箱")}</td><td>{formatNumber(box.x)}</td><td>{formatNumber(box.y)}</td><td>{formatNumber(box.z)}</td><td>{formatNumber(box.dx)} × {formatNumber(box.dy)} × {formatNumber(box.dz)} mm</td><td>{box.orientation}</td><td>{tt`第 ${box.layer} 层`}</td><td>{box.weight} kg</td></tr>)}</tbody>
                 </table>
               </div>
             </article>

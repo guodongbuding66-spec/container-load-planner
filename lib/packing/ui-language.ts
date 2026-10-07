@@ -1326,5 +1326,8 @@ export const ENGLISH: Record<string, string> = {
   "米 (m)": "Meters (m)",
   "英寸 (in)": "Inches (in)",
   "千克 (kg)": "Kilograms (kg)",
-  "磅 (lb)": "Pounds (lb)"
+  "磅 (lb)": "Pounds (lb)",
+  "装载进度": "Loading progress",
+  "第 {0} 层": "Layer {0}",
+  "坐标 {0} / {1} / {2} mm · 第 {3} 层": "Position {0} / {1} / {2} mm · Layer {3}"
 };

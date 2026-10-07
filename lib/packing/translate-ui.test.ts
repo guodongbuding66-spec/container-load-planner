@@ -3,6 +3,8 @@ import { interpolateUi, translateDiagnostic, translateUi } from "./translate-ui"
 import { ENGLISH } from "./ui-language";
 import { packWithComparison } from "./engine";
 import { CONTAINER_PRESETS, SAMPLE_PRODUCTS } from "./presets";
+import { readFileSync, readdirSync } from "node:fs";
+import ts from "typescript";
 
 describe("English interface and solver diagnostics", () => {
   it("translates both solver results at display time without changing saved data", () => {
@@ -33,5 +35,21 @@ describe("English interface and solver diagnostics", () => {
       expect([...(english.match(/\{\d+\}/g) ?? [])].sort(), source).toEqual([...(source.match(/\{\d+\}/g) ?? [])].sort());
     }
     expect(translateUi(" 横向占用 ", "en")).toBe(" Horizontal extent ");
+  });
+
+  it("covers every direct Chinese UI label without an explicit English fallback", () => {
+    const directory = new URL("../../components/", import.meta.url);
+    for (const file of readdirSync(directory).filter(f => f.endsWith(".tsx"))) {
+      const source = readFileSync(new URL(file, directory), "utf8");
+      const ast = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+      function visit(node: ts.Node) {
+        if (ts.isCallExpression(node) && node.expression.getText(ast) === "tr" && node.arguments.length === 1 && ts.isStringLiteral(node.arguments[0])) {
+          const value = node.arguments[0].text;
+          if (/[\u3400-\u9fff]/.test(value)) expect(translateUi(value, "en"), `${file}: ${value}`).not.toMatch(/[\u3400-\u9fff]/);
+        }
+        ts.forEachChild(node, visit);
+      }
+      visit(ast);
+    }
   });
 });
