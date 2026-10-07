@@ -1,22 +1,21 @@
 "use client";
 
-import { Edges, OrbitControls, OrthographicCamera, PerspectiveCamera } from "@react-three/drei";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Edges, OrbitControls } from "@react-three/drei";
+import { Canvas, useThree } from "@react-three/fiber";
 import { Box, DoorOpen, Eye, ScanLine, ImageDown, RotateCcw, Tag, Ruler, ZoomIn } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ComponentRef } from "react";
 import * as THREE from "three";
 import { boxFaceTexture, PalletStructures, SceneRulers, SelectedBoxDimensions } from "./scene-details";
 import { palletParts, palletAnchors } from "../lib/packing/floor-pallets";
 import { SceneFullscreen } from "./scene-fullscreen";
 import {tr, useLanguage} from "./language";
 import {
-  calculateCameraFit,
-  calculateCameraViewFit,
   type CameraProjection,
   type CameraPresetView,
   type CameraView,
   type SceneSize,
 } from "../lib/packing/camera-fit";
+import { SceneCameraController } from "../lib/packing/scene-camera";
 import { detectRuntimePolicy } from "../lib/packing/runtime-policy";
 import type { PackingResult, PlacedBox } from "../lib/packing/types";
 
@@ -144,12 +143,14 @@ function normalizedSceneSize(result: PackingResult): SceneSize {
 }
 
 function CameraRig({
+  controller,
   containerSize,
   view,
   projection,
   onInteraction,
   focus,
 }: {
+  controller: SceneCameraController;
   containerSize: SceneSize;
   view: CameraView;
   projection: CameraProjection;
@@ -157,72 +158,27 @@ function CameraRig({
   focus?: {size:SceneSize;origin:SceneSize};
 }) {
   useLanguage();
-  const { size: viewport } = useThree();
-  const perspectiveRef = useRef<THREE.PerspectiveCamera>(null);
-  const orthographicRef = useRef<THREE.OrthographicCamera>(null);
-  const baseFit = useMemo(
-    () => calculateCameraFit(focus?.size??containerSize, { width: viewport.width, height: viewport.height }),
-    [containerSize, focus, viewport.height, viewport.width],
-  );
-  const presetView: CameraPresetView = view === "free" ? "perspective" : view;
-  const targetFit = useMemo(
-    () => {const fit=calculateCameraViewFit(focus?.size??containerSize, { width: viewport.width, height: viewport.height }, presetView);if(!focus)return fit;return {...fit,target:fit.target.map((n,i)=>n+focus.origin[i]) as SceneSize,position:fit.position.map((n,i)=>n+focus.origin[i]) as SceneSize};},
-    [containerSize, focus, presetView, viewport.height, viewport.width],
-  );
-  const targetPosition = useMemo(() => new THREE.Vector3(...targetFit.position), [targetFit.position]);
-  const targetUp = useMemo(() => new THREE.Vector3(...targetFit.up), [targetFit.up]);
-  const lookAt = useMemo(() => new THREE.Vector3(...targetFit.target), [targetFit.target]);
-
-  useFrame((_, delta) => {
-    const camera = projection === "orthographic" ? orthographicRef.current : perspectiveRef.current;
-    if (!camera || view === "free") return;
-    const alpha = 1 - Math.exp(-7.5 * delta);
-    camera.position.lerp(targetPosition, alpha);
-    camera.up.lerp(targetUp, alpha).normalize();
-    camera.lookAt(lookAt);
-    camera.updateMatrixWorld();
-  });
-
-  return (
-    <>
-      {projection === "orthographic" ? (
-        <OrthographicCamera
-          ref={orthographicRef}
-          makeDefault
-          position={targetFit.position}
-          up={targetFit.up}
-          left={-targetFit.orthographicHalfWidth}
-          right={targetFit.orthographicHalfWidth}
-          top={targetFit.orthographicHalfHeight}
-          bottom={-targetFit.orthographicHalfHeight}
-          near={Math.min(baseFit.near, targetFit.near)}
-          far={Math.max(baseFit.far, targetFit.far)}
-        />
-      ) : (
-        <PerspectiveCamera
-          ref={perspectiveRef}
-          makeDefault
-          position={targetFit.position}
-          up={baseFit.up}
-          fov={34}
-          near={Math.min(baseFit.near, targetFit.near)}
-          far={Math.max(baseFit.far, targetFit.far)}
-        />
-      )}
-      <OrbitControls
-        key={projection}
-        makeDefault
-        enableDamping
-        dampingFactor={0.08}
-        minDistance={focus?Math.max(.12,targetFit.distance*.25):Math.min(baseFit.minDistance, targetFit.minDistance)}
-        maxDistance={Math.max(baseFit.maxDistance, targetFit.maxDistance)}
-        minZoom={0.45}
-        maxZoom={4}
-        target={targetFit.target}
-        onStart={onInteraction}
-      />
-    </>
-  );
+  const { size: viewport, get, set } = useThree();
+  const controlsRef = useRef<ComponentRef<typeof OrbitControls>>(null);
+  const camera = controller.cameras[projection];
+  useLayoutEffect(() => {
+    const previous = get().camera;
+    set({ camera });
+    return () => set({ camera: previous });
+  }, [camera, get, set]);
+  useLayoutEffect(() => {
+    if (controlsRef.current) controller.update({ containerSize, viewport, view, projection, focus }, controlsRef.current);
+  }, [controller, containerSize, viewport, view, projection, focus]);
+  return <OrbitControls
+    ref={controlsRef}
+    camera={camera}
+    makeDefault
+    enableDamping
+    dampingFactor={0.08}
+    minZoom={0.45}
+    maxZoom={4}
+    onStart={onInteraction}
+  />;
 }
 
 function ContainerModel({ result, visibleProducts, visibleCount, reducedRendering, presentation, labels, rulers, selected, onSelect }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number; reducedRendering: boolean; presentation?: boolean; labels:boolean; rulers:boolean; selected:PlacedBox|null;onSelect:(b:PlacedBox)=>void }) {
@@ -298,11 +254,12 @@ export function ContainerScene({
   onProjectionModeChange,
 }: Props) {
   useLanguage();
+  const cameraController = useMemo(() => new SceneCameraController(), []);
   const captureRef=useRef<(() => Promise<Blob>) | null>(null);
   const registerCapture=useMemo(()=> (capture: () => Promise<Blob>) => { captureRef.current=capture; },[]);
   const [labels,setLabels]=useState(true),[rulers,setRulers]=useState(true),[selection,setSelection]=useState<{planId:string;box:PlacedBox}|null>(null),[focusId,setFocusId]=useState<string|null>(null);
   const selected=selection&&selection.planId===result?.id&&(selection.box.supportOnly?result?.pallets?.some(p=>p.id===selection.box.id):result?.placements.slice(0,visibleCount).some(b=>b.id===selection.box.id)&&visibleProducts.has(selection.box.productId))?selection.box:null;
-  const focus=useMemo(()=>{if(!selected||!result||focusId!==selected.id)return undefined;const l=result.container.length-result.clearance*2,w=result.container.width-result.clearance*2,h=result.container.height-result.clearance,base=result.container.baseHeight??0,scale=5.6/Math.max(l,w,h+base);return {size:[selected.dx*scale,selected.dz*scale,selected.dy*scale] as SceneSize,origin:[(selected.x+selected.dx/2-l/2)*scale,(selected.z+base)*scale,(selected.y+selected.dy/2-w/2)*scale] as SceneSize};},[selected,result,focusId]);
+  const focus=useMemo(()=>{if(!selected||!result||focusId!==selected.id||projectionMode!=="perspective"||(cameraView!=="perspective"&&cameraView!=="free"))return undefined;const l=result.container.length-result.clearance*2,w=result.container.width-result.clearance*2,h=result.container.height-result.clearance,base=result.container.baseHeight??0,scale=5.6/Math.max(l,w,h+base);return {size:[selected.dx*scale,selected.dz*scale,selected.dy*scale] as SceneSize,origin:[(selected.x+selected.dx/2-l/2)*scale,(selected.z+base)*scale,(selected.y+selected.dy/2-w/2)*scale] as SceneSize};},[selected,result,focusId,projectionMode,cameraView]);
   const [captureError,setCaptureError] = useState("");
   const saveImage=async()=>{ try { const blob=await captureRef.current?.();if(!blob)throw new Error(tr("图形尚未准备完成。", "Scene is not ready."));const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download="CargoFit_3D.png";link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);setCaptureError(""); } catch(e) {setCaptureError(e instanceof Error?e.message:"Image export failed");}};
   const clientReady = useSyncExternalStore(subscribeToClientReady, getClientReady, getServerNotReady);
@@ -312,8 +269,8 @@ export function ContainerScene({
   return (
     <SceneFullscreen>          <div className="scene-camera-controls">
             <div className="scene-projection-controls" role="toolbar" aria-label={tr("三维投影方式")}>
-              <button type="button" className={projectionMode === "perspective" ? "active" : ""} aria-pressed={projectionMode === "perspective"} onClick={() => onProjectionModeChange("perspective")}>{tr("透视投影")}</button>
-              <button type="button" className={projectionMode === "orthographic" ? "active" : ""} aria-pressed={projectionMode === "orthographic"} onClick={() => onProjectionModeChange("orthographic")}>{tr("正交投影")}</button>
+              <button type="button" className={projectionMode === "perspective" ? "active" : ""} aria-pressed={projectionMode === "perspective"} onClick={() => { setFocusId(null); onProjectionModeChange("perspective"); }}>{tr("透视投影")}</button>
+              <button type="button" className={projectionMode === "orthographic" ? "active" : ""} aria-pressed={projectionMode === "orthographic"} onClick={() => { setFocusId(null); onProjectionModeChange("orthographic"); }}>{tr("正交投影")}</button>
             </div>
             <div className="scene-view-controls" role="toolbar" aria-label={tr("三维相机视角")}>
               {CAMERA_VIEWS.map((view) => (
@@ -322,7 +279,7 @@ export function ContainerScene({
                   key={view.id}
                   className={cameraView === view.id ? "active" : ""}
                   aria-pressed={cameraView === view.id}
-                  onClick={() => onCameraViewChange(view.id)}
+                  onClick={() => { setFocusId(null); onCameraViewChange(view.id); }}
                 >
                   {view.icon}
                   {tr(view.label)}
@@ -357,6 +314,7 @@ export function ContainerScene({
               <ContainerModel result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} reducedRendering={reducedRendering} presentation={presentation} labels={labels} rulers={rulers&&!focus} selected={selected} onSelect={box=>setSelection({planId:result.id,box})} />
               <SceneCapture register={registerCapture}/>
               <CameraRig
+                controller={cameraController}
                 containerSize={containerSize}
                 view={cameraView}
                 projection={projectionMode}

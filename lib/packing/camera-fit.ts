@@ -36,10 +36,21 @@ export function calculateCameraViewFit(
   view: CameraPresetView,
   fov = 34,
 ): CameraFit {
-  const target = new THREE.Vector3(0, containerSize[1] / 2, 0);
   const basis = VIEW_BASIS[view];
-  const direction = new THREE.Vector3(...basis.direction).normalize();
-  const cameraUp = new THREE.Vector3(...basis.up).normalize();
+  return calculateCameraDirectionFit(containerSize, viewport, basis.direction, basis.up, fov);
+}
+
+/** Fits an arbitrary orbit direction, including when changing projection after a drag. */
+export function calculateCameraDirectionFit(
+  containerSize: SceneSize,
+  viewport: { width: number; height: number },
+  cameraDirection: SceneSize,
+  up: SceneSize,
+  fov = 34,
+): CameraFit {
+  const target = new THREE.Vector3(0, containerSize[1] / 2, 0);
+  const direction = new THREE.Vector3(...cameraDirection).normalize();
+  const cameraUp = new THREE.Vector3(...up).normalize();
   const forward = direction.clone().multiplyScalar(-1);
   const right = new THREE.Vector3().crossVectors(forward, cameraUp).normalize();
   const viewUp = new THREE.Vector3().crossVectors(right, forward).normalize();
@@ -104,4 +115,3 @@ export function calculateCameraFit(
 ): CameraFit {
   return calculateCameraViewFit(containerSize, viewport, "perspective", fov);
 }
-
