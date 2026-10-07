@@ -152,6 +152,8 @@ function ProjectionCanvas({
   renderPrintSvg: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const palletCount = boxes.filter((box) => box.supportOnly).length;
+  const cargoCount = boxes.length - palletCount;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -257,7 +259,7 @@ function ProjectionCanvas({
 
   return (
     <>
-      <canvas ref={canvasRef} className="projection-canvas" role="img" aria-label={`${VIEW_COPY[kind].title}，当前显示 ${boxes.length} 箱`} />
+      <canvas ref={canvasRef} className="projection-canvas" role="img" aria-label={`${VIEW_COPY[kind].title}，当前显示 ${cargoCount} 箱${palletCount ? `，${palletCount} 个托盘` : ""}`} />
       {renderPrintSvg
         ? <ProjectionPrintSvg kind={kind} boxes={boxes} horizontalSize={horizontalSize} verticalSize={verticalSize} />
         : null}
