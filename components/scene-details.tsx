@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { Billboard, Line, Edges } from "@react-three/drei";
+import { Line, Edges } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { palletParts } from "../lib/packing/floor-pallets";
 import type { PlacedPallet } from "../lib/packing/types";
+import { createSceneLabelMaterial, LABEL_RENDER_ORDER, layoutSceneLabel, sceneLabelFrame, sceneLabelPose } from "../lib/packing/scene-labels";
 
 /** Each face gets a canvas matching its physical aspect, so text never stretches. */
 export function boxFaceTexture(sku: string, color: string, width: number, height: number, up?: string) {
@@ -41,22 +42,21 @@ export function PalletStructures({ pallets, scale, offset, onSelect }: {pallets:
   return <instancedMesh ref={ref} args={[undefined,undefined,parts.length]} onClick={e=>{if(onSelect&&e.instanceId!==undefined){e.stopPropagation();onSelect(parts[e.instanceId].pallet);}}}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>;
 }
 
-function MetricLabel({text,position,size=.09,color="#376272",screenOffset=[0,0]}:{text:string;position:[number,number,number];size?:number;color?:string;screenOffset?:[number,number]}){
+export function MetricLabel({text,position,size=.09,color="#376272",screenOffset=[0,0]}:{text:string;position:[number,number,number];size?:number;color?:string;screenOffset?:[number,number]}){
   const ref=useRef<THREE.Group>(null);
   const label=useMemo(()=>{const c=document.createElement("canvas"),ctx=c.getContext("2d")!;ctx.font="600 40px Arial,sans-serif";c.width=Math.ceil(ctx.measureText(text).width+24);c.height=64;ctx.font="600 40px Arial,sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="rgba(247,251,251,.95)";ctx.fillRect(0,0,c.width,64);ctx.fillStyle=color;ctx.fillText(text,c.width/2,33);const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;return {texture,ratio:c.width/c.height};},[text,color]);
-  useEffect(()=>()=>label.texture.dispose(),[label]);
+  const material=useMemo(()=>createSceneLabelMaterial(label.texture),[label]);
+  useEffect(()=>()=>{label.texture.dispose();material.dispose();},[label,material]);
   const target=useMemo(()=>new THREE.Vector3(...position),[position]);
-  useFrame(state=>{if(ref.current){const units=state.viewport.getCurrentViewport(state.camera,target).height/state.size.height;const px=size<.08?18:size>.1?25:22;ref.current.scale.setScalar(units*px);ref.current.position.set(screenOffset[0]*units,screenOffset[1]*units,0);}});
-  return <Billboard position={position}><group ref={ref}><mesh><planeGeometry args={[label.ratio,1]}/><meshBasicMaterial map={label.texture} transparent depthWrite={false} toneMapped={false}/></mesh></group></Billboard>;
+  useFrame(state=>{if(!ref.current||!state.size.width||!state.size.height)return;const px=size<.08?18:size>.1?25:22;const anchor=target.clone();ref.current.parent?.localToWorld(anchor);const p=anchor.clone().project(state.camera);const occupied=sceneLabelFrame(state.camera,state.clock.elapsedTime);const rect=layoutSceneLabel({x:(p.x+1)*state.size.width/2+screenOffset[0]-label.ratio*px/2,y:(1-p.y)*state.size.height/2-screenOffset[1]-px/2,width:label.ratio*px,height:px},state.size,occupied);occupied.push(rect);const pose=sceneLabelPose(state.camera,anchor,state.size,rect,px);ref.current.position.copy(ref.current.parent?.worldToLocal(pose.position)??pose.position);ref.current.quaternion.copy(state.camera.quaternion);ref.current.scale.set(pose.scale*Math.min(1,rect.width/(label.ratio*px)),pose.scale,pose.scale);});
+  return <group ref={ref}><mesh material={material} renderOrder={LABEL_RENDER_ORDER} frustumCulled={false} raycast={()=>{}}><planeGeometry args={[label.ratio,1]}/></mesh></group>;
 }
 
 function RulerAxis({axis,scale,compact}:{axis:{name:string;total:number;start:THREE.Vector3;dir:THREE.Vector3;tick:THREE.Vector3;label:THREE.Vector3};scale:number;compact:boolean}){
-  const ref=useRef<THREE.Group>(null),cameraDirection=useMemo(()=>new THREE.Vector3(),[]);
-  useFrame(state=>{state.camera.getWorldDirection(cameraDirection);if(ref.current)ref.current.visible=Math.abs(cameraDirection.dot(axis.dir))<.985;});
   const a=axis,step=a.total>8000?2000:a.total>3500?1000:500;
   const ticks=Array.from({length:Math.floor(a.total/step)+1},(_,i)=>i*step).filter(n=>a.total-n>step*.7);ticks.push(a.total);
   const end=a.start.clone().addScaledVector(a.dir,a.total*scale);
-  return <group ref={ref}><Line points={[a.start,end]} color="#6b95a4" lineWidth={1}/>{(compact?[]:ticks).map(n=>{const pos=a.start.clone().addScaledVector(a.dir,n*scale);return <group key={n}><Line points={[pos,pos.clone().add(a.tick)]} color="#6b95a4" lineWidth={1}/><MetricLabel text={String(Math.round(n))} position={pos.clone().add(a.label).toArray() as [number,number,number]} size={.055}/></group>;})}<MetricLabel text={compact?`${a.name.split("/")[1].trim()} ${Math.round(a.total)} mm`:`${a.name} · ${Math.round(a.total)} mm`} position={(a.name.startsWith("Z")?end:a.start.clone().lerp(end,.5)).clone().add(a.label).toArray() as [number,number,number]} size={.085} screenOffset={a.name.startsWith("Z")?[35,compact?14:-23]:[0,compact&&a.name.startsWith("Y")?-44:-25]}/></group>;
+  return <group><MetricLabel text={compact?`${a.name.split("/")[1].trim()} ${Math.round(a.total)} mm`:`${a.name} · ${Math.round(a.total)} mm`} position={(a.name.startsWith("Z")?end:a.start.clone().lerp(end,.5)).clone().add(a.label).toArray() as [number,number,number]} size={.085} screenOffset={a.name.startsWith("Z")?[35,compact?14:-23]:[0,compact&&a.name.startsWith("Y")?-44:-25]}/><Line points={[a.start,end]} color="#6b95a4" lineWidth={1}/>{(compact?[]:ticks).map(n=>{const pos=a.start.clone().addScaledVector(a.dir,n*scale);return <group key={n}><Line points={[pos,pos.clone().add(a.tick)]} color="#6b95a4" lineWidth={1}/><MetricLabel text={String(Math.round(n))} position={pos.clone().add(a.label).toArray() as [number,number,number]} size={.055}/></group>;})}</group>;
 }
 
 /** Real spatial rulers, expressed in mm, with adaptive spacing for large vehicles. */
@@ -73,5 +73,5 @@ export function SceneRulers({length,width,height,scale,offset}:{length:number;wi
 export function SelectedBoxDimensions({box,scale,offset}:{box:{x:number;y:number;z:number;dx:number;dy:number;dz:number;sku:string};scale:number;offset:THREE.Vector3}){
   const x=(box.x+box.dx/2)*scale+offset.x,y=(box.z+box.dz)*scale+offset.y,z=(box.y+box.dy/2)*scale+offset.z;
   const halfX=box.dx*scale/2,halfZ=box.dy*scale/2,bottom=y-box.dz*scale;
-  return <group><mesh position={[x,(bottom+y)/2,z]}><boxGeometry args={[box.dx*scale,box.dz*scale,box.dy*scale]}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/><Edges color="#da8c2e"/></mesh><Line points={[[x-halfX,y+.03,z+halfZ+.04],[x+halfX,y+.03,z+halfZ+.04]]} color="#da8c2e" lineWidth={2}/><MetricLabel text={`${box.dx} mm`} position={[x,y+.09,z+halfZ+.06]} size={.09}/><Line points={[[x+halfX+.04,y+.03,z-halfZ],[x+halfX+.04,y+.03,z+halfZ]]} color="#da8c2e" lineWidth={2}/><MetricLabel text={`${box.dy} mm`} position={[x+halfX+.12,y+.05,z]} size={.09}/><Line points={[[x+halfX+.04,bottom,z+halfZ+.04],[x+halfX+.04,y,z+halfZ+.04]]} color="#da8c2e" lineWidth={2}/><MetricLabel text={`${box.dz} mm`} position={[x+halfX+.16,(bottom+y)/2,z+halfZ+.06]} size={.09}/></group>;
+  return <group>{box.sku&&<MetricLabel text={box.sku} position={[x,y+.26,z]} size={.12}/>}<mesh position={[x,(bottom+y)/2,z]} raycast={()=>{}}><boxGeometry args={[box.dx*scale,box.dz*scale,box.dy*scale]}/><meshBasicMaterial visible={false}/><Edges color="#da8c2e"/></mesh><Line points={[[x-halfX,y+.03,z+halfZ+.04],[x+halfX,y+.03,z+halfZ+.04]]} color="#da8c2e" lineWidth={2}/><MetricLabel text={`${box.dx} mm`} position={[x,y+.09,z+halfZ+.06]} size={.09}/><Line points={[[x+halfX+.04,y+.03,z-halfZ],[x+halfX+.04,y+.03,z+halfZ]]} color="#da8c2e" lineWidth={2}/><MetricLabel text={`${box.dy} mm`} position={[x+halfX+.12,y+.05,z]} size={.09}/><Line points={[[x+halfX+.04,bottom,z+halfZ+.04],[x+halfX+.04,y,z+halfZ+.04]]} color="#da8c2e" lineWidth={2}/><MetricLabel text={`${box.dz} mm`} position={[x+halfX+.16,(bottom+y)/2,z+halfZ+.06]} size={.09}/></group>;
 }

@@ -1,11 +1,10 @@
 "use client";
 
-import { Edges, OrbitControls } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Box, DoorOpen, Eye, ScanLine, ImageDown, RotateCcw, Tag, Ruler, ZoomIn } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ComponentRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import * as THREE from "three";
-import { boxFaceTexture, PalletStructures, SceneRulers, SelectedBoxDimensions } from "./scene-details";
+import { boxFaceTexture, MetricLabel, PalletStructures, SceneRulers, SelectedBoxDimensions } from "./scene-details";
 import { palletParts, palletAnchors } from "../lib/packing/floor-pallets";
 import { SceneFullscreen } from "./scene-fullscreen";
 import {tr, useLanguage} from "./language";
@@ -16,7 +15,12 @@ import {
   type SceneSize,
 } from "../lib/packing/camera-fit";
 import { SceneCameraController } from "../lib/packing/scene-camera";
+import { SceneCameraRig } from "./scene-camera-rig";
+import { TransportModel } from "./transport-model";
+import { TransportModelControls, useTransportAppearance } from "./transport-appearance";
+import { transportSceneBounds, type TransportDisplayMode } from "../lib/packing/transport-model";
 import { detectRuntimePolicy } from "../lib/packing/runtime-policy";
+import { supportsWebGL } from "../lib/packing/webgl-support";
 import type { PackingResult, PlacedBox } from "../lib/packing/types";
 
 type Props = {
@@ -40,22 +44,6 @@ type InstanceGroup = {
   color: string;
   boxes: PlacedBox[];
 };
-
-let cachedWebGLSupport: boolean | undefined;
-
-function supportsWebGL() {
-  if (cachedWebGLSupport !== undefined) return cachedWebGLSupport;
-  if (typeof document === "undefined") return false;
-  try {
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("webgl2") || canvas.getContext("webgl");
-    cachedWebGLSupport = Boolean(context);
-    context?.getExtension("WEBGL_lose_context")?.loseContext();
-  } catch {
-    cachedWebGLSupport = false;
-  }
-  return cachedWebGLSupport;
-}
 
 const subscribeToClientReady = () => () => undefined;
 const getClientReady = () => true;
@@ -142,46 +130,7 @@ function normalizedSceneSize(result: PackingResult): SceneSize {
   return [effectiveLength * scale, effectiveHeight * scale, effectiveWidth * scale];
 }
 
-function CameraRig({
-  controller,
-  containerSize,
-  view,
-  projection,
-  onInteraction,
-  focus,
-}: {
-  controller: SceneCameraController;
-  containerSize: SceneSize;
-  view: CameraView;
-  projection: CameraProjection;
-  onInteraction: () => void;
-  focus?: {size:SceneSize;origin:SceneSize};
-}) {
-  useLanguage();
-  const { size: viewport, get, set } = useThree();
-  const controlsRef = useRef<ComponentRef<typeof OrbitControls>>(null);
-  const camera = controller.cameras[projection];
-  useLayoutEffect(() => {
-    const previous = get().camera;
-    set({ camera });
-    return () => set({ camera: previous });
-  }, [camera, get, set]);
-  useLayoutEffect(() => {
-    if (controlsRef.current) controller.update({ containerSize, viewport, view, projection, focus }, controlsRef.current);
-  }, [controller, containerSize, viewport, view, projection, focus]);
-  return <OrbitControls
-    ref={controlsRef}
-    camera={camera}
-    makeDefault
-    enableDamping
-    dampingFactor={0.08}
-    minZoom={0.45}
-    maxZoom={4}
-    onStart={onInteraction}
-  />;
-}
-
-function ContainerModel({ result, visibleProducts, visibleCount, reducedRendering, presentation, labels, rulers, selected, onSelect }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number; reducedRendering: boolean; presentation?: boolean; labels:boolean; rulers:boolean; selected:PlacedBox|null;onSelect:(b:PlacedBox)=>void }) {
+function ContainerModel({ result, visibleProducts, visibleCount, reducedRendering, presentation, modelMode, transparency, labels, rulers, selected, onSelect }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number; reducedRendering: boolean; presentation?: boolean; modelMode:TransportDisplayMode; transparency:number; labels:boolean; rulers:boolean; selected:PlacedBox|null;onSelect:(b:PlacedBox)=>void }) {
   useLanguage();
   const effective = {
     length: result.container.length - result.clearance * 2,
@@ -207,27 +156,28 @@ function ContainerModel({ result, visibleProducts, visibleCount, reducedRenderin
     }
     return [...map.values()];
   }, [result.placements, result.cargoDetails, visibleCount, visibleProducts]);
+  const annotations = useMemo(() => {
+    const map = new Map<string, { sku:string; minX:number; maxX:number; maxY:number; minZ:number; maxZ:number }>();
+    for (const group of groups) for (const b of group.boxes) {
+      const current = map.get(b.productId) ?? {sku:b.sku,minX:Infinity,maxX:-Infinity,maxY:0,minZ:Infinity,maxZ:-Infinity};
+      current.minX=Math.min(current.minX,b.x);current.maxX=Math.max(current.maxX,b.x+b.dx);current.maxY=Math.max(current.maxY,b.z+b.dz);current.minZ=Math.min(current.minZ,b.y);current.maxZ=Math.max(current.maxZ,b.y+b.dy);map.set(b.productId,current);
+    }
+    return [...map.entries()];
+  }, [groups]);
   const size: [number, number, number] = [effective.length * scale, effective.height * scale, effective.width * scale];
 
   return (
     <group>
-      {!presentation && <mesh position={[0, size[1] / 2 + baseHeight * scale, 0]} receiveShadow={!reducedRendering}>
-        <boxGeometry args={size} />
-        <meshStandardMaterial color="#8bb8c0" transparent opacity={0.055} roughness={0.8} side={THREE.DoubleSide} />
-        <Edges color="#4e7380" threshold={15} />
-      </mesh>}
-      {baseHeight > 0 && <PalletStructures pallets={[{id:"space-base",presetId:result.container.id,name:result.container.name,x:0,y:0,z:-baseHeight,dx:effective.length,dy:effective.width,dz:baseHeight,weight:0,maxLoad:result.container.maxWeight,orientation:"LWH"}]} scale={scale} offset={offset}/>}
+      <group position={[0,baseHeight*scale,0]}><TransportModel space={result.container} scale={scale} mode={modelMode} transparency={transparency}/></group>
+      {baseHeight > 0 && (result.container.category !== "pallet" || modelMode === "wireframe") && <PalletStructures pallets={[{id:"space-base",presetId:result.container.id,name:result.container.name,x:0,y:0,z:-baseHeight,dx:effective.length,dy:effective.width,dz:baseHeight,weight:0,maxLoad:result.container.maxWeight,orientation:"LWH"}]} scale={scale} offset={offset}/>}
       <PalletStructures pallets={result.pallets??[]} scale={scale} offset={offset} onSelect={p=>onSelect(palletAnchors([p])[0])}/>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.015, 0]} receiveShadow={!reducedRendering}>
-        <planeGeometry args={[size[0], size[2]]} />
-        <meshStandardMaterial color="#dbe4e6" roughness={0.95} />
-      </mesh>
       {groups.map((group) => (
         <InstancedBoxes key={group.productId} group={group} scale={scale} offset={offset} reducedRendering={reducedRendering} labels={labels} onSelect={onSelect} />
       ))}
       {rulers && <SceneRulers length={effective.length} width={effective.width} height={effective.height} scale={scale} offset={offset}/>}
       {selected && <SelectedBoxDimensions box={selected} scale={scale} offset={offset}/>}
-      {!presentation && <gridHelper args={[Math.max(size[0], size[2]) * 1.25, 16, "#91a6ab", "#d9e1e3"]} position={[0, -0.02, 0]} />}
+      {labels && annotations.map(([id,a])=><MetricLabel key={id} text={a.sku} size={.12} position={[(a.minX+a.maxX)/2*scale+offset.x,a.maxY*scale+offset.y+.15,(a.minZ+a.maxZ)/2*scale+offset.z]}/>)}
+      {!presentation && modelMode === "wireframe" && <gridHelper args={[Math.max(size[0], size[2]) * 1.25, 16, "#91a6ab", "#d9e1e3"]} position={[0, -0.02, 0]} />}
     </group>
   );
 }
@@ -254,6 +204,7 @@ export function ContainerScene({
   onProjectionModeChange,
 }: Props) {
   useLanguage();
+  const appearance = useTransportAppearance();
   const cameraController = useMemo(() => new SceneCameraController(), []);
   const captureRef=useRef<(() => Promise<Blob>) | null>(null);
   const registerCapture=useMemo(()=> (capture: () => Promise<Blob>) => { captureRef.current=capture; },[]);
@@ -266,6 +217,7 @@ export function ContainerScene({
   const webglSupported = clientReady ? supportsWebGL() : null;
   const reducedRendering = clientReady ? detectRuntimePolicy().reducedRendering : false;
   const containerSize = useMemo<SceneSize>(() => (result ? normalizedSceneSize(result) : [5.6, 1.25, 1.1]), [result]);
+  const sceneBounds = useMemo(() => result ? transportSceneBounds(result.container,5.6/Math.max(result.container.length-result.clearance*2,result.container.width-result.clearance*2,result.container.height-result.clearance+(result.container.baseHeight??0)),appearance.mode) : undefined,[result,appearance.mode]);
   return (
     <SceneFullscreen>          <div className="scene-camera-controls">
             <div className="scene-projection-controls" role="toolbar" aria-label={tr("三维投影方式")}>
@@ -288,6 +240,7 @@ export function ContainerScene({
             </div>
           </div>
           <div className="scene-tools" aria-label={tr("三维工具", "3D tools")}><button type="button" disabled={!webglSupported} aria-pressed={labels} onClick={()=>setLabels(v=>!v)}><Tag size={14}/>{tr("箱标","Labels")}</button><button type="button" disabled={!webglSupported} aria-pressed={rulers} onClick={()=>setRulers(v=>!v)}><Ruler size={14}/>{tr("尺寸","Dimensions")}</button><button type="button" onClick={()=>{setSelection(null);setFocusId(null);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" disabled={!webglSupported} onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
+<TransportModelControls/>
 <div className="scene-shell" role="region" aria-label={tr("可交互三维装柜视图")}>
       {!result ? (
         <div className="scene-empty">
@@ -311,11 +264,12 @@ export function ContainerScene({
               <ambientLight intensity={.8} />
               <hemisphereLight args={["#ffffff", "#61747a", .8]} />
               <directionalLight castShadow={!reducedRendering} position={[5, 9, 4]} intensity={2.1} shadow-mapSize-width={reducedRendering ? 256 : 1024} shadow-mapSize-height={reducedRendering ? 256 : 1024} />
-              <ContainerModel result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} reducedRendering={reducedRendering} presentation={presentation} labels={labels} rulers={rulers&&!focus} selected={selected} onSelect={box=>setSelection({planId:result.id,box})} />
+              <ContainerModel result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} reducedRendering={reducedRendering} presentation={presentation} modelMode={appearance.mode} transparency={appearance.transparency} labels={labels} rulers={rulers&&!focus} selected={selected} onSelect={box=>setSelection({planId:result.id,box})} />
               <SceneCapture register={registerCapture}/>
-              <CameraRig
+              <SceneCameraRig
                 controller={cameraController}
                 containerSize={containerSize}
+                sceneBounds={sceneBounds}
                 view={cameraView}
                 projection={projectionMode}
                 focus={focus}

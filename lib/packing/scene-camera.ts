@@ -18,6 +18,7 @@ type CameraControls = {
 };
 export type SceneCameraRequest = {
   containerSize: SceneSize;
+  sceneBounds?: { size: SceneSize; origin: SceneSize };
   viewport: { width: number; height: number };
   view: CameraView;
   projection: CameraProjection;
@@ -34,8 +35,8 @@ export class SceneCameraController {
   private previous?: { key: string; boundsKey: string; camera: SceneCamera; controls: CameraControls };
 
   update(request: SceneCameraRequest, controls: CameraControls): boolean {
-    const { containerSize, viewport, view, projection, focus } = request;
-    const boundsKey = JSON.stringify([containerSize, viewport.width, viewport.height, projection, focus]);
+    const { containerSize, sceneBounds, viewport, view, projection, focus } = request;
+    const boundsKey = JSON.stringify([containerSize, sceneBounds, viewport.width, viewport.height, projection, focus]);
     const key = JSON.stringify([boundsKey, view]);
     const previous = this.previous;
     const camera = this.cameras[projection];
@@ -50,7 +51,8 @@ export class SceneCameraController {
       return false;
     }
 
-    const size = focus?.size ?? containerSize;
+    const envelope = focus ?? sceneBounds;
+    const size = envelope?.size ?? containerSize;
     let fit: CameraFit;
     if (view === "free" && previous) {
       const direction = previous.camera.position.clone().sub(previous.controls.target).normalize();
@@ -58,11 +60,11 @@ export class SceneCameraController {
     } else {
       fit = calculateCameraViewFit(size, viewport, view === "free" ? "perspective" : view);
     }
-    if (focus) {
+    if (envelope) {
       fit = {
         ...fit,
-        position: fit.position.map((n, i) => n + focus.origin[i]) as SceneSize,
-        target: fit.target.map((n, i) => n + focus.origin[i]) as SceneSize,
+        position: fit.position.map((n, i) => n + envelope.origin[i]) as SceneSize,
+        target: fit.target.map((n, i) => n + envelope.origin[i]) as SceneSize,
       };
     }
 
@@ -70,7 +72,7 @@ export class SceneCameraController {
     const damping = controls.enableDamping;
     controls.enableDamping = false;
     controls.update();
-    const sceneFit = calculateCameraViewFit(containerSize, viewport, "perspective");
+    const sceneFit = calculateCameraViewFit(sceneBounds?.size ?? containerSize, viewport, "perspective");
     camera.near = Math.min(sceneFit.near, fit.near);
     camera.far = Math.max(sceneFit.far, fit.far);
     camera.zoom = 1;
