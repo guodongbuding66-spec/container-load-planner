@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { BookOpen, BriefcaseBusiness, Boxes, Check, ChevronRight, Code2, FileSpreadsheet, HelpCircle, Mail } from "lucide-react";
 import { INDUSTRY_CASES, type IndustryCase } from "../lib/packing/industry-cases";
 import { FeatureDialog } from "./feature-dialog";
@@ -7,9 +7,6 @@ import {tr, useLanguage, setAppLanguage} from "./language";
 type Section = "tutorial" | "cases" | "services" | "enterprise" | null;
 export function LearningHub({ onCase, onStep, integration }: { onCase: (example: IndustryCase) => void; onStep: (step: string) => void; integration: string }) {
   const language = useLanguage(); const [section, setSection] = useState<Section>(null), [industry, setIndustry] = useState("all"), [challenge, setChallenge] = useState("all"), [selected, setSelected] = useState(INDUSTRY_CASES[0].id), [period, setPeriod] = useState("monthly");
-  useEffect(() => {
-    document.title = language === "en" ? "CargoFit | Container Load Planner" : "外贸装柜智算";
-  }, [language]);
   const example = INDUSTRY_CASES.find(c => c.id === selected) ?? INDUSTRY_CASES[0]; const title = section === "tutorial" ? tr("使用教程") : section === "cases" ? tr("行业案例") : section === "services" ? tr("服务方案") : tr("企业集成");
   const filtered = INDUSTRY_CASES.filter(c => (industry === "all" || c.industry === industry) && (challenge === "all" || c.challenge.includes(challenge)));
   const steps = [["products",tr("录入货物清单"),"Enter cargo manifest",tr("填写尺寸、重量、数量，或导入 CSV / Excel。"),"Enter dimensions, weights and quantities, or import CSV / Excel."],["cargo",tr("设置货物朝向"),"Set cargo orientations",tr("选择货物类型、六向摆放与禁止堆叠要求。"),"Choose cargo type, six orientations and stacking rules."],["rules",tr("选择空间与装载规则"),"Select space and loading rules",tr("核对门洞、载重、底座及承托比例。"),"Confirm door opening, payload, base height and support area."],["calculate",tr("计算并复核方案"),"Calculate and review",tr("先查看可行方案，再继续优化或停止保留。"),"View a feasible plan, then continue optimization or keep the result."],["viewer",tr("按顺序装载"),"Follow loading sequence",tr("进入三维查看器，检查当前箱体和剩余空间。"),"Open the 3D viewer to check loading sequence and remaining space."],["pdf",tr("交付执行文件"),"Deliver loading instructions",tr("下载 PDF、坐标清单或离线指导书。"),"Download PDF, coordinates or offline field instructions."]] as const;
