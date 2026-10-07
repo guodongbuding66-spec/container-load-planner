@@ -1,5 +1,6 @@
 "use client";
 
+import {tr, tt, useLanguage} from "./language";
 import { palletAnchors } from "../lib/packing/floor-pallets";
 import { Check, Rotate3D } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
@@ -42,6 +43,7 @@ function ProjectionPrintSvg({
   horizontalSize: number;
   verticalSize: number;
 }) {
+  useLanguage();
   const width = 1000;
   const height = 560;
   const left = 70;
@@ -132,7 +134,7 @@ function ProjectionPrintSvg({
         fontWeight="700"
         textAnchor="end"
       >
-        {kind === "door" ? "正对箱门" : "箱门 →"}
+        {kind === "door" ? tr("正对箱门") : tr("箱门 →")}
       </text>
     </svg>
   );
@@ -151,6 +153,8 @@ function ProjectionCanvas({
   verticalSize: number;
   renderPrintSvg: boolean;
 }) {
+  useLanguage();
+  const language = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const palletCount = boxes.filter((box) => box.supportOnly).length;
   const cargoCount = boxes.length - palletCount;
@@ -163,7 +167,7 @@ function ProjectionCanvas({
     const draw = () => {
       const rect = canvas.getBoundingClientRect();
       const width = Math.max(280, rect.width);
-      const height = Math.max(190, rect.height);
+      const height = Math.max(120, rect.height);
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
@@ -237,10 +241,10 @@ function ProjectionCanvas({
       context.fillStyle = "#9a7932";
       if (kind === "door") {
         context.textAlign = "right";
-        context.fillText("正对箱门", plotX + plotWidth, plotY - 8);
+        context.fillText(tr("正对箱门"), plotX + plotWidth, plotY - 8);
       } else {
         context.textAlign = "right";
-        context.fillText("箱门 →", plotX + plotWidth, plotY - 8);
+        context.fillText(tr("箱门 →"), plotX + plotWidth, plotY - 8);
       }
     };
 
@@ -255,11 +259,11 @@ function ProjectionCanvas({
       observer.disconnect();
       window.cancelAnimationFrame(frame);
     };
-  }, [boxes, horizontalSize, kind, verticalSize]);
+  }, [boxes, horizontalSize, kind, verticalSize, language]);
 
   return (
     <>
-      <canvas ref={canvasRef} className="projection-canvas" role="img" aria-label={`${VIEW_COPY[kind].title}，当前显示 ${cargoCount} 箱${palletCount ? `，${palletCount} 个托盘` : ""}`} />
+      <canvas ref={canvasRef} className="projection-canvas" role="img" aria-label={tt`${tr(VIEW_COPY[kind].title)}，当前显示 ${cargoCount} 箱${palletCount ? tt`，${palletCount} 个托盘` : ""}`} />
       {renderPrintSvg
         ? <ProjectionPrintSvg kind={kind} boxes={boxes} horizontalSize={horizontalSize} verticalSize={verticalSize} />
         : null}
@@ -291,6 +295,7 @@ export function OrthographicViews({
   activeView,
   onViewSelect,
 }: Props) {
+  useLanguage();
   const boxes = useMemo(
     () => [...palletAnchors(result.pallets??[]), ...result.placements.slice(0, Math.max(0, visibleCount)).filter((box) => visibleProducts.has(box.productId))],
     [result.placements, result.pallets, visibleCount, visibleProducts],
@@ -317,15 +322,15 @@ export function OrthographicViews({
             className={`projection-card projection-card-action ${activeView === view.kind ? "active" : ""}`}
             key={view.kind}
             aria-pressed={activeView === view.kind}
-            aria-label={`${copy.title}，点击让三维视角旋转到${copy.title}`}
+            aria-label={tt`${tr(copy.title)}，点击让三维视角旋转到${tr(copy.title)}`}
             onClick={() => onViewSelect(view.kind)}
           >
             <header>
-              <div><strong>{copy.title}</strong><span>{copy.axes} · {copy.description}</span></div>
+              <div><strong>{tr(copy.title)}</strong><span>{tr(copy.axes)} · {tr(copy.description)}</span></div>
               <div className="projection-card-meta">
                 <b>{primaryCountLabel}</b>
                 {secondaryCountLabel ? <small>{secondaryCountLabel}</small> : null}
-                <span>{activeView === view.kind ? <Check size={11} /> : <Rotate3D size={11} />}{activeView === view.kind ? "3D 已同步" : "联动 3D"}</span>
+                <span>{activeView === view.kind ? <Check size={11} /> : <Rotate3D size={11} />}{activeView === view.kind ? tr("3D 已同步") : tr("联动 3D")}</span>
               </div>
             </header>
             <ProjectionCanvas
@@ -336,8 +341,8 @@ export function OrthographicViews({
               renderPrintSvg={renderPrintSvg}
             />
             <footer>
-              <span>横向占用 {Math.round(occupied.horizontal).toLocaleString()} mm</span>
-              <span>纵向占用 {Math.round(occupied.vertical).toLocaleString()} mm</span>
+              <span>{tr("横向占用 ")}{Math.round(occupied.horizontal).toLocaleString()} mm</span>
+              <span>{tr("纵向占用 ")}{Math.round(occupied.vertical).toLocaleString()} mm</span>
             </footer>
           </button>
         );

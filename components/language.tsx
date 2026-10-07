@@ -1,6 +1,6 @@
 "use client";
 import { useSyncExternalStore } from "react";
-import { ENGLISH } from "../lib/packing/ui-language";
+import { interpolateUi, translateDiagnostic, translateUi } from "../lib/packing/translate-ui";
 type Language = "zh" | "en";
 const listeners = new Set<() => void>();
 let current: Language = "zh";
@@ -10,13 +10,14 @@ function initialize() {
   if (initialized || typeof window === "undefined") return;
   initialized = true;
   try { current = localStorage.getItem("cargo-fit-language") === "en" ? "en" : "zh"; } catch {}
-  document.documentElement.lang = current === "en" ? "en" : "zh-CN";
-  window.addEventListener("storage", e => { if (e.key === "cargo-fit-language") { current = e.newValue === "en" ? "en" : "zh"; document.documentElement.lang = current === "en" ? "en" : "zh-CN"; notify(); } });
+  document.documentElement.lang = current === "en" ? "en" : "zh-CN"; document.title = current === "en" ? "CargoFit | Container Load Planner" : "外贸装柜智算";
+  window.addEventListener("storage", e => { if (e.key === "cargo-fit-language") { current = e.newValue === "en" ? "en" : "zh"; document.documentElement.lang = current === "en" ? "en" : "zh-CN"; document.title = current === "en" ? "CargoFit | Container Load Planner" : "外贸装柜智算"; notify(); } });
 }
 export function getAppLanguage() { return current; }
-export function setAppLanguage(language: Language) { initialize(); current = language; document.documentElement.lang = language === "en" ? "en" : "zh-CN"; try { localStorage.setItem("cargo-fit-language", language); } catch {} notify(); }
+export function setAppLanguage(language: Language) { initialize(); current = language; document.documentElement.lang = language === "en" ? "en" : "zh-CN"; document.title = language === "en" ? "CargoFit | Container Load Planner" : "外贸装柜智算"; try { localStorage.setItem("cargo-fit-language", language); } catch {} notify(); }
 const subscribe = (fn: () => void) => { listeners.add(fn); initialize(); return () => { listeners.delete(fn); }; };
 export const useLanguage = () => useSyncExternalStore(subscribe, getAppLanguage, () => "zh" as Language);
-export function tr(value: string, english?: string) { return current === "en" ? english ?? (Object.hasOwn(ENGLISH, value) ? ENGLISH[value] : value) : value; }
-export function trText(value: string) { return tr(value); }
+export function tr(value: string, english?: string) { return translateUi(value, current, english); }
+export function tt(strings: TemplateStringsArray, ...values: unknown[]) { return interpolateUi(strings, values, current); }
+export function trText(value: string) { return translateDiagnostic(value, current); }
 export function trNode<T>(value: T): T | string { return typeof value === "string" ? tr(value) : value; }

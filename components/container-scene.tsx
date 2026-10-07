@@ -7,7 +7,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalS
 import * as THREE from "three";
 import { boxFaceTexture, PalletStructures, SceneRulers, SelectedBoxDimensions } from "./scene-details";
 import { palletParts, palletAnchors } from "../lib/packing/floor-pallets";
-import { tr, useLanguage } from "./language";
+import { SceneFullscreen } from "./scene-fullscreen";
+import {tr, useLanguage} from "./language";
 import {
   calculateCameraFit,
   calculateCameraViewFit,
@@ -24,6 +25,7 @@ type Props = {
   result: PackingResult | null;
   visibleProducts: Set<string>;
   visibleCount: number;
+  onVisibleCountChange?: (count: number) => void;
   cameraView: CameraView;
   projectionMode: CameraProjection;
   onCameraViewChange: (view: CameraView) => void;
@@ -61,6 +63,7 @@ const getClientReady = () => true;
 const getServerNotReady = () => false;
 
 function TopViewFallback({ result, visibleProducts, visibleCount }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number }) {
+  useLanguage();
   const effectiveLength = Math.max(1, result.container.length - result.clearance * 2);
   const effectiveWidth = Math.max(1, result.container.width - result.clearance * 2);
   return (
@@ -80,15 +83,16 @@ function TopViewFallback({ result, visibleProducts, visibleCount }: { result: Pa
             }}
           />
         ))}
-        <b>箱门</b>
+        <b>{tr("箱门")}</b>
       </div>
-      <strong>当前浏览器未启用 WebGL</strong>
-      <span>已切换为真实坐标俯视图；装柜计算、校验与导出不受影响。</span>
+      <strong>{tr("当前浏览器未启用 WebGL")}</strong>
+      <span>{tr("已切换为真实坐标俯视图；装柜计算、校验与导出不受影响。")}</span>
     </div>
   );
 }
 
 function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSelect }: { group: InstanceGroup; scale: number; offset: THREE.Vector3; reducedRendering: boolean; labels:boolean; onSelect:(box:PlacedBox)=>void }) {
+  useLanguage();
   const meshRef = useRef<THREE.InstancedMesh>(null), baseRef = useRef<THREE.InstancedMesh>(null);
   const transform = useMemo(() => new THREE.Object3D(), []);
   const first=group.boxes[0];
@@ -125,6 +129,7 @@ function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSele
 }
 
 function SceneCapture({ register }: { register: (capture: () => Promise<Blob>) => void }) {
+  useLanguage();
   const { gl,scene,camera } = useThree();
   useEffect(()=>{register(()=>new Promise((resolve,reject)=>{gl.render(scene,camera);gl.domElement.toBlob(blob=>blob?resolve(blob):reject(new Error("Image export failed")),"image/png");}));},[gl,scene,camera,register]);
   return null;
@@ -151,6 +156,7 @@ function CameraRig({
   onInteraction: () => void;
   focus?: {size:SceneSize;origin:SceneSize};
 }) {
+  useLanguage();
   const { size: viewport } = useThree();
   const perspectiveRef = useRef<THREE.PerspectiveCamera>(null);
   const orthographicRef = useRef<THREE.OrthographicCamera>(null);
@@ -220,6 +226,7 @@ function CameraRig({
 }
 
 function ContainerModel({ result, visibleProducts, visibleCount, reducedRendering, presentation, labels, rulers, selected, onSelect }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number; reducedRendering: boolean; presentation?: boolean; labels:boolean; rulers:boolean; selected:PlacedBox|null;onSelect:(b:PlacedBox)=>void }) {
+  useLanguage();
   const effective = {
     length: result.container.length - result.clearance * 2,
     width: result.container.width - result.clearance * 2,
@@ -284,6 +291,7 @@ export function ContainerScene({
   presentation = false,
   visibleProducts,
   visibleCount,
+  onVisibleCountChange,
   cameraView,
   projectionMode,
   onCameraViewChange,
@@ -302,15 +310,36 @@ export function ContainerScene({
   const reducedRendering = clientReady ? detectRuntimePolicy().reducedRendering : false;
   const containerSize = useMemo<SceneSize>(() => (result ? normalizedSceneSize(result) : [5.6, 1.25, 1.1]), [result]);
   return (
-    <div className="scene-shell" role="region" aria-label="可交互三维装柜视图">
+    <SceneFullscreen>          <div className="scene-camera-controls">
+            <div className="scene-projection-controls" role="toolbar" aria-label={tr("三维投影方式")}>
+              <button type="button" className={projectionMode === "perspective" ? "active" : ""} aria-pressed={projectionMode === "perspective"} onClick={() => onProjectionModeChange("perspective")}>{tr("透视投影")}</button>
+              <button type="button" className={projectionMode === "orthographic" ? "active" : ""} aria-pressed={projectionMode === "orthographic"} onClick={() => onProjectionModeChange("orthographic")}>{tr("正交投影")}</button>
+            </div>
+            <div className="scene-view-controls" role="toolbar" aria-label={tr("三维相机视角")}>
+              {CAMERA_VIEWS.map((view) => (
+                <button
+                  type="button"
+                  key={view.id}
+                  className={cameraView === view.id ? "active" : ""}
+                  aria-pressed={cameraView === view.id}
+                  onClick={() => onCameraViewChange(view.id)}
+                >
+                  {view.icon}
+                  {tr(view.label)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="scene-tools" aria-label={tr("三维工具", "3D tools")}><button type="button" disabled={!webglSupported} aria-pressed={labels} onClick={()=>setLabels(v=>!v)}><Tag size={14}/>{tr("箱标","Labels")}</button><button type="button" disabled={!webglSupported} aria-pressed={rulers} onClick={()=>setRulers(v=>!v)}><Ruler size={14}/>{tr("尺寸","Dimensions")}</button><button type="button" onClick={()=>{setSelection(null);setFocusId(null);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" disabled={!webglSupported} onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
+<div className="scene-shell" role="region" aria-label={tr("可交互三维装柜视图")}>
       {!result ? (
         <div className="scene-empty">
           <div className="scene-empty-cube" aria-hidden="true" />
-          <strong>等待计算方案</strong>
-          <span>填写左侧参数后，柜内真实摆放会显示在这里</span>
+          <strong>{tr("等待计算方案")}</strong>
+          <span>{tr("填写左侧参数后，柜内真实摆放会显示在这里")}</span>
         </div>
       ) : webglSupported === null ? (
-        <div className="scene-loading">正在检测三维图形能力…</div>
+        <div className="scene-loading">{tr("正在检测三维图形能力…")}</div>
       ) : !webglSupported ? (
         <TopViewFallback result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} />
       ) : (
@@ -336,38 +365,16 @@ export function ContainerScene({
               />
             </Canvas>
           </div>
-          <div className="scene-camera-controls">
-            <div className="scene-projection-controls" role="toolbar" aria-label="三维投影方式">
-              <button type="button" className={projectionMode === "perspective" ? "active" : ""} aria-pressed={projectionMode === "perspective"} onClick={() => onProjectionModeChange("perspective")}>透视投影</button>
-              <button type="button" className={projectionMode === "orthographic" ? "active" : ""} aria-pressed={projectionMode === "orthographic"} onClick={() => onProjectionModeChange("orthographic")}>正交投影</button>
-            </div>
-            <div className="scene-view-controls" role="toolbar" aria-label="三维相机视角">
-              {CAMERA_VIEWS.map((view) => (
-                <button
-                  type="button"
-                  key={view.id}
-                  className={cameraView === view.id ? "active" : ""}
-                  aria-pressed={cameraView === view.id}
-                  onClick={() => onCameraViewChange(view.id)}
-                >
-                  {view.icon}
-                  {tr(view.label)}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="scene-tools"><button type="button" aria-pressed={labels} onClick={()=>setLabels(v=>!v)}><Tag size={14}/>{tr("箱标","Labels")}</button><button type="button" aria-pressed={rulers} onClick={()=>setRulers(v=>!v)}><Ruler size={14}/>{tr("尺寸","Dimensions")}</button><button type="button" onClick={()=>{setSelection(null);setFocusId(null);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
           {selected && <div className="scene-selection-info"><button aria-label={tr("关闭箱体详情","Close box details")} onClick={()=>{setSelection(null);setFocusId(null);}}>×</button><strong>{selected.supportOnly?`${selected.name} · ${selected.id.replace("floor-pallet-","P")}`:selected.sku}</strong><button className="scene-focus-button" onClick={()=>{setFocusId(selected.id);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><ZoomIn size={13}/>{tr("放大查看","Focus on box")}</button><span>{selected.dx} × {selected.dy} × {selected.dz} mm</span><span>X {selected.x} · Y {selected.y} · Z {selected.z} mm</span>{selected.supportOnly&&<span>{tr("自重 / 承重","Tare / payload")} {selected.weight} / {result.pallets?.find(p=>p.id===selected.id)?.maxLoad} kg</span>}{selected.palletIds?.length?<span>{tr("托盘","Pallet")} {selected.palletIds.map(id=>id.replace("floor-pallet-","P")).join(" / ")}</span>:null}</div>}
-          {!presentation && <div className="orientation-cube" aria-label={tr("方向立方体", "Orientation cube")}>{CAMERA_VIEWS.filter(v=>v.id!=="perspective").map(v=><button key={v.id} aria-label={`${tr("方向立方体", "Orientation cube")} · ${tr(v.label)}`} onClick={()=>{onProjectionModeChange("orthographic");onCameraViewChange(v.id);}}>{tr(v.label)}</button>)}</div>}
           {captureError && <p role="alert" className="scene-export-error">{captureError}</p>}
           {!presentation && <div className="scene-hint">
-            <span>拖动旋转</span>
-            <span>滚轮缩放</span>
-            <span>右键平移</span>
+            <span>{tr("拖动旋转")}</span>
+            <span>{tr("滚轮缩放")}</span>
+            <span>{tr("右键平移")}</span>
           </div>}
-          <div className="door-marker">箱门方向</div>
+          <div className="door-marker">{tr("箱门方向")}</div>
         </>
       )}
-    </div>
+    </div>{result&&onVisibleCountChange&&<footer className="scene-progress"><span>{tr("装载进度")}</span><input type="range" min={0} max={result.placements.length} value={visibleCount} aria-label={tr("三维装载进度", "3D loading progress")} onChange={e=>onVisibleCountChange(Number(e.target.value))}/><output>{visibleCount} / {result.placements.length} {tr("箱")}</output></footer>}</SceneFullscreen>
   );
 }

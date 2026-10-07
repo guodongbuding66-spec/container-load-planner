@@ -5,12 +5,12 @@ import { CARGO_TYPES, CARGO_LABELS } from "../lib/packing/loading-rules";
 import type { LoadingRules, ProductInput } from "../lib/packing/types";
 import { RuleIllustration } from "./rule-illustration";
 import { FeatureDialog } from "./feature-dialog";
-import { tr, useLanguage } from "./language";
+import {tr, useLanguage} from "./language";
 export function LoadingRuleSettings({ rules, products, onSave, onClose, inline=false, onDraftChange }: { rules: LoadingRules; products: ProductInput[]; onSave: (rules: LoadingRules, products: ProductInput[]) => void; onClose: () => void; inline?: boolean; onDraftChange?: (rules:LoadingRules,products:ProductInput[])=>void }) {
   useLanguage(); const [supportChanged,setSupportChanged]=useState(false); const [draft, setDraft] = useState(rules); const [enabled, setEnabled] = useState(Object.keys(rules.supportByType ?? {}).length > 0 || products.some(p => p.minimumSupportRatio !== undefined));
   const [support, setSupport] = useState(Object.fromEntries(CARGO_TYPES.map(type => [type, Math.round((rules.supportByType?.[type] ?? products.find(p => (p.cargoType ?? "carton") === type)?.minimumSupportRatio ?? 1) * 100)])));
   const [types, setTypes] = useState<string[]>(CARGO_TYPES.filter(type => rules.supportByType?.[type] !== undefined || products.some(p => (p.cargoType ?? "carton") === type && p.minimumSupportRatio !== undefined)));
-  const groups = [ ["layout", "填充布局", [ ["auto", "自动布局"], ["deep-first", "纵深优先"], ["layers", "逐层填充"] ]], ["search", "搜索深度", [ ["smart", "智能搜索"], ["deep", "深度搜索"] ]], ["cargoOrder", "货物顺序", [ ["auto", "自动顺序"], ["large-first", "大件优先"], ["small-first", "小件优先"] ]] ] as const;
+  const groups = [ ["layout", tr("填充布局"), [ ["auto", tr("自动布局")], ["deep-first", tr("纵深优先")], ["layers", tr("逐层填充")] ]], ["search", tr("搜索深度"), [ ["smart", tr("智能搜索")], ["deep", tr("深度搜索")] ]], ["cargoOrder", tr("货物顺序"), [ ["auto", tr("自动顺序")], ["large-first", tr("大件优先")], ["small-first", tr("小件优先")] ]] ] as const;
   const nextRules=useMemo(()=>({...draft,supportByType:supportChanged?(enabled?Object.fromEntries(types.map(type=>[type,support[type]/100])):{}):rules.supportByType}),[supportChanged,rules,draft,enabled,types,support]);
   const nextProducts=useMemo(()=>supportChanged?products.map(p=>({...p,minimumSupportRatio:enabled&&types.includes(p.cargoType??"carton")?support[p.cargoType??"carton"]/100:undefined})):products,[supportChanged,products,enabled,types,support]);
   useEffect(()=>{onDraftChange?.(nextRules,nextProducts);},[nextRules,nextProducts,onDraftChange]);

@@ -1,5 +1,6 @@
 "use client";
 
+import { tr } from "./language";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 type Props = {
@@ -31,13 +32,11 @@ export class SceneErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.failed) {
       return (
-        <div className="scene-shell" role="region" aria-label="三维装柜视图">
+        <div className="scene-shell" role="region" aria-label={tr("三维装柜视图")}>
           <div className="scene-fallback" role="alert">
-            <strong>三维视图加载失败</strong>
-            <span>装柜坐标、三视图、独立校验与导出仍可使用。可重试三维渲染。</span>
-            <button className="button ghost small scene-error-action" type="button" onClick={() => this.setState({ failed: false })}>
-              重新加载三维视图
-            </button>
+            <strong>{tr("三维视图加载失败")}</strong>
+            <span>{tr("装柜坐标、三视图、独立校验与导出仍可使用。可重试三维渲染。")}</span>
+            <button className="button ghost small scene-error-action" type="button" onClick={() => this.setState({ failed: false })}>{tr("重新加载三维视图")}</button>
           </div>
         </div>
       );

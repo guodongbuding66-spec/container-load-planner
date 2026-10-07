@@ -6,7 +6,7 @@ import { TRANSPORT_PRESETS } from "../lib/packing/transport-library";
 import { arrangeFloorPallets, palletCargoCeiling, palletSpaceSummary, parseFloorPalletConfig } from "../lib/packing/floor-pallets";
 import { FeatureDialog } from "./feature-dialog";
 import { SpaceModelPreview } from "./space-model-preview";
-import { tr, useLanguage } from "./language";
+import {tr, useLanguage} from "./language";
 
 const keys=["length","width","height","weight","maxLoad","count","gap","maxCargoHeight"] as const;
 const initial=(space:ContainerSpec):FloorPalletConfig=>({presetId:space.id,name:space.name,length:space.length,width:space.width,height:space.baseHeight??144,weight:25,maxLoad:space.maxWeight,count:0,gap:0,layout:"auto",allowFloorCargo:false,maxCargoHeight:0});
@@ -24,21 +24,21 @@ export function FloorPalletSettings({config,container,clearance,customSpaces,onS
       const p=parseFloorPalletConfig({...draft,...Object.fromEntries(Object.entries(values).map(([k,v])=>[k,v.trim()?Number(v):NaN]))});
       const pallets=enabled?arrangeFloorPallets(container,clearance,p):[];
       const summary=palletSpaceSummary(container,clearance,pallets);
-      if(enabled&&summary.tareWeight>container.maxWeight)throw new Error("托盘总自重超过柜型最大载重。");
+      if(enabled&&summary.tareWeight>container.maxWeight)throw new Error(tr("托盘总自重超过柜型最大载重。"));
       return {p,pallets,summary,error:""};
     }catch(e){return {p:draft,pallets:[],summary:palletSpaceSummary(container,clearance,[]),error:e instanceof Error?e.message:"Invalid input"};}
   },[draft,values,enabled,container,clearance]);
   useEffect(()=>{onDraftChange?.(enabled?preview.p:undefined,enabled&&Boolean(preview.error));},[enabled,preview,onDraftChange]);
   const choose=(id:string)=>{const space=spaces.find(s=>s.id===id);if(!space)return;const next={...initial(space),count:Number(values.count)||0,gap:Number(values.gap)||0,maxCargoHeight:Number(values.maxCargoHeight)||0,layout:draft.layout,allowFloorCargo:draft.allowFloorCargo};setDraft(next);setValues(strings(next));};
   const save=()=>{if(enabled&&preview.error){setError(preview.error);return;}onSave(enabled?preview.p:undefined);onClose();};
-  const fields=[["length","托盘长","Length","mm"],["width","托盘宽","Width","mm"],["height","底座高","Base height","mm"],["weight","托盘自重","Tare weight","kg"],["maxLoad","单托盘承重","Payload limit","kg"],["count","托盘数量","Pallet count",""],["gap","托盘间隙","Pallet gap","mm"],["maxCargoHeight","托盘货物限高","Cargo height above deck","mm"]] as const;
+  const fields=[["length",tr("托盘长"),"Length","mm"],["width",tr("托盘宽"),"Width","mm"],["height",tr("底座高"),"Base height","mm"],["weight",tr("托盘自重"),"Tare weight","kg"],["maxLoad",tr("单托盘承重"),"Payload limit","kg"],["count",tr("托盘数量"),"Pallet count",""],["gap",tr("托盘间隙"),"Pallet gap","mm"],["maxCargoHeight",tr("托盘货物限高"),"Cargo height above deck","mm"]] as const;
   const content=<>
     <div className="pallet-choice-row" role="group" aria-label={tr("有无托盘","Pallet use")}>
       <button className={!enabled?"selected":""} aria-pressed={!enabled} onClick={()=>setEnabled(false)}><strong>{tr("无托盘 · 直接装柜","No pallets")}</strong><small>{tr("货物从柜底开始摆放","Cargo starts at the vehicle floor")}</small></button>
       <button className={enabled?"selected":""} aria-pressed={enabled} onClick={()=>setEnabled(true)}><Layers3 size={19}/><span><strong>{tr("使用底层托盘","Use floor pallets")}</strong><small>{tr("按实际尺寸、重量和承重计算","Use physical dimensions, tare and payload")}</small></span></button>
     </div>
     {enabled ? <div className="pallet-settings-grid"><section>
-      <label className="pallet-preset-label">{tr("从托盘库选择","Pallet library")}<select aria-label={tr("底层托盘规格","Floor pallet preset")} value={draft.presetId} onChange={e=>choose(e.target.value)}>{!spaces.some(s=>s.id===draft.presetId)&&<option value={draft.presetId}>{draft.name}</option>}{spaces.map(s=><option key={s.id} value={s.id}>{s.name} · {s.length} × {s.width} mm</option>)}</select></label>
+      <label className="pallet-preset-label">{tr("从托盘库选择","Pallet library")}<select aria-label={tr("底层托盘规格","Floor pallet preset")} value={draft.presetId} onChange={e=>choose(e.target.value)}>{!spaces.some(s=>s.id===draft.presetId)&&<option value={draft.presetId}>{tr(draft.name)}</option>}{spaces.map(s=><option key={s.id} value={s.id}>{tr(s.name)} · {s.length} × {s.width} mm</option>)}</select></label>
       <div className="feature-form-grid">{fields.map(([key,zh,en,unit])=><label key={key}>{tr(zh,en)}{unit&&` (${unit})`}<input inputMode={key==="count"?"numeric":"decimal"} aria-label={tr(zh,en)} value={values[key]} onChange={e=>setValues(v=>({...v,[key]:e.target.value}))}/>{key==="count"&&<small>{tr("0 = 自动铺设；可指定实际数量","0 = fill floor; or set a fixed count")}</small>}{key==="maxCargoHeight"&&<small>{tr("从托盘顶面起算；0 = 按柜高和门高","Above deck; 0 = vehicle and door limit")}</small>}</label>)}</div>
       <label className="pallet-preset-label">{tr("铺设方向","Floor layout")}<select aria-label={tr("托盘铺设方向","Pallet layout")} value={draft.layout} onChange={e=>setDraft(v=>({...v,layout:e.target.value as FloorPalletConfig["layout"]}))}><option value="auto">{tr("自动组合方向","Mixed horizontal orientations")}</option><option value="long">{tr("托盘长边沿柜长","Long side along vehicle")}</option><option value="cross">{tr("托盘长边沿柜宽","Long side across vehicle")}</option></select></label>
       <label className="pallet-floor-option"><input type="checkbox" checked={draft.allowFloorCargo} onChange={e=>setDraft(v=>({...v,allowFloorCargo:e.target.checked}))}/>{tr("允许余下货物直接放在柜底","Allow loose cargo on remaining floor")}</label>

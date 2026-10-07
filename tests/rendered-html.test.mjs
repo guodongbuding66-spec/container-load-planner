@@ -62,7 +62,7 @@ test("keeps every prediction label on the selected immutable coordinate plan", a
   assert.match(source, /const selectedPlanCartons = selectedCachedPlan\?\.metrics\.loadedCount \?\? selectedFeasibleRecommendation\.totalCartons/);
   assert.match(source, /const selectedFeasibleRecommendation = feasibleRecommendation\(reversePlan, selectedCachedPlan\)/);
   assert.match(source, /selectedCachedPlan\.summaries\.map/);
-  assert.match(source, /已按当前\$\{strategy === "practical" \? "现场" : "极限"\}算法生成并独立校验/);
+  assert.match(source, /已按当前\$\{strategy === "practical" \? tr\("现场"\) : tr\("极限"\)\}算法生成并独立校验/);
 });
 
 test("only auto-recalculates in the result step and hides stale visual data", async () => {
@@ -134,9 +134,9 @@ test("provides accessible names for mode, ranges, and product data fields", asyn
   assert.match(source, /role="group" aria-label=\{tr\("计算模式"\)\}/);
   assert.match(source, /aria-pressed=\{mode === "single"\}/);
   assert.match(source, /aria-label=\{tr\("安全间隙"\)\}/);
-  assert.match(source, /aria-label="目标体积利用率滑块"/);
-  assert.match(source, /ariaLabel=\{`\$\{product\.sku\} 外箱长`\}/);
-  assert.match(source, /ariaLabel=\{`\$\{product\.sku\} 层数上限`\}/);
+  assert.match(source, /aria-label=\{tr\("目标体积利用率滑块"\)\}/);
+  assert.match(source, /ariaLabel=\{tt`\$\{product\.sku\} 外箱长`\}/);
+  assert.match(source, /ariaLabel=\{tt`\$\{product\.sku\} 层数上限`\}/);
 });
 
 test("keeps unit switching canonical and removes implicit layer caps and leading-zero coercion", async () => {
@@ -151,7 +151,7 @@ test("keeps unit switching canonical and removes implicit layer caps and leading
   assert.doesNotMatch(source, /item\.maxStackLayers, item\.unitsPerSet\]\.every\(Number\.isFinite\)/);
   assert.doesNotMatch(presets, /maxStackLayers: [1-9]/);
   assert.match(source, /0 = 自动按柜高/);
-  assert.match(source, /aria-label="箱规录入单位"/);
+  assert.match(source, /aria-label=\{tr\("箱规录入单位"\)\}/);
   assert.match(source, /toMillimeters\(value, lengthUnit\)/);
   assert.match(source, /toKilograms\(value, weightUnit\)/);
   assert.match(numericInput, /type="text"/);
@@ -192,7 +192,7 @@ test("offers a worker-executable strategy and a unit-safe real loading benchmark
   const presets = await readFile(new URL("../lib/packing/presets.ts", import.meta.url), "utf8");
   const estimator = await readFile(new URL("../lib/packing/quote-estimator.ts", import.meta.url), "utf8");
 
-  assert.match(source, /aria-label="装柜执行策略"/);
+  assert.match(source, /aria-label=\{tr\("装柜执行策略"\)\}/);
   assert.match(source, /现场易执行/);
   assert.match(source, /高密度参考/);
   assert.match(source, /载入真实 A64M/);
@@ -234,7 +234,7 @@ test("runs two independent solvers and exposes actionable strategy guidance", as
   assert.match(source, /startStrategyWorker\("practical"\)/);
   assert.match(source, /runtimePolicy\.schedule === "parallel"\) startStrategyWorker\("maximum"\)/);
   assert.match(source, /runtimePolicy\.schedule === "practical-first" && solverStrategy === "practical"/);
-  assert.match(source, /completeWithAvailablePlan\("后台算法达到设备保护时限，"\)/);
+  assert.match(source, /completeWithAvailablePlan\(tr\("后台算法达到设备保护时限，"\)\)/);
   assert.match(source, /const partialBundle: PackingResult/);
   assert.match(source, /strategyPlans: \{ \.\.\.workerResultsRef\.current \}/);
   assert.match(source, /方案已完成并可查看；另一套算法仍在后台独立计算/);
@@ -290,7 +290,7 @@ test("separates utilization planning from the selected strategy capacity ceiling
   assert.match(source, /className="planning-comparison"/);
   assert.match(source, /className=\{`plan-context-chip/);
   assert.match(source, /高密度参考方案/);
-  assert.match(source, /实际体积 \{formatPercent\(result\.metrics\.volumeUtilization\)\} · 实际载重/);
+  assert.match(source, /tr\("实际体积 "\)\}\{formatPercent\(result\.metrics\.volumeUtilization\)\}\{tr\(" · 实际载重 "\)/);
   assert.match(source, /setTargetWeightPercent[\s\S]{0,180}markDirty\(\)/);
   assert.match(types, /singleCartonLimit\?: number/);
   assert.match(engine, /planningSetBound/);
@@ -302,8 +302,8 @@ test("uses sets as the primary visualization unit for a single multi-carton prod
   const views = await readFile(new URL("../components/orthographic-views.tsx", import.meta.url), "utf8");
   const progress = await readFile(new URL("../lib/packing/progress.ts", import.meta.url), "utf8");
 
-  assert.match(source, /整套 \{formatNumber\(progressSummary\.completedSets\)\}/);
-  assert.match(source, /箱级进度 \{formatNumber\(progressSummary\.visibleCartons\)\}/);
+  assert.match(source, /tr\("整套 "\)\}\{formatNumber\(progressSummary\.completedSets\)\}/);
+  assert.match(source, /tr\("箱级进度 "\)\}\{formatNumber\(progressSummary\.visibleCartons\)\}/);
   assert.match(source, /柜内 → 箱门/);
   assert.match(source, /已完成 \$\{formatNumber\(progressSummary\.completedSets\)\}\/\$\{formatNumber\(progressSummary\.totalSets\)\} 套/);
   assert.match(source, /当前箱归属套号 \$\{formatNumber\(progressSummary\.currentSetNumber\)\}/);
@@ -332,9 +332,9 @@ test("auto-calculates CBM and displays complete sets before carton details", asy
 
   assert.match(source, /<th>\{tr\("CBM 自动"\)\}<\/th>/);
   assert.match(source, /className="cbm-auto-value"/);
-  assert.match(source, /精确值 \{calculatedCbm\.toFixed\(4\)\}/);
+  assert.match(source, /精确值 "\)\}\{calculatedCbm\.toFixed\(4\)\}/);
   assert.doesNotMatch(source, /aria-label=\{`\$\{product\.sku\} 标称 CBM`\}/);
   assert.match(source, /reversePlan\.volumeLimitedDisplay/);
-  assert.match(source, /reversePlan\.displayUnit === "set" \? "套" : "箱"/);
+  assert.match(source, /reversePlan\.displayUnit === "set" \? tr\("套"\) : tr\("箱"\)/);
   assert.match(engine, /displayUnit: displayAsSets \? "set" : "carton"/);
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import {tr, useLanguage} from "./language";
 import { Box, BriefcaseBusiness, ExternalLink, Newspaper, Search, Video } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -32,14 +33,13 @@ const TOOLS = [
 ] as const;
 
 function Menu() {
+  useLanguage();
   return (
     <details className="relative z-50">
       <summary className="button ghost list-none select-none [&::-webkit-details-marker]:hidden">
-        <Box size={16} />
-        其他工具
-      </summary>
+        <Box size={16} />{tr("其他工具")}</summary>
       <div className="absolute right-0 top-[46px] z-[90] w-[min(390px,calc(100vw-28px))] rounded-2xl border border-[#dce5e7] bg-white p-2.5 shadow-[0_20px_60px_rgba(21,52,67,.16)]">
-        <div className="px-2 pb-2 pt-1 text-[10px] font-extrabold tracking-[.12em] text-[#71868c]">GALAXY 工具生态</div>
+        <div className="px-2 pb-2 pt-1 text-[10px] font-extrabold tracking-[.12em] text-[#71868c]">{tr("GALAXY 工具生态")}</div>
         <div className="grid gap-1">
           {TOOLS.map((tool) => {
             const Icon = tool.icon;
@@ -55,8 +55,8 @@ function Menu() {
                   <Icon size={16} />
                 </span>
                 <span className="min-w-0">
-                  <strong className="block text-xs">{tool.name}</strong>
-                  <small className="mt-0.5 block text-[10px] leading-4 text-[#71868c]">{tool.description}</small>
+                  <strong className="block text-xs">{tr(tool.name)}</strong>
+                  <small className="mt-0.5 block text-[10px] leading-4 text-[#71868c]">{tr(tool.description)}</small>
                 </span>
                 <ExternalLink size={14} className="text-[#91a6aa]" />
               </a>
@@ -69,6 +69,7 @@ function Menu() {
 }
 
 export function GalaxyEcosystemMenu() {
+  useLanguage();
   const [target, setTarget] = useState<Element | null>(null);
 
   useEffect(() => {
