@@ -1059,7 +1059,7 @@ export function PackingApp() {
     setProducts(record.cartons.map((carton, index) => ({
       id: `real-supplied-${index}-${carton.length}-${carton.width}-${carton.height}`,
       sku: record.cartons.length > 1 ? `REAL-${index + 1}` : "REAL-1CTN",
-      name: `${model}${record.cartons.length > 1 ? tt` · 第 ${index + 1} 箱` : ""}`,
+      name: `${tr(model)}${record.cartons.length > 1 ? tt` · 第 ${index + 1} 箱` : ""}`,
       ...carton,
       quantity: 1000,
       priority: 100,
@@ -1077,7 +1077,7 @@ export function PackingApp() {
     setCameraProjection("perspective");
     markDirty();
     setStatus("idle");
-    setMessage(tt`已载入 ${model}；40HQ 历史实装 ${record.loadingSets["40hq"]} 套，计算后将同时显示历史预测与无重叠三维方案。`);
+    setMessage(tt`已载入 ${tr(model)}；40HQ 历史实装 ${record.loadingSets["40hq"]} 套，计算后将同时显示历史预测与无重叠三维方案。`);
   };
 
   const validateInputs = useCallback(() => {
@@ -1648,7 +1648,7 @@ export function PackingApp() {
               <select className="real-record-select" aria-label={tr("载入用户提供的真实装柜记录")} value="" onChange={(event) => loadSuppliedRealRecord(event.target.value)}>
                 <option value="" disabled>{tr("载入真实记录…")}</option>
                 {HISTORICAL_LOADING_RECORDS.filter((record) => record.models[0].startsWith("实装记录·")).map((record) => (
-                  <option key={record.models[0]} value={record.models[0]}>{record.models[0]} · HQ {record.loadingSets["40hq"]}{tr(" 套")}</option>
+                  <option key={record.models[0]} value={record.models[0]}>{tr(record.models[0])} · HQ {record.loadingSets["40hq"]}{tr(" 套")}</option>
                 ))}
               </select>
               <button className="button ghost small real-data-button" onClick={loadRealA64M}><CheckCircle2 size={15} />{tr("载入真实 A64M")}</button>
@@ -2114,9 +2114,9 @@ export function PackingApp() {
                   <span className="section-kicker">DUAL-TRACK ESTIMATE</span>
                   <strong>{tr("报价经验预测 × 三维物理方案")}</strong>
                   <small>{result.quoteEstimate.source === "historical-exact"
-                    ? tt`已精确命中历史包装指纹：${result.quoteEstimate.matchedModels.join(" / ")}；忠实重放该条报价记录，但不绕过物理校验。`
+                    ? tt`已精确命中历史包装指纹：${result.quoteEstimate.matchedModels.map(model=>tr(model)).join(" / ")}；忠实重放该条报价记录，但不绕过物理校验。`
                     : result.quoteEstimate.source === "historical-near"
-                      ? tt`尺寸/重量接近历史记录：${result.quoteEstimate.matchedModels.join(" / ")}；仅作相近包装参考，不作为零误差记录，也不封顶三维现场方案。`
+                      ? tt`尺寸/重量接近历史记录：${result.quoteEstimate.matchedModels.map(model=>tr(model)).join(" / ")}；仅作相近包装参考，不作为零误差记录，也不封顶三维现场方案。`
                       : tt`按当前柜型 ${result.quoteEstimate.calibratedCargoVolumeCbm.toFixed(2)} CBM 基线预测；${result.quoteEstimate.verifiedDataPoints} 个物理可行数据点留一验证：平均 ${result.quoteEstimate.backtestMeanErrorPct.toFixed(1)}%，90% 不超过 ${result.quoteEstimate.backtestP90ErrorPct.toFixed(1)}%，最差 ${result.quoteEstimate.backtestMaxErrorPct.toFixed(1)}%。`}</small>
                 </div>
                 <div><span>{tr("报价经验预测")}</span><strong>{formatNumber(result.quoteEstimate.predictedSets)}{tr(" 套")}</strong><small>{result.quoteEstimate.confidence === "verified" ? tr("完全相同包装 · 重放历史记录") : tt`典型误差约 ±${result.quoteEstimate.expectedErrorPct.toFixed(1)}%`}</small></div>
