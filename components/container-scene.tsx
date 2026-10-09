@@ -199,14 +199,15 @@ export function ContainerScene({
   return (
     <SceneFullscreen>          <div className="scene-camera-controls">
             <div className="scene-projection-controls" role="toolbar" aria-label={tr("三维投影方式")}>
-              <button type="button" className={projectionMode === "perspective" ? "active" : ""} aria-pressed={projectionMode === "perspective"} onClick={() => { setFocusId(null); onProjectionModeChange("perspective"); }}>{tr("透视投影")}</button>
-              <button type="button" className={projectionMode === "orthographic" ? "active" : ""} aria-pressed={projectionMode === "orthographic"} onClick={() => { setFocusId(null); onProjectionModeChange("orthographic"); }}>{tr("正交投影")}</button>
+              <button type="button" disabled={webglSupported===false} className={projectionMode === "perspective" ? "active" : ""} aria-pressed={projectionMode === "perspective"} onClick={() => { setFocusId(null); onProjectionModeChange("perspective"); }}>{tr("透视投影")}</button>
+              <button type="button" disabled={webglSupported===false} className={projectionMode === "orthographic" ? "active" : ""} aria-pressed={projectionMode === "orthographic"} onClick={() => { setFocusId(null); onProjectionModeChange("orthographic"); }}>{tr("正交投影")}</button>
             </div>
             <div className="scene-view-controls" role="toolbar" aria-label={tr("三维相机视角")}>
               {CAMERA_VIEWS.map((view) => (
                 <button
                   type="button"
                   key={view.id}
+                  disabled={webglSupported===false}
                   className={cameraView === view.id ? "active" : ""}
                   aria-pressed={cameraView === view.id}
                   onClick={() => { setFocusId(null); onCameraViewChange(view.id); }}
@@ -218,7 +219,7 @@ export function ContainerScene({
             </div>
           </div>
           <div className="scene-tools" aria-label={tr("三维工具", "3D tools")}><button type="button" disabled={!result} aria-pressed={labels} onClick={()=>setLabels(!labels)}><Tag size={14}/>{tr("箱标","Labels")}</button><DimensionControls/><button type="button" onClick={()=>{setSelection(null);setFocusId(null);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" disabled={!webglSupported} onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
-<TransportModelControls/>
+{webglSupported!==false&&<TransportModelControls/>}
 <div className="scene-shell" role="region" aria-label={tr("可交互三维装柜视图")}>
       {!result ? (
         <div className="scene-empty">
@@ -265,7 +266,7 @@ export function ContainerScene({
           <div className="door-marker">{tr("箱门方向")}</div>
         </>
       )}
-          {selected && <div className="scene-selection-info"><button aria-label={tr("关闭箱体详情","Close box details")} onClick={()=>{setSelection(null);setFocusId(null);}}>×</button><strong>{selected.supportOnly?`${selected.name} · ${selected.id.replace("floor-pallet-","P")}`:selected.sku}</strong><button className="scene-focus-button" onClick={()=>{setFocusId(selected.id);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><ZoomIn size={13}/>{tr("放大查看","Focus on box")}</button><span>{selected.dx} × {selected.dy} × {selected.dz} mm</span><span>X {selected.x} · Y {selected.y} · Z {selected.z} mm</span>{selected.supportOnly&&<span>{tr("自重 / 承重","Tare / payload")} {selected.weight} / {result?.pallets?.find(p=>p.id===selected.id)?.maxLoad} kg</span>}{selected.palletIds?.length?<span>{tr("托盘","Pallet")} {selected.palletIds.map(id=>id.replace("floor-pallet-","P")).join(" / ")}</span>:null}</div>}
+          {selected && <div className="scene-selection-info"><button aria-label={tr("关闭箱体详情","Close box details")} onClick={()=>{setSelection(null);setFocusId(null);}}>×</button><strong>{selected.supportOnly?`${selected.name} · ${selected.id.replace("floor-pallet-","P")}`:selected.sku}</strong>{webglSupported!==false&&<button className="scene-focus-button" onClick={()=>{setFocusId(selected.id);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><ZoomIn size={13}/>{tr("放大查看","Focus on box")}</button>}<span>{selected.dx} × {selected.dy} × {selected.dz} mm</span><span>X {selected.x} · Y {selected.y} · Z {selected.z} mm</span>{selected.supportOnly&&<span>{tr("自重 / 承重","Tare / payload")} {selected.weight} / {result?.pallets?.find(p=>p.id===selected.id)?.maxLoad} kg</span>}{selected.palletIds?.length?<span>{tr("托盘","Pallet")} {selected.palletIds.map(id=>id.replace("floor-pallet-","P")).join(" / ")}</span>:null}</div>}
     </div>{result&&onVisibleCountChange&&<footer className="scene-progress"><span>{tr("装载进度")}</span><input type="range" min={0} max={result.placements.length} value={visibleCount} aria-label={tr("三维装载进度", "3D loading progress")} onChange={e=>onVisibleCountChange(Number(e.target.value))}/><output>{visibleCount} / {result.placements.length} {tr("箱")}</output></footer>}</SceneFullscreen>
   );
 }
