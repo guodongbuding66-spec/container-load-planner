@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { Line, Edges } from "@react-three/drei";
-import { useFrame, useThree } from "@react-three/fiber";
+import { Edges } from "@react-three/drei";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { palletParts } from "../lib/packing/floor-pallets";
 import type { PlacedPallet } from "../lib/packing/types";
@@ -49,29 +49,10 @@ export function MetricLabel({text,position,size=.09,color="#376272",screenOffset
   useEffect(()=>()=>{label.texture.dispose();material.dispose();},[label,material]);
   const target=useMemo(()=>new THREE.Vector3(...position),[position]);
   useFrame(state=>{if(!ref.current||!state.size.width||!state.size.height)return;const px=size<.08?18:size>.1?25:22;const anchor=target.clone();ref.current.parent?.localToWorld(anchor);const p=anchor.clone().project(state.camera);const occupied=sceneLabelFrame(state.camera,state.clock.elapsedTime);const rect=layoutSceneLabel({x:(p.x+1)*state.size.width/2+screenOffset[0]-label.ratio*px/2,y:(1-p.y)*state.size.height/2-screenOffset[1]-px/2,width:label.ratio*px,height:px},state.size,occupied);occupied.push(rect);const pose=sceneLabelPose(state.camera,anchor,state.size,rect,px);ref.current.position.copy(ref.current.parent?.worldToLocal(pose.position)??pose.position);ref.current.quaternion.copy(state.camera.quaternion);ref.current.scale.set(pose.scale*Math.min(1,rect.width/(label.ratio*px)),pose.scale,pose.scale);});
-  return <group ref={ref}><mesh material={material} renderOrder={LABEL_RENDER_ORDER} frustumCulled={false} raycast={()=>{}}><planeGeometry args={[label.ratio,1]}/></mesh></group>;
+  return <group name={`scene-label:${text}`} ref={ref}><mesh material={material} renderOrder={LABEL_RENDER_ORDER} frustumCulled={false} raycast={()=>{}}><planeGeometry args={[label.ratio,1]}/></mesh></group>;
 }
 
-function RulerAxis({axis,scale,compact}:{axis:{name:string;total:number;start:THREE.Vector3;dir:THREE.Vector3;tick:THREE.Vector3;label:THREE.Vector3};scale:number;compact:boolean}){
-  const a=axis,step=a.total>8000?2000:a.total>3500?1000:500;
-  const ticks=Array.from({length:Math.floor(a.total/step)+1},(_,i)=>i*step).filter(n=>a.total-n>step*.7);ticks.push(a.total);
-  const end=a.start.clone().addScaledVector(a.dir,a.total*scale);
-  return <group><MetricLabel text={compact?`${a.name.split("/")[1].trim()} ${Math.round(a.total)} mm`:`${a.name} · ${Math.round(a.total)} mm`} position={(a.name.startsWith("Z")?end:a.start.clone().lerp(end,.5)).clone().add(a.label).toArray() as [number,number,number]} size={.085} screenOffset={a.name.startsWith("Z")?[35,compact?14:-23]:[0,compact&&a.name.startsWith("Y")?-44:-25]}/><Line points={[a.start,end]} color="#6b95a4" lineWidth={1}/>{(compact?[]:ticks).map(n=>{const pos=a.start.clone().addScaledVector(a.dir,n*scale);return <group key={n}><Line points={[pos,pos.clone().add(a.tick)]} color="#6b95a4" lineWidth={1}/><MetricLabel text={String(Math.round(n))} position={pos.clone().add(a.label).toArray() as [number,number,number]} size={.055}/></group>;})}</group>;
-}
-
-/** Real spatial rulers, expressed in mm, with adaptive spacing for large vehicles. */
-export function SceneRulers({length,width,height,scale,offset}:{length:number;width:number;height:number;scale:number;offset:THREE.Vector3}) {
-  const {size}=useThree();
-  const axes=useMemo(()=>[
-    {name:"X / L",total:length,start:new THREE.Vector3(offset.x,-.025,offset.z-.18),dir:new THREE.Vector3(1,0,0),tick:new THREE.Vector3(0,0,-.035),label:new THREE.Vector3(0,0,-.09)},
-    {name:"Y / W",total:width,start:new THREE.Vector3(offset.x-.18,-.025,offset.z),dir:new THREE.Vector3(0,0,1),tick:new THREE.Vector3(-.035,0,0),label:new THREE.Vector3(-.10,0,0)},
-    {name:"Z / H",total:height,start:new THREE.Vector3(offset.x-.18,offset.y,offset.z-.18),dir:new THREE.Vector3(0,1,0),tick:new THREE.Vector3(-.035,0,0),label:new THREE.Vector3(-.14,0,0)},
-  ],[length,width,height,offset]);
-  return <group>{axes.map(a=><RulerAxis key={a.name} axis={a} scale={scale} compact={size.width<500}/>)}</group>;
-}
-
-export function SelectedBoxDimensions({box,scale,offset}:{box:{x:number;y:number;z:number;dx:number;dy:number;dz:number;sku:string};scale:number;offset:THREE.Vector3}){
-  const x=(box.x+box.dx/2)*scale+offset.x,y=(box.z+box.dz)*scale+offset.y,z=(box.y+box.dy/2)*scale+offset.z;
-  const halfX=box.dx*scale/2,halfZ=box.dy*scale/2,bottom=y-box.dz*scale;
-  return <group>{box.sku&&<MetricLabel text={box.sku} position={[x,y+.26,z]} size={.12}/>}<mesh position={[x,(bottom+y)/2,z]} raycast={()=>{}}><boxGeometry args={[box.dx*scale,box.dz*scale,box.dy*scale]}/><meshBasicMaterial visible={false}/><Edges color="#da8c2e"/></mesh><Line points={[[x-halfX,y+.03,z+halfZ+.04],[x+halfX,y+.03,z+halfZ+.04]]} color="#da8c2e" lineWidth={2}/><MetricLabel text={`${box.dx} mm`} position={[x,y+.09,z+halfZ+.06]} size={.09}/><Line points={[[x+halfX+.04,y+.03,z-halfZ],[x+halfX+.04,y+.03,z+halfZ]]} color="#da8c2e" lineWidth={2}/><MetricLabel text={`${box.dy} mm`} position={[x+halfX+.12,y+.05,z]} size={.09}/><Line points={[[x+halfX+.04,bottom,z+halfZ+.04],[x+halfX+.04,y,z+halfZ+.04]]} color="#da8c2e" lineWidth={2}/><MetricLabel text={`${box.dz} mm`} position={[x+halfX+.16,(bottom+y)/2,z+halfZ+.06]} size={.09}/></group>;
+/** Selection is separate from measurements; the Dimensions switch never clears selection. */
+export function SelectionOutline({box,scale,offset}:{box:{x:number;y:number;z:number;dx:number;dy:number;dz:number};scale:number;offset:THREE.Vector3}) {
+  return <mesh name="selection-outline" position={[(box.x+box.dx/2)*scale+offset.x,(box.z+box.dz/2)*scale+offset.y,(box.y+box.dy/2)*scale+offset.z]} raycast={()=>{}}><boxGeometry args={[box.dx*scale,box.dz*scale,box.dy*scale]}/><meshBasicMaterial visible={false}/><Edges color="#da8c2e"/></mesh>;
 }

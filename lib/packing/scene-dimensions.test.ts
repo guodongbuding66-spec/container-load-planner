@@ -1,0 +1,106 @@
+import { describe, expect, it } from "vitest";
+import * as THREE from "three";
+import { OrbitControls } from "three-stdlib";
+import { SceneCameraController } from "./scene-camera";
+import type { CameraPresetView, CameraProjection } from "./camera-fit";
+import { cameraDimensionProjector, formatDimension, paintDimensions, projectDimensions, sceneMeasurement } from "./scene-dimensions";
+import { labelsOverlap } from "./scene-labels";
+import { TRANSPORT_PRESETS } from "./transport-library";
+
+const space = TRANSPORT_PRESETS.find(s=>s.id==="20gp")!;
+const measurement = sceneMeasurement(space, 20);
+const size = measurement.bounds.max.map((n,i)=>n-measurement.bounds.min[i]) as [number,number,number];
+const viewports = [{width:320,height:245},{width:920,height:420},{width:2048,height:852}];
+const projections:CameraProjection[]=["perspective","orthographic"];
+const views:CameraPresetView[]=["perspective","top","side","door","bottom","rear","left"];
+
+describe("engineering dimensions attached to actual measured edges",()=>{
+  it("changes display units without changing solver dimensions",()=>{
+    expect(formatDimension(2200,"mm")).toBe("2200 mm");
+    expect(formatDimension(2200,"cm")).toBe("220 cm");
+    expect(formatDimension(2200,"m")).toBe("2.2 m");
+    expect(formatDimension(144,"m")).toBe("0.144 m");
+    expect(formatDimension(620.5,"cm")).toBe("62.05 cm");
+    expect(formatDimension(17500,"mm")).toBe("17500 mm");
+  });
+
+  it("measures entered inner dimensions and oriented cartons with clearance and base height",()=>{
+    const target={...space,baseHeight:144},box={x:100,y:200,z:300,dx:2200,dy:620,dz:180};
+    const original=JSON.stringify({target,box});
+    const whole=sceneMeasurement(target,20),selected=sceneMeasurement(target,20,box);
+    expect(whole.values).toEqual({L:target.length,W:target.width,H:target.height});
+    expect(selected.values).toEqual({L:2200,W:620,H:180});
+    const scale=5.6/Math.max(target.length-40,target.width-40,target.height-20+144);
+    selected.bounds.min.forEach((n,i)=>expect(n).toBeCloseTo([(100-(target.length-40)/2)*scale,444*scale,(200-(target.width-40)/2)*scale][i],10));
+    selected.bounds.max.forEach((n,i)=>expect(n-selected.bounds.min[i]).toBeCloseTo([2200,180,620][i]*scale,10));
+    expect(JSON.stringify({target,box})).toBe(original);
+  });
+
+  it.each(projections.flatMap(projection=>views.flatMap(view=>viewports.map(viewport=>({projection,view,viewport})))))(
+    "keeps marks attached and text readable in $projection / $view at $viewport",
+    ({projection,view,viewport})=>{
+      const rig=new SceneCameraController(),camera=rig.cameras[projection],controls=new OrbitControls(camera);
+      rig.update({containerSize:size,viewport,view,projection},controls);
+      const project=cameraDimensionProjector(camera,viewport);
+      const marks=projectDimensions(measurement.bounds,measurement.values,project,viewport,{fontSize:26,bottomInset:12});
+      const expected=projection==="perspective"||view==="perspective"?["L","W","H"]:["top","bottom"].includes(view)?["L","W"]:["side","left"].includes(view)?["L","H"]:["W","H"];
+      expect(marks.map(d=>d.axis).sort()).toEqual(expected.sort());
+      const occupied:typeof marks[0]["label"][]=[];
+      for(const mark of marks){
+        expect(mark.text).toBe(`${mark.axis} ${formatDimension(measurement.values[mark.axis],"mm")}`);
+        expect(mark.label.x).toBeGreaterThanOrEqual(8);expect(mark.label.y).toBeGreaterThanOrEqual(8);
+        expect(mark.label.x+mark.label.width).toBeLessThanOrEqual(viewport.width-8);
+        expect(mark.label.y+mark.label.height).toBeLessThanOrEqual(viewport.height-20);
+        expect(occupied.some(r=>labelsOverlap(r,mark.label))).toBe(false);occupied.push(mark.label);
+        // The measured edge remains on a real corner, and its line is exactly 14 screen pixels away.
+        for(const endpoint of mark.measuredEdge){
+          const corners=[measurement.bounds.min[0],measurement.bounds.max[0]].flatMap(x=>[measurement.bounds.min[1],measurement.bounds.max[1]].flatMap(y=>[measurement.bounds.min[2],measurement.bounds.max[2]].map(z=>project([x,y,z]))));
+          expect(corners.some(p=>Math.hypot(p.x-endpoint.x,p.y-endpoint.y)<1e-8)).toBe(true);
+        }
+        mark.measuredEdge.forEach((p,i)=>expect(Math.hypot(mark.segments[2][i].x-p.x,mark.segments[2][i].y-p.y)).toBeCloseTo(14,8));
+      }
+      controls.dispose();
+    },
+  );
+
+  it("handles rotations, zoom, small pallet heights and long trucks with stable font height",()=>{
+    for(const target of TRANSPORT_PRESETS.filter(s=>["truck-17.5","20gp"].includes(s.id)).concat({...space,id:"thin-pallet",length:1200,width:800,height:144,baseHeight:0})){
+      const m=sceneMeasurement(target,0),s=m.bounds.max.map((n,i)=>n-m.bounds.min[i]) as [number,number,number];
+      for(const projection of projections)for(const viewport of viewports)for(const yaw of [.5,2,3.8,5.4])for(const zoom of [.6,1,1.5]){
+        const rig=new SceneCameraController(),camera=rig.cameras[projection],controls=new OrbitControls(camera);
+        rig.update({containerSize:s,viewport,view:"perspective",projection},controls);
+        const center=new THREE.Vector3(0,s[1]/2,0),distance=camera.position.distanceTo(center);
+        camera.position.copy(center).addScaledVector(new THREE.Vector3(Math.sin(yaw),.5,Math.cos(yaw)).normalize(),distance);
+        camera.lookAt(center);camera.zoom=zoom;camera.updateProjectionMatrix();
+        const marks=projectDimensions(m.bounds,m.values,cameraDimensionProjector(camera,viewport),viewport,{unit:"m",fontSize:22});
+        expect(marks).toHaveLength(3);
+        for(const mark of marks){expect(mark.label.height).toBe(26);expect(mark.segments.flat().every(p=>Number.isFinite(p.x+p.y))).toBe(true);expect(mark.text.endsWith(" m")).toBe(true);}
+        controls.dispose();
+      }
+    }
+  });
+
+  it("avoids existing badges with leaders and suppresses detached offscreen/behind-camera marks",()=>{
+    const viewport={width:720,height:340},rig=new SceneCameraController(),controls=new OrbitControls(rig.cameras.perspective);
+    rig.update({containerSize:size,viewport,view:"perspective",projection:"perspective"},controls);
+    const project=cameraDimensionProjector(rig.cameras.perspective,viewport),marks=projectDimensions(measurement.bounds,measurement.values,project,viewport);
+    const relaid=projectDimensions(measurement.bounds,measurement.values,project,viewport,{occupied:marks.map(d=>d.label)});
+    expect(relaid.every(d=>marks.every(m=>!labelsOverlap(d.label,m.label)))).toBe(true);
+    expect(relaid.some(d=>d.segments.length===6)).toBe(true);
+    expect(projectDimensions(measurement.bounds,measurement.values,p=>({...project(p),depth:2}),viewport)).toEqual([]);
+    expect(projectDimensions(measurement.bounds,measurement.values,p=>({...project(p),x:project(p).x+3000}),viewport)).toEqual([]);
+    controls.dispose();
+  });
+
+  it("paints blue edge lines and unboxed unit-bearing text, included in the canvas layer",()=>{
+    const viewport={width:720,height:340},rig=new SceneCameraController(),controls=new OrbitControls(rig.cameras.perspective);
+    rig.update({containerSize:size,viewport,view:"perspective",projection:"perspective"},controls);
+    const marks=projectDimensions(measurement.bounds,measurement.values,cameraDimensionProjector(rig.cameras.perspective,viewport),viewport,{unit:"cm",fontSize:22});
+    const text:string[]=[],segments:number[][]=[],strokeColors:string[]=[];
+    const ctx={font:"",strokeStyle:"",fillStyle:"",beginPath(){},moveTo(x:number,y:number){segments.push([x,y]);},lineTo(x:number,y:number){segments.push([x,y]);},stroke(){strokeColors.push(this.strokeStyle);},strokeText(){},fillText(value:string){text.push(value);}};
+    paintDimensions(ctx as unknown as CanvasRenderingContext2D,marks,22);
+    expect(ctx.font).toBe("600 22px Arial, sans-serif");expect(ctx.fillStyle).toBe("#137d83");expect(strokeColors).toEqual(["#467ee6"]);
+    expect(segments.length).toBeGreaterThanOrEqual(30);expect(text).toEqual(marks.map(d=>d.text));
+    controls.dispose();
+  });
+});

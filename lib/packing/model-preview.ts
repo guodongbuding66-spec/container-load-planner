@@ -34,5 +34,5 @@ export function projectModelPreview(parts: TransportPart[], bounds: { size: Scen
     });
   });
   faces.sort((a,b)=>b.depth-a.depth);
-  return { faces, project };
+  return { faces, project, camera };
 }

@@ -3,13 +3,19 @@ import { createContext, useContext, useId, useMemo, useState, type ReactNode } f
 import { Box, ScanLine } from "lucide-react";
 import { DEFAULT_TRANSPARENCY, type TransportDisplayMode } from "../lib/packing/transport-model";
 import { tr, useLanguage } from "./language";
+import type { DimensionUnit } from "../lib/packing/scene-dimensions";
 
-type Appearance = { mode: TransportDisplayMode; transparency: number; setMode: (mode: TransportDisplayMode) => void; setTransparency: (value: number) => void };
+type Appearance = { mode: TransportDisplayMode; transparency: number; setMode: (mode: TransportDisplayMode) => void; setTransparency: (value: number) => void;
+  dimensions:boolean;setDimensions:(value:boolean)=>void; labels:boolean;setLabels:(value:boolean)=>void;
+  dimensionUnit:DimensionUnit;setDimensionUnit:(unit:DimensionUnit)=>void;dimensionFontSize:number;setDimensionFontSize:(size:number)=>void;
+};
 const Context = createContext<Appearance | null>(null);
 export function TransportAppearanceProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<TransportDisplayMode>("model");
   const [transparency, setTransparency] = useState(DEFAULT_TRANSPARENCY);
-  const value = useMemo(() => ({ mode, setMode, transparency, setTransparency }), [mode, transparency]);
+  const [dimensions,setDimensions]=useState(true),[labels,setLabels]=useState(true);
+  const [dimensionUnit,setDimensionUnit]=useState<DimensionUnit>("mm"),[dimensionFontSize,setDimensionFontSize]=useState(18);
+  const value = useMemo(() => ({ mode, setMode, transparency, setTransparency,dimensions,setDimensions,labels,setLabels,dimensionUnit,setDimensionUnit,dimensionFontSize,setDimensionFontSize }), [mode, transparency,dimensions,labels,dimensionUnit,dimensionFontSize]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 export function useTransportAppearance() {
