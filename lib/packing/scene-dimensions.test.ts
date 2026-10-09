@@ -43,7 +43,9 @@ describe("engineering dimensions attached to actual measured edges",()=>{
       rig.update({containerSize:size,viewport,view,projection},controls);
       const project=cameraDimensionProjector(camera,viewport);
       const marks=projectDimensions(measurement.bounds,measurement.values,project,viewport,{fontSize:26,bottomInset:12});
-      const expected=projection==="perspective"||view==="perspective"?["L","W","H"]:["top","bottom"].includes(view)?["L","W"]:["side","left"].includes(view)?["L","H"]:["W","H"];
+      // A directly facing axis lies inside the silhouette even in perspective.
+      // Its foreshortened corner edges must not create misleading interior marks.
+      const expected=view==="perspective"?["L","W","H"]:["top","bottom"].includes(view)?["L","W"]:["side","left"].includes(view)?["L","H"]:["W","H"];
       expect(marks.map(d=>d.axis).sort()).toEqual(expected.sort());
       const occupied:typeof marks[0]["label"][]=[];
       for(const mark of marks){
@@ -101,6 +103,65 @@ describe("engineering dimensions attached to actual measured edges",()=>{
     paintDimensions(ctx as unknown as CanvasRenderingContext2D,marks,22);
     expect(ctx.font).toBe("600 22px Arial, sans-serif");expect(ctx.fillStyle).toBe("#137d83");expect(strokeColors).toEqual(["#467ee6"]);
     expect(segments.length).toBeGreaterThanOrEqual(30);expect(text).toEqual(marks.map(d=>d.text));
+    controls.dispose();
+  });
+
+  it.each(projections)("keeps all measured edges on the silhouette through a full orbit in %s",projection=>{
+    const viewport={width:920,height:420},rig=new SceneCameraController(),camera=rig.cameras[projection],controls=new OrbitControls(camera);
+    rig.update({containerSize:size,viewport,view:"perspective",projection},controls);
+    const center=new THREE.Vector3(0,size[1]/2,0),distance=camera.position.distanceTo(center);
+    let previousEdges:Partial<Record<"L"|"W"|"H",string>>={};
+    for(const pitch of [-1.3,-.4,0,.4,1.3])for(let degrees=0;degrees<360;degrees+=3){
+      const yaw=degrees*Math.PI/180;
+      camera.position.copy(center).add(new THREE.Vector3(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch)).multiplyScalar(distance));camera.lookAt(center);
+      const project=cameraDimensionProjector(camera,viewport),marks=projectDimensions(measurement.bounds,measurement.values,project,viewport,{fontSize:18,style:"ruler",previousEdges});
+      expect(marks.length).toBeGreaterThanOrEqual(2);
+      const corners=[measurement.bounds.min[0],measurement.bounds.max[0]].flatMap(x=>[measurement.bounds.min[1],measurement.bounds.max[1]].flatMap(y=>[measurement.bounds.min[2],measurement.bounds.max[2]].map(z=>project([x,y,z]))));
+      const labels=marks.flatMap(d=>[d.label,...d.ticks.map(t=>t.label)]);
+      for(const d of marks){
+        const [start]=d.measuredEdge,n=d.normal;
+        for(const p of corners)expect(n.x*(p.x-start.x)+n.y*(p.y-start.y)).toBeLessThanOrEqual(.50001);
+        for(const p of corners)expect(n.x*(p.x-d.segments[2][0].x)+n.y*(p.y-d.segments[2][0].y)).toBeLessThanOrEqual(-13.49999);
+        expect(d.text).toBe(`${d.axis} ${formatDimension(measurement.values[d.axis],"mm")}`);
+      }
+      labels.forEach((r,i)=>expect(labels.slice(i+1).some(other=>labelsOverlap(r,other))).toBe(false));
+      previousEdges=Object.fromEntries(marks.map(d=>[d.axis,d.edgeId]));
+    }
+    controls.dispose();
+  });
+
+  it("projects ruler ticks at physical distances and keeps unit-independent intervals",()=>{
+    const viewport={width:1200,height:600},rig=new SceneCameraController(),camera=rig.cameras.perspective,controls=new OrbitControls(camera);
+    rig.update({containerSize:size,viewport,view:"perspective",projection:"perspective"},controls);
+    const project=cameraDimensionProjector(camera,viewport);
+    const mm=projectDimensions(measurement.bounds,measurement.values,project,viewport,{style:"ruler"}),cm=projectDimensions(measurement.bounds,measurement.values,project,viewport,{style:"ruler",unit:"cm"});
+    expect(mm.flatMap(d=>d.ticks).length).toBeGreaterThan(0);
+    for(const d of mm){
+      const same=cm.find(m=>m.axis===d.axis)!;expect(same.segments).toEqual(d.segments);
+      // Every tick starts at a projection of a point on the measured 3D edge.
+      const [a,b]=d.measuredEdge,coordinate=d.axis==="L"?0:d.axis==="W"?2:1;
+      const worldA=new THREE.Vector3((a.x/viewport.width)*2-1,1-(a.y/viewport.height)*2,a.depth).unproject(camera),worldB=new THREE.Vector3((b.x/viewport.width)*2-1,1-(b.y/viewport.height)*2,b.depth).unproject(camera);
+      for(const [tick] of d.segments.slice(5)){
+        const onLine={x:tick.x-d.normal.x*11,y:tick.y-d.normal.y*11};
+        const dx=b.x-a.x,dy=b.y-a.y,t=((onLine.x-a.x)*dx+(onLine.y-a.y)*dy)/(dx*dx+dy*dy),depth=a.depth+(b.depth-a.depth)*t;
+        const world=new THREE.Vector3(onLine.x/viewport.width*2-1,1-onLine.y/viewport.height*2,depth).unproject(camera);
+        for(const i of [0,1,2].filter(i=>i!==coordinate))expect(world.getComponent(i)).toBeCloseTo(worldA.getComponent(i),6);
+        expect(world.getComponent(coordinate)).toBeGreaterThanOrEqual(Math.min(worldA.getComponent(coordinate),worldB.getComponent(coordinate))-1e-8);
+        expect(world.getComponent(coordinate)).toBeLessThanOrEqual(Math.max(worldA.getComponent(coordinate),worldB.getComponent(coordinate))+1e-8);
+      }
+    }
+    controls.dispose();
+  });
+
+  it("uses custom colours in the exported canvas and rejects invalid zero ruler ranges",()=>{
+    const viewport={width:720,height:340},rig=new SceneCameraController(),controls=new OrbitControls(rig.cameras.perspective);
+    rig.update({containerSize:size,viewport,view:"perspective",projection:"perspective"},controls);
+    const project=cameraDimensionProjector(rig.cameras.perspective,viewport),marks=projectDimensions(measurement.bounds,measurement.values,project,viewport,{style:"ruler"});
+    const strokes:string[]=[],fills:string[]=[];
+    const ctx={strokeStyle:"",fillStyle:"",beginPath(){},moveTo(){},lineTo(){},stroke(){strokes.push(this.strokeStyle);},strokeText(){},fillText(){fills.push(this.fillStyle);}};
+    paintDimensions(ctx as unknown as CanvasRenderingContext2D,marks,18,{lineColor:"#ff6600",textColor:"#5522aa"});
+    expect(strokes).toEqual(["#ff6600"]);expect(fills.length).toBeGreaterThan(3);expect(new Set(fills)).toEqual(new Set(["#5522aa"]));
+    expect(projectDimensions(measurement.bounds,{...measurement.values,L:0},project,viewport,{style:"ruler"})).toEqual([]);
     controls.dispose();
   });
 });

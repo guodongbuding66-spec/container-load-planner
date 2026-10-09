@@ -35,7 +35,7 @@ export function LoadingSceneFallback({result,visibleProducts,visibleCount,select
     const a=project([b.x*scale+offset[0],b.z*scale+offset[1],b.y*scale+offset[2]]),c=project([(b.x+b.dx)*scale+offset[0],(b.z+b.dz)*scale+offset[1],(b.y+b.dy)*scale+offset[2]]);
     return {x:Math.min(a.x,c.x),y:Math.min(a.y,c.y),width:Math.abs(c.x-a.x),height:Math.abs(c.y-a.y)};
   };
-  const measurement=sceneMeasurement(space,result.clearance,selected??undefined),dimensions=appearance.dimensions?projectDimensions(measurement.bounds,measurement.values,project,viewport,{unit:appearance.dimensionUnit,fontSize:appearance.dimensionFontSize,bottomInset:12}):[];
+  const measurement=sceneMeasurement(space,result.clearance,selected??undefined),dimensions=appearance.dimensions?projectDimensions(measurement.bounds,measurement.values,project,viewport,{unit:appearance.dimensionUnit,fontSize:appearance.dimensionFontSize,style:appearance.dimensionStyle,bottomInset:12}):[];
   const occupied:LabelRect[]=dimensions.map(d=>d.label),seen=new Set<string>();
   const labels=appearance.labels?footprints.filter(b=>{if(seen.has(b.productId))return false;seen.add(b.productId);return true;}).map(b=>{const r=rectFor(b),label=layoutSceneLabel({x:r.x+r.width/2-b.sku.length*3.5,y:r.y+r.height/2-9,width:b.sku.length*7+12,height:20},viewport,occupied);occupied.push(label);return {id:b.productId,sku:b.sku,label};}):[];
   return <div className="scene-fallback"><div ref={host} className="fallback-model-stage"><svg viewBox={`0 0 ${viewport.width} ${viewport.height}`} role="img" aria-label={tr("真实坐标俯视图", "Actual-coordinate top view")}>
@@ -43,6 +43,6 @@ export function LoadingSceneFallback({result,visibleProducts,visibleCount,select
     {(result.pallets??[]).map(p=><rect key={p.id} {...rectFor(p)} fill="#dbc099" stroke="#b39670" strokeWidth={1} role="button" tabIndex={0} aria-label={`${tr("托盘", "Pallet")} ${p.id}`} onClick={()=>onSelect({...p,productId:p.id,sku:p.name,color:"#d4af7b",layer:0,orientation:"LWH",supportOnly:true})} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();onSelect({...p,productId:p.id,sku:p.name,color:"#d4af7b",layer:0,orientation:"LWH",supportOnly:true});}}}/>)}
     {footprints.map(b=><rect key={b.id} {...rectFor(b)} fill={b.color} stroke={selected?.id===b.id?"#da8c2e":"#ffffffaa"} strokeWidth={selected?.id===b.id?2:1} role="button" tabIndex={0} aria-label={`${b.sku} ${b.id}`} onClick={()=>onSelect(b)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();onSelect(b);}}}/>)}
     <g className="fallback-sku-labels" pointerEvents="none">{labels.map(({id,sku,label})=><g key={id}><rect {...label} rx={3} fill="#f7fbfbef"/><text x={label.x+label.width/2} y={label.y+14} textAnchor="middle" fill="#376272" fontSize={13} fontFamily="Arial, sans-serif">{sku}</text></g>)}</g>
-    {appearance.dimensions&&<DimensionSvg dimensions={dimensions} fontSize={appearance.dimensionFontSize}/>}
+    {appearance.dimensions&&<DimensionSvg dimensions={dimensions} fontSize={appearance.dimensionFontSize} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}
   </svg></div><strong>{tr("当前浏览器未启用 WebGL")}</strong><span>{tr("已切换为真实坐标俯视图；装柜计算、校验与导出不受影响。")}</span></div>;
 }

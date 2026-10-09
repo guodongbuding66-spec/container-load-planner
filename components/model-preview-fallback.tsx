@@ -24,7 +24,7 @@ export function ModelPreviewFallback({ space, pallet, mode, transparency }: {spa
   const bounds=useMemo(()=>pallet?{size:[length,height,width] as SceneSize,origin:[0,0,0] as SceneSize}:transportSceneBounds(target,1,mode,0),[pallet,target,length,width,height,mode]);
   const {faces,project}=useMemo(()=>projectModelPreview(parts,{...bounds,size:bounds.size.map(n=>n/zoom) as SceneSize,origin:[bounds.origin[0],bounds.origin[1]+bounds.size[1]*(1-1/zoom)/2,bounds.origin[2]]},[Math.sin(orbit.yaw)*Math.cos(orbit.pitch),Math.sin(orbit.pitch),Math.cos(orbit.yaw)*Math.cos(orbit.pitch)],viewport.width,viewport.height),[parts,bounds,orbit,zoom,viewport]);
   const corners:SceneSize[]=[[-length/2,0,-width/2],[length/2,0,-width/2],[length/2,height,-width/2],[-length/2,height,-width/2],[-length/2,0,width/2],[length/2,0,width/2],[length/2,height,width/2],[-length/2,height,width/2]];
-  const dimensions=appearance.dimensions?projectDimensions({min:[-length/2,0,-width/2],max:[length/2,height,width/2]},{L:length,W:width,H:height},project,viewport,{unit:appearance.dimensionUnit,fontSize:appearance.dimensionFontSize,bottomInset:25}):[];
+  const dimensions=appearance.dimensions?projectDimensions({min:[-length/2,0,-width/2],max:[length/2,height,width/2]},{L:length,W:width,H:height},project,viewport,{unit:appearance.dimensionUnit,fontSize:appearance.dimensionFontSize,style:appearance.dimensionStyle,bottomInset:25}):[];
   const opacity=pallet?1:transportOpacity(transparency);
   return <div ref={host} className="model-fallback-preview">
     <svg viewBox={`0 0 ${viewport.width} ${viewport.height}`} role="img" aria-label={tr("简化模型预览", "Simplified model preview")} tabIndex={0}
@@ -35,7 +35,7 @@ export function ModelPreviewFallback({ space, pallet, mode, transparency }: {spa
       onWheel={e=>setZoom(v=>Math.max(.6,Math.min(1.5,v-e.deltaY*.001)))}>
       <g opacity={opacity}>{faces.map(f=><polygon key={f.id} data-part={f.name} points={f.points} fill={f.color} stroke={f.color} strokeWidth={.35}/>)}</g>
       {!pallet&&<g fill="none" stroke="#608995" strokeWidth={mode==="wireframe"?1.5:.7} opacity={mode==="wireframe"?1:.45}>{[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]].map(([a,b])=>{const start=project(corners[a]),end=project(corners[b]);return <line key={`${a}-${b}`} x1={start.x} y1={start.y} x2={end.x} y2={end.y}/>;})}</g>}
-      {appearance.dimensions&&<DimensionSvg dimensions={dimensions} fontSize={appearance.dimensionFontSize}/>}
+      {appearance.dimensions&&<DimensionSvg dimensions={dimensions} fontSize={appearance.dimensionFontSize} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}
     </svg>
     <button className="model-preview-reset" type="button" aria-label={tr("重置模型视角", "Reset model view")} onClick={()=>{setOrbit({yaw:.72,pitch:.42});setZoom(1);}}><RotateCcw size={14}/></button>
     <span className="model-fallback-note">{tr("WebGL 未启用 · 简化模型预览", "WebGL unavailable · simplified model preview")}</span>

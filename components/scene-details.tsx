@@ -39,7 +39,7 @@ export function PalletStructures({ pallets, scale, offset, onSelect }: {pallets:
   const parts=useMemo(()=>pallets.flatMap(p=>palletParts(p.dx,p.dy,p.dz).map(part=>({...part,x:part.x+p.x,y:part.y+p.y,z:part.z+p.z,flat:p.dz<50,pallet:p}))),[pallets]);
   useLayoutEffect(()=>{if(!ref.current)return;const dummy=new THREE.Object3D();parts.forEach((p,i)=>{dummy.position.set((p.x+p.dx/2)*scale+offset.x,(p.z+p.dz/2)*scale+offset.y,(p.y+p.dy/2)*scale+offset.z);dummy.scale.set(p.dx*scale*.997,p.dz*scale*.995,p.dy*scale*.997);dummy.updateMatrix();ref.current!.setMatrixAt(i,dummy.matrix);ref.current!.setColorAt(i,new THREE.Color(p.flat?"#98a4ae":p.kind==="block"?"#ac8151":"#d4af7b"));});ref.current.instanceMatrix.needsUpdate=true;if(ref.current.instanceColor)ref.current.instanceColor.needsUpdate=true;ref.current.computeBoundingSphere();},[parts,scale,offset]);
   if(!parts.length)return null;
-  return <instancedMesh ref={ref} args={[undefined,undefined,parts.length]} onClick={e=>{if(onSelect&&e.instanceId!==undefined){e.stopPropagation();onSelect(parts[e.instanceId].pallet);}}}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>;
+  return <instancedMesh ref={ref} args={[undefined,undefined,parts.length]} onClick={e=>{if(e.delta>3)return;if(onSelect&&e.instanceId!==undefined){e.stopPropagation();onSelect(parts[e.instanceId].pallet);}}}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>;
 }
 
 export function MetricLabel({text,position,size=.09,color="#376272",screenOffset=[0,0]}:{text:string;position:[number,number,number];size?:number;color?:string;screenOffset?:[number,number]}){
@@ -54,5 +54,5 @@ export function MetricLabel({text,position,size=.09,color="#376272",screenOffset
 
 /** Selection is separate from measurements; the Dimensions switch never clears selection. */
 export function SelectionOutline({box,scale,offset}:{box:{x:number;y:number;z:number;dx:number;dy:number;dz:number};scale:number;offset:THREE.Vector3}) {
-  return <mesh name="selection-outline" position={[(box.x+box.dx/2)*scale+offset.x,(box.z+box.dz/2)*scale+offset.y,(box.y+box.dy/2)*scale+offset.z]} raycast={()=>{}}><boxGeometry args={[box.dx*scale,box.dz*scale,box.dy*scale]}/><meshBasicMaterial visible={false}/><Edges color="#da8c2e"/></mesh>;
+  return <mesh name="selection-outline" position={[(box.x+box.dx/2)*scale+offset.x,(box.z+box.dz/2)*scale+offset.y,(box.y+box.dy/2)*scale+offset.z]} raycast={()=>{}}><boxGeometry args={[box.dx*scale,box.dz*scale,box.dy*scale]}/><meshBasicMaterial visible={false}/><Edges color="#da8c2e" depthTest={false} depthWrite={false} renderOrder={LABEL_RENDER_ORDER-1}/></mesh>;
 }

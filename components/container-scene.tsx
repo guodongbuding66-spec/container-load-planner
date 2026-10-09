@@ -87,7 +87,7 @@ function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSele
     meshRef.current.instanceMatrix.needsUpdate=true;meshRef.current.computeBoundingSphere();
     if(baseRef.current){parts.forEach((p,i)=>{transform.position.set((p.x+p.dx/2)*scale+offset.x,(p.z+p.dz/2)*scale+offset.y,(p.y+p.dy/2)*scale+offset.z);transform.scale.set(p.dx*scale*.997,p.dz*scale*.995,p.dy*scale*.997);transform.updateMatrix();baseRef.current!.setMatrixAt(i,transform.matrix);baseRef.current!.setColorAt(i,new THREE.Color(p.kind==="block"?"#ac8151":"#d4af7b"));});baseRef.current.instanceMatrix.needsUpdate=true;if(baseRef.current.instanceColor)baseRef.current.instanceColor.needsUpdate=true;baseRef.current.computeBoundingSphere();}
   },[group.boxes,group.baseHeight,group.cargoType,parts,materials,offset,scale,transform]);
-  return <><instancedMesh ref={meshRef} args={[undefined,materials,group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering} onClick={e=>{e.stopPropagation();if(e.instanceId!==undefined)onSelect(group.boxes[e.instanceId]);}}><boxGeometry args={[1,1,1]}/></instancedMesh>{parts.length>0&&<instancedMesh ref={baseRef} args={[undefined,undefined,parts.length]}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>}</>;
+  return <><instancedMesh ref={meshRef} args={[undefined,materials,group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering} onClick={e=>{if(e.delta>3)return;e.stopPropagation();if(e.instanceId!==undefined)onSelect(group.boxes[e.instanceId]);}}><boxGeometry args={[1,1,1]}/></instancedMesh>{parts.length>0&&<instancedMesh ref={baseRef} args={[undefined,undefined,parts.length]}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>}</>;
 }
 
 function SceneCapture({ register }: { register: (capture: () => Promise<Blob>) => void }) {
@@ -153,7 +153,7 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
       ))}
       {selected && <SelectionOutline box={selected} scale={scale} offset={offset}/>}
       {labels && annotations.map(([id,a])=><MetricLabel key={id} text={a.sku} size={.12} position={[(a.minX+a.maxX)/2*scale+offset.x,a.maxY*scale+offset.y+.15,(a.minZ+a.maxZ)/2*scale+offset.z]}/>)}
-      {appearance.dimensions&&<SceneDimensions bounds={measurement.bounds} values={measurement.values} unit={appearance.dimensionUnit} fontSize={appearance.dimensionFontSize}/>}
+      {appearance.dimensions&&<SceneDimensions bounds={measurement.bounds} values={measurement.values} unit={appearance.dimensionUnit} fontSize={appearance.dimensionFontSize} style={appearance.dimensionStyle} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}
       {!presentation && modelMode === "wireframe" && <gridHelper args={[Math.max(size[0], size[2]) * 1.25, 16, "#91a6ab", "#d9e1e3"]} position={[0, -0.02, 0]} />}
     </group>
   );

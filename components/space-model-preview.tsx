@@ -40,7 +40,7 @@ export function SpaceModelPreview({ pallet, space }: { pallet?: FloorPalletConfi
         <Canvas dpr={[1,1.5]} gl={{antialias:true}}>
           <color attach="background" args={["#f3f7f7"]}/><ambientLight intensity={1.5}/><directionalLight position={[2,5,4]} intensity={2}/>
           {pallet?<PalletStructures pallets={base} scale={scale} offset={offset}/>:space&&<TransportModel space={space} scale={scale} mode={appearance.mode} transparency={appearance.transparency}/>}
-          {appearance.dimensions&&<SceneDimensions bounds={dimensionBounds} values={{L:length,W:width,H:height}} unit={appearance.dimensionUnit} fontSize={appearance.dimensionFontSize}/>}
+          {appearance.dimensions&&<SceneDimensions bounds={dimensionBounds} values={{L:length,W:width,H:height}} unit={appearance.dimensionUnit} fontSize={appearance.dimensionFontSize} style={appearance.dimensionStyle} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}
           <SceneCameraRig controller={controller} containerSize={containerSize} sceneBounds={sceneBounds} view={view} projection="perspective" onInteraction={()=>setView("free")} enablePan={false}/>
         </Canvas>
       </SceneErrorBoundary>}
