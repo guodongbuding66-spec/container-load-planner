@@ -24,7 +24,8 @@ export function ModelPreviewFallback({ space, pallet, mode, transparency }: {spa
   const bounds=useMemo(()=>pallet?{size:[length,height,width] as SceneSize,origin:[0,0,0] as SceneSize}:transportSceneBounds(target,1,mode,0),[pallet,target,length,width,height,mode]);
   const {faces,project}=useMemo(()=>projectModelPreview(parts,{...bounds,size:bounds.size.map(n=>n/zoom) as SceneSize,origin:[bounds.origin[0],bounds.origin[1]+bounds.size[1]*(1-1/zoom)/2,bounds.origin[2]]},[Math.sin(orbit.yaw)*Math.cos(orbit.pitch),Math.sin(orbit.pitch),Math.cos(orbit.yaw)*Math.cos(orbit.pitch)],viewport.width,viewport.height),[parts,bounds,orbit,zoom,viewport]);
   const corners:SceneSize[]=[[-length/2,0,-width/2],[length/2,0,-width/2],[length/2,height,-width/2],[-length/2,height,-width/2],[-length/2,0,width/2],[length/2,0,width/2],[length/2,height,width/2],[-length/2,height,width/2]];
-  const dimensions=appearance.dimensions?projectDimensions({min:[-length/2,0,-width/2],max:[length/2,height,width/2]},{L:length,W:width,H:height},project,viewport,{unit:appearance.dimensionUnit,fontSize:appearance.dimensionFontSize,style:appearance.dimensionStyle,bottomInset:25}):[];
+  // The note and reset button share the top strip; labels must avoid both.
+  const dimensions=appearance.dimensions?projectDimensions({min:[-length/2,0,-width/2],max:[length/2,height,width/2]},{L:length,W:width,H:height},project,viewport,{unit:appearance.dimensionUnit,fontSize:appearance.dimensionFontSize,style:appearance.dimensionStyle,bottomInset:25,occupied:[{x:0,y:0,width:viewport.width,height:40}]}):[];
   const opacity=pallet?1:transportOpacity(transparency);
   return <div ref={host} className="model-fallback-preview">
     <svg viewBox={`0 0 ${viewport.width} ${viewport.height}`} role="img" aria-label={tr("简化模型预览", "Simplified model preview")} tabIndex={0}

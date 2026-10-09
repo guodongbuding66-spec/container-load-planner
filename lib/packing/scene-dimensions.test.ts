@@ -6,6 +6,8 @@ import type { CameraPresetView, CameraProjection } from "./camera-fit";
 import { cameraDimensionProjector, formatDimension, paintDimensions, projectDimensions, sceneMeasurement } from "./scene-dimensions";
 import { labelsOverlap } from "./scene-labels";
 import { TRANSPORT_PRESETS } from "./transport-library";
+import { projectModelPreview } from "./model-preview";
+import { transportSceneBounds } from "./transport-model";
 
 const space = TRANSPORT_PRESETS.find(s=>s.id==="20gp")!;
 const measurement = sceneMeasurement(space, 20);
@@ -92,6 +94,20 @@ describe("engineering dimensions attached to actual measured edges",()=>{
     expect(projectDimensions(measurement.bounds,measurement.values,p=>({...project(p),depth:2}),viewport)).toEqual([]);
     expect(projectDimensions(measurement.bounds,measurement.values,p=>({...project(p),x:project(p).x+3000}),viewport)).toEqual([]);
     controls.dispose();
+  });
+
+  it("keeps small preview labels clear of the WebGL note and reset control",()=>{
+    const truck=TRANSPORT_PRESETS.find(s=>s.id==="truck-4.2")!;
+    const pallet={...truck,length:1200,width:800,height:144};
+    for(const target of [truck,pallet])for(const fontSize of [18,22,26])for(const yaw of [.72,1.32,2.72,4.72]){
+      const viewport={width:285,height:245};
+      const bounds=target===truck?transportSceneBounds(target,1,"model",0):{size:[target.length,target.height,target.width] as [number,number,number],origin:[0,0,0] as [number,number,number]};
+      const {project}=projectModelPreview([],bounds,[Math.sin(yaw)*Math.cos(.42),Math.sin(.42),Math.cos(yaw)*Math.cos(.42)],viewport.width,viewport.height);
+      const controls={x:0,y:0,width:viewport.width,height:40};
+      const marks=projectDimensions({min:[-target.length/2,0,-target.width/2],max:[target.length/2,target.height,target.width/2]},{L:target.length,W:target.width,H:target.height},project,viewport,{occupied:[controls],bottomInset:25,fontSize,style:"ruler"});
+      expect(marks).toHaveLength(3);
+      for(const rect of marks.flatMap(d=>[d.label,...d.ticks.map(t=>t.label)]))expect(labelsOverlap(rect,controls)).toBe(false);
+    }
   });
 
   it("paints blue edge lines and unboxed unit-bearing text, included in the canvas layer",()=>{
