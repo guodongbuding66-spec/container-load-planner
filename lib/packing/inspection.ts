@@ -70,6 +70,6 @@ export function sectionBox<T extends BoundsBox>(box:T,result:Pick<PackingResult,
 }
 export function inspectBoxes(result:PackingResult,visibleProducts:Set<string>,visibleCount:number,section:Section) {
   return result.placements.slice(0,visibleCount).filter(b=>visibleProducts.has(b.productId)&&(
-    section.isolation==="all"||section.isolation==="pallet"?section.isolation==="all"||b.palletIds?.includes(section.target):isolationKey(b,section.isolation)===section.target
+    section.isolation==="all"||(!!section.target&&(section.isolation==="pallet"?b.palletIds?.includes(section.target):isolationKey(b,section.isolation)===section.target))
   )).flatMap(b=>{const display=sectionBox(b,result,section);return display?[display]:[];});
 }

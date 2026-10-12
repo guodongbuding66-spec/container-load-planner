@@ -53,6 +53,8 @@ it("mounts clipped geometry and real measurement overlays, preserves the plan, l
     expect((line.material as THREE.Material).depthTest).toBe(false);
     const locked=inspection.measurement;
     await act(async()=>inspection.update({locked:true}));await act(async()=>inspection.pick(result.placements[1],[0,0,0]));expect(inspection.measurement).toEqual(locked);
+    await act(async()=>inspection.update({section:{...EMPTY_SECTION,isolation:"set",target:""}}));expect(inspection.displayBoxes).toHaveLength(0);expect(inspection.measurement).toBeNull();expect(inspection.pickedCount).toBe(0);
+    await act(async()=>inspection.update({section:{...EMPTY_SECTION}}));expect(inspection.measurement).toEqual(locked);
     await act(async()=>appearance.setDimensions(false));expect(scene().getObjectByName("scene-measurement")).toBeUndefined();expect(scene().getObjectByName("scene-dimensions")).toBeUndefined();
     await act(async()=>appearance.setDimensions(true));expect(scene().getObjectByName("scene-measurement")).toBeDefined();
     await act(async()=>setPlan({...result,placements:result.placements.map(b=>({...b,x:b.x+1}))}));expect(inspection.measurement).toBeNull();expect(inspection.value.mode).toBe("off");

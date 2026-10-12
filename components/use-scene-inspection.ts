@@ -27,6 +27,6 @@ export function useSceneInspection(result:PackingResult|null,visibleProducts:Set
     const start=validPoints.length===1?validPoints:[],boxes=validPoints.length===1?validBoxes:[];
     update({points:[...start,snapBoxPoint(box,point,appearance.measureSnap)],boxes:[...boxes,original]});
   };
-  return {value,measurement,displayBoxes,update,pick,setMode:(mode:MeasureMode)=>update({mode,points:[],boxes:[],locked:false}),clear:()=>update({points:[],boxes:[],locked:false})};
+  return {value,measurement,displayBoxes,pickedCount:value.mode==="points"?validPoints.length:validBoxes.length,update,pick,setMode:(mode:MeasureMode)=>update({mode,points:[],boxes:[],locked:false}),clear:()=>update({points:[],boxes:[],locked:false})};
 }
 export type SceneInspection=ReturnType<typeof useSceneInspection>;

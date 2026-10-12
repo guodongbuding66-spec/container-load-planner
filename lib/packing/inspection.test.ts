@@ -43,6 +43,9 @@ describe("real-coordinate measurement and view-only sectioning",()=>{
     const result={...physical,placements} as PackingResult,visible=new Set(["p"]),before=JSON.stringify(result);
     for(const section of [{...EMPTY_SECTION,isolation:"layer" as const,target:"1"},{...EMPTY_SECTION,isolation:"pallet" as const,target:"pallet-a"},{...EMPTY_SECTION,isolation:"set" as const,target:JSON.stringify(["KIT",1])}])expect(inspectBoxes(result,visible,2,section).map(b=>b.id)).toEqual(["a"]);
     expect(inspectBoxes(result,visible,0,EMPTY_SECTION)).toEqual([]);expect(inspectBoxes(result,new Set(),2,EMPTY_SECTION)).toEqual([]);
+    expect(inspectBoxes(result,visible,2,{...EMPTY_SECTION,isolation:"set",target:""})).toEqual([]);
+    const loose={...result,placements:placements.map(b=>({...b,setCode:undefined,setNumber:undefined}))};
+    expect(inspectBoxes(loose,visible,2,{...EMPTY_SECTION,isolation:"set",target:""})).toEqual([]);
     expect(JSON.stringify(result)).toBe(before);
   });
   it("validates stored preferences, bounds panel widths and ignores malformed or injected values",()=>{
