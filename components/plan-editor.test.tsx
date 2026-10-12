@@ -25,7 +25,8 @@ it("shares validated drafts, undo/redo, selection and adoption, and drops drafts
 it("mounts a real transform gizmo on a scene parent and converts Three X/Y/Z into physical X/Z/Y",async()=>{
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT",true);extend({Group:THREE.Group});
   const documentStub={addEventListener(){},removeEventListener(){}};vi.stubGlobal("document",documentStub);
-  const canvas={style:{},ownerDocument:documentStub,addEventListener(){},removeEventListener(){},getBoundingClientRect(){return {left:0,top:0,width:800,height:400};}} as unknown as HTMLCanvasElement;
+  const listeners=new Map<string,()=>void>();
+  const canvas={style:{},ownerDocument:documentStub,addEventListener(type:string,handler:()=>void){if(type==="pointercancel")listeners.set(type,handler);},removeEventListener(type:string){if(type==="pointercancel")listeners.delete(type);},getBoundingClientRect(){return {left:0,top:0,width:800,height:400};}} as unknown as HTMLCanvasElement;
   const renderer={domElement:canvas,render(){},setPixelRatio(){},getPixelRatio(){return 1;},setSize(){}} as unknown as THREE.WebGLRenderer,root=createRoot(canvas);await root.configure({gl:renderer,frameloop:"never",size:{width:800,height:400,top:0,left:0}});
   const box={id:"a",productId:"a",sku:"A",name:"A",x:100,y:200,z:300,dx:500,dy:400,dz:200,weight:10,layer:1,color:"#448877",orientation:"LWH"};
   const moved=vi.fn(),drag=vi.fn(),editor={selected:[box],rectangle:false,grid:10,move:moved,selectMany:vi.fn()} as unknown as PlanEditor;
@@ -34,5 +35,6 @@ it("mounts a real transform gizmo on a scene parent and converts Three X/Y/Z int
     expect(control).toBeDefined();expect(control.object.parent).not.toBeNull();expect(control.translationSnap).toBe(.1);
     await act(async()=>control.dispatchEvent({type:"mouseDown"}));control.object.position.add(new THREE.Vector3(.2,.3,.4));await act(async()=>control.dispatchEvent({type:"mouseUp"}));
     expect(moved.mock.calls[0][0].x).toBeCloseTo(20);expect(moved.mock.calls[0][0].y).toBeCloseTo(40);expect(moved.mock.calls[0][0].z).toBeCloseTo(30);expect(drag.mock.calls).toEqual([[true],[false]]);
+    const anchor=control.object,before=anchor.position.clone();await act(async()=>control.dispatchEvent({type:"mouseDown"}));anchor.position.x+=.7;await act(async()=>listeners.get("pointercancel")!());expect(moved).toHaveBeenCalledTimes(1);expect(before.distanceTo(anchor.position)).toBe(0);expect(drag.mock.calls.at(-1)).toEqual([false]);
   }finally{await act(async()=>root.unmount());_roots.delete(canvas);}
 });

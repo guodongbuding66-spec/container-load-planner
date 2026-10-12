@@ -35,7 +35,7 @@ export function analyzeEmptySpaces(plan:PackingResult,limit=600){
   spaces=mergeSpaces(spaces).sort((a,b)=>volume(b)-volume(a));
   return {spaces:spaces.map((s,i)=>({...s,id:`gap-${i+1}`})),truncated,incomplete:false,coveredVolume:spaces.reduce((n,s)=>n+volume(s),0)};
 }
-export type SpaceProbe={candidate:PlacedBox|null;status:"fits"|"kit"|"weight"|"door"|"not-found"|"invalid";errors:string[];tested:number};
+export type SpaceProbe={candidate:PlacedBox|null;status:"fits"|"kit"|"weight"|"door"|"size"|"not-found"|"invalid";errors:string[];tested:number};
 /** Feasibility witness only. Increasing the order is explicit; kits may never be added as loose components. */
 export function probeEmptySpace(plan:PackingResult,inputs:ProductInput[],productId:string,spaces:EmptySpace[],selectedId?:string):SpaceProbe{
   const products=applyTypeSupport(inputs,plan.loadingRules),p=products.find(p=>p.id===productId);
@@ -61,5 +61,5 @@ export function probeEmptySpace(plan:PackingResult,inputs:ProductInput[],product
       validation.errors.forEach(e=>errors.add(e));
     }
   }
-  return result("not-found",[...errors].slice(0,3),tested);
+  return result(tested?"not-found":"size",[...errors].slice(0,3),tested);
 }
