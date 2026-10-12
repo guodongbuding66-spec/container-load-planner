@@ -49,7 +49,7 @@ describe("actual scene graph dimensions and selected-carton regression",()=>{
       expect((hud.material as THREE.Material).depthTest).toBe(false);expect(hud.renderOrder).toBeGreaterThan(10000);
       // Fiber forwards click events after an OrbitControls drag. A different
       // instance under the pointer must not replace the measured carton.
-      const click=store.getState().scene.children[0].children.find(o=>o instanceof THREE.InstancedMesh)! as THREE.InstancedMesh&{__r3f:{handlers:{onClick:(e:{delta:number;instanceId:number;stopPropagation:()=>void})=>void}}};
+      const click=store.getState().scene.getObjectsByProperty("isInstancedMesh",true)[0] as THREE.InstancedMesh&{__r3f:{handlers:{onClick:(e:{delta:number;instanceId:number;stopPropagation:()=>void})=>void}}};
       const stop=vi.fn();
       await act(async()=>click.__r3f.handlers.onClick({delta:80,instanceId:1,stopPropagation:stop}));
       expect(selectedId).toBe(result.placements[0].id);expect(stop).not.toHaveBeenCalled();

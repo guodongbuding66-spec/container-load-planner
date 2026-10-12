@@ -27,7 +27,7 @@ export function SceneDimensions({bounds,values,unit,fontSize,style="dimensions",
       const ctx=canvas.getContext("2d")!;ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,viewport.width,viewport.height);paintDimensions(ctx,dimensions,fontSize,{lineColor,textColor});
       drawingLayer.texture.needsUpdate=true;previous.current={key,dimensions};
     }
-    occupied.push(...previous.current.dimensions.map(d=>d.label));
+    occupied.push(...previous.current.dimensions.flatMap(d=>[d.label,...d.ticks.map(t=>t.label)]));
     const anchor=camera.getWorldPosition(new THREE.Vector3()).addScaledVector(camera.getWorldDirection(new THREE.Vector3()),Math.max((camera as THREE.PerspectiveCamera).near*2,1));
     const pose=sceneLabelPose(camera,anchor,viewport,{x:0,y:0,width:viewport.width,height:viewport.height},viewport.height);
     mesh.current.position.copy(pose.position);mesh.current.quaternion.copy(camera.quaternion);mesh.current.scale.set(pose.scale*viewport.width/viewport.height/2,pose.scale/2,1);

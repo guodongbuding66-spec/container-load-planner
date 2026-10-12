@@ -1,23 +1,27 @@
 "use client";
-import { createContext, useContext, useId, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useId, useMemo, type ReactNode } from "react";
 import { Box, ScanLine } from "lucide-react";
-import { DEFAULT_TRANSPARENCY, type TransportDisplayMode } from "../lib/packing/transport-model";
+import { type TransportDisplayMode } from "../lib/packing/transport-model";
 import { tr, useLanguage } from "./language";
-import { DIMENSION_LINE_COLOR, DIMENSION_TEXT_COLOR, type DimensionStyle, type DimensionUnit } from "../lib/packing/scene-dimensions";
+import { type DimensionStyle, type DimensionUnit } from "../lib/packing/scene-dimensions";
+import type { ViewPreferences } from "../lib/packing/view-preferences";
+import { resetViewPreferences, updateViewPreferences, useViewPreferences } from "./view-preferences";
 
-type Appearance = { mode: TransportDisplayMode; transparency: number; setMode: (mode: TransportDisplayMode) => void; setTransparency: (value: number) => void;
+type Appearance = ViewPreferences & { setMode: (mode: TransportDisplayMode) => void; setTransparency: (value: number) => void;
   dimensions:boolean;setDimensions:(value:boolean)=>void; labels:boolean;setLabels:(value:boolean)=>void;
   dimensionUnit:DimensionUnit;setDimensionUnit:(unit:DimensionUnit)=>void;dimensionFontSize:number;setDimensionFontSize:(size:number)=>void;
   dimensionStyle:DimensionStyle;setDimensionStyle:(style:DimensionStyle)=>void;dimensionLineColor:string;setDimensionLineColor:(color:string)=>void;dimensionTextColor:string;setDimensionTextColor:(color:string)=>void;
+  saveFailed:boolean;updatePreferences:typeof updateViewPreferences;resetPreferences:typeof resetViewPreferences;
 };
 const Context = createContext<Appearance | null>(null);
 export function TransportAppearanceProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<TransportDisplayMode>("model");
-  const [transparency, setTransparency] = useState(DEFAULT_TRANSPARENCY);
-  const [dimensions,setDimensions]=useState(true),[labels,setLabels]=useState(true);
-  const [dimensionUnit,setDimensionUnit]=useState<DimensionUnit>("mm"),[dimensionFontSize,setDimensionFontSize]=useState(18);
-  const [dimensionStyle,setDimensionStyle]=useState<DimensionStyle>("ruler"),[dimensionLineColor,setDimensionLineColor]=useState(DIMENSION_LINE_COLOR),[dimensionTextColor,setDimensionTextColor]=useState(DIMENSION_TEXT_COLOR);
-  const value = useMemo(() => ({ mode, setMode, transparency, setTransparency,dimensions,setDimensions,labels,setLabels,dimensionUnit,setDimensionUnit,dimensionFontSize,setDimensionFontSize,dimensionStyle,setDimensionStyle,dimensionLineColor,setDimensionLineColor,dimensionTextColor,setDimensionTextColor }), [mode, transparency,dimensions,labels,dimensionUnit,dimensionFontSize,dimensionStyle,dimensionLineColor,dimensionTextColor]);
+  const snapshot=useViewPreferences();
+  const value=useMemo<Appearance>(()=>({...snapshot.preferences,saveFailed:snapshot.saveFailed,updatePreferences:updateViewPreferences,resetPreferences:resetViewPreferences,
+    setMode:mode=>updateViewPreferences({mode}),setTransparency:transparency=>updateViewPreferences({transparency}),
+    setDimensions:dimensions=>updateViewPreferences({dimensions}),setLabels:labels=>updateViewPreferences({labels}),
+    setDimensionUnit:dimensionUnit=>updateViewPreferences({dimensionUnit}),setDimensionFontSize:dimensionFontSize=>updateViewPreferences({dimensionFontSize}),
+    setDimensionStyle:dimensionStyle=>updateViewPreferences({dimensionStyle}),setDimensionLineColor:dimensionLineColor=>updateViewPreferences({dimensionLineColor}),setDimensionTextColor:dimensionTextColor=>updateViewPreferences({dimensionTextColor})
+  }),[snapshot]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 export function useTransportAppearance() {
