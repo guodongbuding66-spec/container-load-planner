@@ -12,7 +12,7 @@ export function bearingLoads(boxes: PlacedBox[]) {
   const byTop = new Map<number, PlacedBox[]>();
   for (const b of boxes) {
     const key = Math.round((b.z + b.dz) / 0.0001);
-    byTop.set(key, [...(byTop.get(key) ?? []), b]);
+    const list=byTop.get(key);if(list)list.push(b);else byTop.set(key,[b]);
   }
   for (const b of sorted) {
     const below = (byTop.get(Math.round(b.z / 0.0001)) ?? []).filter(x => x.id !== b.id);
@@ -28,7 +28,8 @@ export function bearingLoads(boxes: PlacedBox[]) {
 export function hasBearingRules(p: ProductInput) {
   return p.maxTopLoadKg !== undefined || p.allowedAboveSkus !== undefined || Object.keys(p.topLoadByVerticalAxis ?? {}).length > 0;
 }
-export function bearingLimit(b: PlacedBox, p: ProductInput) {
+export function bearingLimit(b: PlacedBox, p: ProductInput|undefined) {
+  if(!p)return undefined;
   // Equal dimensions can identify multiple original axes: take the most restrictive applicable limit.
   const values = (["length", "width", "height"] as const)
     .filter(axis => Math.abs(p[axis] - b.dz) < 0.0001)

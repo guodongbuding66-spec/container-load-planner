@@ -120,6 +120,7 @@ describe("CSV utilities", () => {
     expect(csv).toContain("'=2+2");
     expect(csv).toContain("'@SET");
     expect(csv).toContain('"主箱,""加固""\n第二行"');
-    expect(parseCsvRecords(csv)[1]).toHaveLength(17);
+    expect(parseCsvRecords(csv)[1]).toHaveLength(20);
+    expect(parseCsvRecords(csv)[0].slice(-3)).toEqual(["客户","目的地","卸货站次"]);
   });
 });

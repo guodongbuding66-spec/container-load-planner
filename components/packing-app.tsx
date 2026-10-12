@@ -98,6 +98,8 @@ import { WorkflowTools } from "./workflow-tools";
 import { ArchiveLibrary, BearingRules, UnloadedReasons, ManualPlan, FieldGuide, FleetPlanner } from "./planning-upgrades";
 import { RemainingCapacity } from "./remaining-capacity";
 import { SpaceModelPreview } from "./space-model-preview";
+import { usePlanEditor } from "./use-plan-editor";
+import { PrebuiltPalletPanel } from "./prebuilt-pallet-panel";
 import { PalletManifest } from "./pallet-manifest";
 import { WorkflowSteps } from "./workflow-steps";
 import { MAX_WORKSPACE_BYTES, parseWorkspaceBackup, restoreWorkspacePlans, serializeWorkspaceBackup, type WorkspaceInputs } from "../lib/packing/workspace-file";
@@ -1503,6 +1505,8 @@ export function PackingApp() {
   };
   const workspaceBackup = useMemo(() => serializeWorkspaceBackup({floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,result,resultBundle?.strategyPlans), [floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit,result,resultBundle?.strategyPlans]);
   const upgradesDisabled = hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0 || status === "working";
+  const adoptManualPlan=(next:PackingResult)=>{clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。"));};
+  const planEditor=usePlanEditor(result,activeProducts,upgradesDisabled||!result?.validation.valid||result.metrics.loadedCount!==result.placements.length,adoptManualPlan);
   const fleetRequest: PackingRequest = { floorPallets, loadingRules, mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
 
   const downloadExcelTemplate = async () => { setMessage(tr("正在生成 Excel 模板…")); try { const { createSpreadsheetTemplate } = await import("../lib/packing/spreadsheet"); const bytes=await createSpreadsheetTemplate(); const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));const a=document.createElement("a");a.href=url;a.download="CargoFit_products_template.xlsx";document.body.appendChild(a);a.click();a.remove();setMessage(tr("Excel 模板已生成。"));setTimeout(()=>URL.revokeObjectURL(url),10000); } catch(e) {setMessage(e instanceof Error?e.message:"Excel export failed");} };
@@ -1928,7 +1932,7 @@ export function PackingApp() {
           <div className="wizard-navigation"><button className="button" onClick={()=>goToStep(1)}><ChevronLeft size={17}/>{tr("上一步：货物清单")}</button><div><span>{setupInvalid?tr("托盘参数尚未完成，请先修正。"):tr("配置完成后生成双算法方案与完整坐标。")}</span><button className="button primary" disabled={setupInvalid||invalidNumericFields.size>0||hasPendingDimensionChanges} onClick={startConfiguredCalculation}>{tr("开始计算 ")}<ChevronRight size={17}/></button></div></div>
         </section>}
         {workflowStep===3 && <section className="wizard-page" aria-label={tr("第三步：装箱方案")}>
-          <div className="wizard-page-heading"><div><span className="section-kicker">STEP 03</span><h2>{tr("装箱方案")}</h2><p>{tr(container.name)} · {floorPallets?tt`使用托盘 ${floorPallets.length} × ${floorPallets.width} × ${floorPallets.height} mm`:tr("直接装柜，无底层托盘")}</p></div><button className="button" onClick={()=>goToStep(2)}><ChevronLeft size={16}/>{tr("修改装载配置")}</button></div>
+          <div className="wizard-page-heading"><div><span className="section-kicker">STEP 03</span><h2>{tr("装箱方案")}</h2><p>{tr(container.name)} · {result?.palletization?tr("先打托，再装柜","Palletize first, then load"):floorPallets?tt`使用托盘 ${floorPallets.length} × ${floorPallets.width} × ${floorPallets.height} mm`:tr("直接装柜，无底层托盘")}</p></div><button className="button" onClick={()=>goToStep(2)}><ChevronLeft size={16}/>{tr("修改装载配置")}</button></div>
           <div className="result-strategy-switch" role="group" aria-label={tr("方案算法切换")}><button className={strategy==="practical"?"selected":""} aria-pressed={strategy==="practical"} onClick={()=>switchStrategy("practical")}><ShieldCheck size={18}/><span><strong>{tr("现场易执行")}</strong><small>{cachedPracticalPlan?strategyDisplayLabel(cachedPracticalPlan):tr("等待计算")}</small></span></button><button className={strategy==="maximum"?"selected":""} aria-pressed={strategy==="maximum"} onClick={()=>switchStrategy("maximum")}><Gauge size={18}/><span><strong>{tr("高密度参考")}</strong><small>{cachedMaximumPlan?strategyDisplayLabel(cachedMaximumPlan):tr("等待计算")}</small></span></button></div>
           <section className="calculation-controls" aria-label={tr("计算控制")}><label><input type="checkbox" checked={autoCalculate} onChange={e=>setAutoCalculate(e.target.checked)}/>{tr("方案阶段自动更新")}</label><label>{tr("计算时限")}<select aria-label={tr("计算时限")} value={calculationBudget} onChange={e=>setCalculationBudget(Number(e.target.value))}><option value={0}>{tr("按设备自动")}</option><option value={15}>{tr("15 秒")}</option><option value={35}>{tr("35 秒")}</option><option value={60}>{tr("60 秒")}</option><option value={120}>{tr("120 秒")}</option></select></label><button className="button primary" disabled={status==="working"||hasPendingDimensionChanges||invalidNumericFields.size>0} onClick={()=>setManualRun(v=>v+1)}>{tr("重新计算方案")}</button><button className="button" disabled={status!=="working"} onClick={stopCalculation}>{tr("停止并保留已完成方案")}</button></section>
           <div className="feature-action-bar"><button className="button" disabled={!canExport} onClick={()=>setShowViewer(true)}><Layers3 size={16}/>{tr("三维方案查看器")}</button><button className="button" disabled={!canExport||exportingPdf} onClick={()=>void downloadPdf()}><Download size={16}/>{tr("下载 PDF")}</button></div>
@@ -1997,6 +2001,9 @@ export function PackingApp() {
               <SceneErrorBoundary resetKey={result.id}>
                 <ContainerScene
                   result={result}
+                  editor={planEditor}
+                  products={activeProducts}
+                  onAdopt={adoptManualPlan}
                   visibleProducts={visibleProducts}
                   visibleCount={packingProgress}
                   onVisibleCountChange={value=>{setIsPlaying(false);setPackingProgress(value);}}
@@ -2225,11 +2232,12 @@ export function PackingApp() {
           <CloudWorkspace backup={workspaceBackup} plan={result} products={activeProducts} disabled={upgradesDisabled} onRestore={backup=>{void restoreWorkspace(new File([backup],tr("云端归档.json"),{type:"application/json"}));}} onProducts={next=>{setMode("mixed");replaceProductInputs(next);}}/>
           </>}
           loading={<>
+          <PrebuiltPalletPanel key={JSON.stringify(fleetRequest)} request={fleetRequest} disabled={upgradesDisabled} onAdopt={next=>{palletDraftRef.current=null;setFloorPallets(undefined);persistDraft({floorPallets:undefined,strategy:"practical"});setStrategy("practical");setWorkflowStep(3);adoptManualPlan(next);}}/>
           <BearingRules key={JSON.stringify(products.map(p=>[p.id,p.maxTopLoadKg]))} products={activeProducts} disabled={upgradesDisabled} onChange={next=>replaceProductInputs(products.map(p=>next.find(n=>n.id===p.id)??p))}/>
           {mode === "mixed" ? <FleetPlanner key={JSON.stringify([fleetRequest,customContainers])} request={fleetRequest} customContainers={customContainers} disabled={upgradesDisabled}/> : null}
             {result && !hasPendingDimensionChanges ? <>
             <UnloadedReasons result={result} products={activeProducts} onFocus={id=>{setVisibleProducts(new Set(result.summaries.map(s=>s.productId)));setCameraView("top");setPackingProgress(result.placements.length);setMessage(tt`已在原因面板突出 ${activeProducts.find(p=>p.id===id)?.sku??tr("当前 SKU")}；三维保留其他货物，避免把隐藏箱位误认为空闲空间。`);}}/>
-            <ManualPlan key={result.id} result={result} products={activeProducts} disabled={upgradesDisabled||!result.validation.valid} onAdopt={next=>{clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。"));}}/>
+            <ManualPlan key={result.id} editor={planEditor} result={result} products={activeProducts} disabled={upgradesDisabled||!result.validation.valid} onAdopt={next=>{clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。"));}}/>
             </> : <p className="tool-empty">{tr("计算方案后，可诊断余货并手动调整箱位。")}</p>}
           </>}
           delivery={result && !hasPendingDimensionChanges ? <>

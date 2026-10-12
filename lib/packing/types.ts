@@ -272,6 +272,8 @@ export type QuoteEstimate = {
 };
 
 export type PackingResult = {
+  palletization?: import("./prebuilt-pallets").Palletization;
+  delivery?: import("./access").DeliveryMap;
   floorPallets?: FloorPalletConfig;
   pallets?: PlacedPallet[];
   loadingRules?: LoadingRules;

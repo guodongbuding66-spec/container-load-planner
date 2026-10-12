@@ -1,0 +1,22 @@
+"use client";
+import { useMemo, useState } from "react";
+import { probeEmptySpace, volume, type EmptySpace } from "../lib/packing/free-space";
+import type { PackingResult, ProductInput } from "../lib/packing/types";
+import { tr, trText, useLanguage } from "./language";
+export function SceneSpacePanel({plan,products,report,selected,onSelect,onOpen}:{plan:PackingResult;products:ProductInput[];report:{spaces:EmptySpace[];truncated:boolean}|null;selected:string;onSelect:(id:string)=>void;onOpen:(v:boolean)=>void}){
+  useLanguage();const [sku,setSku]=useState(products[0]?.id??""),[probeScope,setProbeScope]=useState("selected"),[run,setRun]=useState(false);
+  const space=report?.spaces.find(s=>s.id===selected);
+  const probe=useMemo(()=>run&&report?probeEmptySpace(plan,products,sku,report.spaces,probeScope==="selected"?selected:undefined):null,[run,report,plan,products,sku,probeScope,selected]);
+  const text=probe?({fits:tr("找到通过完整装箱校验的位置。","A position passed the full packing validator."),kit:tr("此 SKU 属于套装，须按整套试算；不能单独补入。","This SKU belongs to a kit; loose-component top-up is forbidden."),weight:tr("剩余载重不足。","Insufficient remaining payload."),door:tr("允许的方向无法通过门洞。","Allowed orientations cannot pass the door."),invalid:tr("请先生成有效方案。","A valid plan is required."),"not-found":tr("有限搜索未找到可行位置，不代表绝对装不下。","Bounded search found no valid position; this does not prove infeasibility.")})[probe.status]:"";
+  return <details open className="scene-analysis-panel" onToggle={e=>{onOpen(e.currentTarget.open);if(!e.currentTarget.open)setRun(false);}}><summary>{tr("剩余空间分析","Remaining-space analysis")}</summary><div className="scene-inspector-section">
+    <p>{tr("显示完整方案中的连续空隙；隐藏货物、剖切与播放不改变分析。空隙尺寸不代表承托或路径已通过。","Continuous gaps in the full plan. Visibility, sectioning and playback do not change analysis. Dimensions alone do not verify support or access.")}</p>
+    {report&&<><label>{tr("空隙区域","Gap region")}<select aria-label={tr("空隙区域","Gap region")} value={selected} onChange={e=>{onSelect(e.target.value);setRun(false);}}><option value="">{tr("不高亮","No highlight")}</option>{report.spaces.slice(0,60).map((s,i)=><option key={s.id} value={s.id}>#{i+1} · {(volume(s)/1e9).toFixed(3)} m³</option>)}</select></label>
+      {space&&<output className="scene-measure-result"><strong>{space.dx.toFixed(1)} × {space.dy.toFixed(1)} × {space.dz.toFixed(1)} mm</strong><span>XYZ {space.x.toFixed(1)} / {space.y.toFixed(1)} / {space.z.toFixed(1)} mm</span></output>}
+      <small>{report.spaces.length} {tr("个分区，列表显示最大 60 个。","partitions; the list shows the largest 60.")} {report.truncated&&tr("分析达到分区上限，已省略较小区域。","Partition limit reached; smaller regions were omitted.")}</small>
+      <label>SKU<select aria-label={tr("空隙试算 SKU","Gap trial SKU")} value={sku} onChange={e=>{setSku(e.target.value);setRun(false);}}>{products.map(p=><option key={p.id} value={p.id}>{p.sku}</option>)}</select></label>
+      <label>{tr("试算范围","Trial scope")}<select aria-label={tr("空隙试算范围","Gap trial scope")} value={probeScope} onChange={e=>{setProbeScope(e.target.value);setRun(false);}}><option value="selected">{tr("选中空隙","Selected gap")}</option><option value="all">{tr("全部分析区域","All analyzed regions")}</option></select></label>
+      <button disabled={!sku||probeScope==="selected"&&!selected} onClick={()=>setRun(true)}>{tr("试算补入一箱","Try one extra carton")}</button>
+      {probe&&<div role="status" className="space-probe-result"><strong>{text}</strong>{probe.candidate&&<p>XYZ {probe.candidate.x.toFixed(1)} / {probe.candidate.y.toFixed(1)} / {probe.candidate.z.toFixed(1)} mm · {probe.candidate.orientation}</p>}{probe.errors.map(e=><p key={e}>{trText(e)}</p>)}<p>{tr("试算不会修改订单或装箱数量。需要增加需求时，修改订单后重新计算。","The trial does not change the order or loaded count. Increase the order and recalculate to add cargo.")}</p></div>}
+    </>}
+  </div></details>;
+}

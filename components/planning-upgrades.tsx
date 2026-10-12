@@ -6,8 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { ARCHIVE_KEY, addArchive, parseArchive, type ArchiveEntry } from "../lib/packing/archive";
 import { parseWorkspaceBackup } from "../lib/packing/workspace-file";
-import { bearingLoads, bearingStatus } from "../lib/packing/bearing";
-import { explainUnloaded, diagnoseUnloadedPosition, revisePackingResult } from "../lib/packing/engine";
+import { explainUnloaded, diagnoseUnloadedPosition } from "../lib/packing/engine";
 import { fleetEconomics, type FleetComparison, type FleetOption, type FleetResult } from "../lib/packing/fleet";
 import type { ContainerSpec, PackingRequest, PackingResult, ProductInput } from "../lib/packing/types";
 import { TRANSPORT_PRESETS } from "../lib/packing/transport-library";
@@ -19,7 +18,9 @@ import { SceneErrorBoundary } from "./scene-error-boundary";
 
 import { OptimizationPanel } from "./optimization-panel";
 import { offlineFieldHtml } from "../lib/packing/field-report";
-import { snapTranslation, fieldBlocks, fieldPlanFingerprint } from "../lib/packing/execution";
+import { usePlanEditor, type PlanEditor } from "./use-plan-editor";
+import { SceneEditPanel } from "./scene-edit-panel";
+import { fieldBlocks, fieldPlanFingerprint } from "../lib/packing/execution";
 const Scene=dynamic(()=>import("./container-scene").then(m=>m.ContainerScene),{ssr:false});
 function download(name:string, content:string, type="application/json") {
   const url=URL.createObjectURL(new Blob([content],{type}));
@@ -62,45 +63,14 @@ export function UnloadedReasons({result,products,onFocus}:{result:PackingResult;
   return <details className="upgrade-panel"><ToolSummary kind="diagnosis" title={tt`未装入原因 · ${items.reduce((n,p)=>n+p.unloaded,0)} 箱`} description={tr("查看余货受到的限制，定位对应货物与空间。")}/><div className="upgrade-body">{focused?<figure><p>{diagnosis?.detail}</p><figcaption>{tr("当前 SKU 高亮；其他箱体灰显，空白仅代表俯视投影未占用，不代表完整可装空间。")}</figcaption><svg role="img" aria-label={tr("未装入货物位置与已占空间")} viewBox={`0 0 ${result.container.length} ${result.container.width}`} style={{width:"100%",maxHeight:220}}><rect width={result.container.length} height={result.container.width} fill="#f0f6f7"/>{[...result.placements].sort((a,b)=>Number(a.productId===focused)-Number(b.productId===focused)).map(b=><rect key={b.id} x={b.x} y={b.y} width={b.dx} height={b.dy} fill={b.productId===focused?b.color:"#b9cbd0"} stroke="white" strokeWidth={4}><title>{b.sku} · Z {b.z} mm</title></rect>)}{diagnosis?.candidate?<rect x={diagnosis.candidate.x} y={diagnosis.candidate.y} width={diagnosis.candidate.dx} height={diagnosis.candidate.dy} fill="none" stroke="#c04527" strokeWidth={12} strokeDasharray="30 15"><title>{tr("仅候选区域，尚未验证可装；Z ")}{diagnosis.candidate.z} mm</title></rect>:null}</svg><small>{tr("红色虚线仅表示诊断候选投影，尚未加入方案。")}</small></figure>:null}{!items.length?<p>{tr("本方案的需求已全部装入。")}</p>:items.map(p=><article key={p.productId}><strong>{p.sku}{tr(" · 未装 ")}{p.unloaded}{tr(" 箱")}</strong> <button className="button small" onClick={()=>{setFocused(p.productId);onFocus?.(p.productId);}}>{tr("定位货物与空间")}</button><ul>{p.reasons.map(reason=><li key={trText(reason)}>{trText(reason)}</li>)}</ul></article>)}</div></details>;
 }
 
-export function ManualPlan({result,products,onAdopt,disabled}:{result:PackingResult;products:ProductInput[];onAdopt:(result:PackingResult)=>void;disabled:boolean}) {
-  useLanguage();
-  const [draft,setDraft]=useState(result);
-  const [open,setOpen]=useState(false);
-  const [selected,setSelected]=useState(result.placements[0]?.id??"");
-  const [delta,setDelta]=useState({x:0,y:0,z:0});
-  const [group,setGroup]=useState(false);
-  const [snap,setSnap]=useState(true);
-  const [undo,setUndo]=useState<PackingResult[]>([]);
-  const [redo,setRedo]=useState<PackingResult[]>([]);
-  const [message,setMessage]=useState("");
-  const [validInputs,setValidInputs]=useState<Record<string,boolean>>({});
-  const drag=useRef<{x:number;y:number;id:string}|null>(null);
-  const box=draft.placements.find(b=>b.id===selected);
-  const loads=useMemo(()=>bearingLoads(open?draft.placements:[]),[draft.placements,open]);
-  const bearing=useMemo(()=>bearingStatus(open?draft.placements:[],products),[draft.placements,open,products]);
-  const commit=(next:PackingResult)=>{setUndo(h=>[...h.slice(-9),draft]);setRedo([]);setDraft(next);setMessage(tr("调整通过校验。点击“采用手动方案”同步到三维、指标与导出。"));};
-  const move=(id:string,dx:number,dy:number,dz:number,rotate=false)=>{
-    try { const target=draft.placements.find(b=>b.id===id);if(!target)return;
-      if(snap&&!rotate){const d=snapTranslation(target,{x:dx,y:dy,z:dz},draft);dx=d.x;dy=d.y;dz=d.z;}
-      const affectedBoxes=draft.placements.filter(b=>b.id===id||(group&&target.setCode&&b.setCode===target.setCode&&b.setNumber===target.setNumber));
-      const minX=Math.min(...affectedBoxes.map(b=>b.x)),minY=Math.min(...affectedBoxes.map(b=>b.y)),maxX=Math.max(...affectedBoxes.map(b=>b.x+b.dx));
-      const next=draft.placements.map(b=>{
-        const affected=b.id===id||(group&&target.setCode&&b.setCode===target.setCode&&b.setNumber===target.setNumber);
-        return affected?{...b,x:b.x+dx,y:b.y+dy,z:b.z+dz,...(rotate?{x:minX+b.y-minY+dx,y:minY+maxX-b.x-b.dx+dy,dx:b.dy,dy:b.dx,orientation:/^[LWH]{3}$/.test(b.orientation)?`${b.orientation[1]}${b.orientation[0]}${b.orientation[2]}`:`${b.dy}×${b.dx}×${b.dz}`}:{})}:b;
-      });commit(revisePackingResult(draft,next,products));
-    }catch(e){setMessage(tt`调整未采用，原方案保持有效：${errorMessage(e)}`);}
-  };
-  const width=result.container.width-result.clearance*2;
-  const length=result.container.length-result.clearance*2;
-  return <details className="upgrade-panel" onToggle={e=>setOpen(e.currentTarget.open)}><ToolSummary kind="manual" title={tr("手动调整箱位与锁定")} description={tr("移动或旋转箱体，锁定确认的位置后继续优化。")}/>{open?<div className="upgrade-body"><p>{tr("俯视图拖动可水平移箱；精确偏移和高度以 mm 输入。调整会重新检查边界、重叠、方向、承托、承重及成套关系。采用手动方案后可“继续优化剩余空间”，保留锁定位置及其支撑和成套依赖。")}</p>
-    <div className="upgrade-actions"><select aria-label={tr("选择调整箱体")} value={selected} onChange={e=>setSelected(e.target.value)}>{draft.placements.map((b,i)=><option key={b.id} value={b.id}>{i+1}. {b.sku}{tr(" · 第 ")}{b.layer}{tr(" 层")}{b.locked?tr(" · 已锁定"):""}</option>)}</select><label><input type="checkbox" checked={group} onChange={e=>setGroup(e.target.checked)}/>{tr("同步移动同一套箱体")}</label><label><input type="checkbox" checked={snap} onChange={e=>setSnap(e.target.checked)}/>{tr("吸附柜壁／箱体／支撑面（30 mm）")}</label></div>
-    <svg className="manual-map" viewBox={`0 0 ${length} ${width}`} role="img" aria-label={tr("可拖动箱位俯视图")} onPointerUp={e=>{const start=drag.current;drag.current=null;if(!start)return;const r=e.currentTarget.getBoundingClientRect();move(start.id,Math.round((e.clientX-start.x)*length/r.width/10)*10,Math.round((e.clientY-start.y)*width/r.height/10)*10,0);}} onPointerCancel={()=>{drag.current=null;}}>
-      <rect width={length} height={width} fill="#eff7f8"/>{[...draft.placements].sort((a,b)=>a.z-b.z).map(b=><rect key={b.id} x={b.x} y={b.y} width={b.dx} height={b.dy} fill={b.color} fillOpacity={0.75} stroke={b.id===selected?"#102f39":"white"} strokeWidth={b.id===selected?18:4} onPointerDown={e=>{setSelected(b.id);if(disabled||b.locked){setMessage(b.locked?tr("请先解除此箱位锁定。"):tr("请等待计算结束。"));return;}drag.current={x:e.clientX,y:e.clientY,id:b.id};e.currentTarget.setPointerCapture(e.pointerId);}}><title>{b.sku}{tr(" · 第 ")}{b.layer}{tr(" 层")}{b.locked?tr(" · 已锁定"):""}</title></rect>)}
-    </svg>
-    {box?<p>{tr("当前：")}{box.sku}{tr("，坐标 ")}{box.x} / {box.y} / {box.z}{tr(" mm，上方累计 ")}{(loads.get(box.id)??0).toFixed(2)} kg。{bearing.unknownIds.includes(box.id)?tr("承重未核验"):""}</p>:null}
-    <div className="upgrade-actions">{(["x","y","z"] as const).map(axis=><label key={axis}>{axis.toUpperCase()}{tr(" 偏移 mm")}<NumericInput ariaLabel={tt`${axis.toUpperCase()} 箱位偏移`} value={delta[axis]} min={-20000} max={20000} onValueChange={v=>setDelta(d=>({...d,[axis]:v}))} onValidityChange={valid=>setValidInputs(s=>({...s,[axis]:valid}))}/></label>)}<button className="button" disabled={disabled||!box||Object.values(validInputs).includes(false)} onClick={()=>move(selected,delta.x,delta.y,delta.z)}>{tr("验证移动")}</button><button className="button" disabled={disabled||!box} onClick={()=>move(selected,0,0,0,true)}>{tr("水平旋转 90°")}</button><button className="button" disabled={disabled||!box} onClick={()=>{try{commit(revisePackingResult(draft,draft.placements.map(b=>b.id===selected?{...b,locked:!b.locked}:b),products));}catch(e){setMessage(errorMessage(e));}}}>{box?.locked?tr("解除锁定"):tr("锁定箱位")}</button></div>
-    <div className="upgrade-actions"><button className="button" disabled={!undo.length} onClick={()=>{setRedo(h=>[...h,draft]);setDraft(undo[undo.length-1]);setUndo(h=>h.slice(0,-1));}}>{tr("撤销")}</button><button className="button" disabled={!redo.length} onClick={()=>{setUndo(h=>[...h,draft]);setDraft(redo[redo.length-1]);setRedo(h=>h.slice(0,-1));}}>{tr("重做")}</button><button className="button primary" disabled={disabled||!undo.length} onClick={()=>onAdopt(draft)}>{tr("采用手动方案")}</button></div><p role="status">{trText(message)}</p><OptimizationPanel key={draft.id} plan={draft} products={products} disabled={disabled} onAdopt={onAdopt}/>
-  </div>:null}</details>;
+export function ManualPlan({result,products,onAdopt,disabled,editor:shared}:{result:PackingResult;products:ProductInput[];onAdopt:(result:PackingResult)=>void;disabled:boolean;editor?:PlanEditor}) {
+  useLanguage();const own=usePlanEditor(result,products,disabled,onAdopt),editor=shared??own;
+  const [open,setOpen]=useState(false),drag=useRef<{x:number;y:number;id:string}|null>(null);
+  const draft=editor.enabled&&editor.plan?editor.plan:result;
+  return <details className="upgrade-panel" onToggle={e=>setOpen(e.currentTarget.open)}><ToolSummary kind="manual" title={tr("手动调整箱位与锁定")} description={tr("与主三维共用多选、整组移动、吸附、撤销和校验。","Shared with the main 3D editor: multi-selection, group movement, snapping, undo and validation.")}/>{open&&<div className="upgrade-body"><SceneEditPanel editor={editor}/>
+    <svg className="manual-map" viewBox={`0 0 ${draft.container.length-draft.clearance*2} ${draft.container.width-draft.clearance*2}`} role="img" aria-label={tr("可拖动箱位俯视图")} onPointerUp={e=>{const start=drag.current;drag.current=null;if(!start)return;const svg=e.currentTarget,matrix=svg.getScreenCTM();if(!matrix)return;const point=svg.createSVGPoint();point.x=start.x;point.y=start.y;const a=point.matrixTransform(matrix.inverse());point.x=e.clientX;point.y=e.clientY;const b=point.matrixTransform(matrix.inverse());editor.move({x:b.x-a.x,y:b.y-a.y,z:0});}} onPointerCancel={()=>{drag.current=null;}}><rect width={draft.container.length-draft.clearance*2} height={draft.container.width-draft.clearance*2} fill="#eff7f8"/>{[...draft.placements].sort((a,b)=>a.z-b.z).map(b=><rect key={b.id} x={b.x} y={b.y} width={b.dx} height={b.dy} fill={b.color} fillOpacity={.75} stroke={editor.selected.some(s=>s.id===b.id)?"#102f39":"white"} strokeWidth={editor.selected.some(s=>s.id===b.id)?18:4} onPointerDown={e=>{editor.select(b.id,e.shiftKey);if(editor.enabled&&!editor.disabled){drag.current={x:e.clientX,y:e.clientY,id:b.id};e.currentTarget.setPointerCapture(e.pointerId);}}}><title>{b.sku}</title></rect>)}</svg>
+    {!draft.palletization?<OptimizationPanel key={draft.id} plan={draft} products={products} disabled={disabled} onAdopt={onAdopt}/>:<p>{tr("预打托方案请在整托工具中重新生成；散箱优化不会拆开完整托盘。","Regenerate prebuilt loads in the pallet tool; loose-carton optimization does not split complete pallets.")}</p>}
+  </div>}</details>;
 }
 
 export function FieldGuide({result}:{result:PackingResult}) {
@@ -116,7 +86,7 @@ export function FieldGuide({result}:{result:PackingResult}) {
   const [blockMode,setBlockMode]=useState(false);
   const [fullscreen,setFullscreen]=useState(false);
   const block=fieldBlocks(result).find(g=>g.indices.includes(step));
-  return <details className="upgrade-panel" onToggle={e=>{setOpen(e.currentTarget.open);if(e.currentTarget.open){try{const saved=JSON.parse(localStorage.getItem(key)??"null");if(saved?.fingerprint===fingerprint&&Number.isInteger(saved.step)&&saved.step>=0&&saved.step<=result.placements.length)setStep(saved.step);}catch{setMessage(tr("本机进度不可用。"));}}}}><ToolSummary kind="field" title={tr("仓库作业模式与离线指导书")} description={tr("按箱或区块确认进度，在现场照着方案装柜。")}/><div className={fullscreen?"upgrade-body field-fullscreen":"upgrade-body"}>{open?<><p>{result.strategy==="practical"?tr("按已校验的现场方案执行。"):tr("当前为高密度参考方案，侧翻和局部承托须由现场确认。")}</p><div className="field-step"><button className="button" onClick={()=>setFullscreen(!fullscreen)}>{fullscreen?tr("退出仓库全屏"):tr("进入手机仓库全屏")}</button><label><input type="checkbox" checked={blockMode} onChange={e=>setBlockMode(e.target.checked)}/>{tr("按区块确认")}</label><strong>{tr("已确认 ")}{step} / {result.placements.length}{tr(" 箱")}</strong>{box?<><h3>{tr("下一箱：")}{box.sku}</h3><p>{box.setCode?tt`${box.setCode} · 第 ${box.setNumber} 套`:tr("散箱")}{tr(" · 第 ")}{box.layer}{tr(" 层")}</p><p>{tr("第 ")}{block?.zone}{tr(" 区 · 本区块待装 ")}{block?.indices.filter(i=>i>=step).length}{tr(" 箱 · 此 SKU 剩余 ")}{result.placements.slice(step).filter(b=>b.sku===box.sku).length}{tr(" 箱")}</p><p>{tr("位置 ")}{box.x} / {box.y} / {box.z} mm</p><p>{tr("摆放 ")}{box.dx} × {box.dy} × {box.dz} mm · {box.weight} kg</p></>:<h3>{tr("本柜已确认完成")}</h3>}</div><div className="upgrade-actions"><button className="button" disabled={step===0} onClick={()=>setProgress(Math.max(0,step-1))}>{tr("返回上一箱")}</button><button className="button primary" disabled={!box} onClick={()=>setProgress(blockMode&&block?block.indices.at(-1)!+1:step+1)}>{blockMode?tr("确认此区块已装"):tr("确认此箱已装")}</button><button className="button" onClick={exportGuide}>{tr("下载离线指导书")}</button></div><p role="status">{trText(message)}</p></>:null}</div></details>;
+  return <details className="upgrade-panel" onToggle={e=>{setOpen(e.currentTarget.open);if(e.currentTarget.open){try{const saved=JSON.parse(localStorage.getItem(key)??"null");if(saved?.fingerprint===fingerprint&&Number.isInteger(saved.step)&&saved.step>=0&&saved.step<=result.placements.length)setStep(saved.step);}catch{setMessage(tr("本机进度不可用。"));}}}}><ToolSummary kind="field" title={tr("仓库作业模式与离线指导书")} description={tr("按箱或区块确认进度，在现场照着方案装柜。")}/><div className={fullscreen?"upgrade-body field-fullscreen":"upgrade-body"}>{open?<>{result.palletization&&<p>{tr("先在柜外完成每托货物，再按完整托盘装入柜内。逐箱进度用于核对托内清单，不能拆成逐箱入柜执行。","Build every pallet load outside the container, then load complete pallets. Carton progress checks pallet contents; it is not a loose-carton loading sequence.")}</p>}<p>{result.strategy==="practical"?tr("按已校验的现场方案执行。"):tr("当前为高密度参考方案，侧翻和局部承托须由现场确认。")}</p><div className="field-step"><button className="button" onClick={()=>setFullscreen(!fullscreen)}>{fullscreen?tr("退出仓库全屏"):tr("进入手机仓库全屏")}</button><label><input type="checkbox" checked={blockMode} onChange={e=>setBlockMode(e.target.checked)}/>{tr("按区块确认")}</label><strong>{tr("已确认 ")}{step} / {result.placements.length}{tr(" 箱")}</strong>{box?<><h3>{tr("下一箱：")}{box.sku}</h3><p>{box.setCode?tt`${box.setCode} · 第 ${box.setNumber} 套`:tr("散箱")}{tr(" · 第 ")}{box.layer}{tr(" 层")}</p><p>{tr("第 ")}{block?.zone}{tr(" 区 · 本区块待装 ")}{block?.indices.filter(i=>i>=step).length}{tr(" 箱 · 此 SKU 剩余 ")}{result.placements.slice(step).filter(b=>b.sku===box.sku).length}{tr(" 箱")}</p><p>{tr("位置 ")}{box.x} / {box.y} / {box.z} mm</p><p>{tr("摆放 ")}{box.dx} × {box.dy} × {box.dz} mm · {box.weight} kg</p></>:<h3>{tr("本柜已确认完成")}</h3>}</div><div className="upgrade-actions"><button className="button" disabled={step===0} onClick={()=>setProgress(Math.max(0,step-1))}>{tr("返回上一箱")}</button><button className="button primary" disabled={!box} onClick={()=>setProgress(blockMode&&block?block.indices.at(-1)!+1:step+1)}>{blockMode?tr("确认此区块已装"):tr("确认此箱已装")}</button><button className="button" onClick={exportGuide}>{tr("下载离线指导书")}</button></div><p role="status">{trText(message)}</p></>:null}</div></details>;
 }
 
 export function FleetPlanner({request,disabled,customContainers=[]}:{request:PackingRequest;disabled:boolean;customContainers?:ContainerSpec[]}) {

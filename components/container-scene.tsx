@@ -25,7 +25,16 @@ import { TransportModelControls, useTransportAppearance } from "./transport-appe
 import { transportSceneBounds, type TransportDisplayMode } from "../lib/packing/transport-model";
 import { detectRuntimePolicy } from "../lib/packing/runtime-policy";
 import { supportsWebGL } from "../lib/packing/webgl-support";
-import type { PackingResult, PlacedBox } from "../lib/packing/types";
+import { analyzeEmptySpaces } from "../lib/packing/free-space";
+import { analyzeLoads, type HeatMode } from "../lib/packing/load-analysis";
+import { SceneSpacePanel } from "./scene-space-panel";
+import { SceneLoadPanel } from "./scene-load-panel";
+import { SceneAccessPanel } from "./scene-access-panel";
+import { SceneEditPanel } from "./scene-edit-panel";
+import { SceneEditHandles } from "./scene-edit-handles";
+import { SceneAnalysisOverlay, type AnalysisRegion } from "./scene-analysis-overlay";
+import type { PlanEditor } from "./use-plan-editor";
+import type { PackingResult, ProductInput, PlacedBox } from "../lib/packing/types";
 import { EMPTY_SECTION, inspectBoxes, sectionBox, type Measurement, type Point3, type Section } from "../lib/packing/inspection";
 import { useSceneInspection } from "./use-scene-inspection";
 import { SceneInspector } from "./scene-inspector";
@@ -34,6 +43,9 @@ import { SceneMeasurement } from "./scene-measurement";
 import { SectionGeometry } from "./section-geometry";
 
 type Props = {
+  editor?:PlanEditor;
+  products?:ProductInput[];
+  onAdopt?:(plan:PackingResult)=>void;
   presentation?: boolean;
   result: PackingResult | null;
   visibleProducts: Set<string>;
@@ -60,7 +72,7 @@ const subscribeToClientReady = () => () => undefined;
 const getClientReady = () => true;
 const getServerNotReady = () => false;
 
-function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSelect }: { group: InstanceGroup; scale: number; offset: THREE.Vector3; reducedRendering: boolean; labels:boolean; onSelect:(box:PlacedBox,point?:Point3)=>void }) {
+function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSelect }: { group: InstanceGroup; scale: number; offset: THREE.Vector3; reducedRendering: boolean; labels:boolean; onSelect:(box:PlacedBox,point?:Point3,add?:boolean)=>void }) {
   useLanguage();
   const meshRef = useRef<THREE.InstancedMesh>(null), baseRef = useRef<THREE.InstancedMesh>(null);
   const transform = useMemo(() => new THREE.Object3D(), []);
@@ -95,7 +107,7 @@ function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSele
     meshRef.current.instanceMatrix.needsUpdate=true;meshRef.current.computeBoundingSphere();
     if(baseRef.current){parts.forEach((p,i)=>{transform.position.set((p.x+p.dx/2)*scale+offset.x,(p.z+p.dz/2)*scale+offset.y,(p.y+p.dy/2)*scale+offset.z);transform.scale.set(p.dx*scale*.997,p.dz*scale*.995,p.dy*scale*.997);transform.updateMatrix();baseRef.current!.setMatrixAt(i,transform.matrix);baseRef.current!.setColorAt(i,new THREE.Color(p.kind==="block"?"#ac8151":"#d4af7b"));});baseRef.current.instanceMatrix.needsUpdate=true;if(baseRef.current.instanceColor)baseRef.current.instanceColor.needsUpdate=true;baseRef.current.computeBoundingSphere();}
   },[group.boxes,group.sources,group.baseHeight,group.cargoType,parts,materials,offset,scale,transform]);
-  return <><instancedMesh ref={meshRef} args={[undefined,materials,group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering} onClick={e=>{if(e.delta>3)return;e.stopPropagation();if(e.instanceId!==undefined)onSelect(group.boxes[e.instanceId],e.point?[(e.point.x-offset.x)/scale,(e.point.z-offset.z)/scale,(e.point.y-offset.y)/scale]:undefined);}}><boxGeometry args={[1,1,1]}/></instancedMesh>{parts.length>0&&<instancedMesh ref={baseRef} args={[undefined,undefined,parts.length]}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>}</>;
+  return <><instancedMesh ref={meshRef} args={[undefined,materials,group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering} onClick={e=>{if(e.delta>3)return;e.stopPropagation();if(e.instanceId!==undefined)onSelect(group.boxes[e.instanceId],e.point?[(e.point.x-offset.x)/scale,(e.point.z-offset.z)/scale,(e.point.y-offset.y)/scale]:undefined,e.shiftKey);}}><boxGeometry args={[1,1,1]}/></instancedMesh>{parts.length>0&&<instancedMesh ref={baseRef} args={[undefined,undefined,parts.length]}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>}</>;
 }
 
 function SceneCapture({ register }: { register: (capture: () => Promise<Blob>) => void }) {
@@ -113,7 +125,7 @@ function normalizedSceneSize(result: PackingResult): SceneSize {
   return [effectiveLength * scale, effectiveHeight * scale, effectiveWidth * scale];
 }
 
-export function ContainerModel({ result, visibleProducts, visibleCount, reducedRendering, presentation, modelMode, transparency, labels, selected, onSelect, section=EMPTY_SECTION, manualMeasurement }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number; reducedRendering: boolean; presentation?: boolean; modelMode:TransportDisplayMode; transparency:number; labels:boolean; selected:PlacedBox|null;onSelect:(b:PlacedBox,point?:Point3)=>void;section?:Section;manualMeasurement?:Measurement|null }) {
+export function ContainerModel({ result, visibleProducts, visibleCount, reducedRendering, presentation, modelMode, transparency, labels, selected, onSelect, section=EMPTY_SECTION, manualMeasurement,editor,regions=[],heatColors,onDragging }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number; reducedRendering: boolean; presentation?: boolean; modelMode:TransportDisplayMode; transparency:number; labels:boolean; selected:PlacedBox|null;onSelect:(b:PlacedBox,point?:Point3,add?:boolean)=>void;section?:Section;manualMeasurement?:Measurement|null;editor?:PlanEditor;regions?:AnalysisRegion[];heatColors?:Map<string,string>;onDragging?:(v:boolean)=>void }) {
   useLanguage();
   const appearance=useTransportAppearance();
   const measurement=useMemo(()=>sceneMeasurement(result.container,result.clearance,selected??undefined),[result.container,result.clearance,selected]);
@@ -133,15 +145,16 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
     const map = new Map<string, InstanceGroup>();
     const sources=new Map(result.placements.map(b=>[b.id,b]));
     for (const box of inspectBoxes(result,visibleProducts,visibleCount,section)) {
-      const key = `${box.productId}:${box.orientation}:${box.dx}:${box.dy}:${box.dz}`;
+      const color=heatColors?.get(box.id)??box.color;
+      const key = `${box.productId}:${box.orientation}:${box.dx}:${box.dy}:${box.dz}:${color}`;
       const meta = result.cargoDetails?.[box.productId];
-      const current = map.get(key) ?? { productId: key, sku: box.sku, orientation: box.orientation, cargoType: meta?.cargoType, baseHeight: meta?.palletBaseHeight, color: box.color, boxes: [],sources:[] };
+      const current = map.get(key) ?? { productId: key, sku: box.sku, orientation: box.orientation, cargoType: meta?.cargoType, baseHeight: meta?.palletBaseHeight, color, boxes: [],sources:[] };
       current.boxes.push(box);
       current.sources.push(sources.get(box.id)!);
       map.set(key, current);
     }
     return [...map.values()];
-  }, [result, visibleCount, visibleProducts,section]);
+  }, [result, visibleCount, visibleProducts,section,heatColors]);
   const annotations = useMemo(() => {
     const map = new Map<string, { sku:string; minX:number; maxX:number; maxY:number; minZ:number; maxZ:number }>();
     for (const group of groups) for (const b of group.boxes) {
@@ -161,11 +174,14 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
       {groups.map((group) => (
         <InstancedBoxes key={group.productId} group={group} scale={scale} offset={offset} reducedRendering={reducedRendering} labels={labels} onSelect={onSelect} />
       ))}
+      {editor?.enabled&&editor.selected.filter(b=>b.id!==selected?.id).map(b=><SelectionOutline key={b.id} box={b} scale={scale} offset={offset}/>)}
       {selected && sectionBox(selected,result,section) && <SelectionOutline box={sectionBox(selected,result,section)!} scale={scale} offset={offset}/>}
       </SectionGeometry>
       {labels && annotations.map(([id,a])=><MetricLabel key={id} text={a.sku} size={.12} position={[(a.minX+a.maxX)/2*scale+offset.x,a.maxY*scale+offset.y+.15,(a.minZ+a.maxZ)/2*scale+offset.z]}/>)}
       {appearance.dimensions&&<SceneDimensions bounds={measurement.bounds} values={measurement.values} unit={appearance.dimensionUnit} fontSize={appearance.dimensionFontSize} style={appearance.dimensionStyle} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}
       {appearance.dimensions&&manualMeasurement&&<SceneMeasurement measurement={manualMeasurement} scale={scale} offset={offset}/>}
+      <SceneAnalysisOverlay regions={regions} scale={scale} offset={offset}/>
+      {editor?.enabled&&!editor.disabled&&onDragging&&<SceneEditHandles editor={editor} boxes={inspectBoxes(result,visibleProducts,visibleCount,section)} scale={scale} offset={offset} onDragging={onDragging}/>}
       {!presentation && modelMode === "wireframe" && <gridHelper args={[Math.max(size[0], size[2]) * 1.25, 16, "#91a6ab", "#d9e1e3"]} position={[0, -0.02, 0]} />}
     </group>
   );
@@ -182,7 +198,8 @@ const CAMERA_VIEWS: Array<{ id: CameraPresetView; label: string; icon: React.Rea
 ];
 
 export function ContainerScene({
-  result,
+  result:source,
+  editor,products=[],onAdopt,
   presentation = false,
   visibleProducts,
   visibleCount,
@@ -193,6 +210,12 @@ export function ContainerScene({
   onProjectionModeChange,
 }: Props) {
   useLanguage();
+  const result=editor?.enabled&&editor.plan?editor.plan:source;
+  const [tool,setTool]=useState("inspect"),[spaceOpen,setSpaceOpen]=useState(true),[gapId,setGapId]=useState(""),[heat,setHeat]=useState<HeatMode>("off"),[highlight,setHighlight]=useState<string[]>([]),[dragging,setDragging]=useState(false);
+  const spaces=useMemo(()=>result&&tool==="space"&&spaceOpen?analyzeEmptySpaces(result):null,[result,tool,spaceOpen]);
+  const loads=useMemo(()=>result&&products.length&&(heat!=="off"||tool==="load")?analyzeLoads(result,products):null,[result,products,heat,tool]);
+  const heatColors=useMemo(()=>{const map=new Map<string,string>();if(loads&&result){const cartons=new Map(loads.boxes.map(c=>[c.id,c.color])),pallets=new Map(loads.pallets.map(p=>[p.id,p.color]));for(const b of result.placements){const color=heat==="top"?cartons.get(b.id):heat==="pallet"?b.palletIds?.map(id=>pallets.get(id)).find(Boolean):heat==="zone"?loads.zones.find(z=>b.x+b.dx/2>=z.x&&b.x+b.dx/2<=z.x+z.dx)?.color:undefined;if(color)map.set(b.id,color);}}return map;},[loads,result,heat]);
+  const regions=useMemo<AnalysisRegion[]>(()=>{if(!result)return [];const gap=spaces?.spaces.find(s=>s.id===gapId);return [...(gap?[{...gap,color:"#177bbc"}]:[]),...(heat==="pallet"?(result.pallets??[]).map(p=>({...p,color:loads?.pallets.find(c=>c.id===p.id)?.color??"#7d8393"})):[]),...(heat==="zone"?(loads?.zones??[]).map(z=>({id:z.id,x:z.x,y:0,z:0,dx:z.dx,dy:result.container.width-2*result.clearance,dz:12,color:z.color})):[]),...[...result.placements,...palletAnchors(result.pallets??[])].filter(b=>highlight.includes(b.id)).map(b=>({...b,color:"#c23832"}))];},[result,spaces,gapId,heat,loads,highlight]);
   const appearance = useTransportAppearance();
   const cameraController = useMemo(() => new SceneCameraController(), []);
   const captureRef=useRef<(() => Promise<Blob>) | null>(null);
@@ -200,9 +223,9 @@ export function ContainerScene({
   const {labels,setLabels}=appearance;
   const inspection=useSceneInspection(result,visibleProducts,visibleCount);
   const [selection,setSelection]=useState<{planId:string;box:PlacedBox}|null>(null),[focusId,setFocusId]=useState<string|null>(null);
-  const currentSelection=selection&&selection.planId===result?.id?(selection.box.supportOnly?palletAnchors(result?.pallets??[]).find(p=>p.id===selection.box.id):result?.placements.find(b=>b.id===selection.box.id)):null;
+  const currentSelection=editor?.enabled&&editor.selected[0]?editor.selected[0]:selection&&selection.planId===result?.id?(selection.box.supportOnly?palletAnchors(result?.pallets??[]).find(p=>p.id===selection.box.id):result?.placements.find(b=>b.id===selection.box.id)):null;
   const selected=currentSelection&&(currentSelection.supportOnly?!!result&&!!sectionBox(currentSelection,result,inspection.value.section)&&(inspection.value.section.isolation!=="pallet"||inspection.value.section.target===currentSelection.id):inspection.displayBoxes.some(b=>b.id===currentSelection.id))?currentSelection:null;
-  const selectBox=(box:PlacedBox,point?:Point3)=>{if(!result)return;setSelection({planId:result.id,box});inspection.pick(box,point);};
+  const selectBox=(box:PlacedBox,point?:Point3,add=false)=>{if(!result)return;if(editor?.enabled){if(!box.supportOnly&&!editor.rectangle)editor.select(box.id,add);return;}setSelection({planId:result.id,box});inspection.pick(box,point);};
   const focus=useMemo(()=>{if(!selected||!result||focusId!==selected.id||projectionMode!=="perspective"||(cameraView!=="perspective"&&cameraView!=="free"))return undefined;const l=result.container.length-result.clearance*2,w=result.container.width-result.clearance*2,h=result.container.height-result.clearance,base=result.container.baseHeight??0,scale=5.6/Math.max(l,w,h+base);return {size:[selected.dx*scale,selected.dz*scale,selected.dy*scale] as SceneSize,origin:[(selected.x+selected.dx/2-l/2)*scale,(selected.z+base)*scale,(selected.y+selected.dy/2-w/2)*scale] as SceneSize};},[selected,result,focusId,projectionMode,cameraView]);
   const [captureError,setCaptureError] = useState("");
   const saveImage=async()=>{ try { const blob=await captureRef.current?.();if(!blob)throw new Error(tr("图形尚未准备完成。", "Scene is not ready."));const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download="CargoFit_3D.png";link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);setCaptureError(""); } catch(e) {setCaptureError(e instanceof Error?e.message:"Image export failed");}};
@@ -234,8 +257,9 @@ export function ContainerScene({
             </div>
           </div>
           <div className="scene-tools" aria-label={tr("三维工具", "3D tools")}><button type="button" disabled={!result} aria-pressed={labels} onClick={()=>setLabels(!labels)}><Tag size={14}/>{tr("箱标","Labels")}</button><DimensionControls/><button type="button" onClick={()=>{setSelection(null);setFocusId(null);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" disabled={!webglSupported} onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
+{editor?.changed&&<p className="scene-draft-notice" role="status">{tr("正在预览编辑草稿；采用后更新指标与导出。","Previewing edit draft. Apply to update totals and exports.")}</p>}
 {webglSupported!==false&&<TransportModelControls/>}
-<SceneWorkbench result={result} boxes={inspection.displayBoxes} selected={selected} onSelect={selectBox} inspector={result&&<SceneInspector result={result} selected={selected} inspection={inspection} onClearSelection={()=>{setSelection(null);setFocusId(null);}} onFocus={webglSupported!==false&&selected?()=>{setFocusId(selected.id);onCameraViewChange("perspective");onProjectionModeChange("perspective");}:undefined}/>}><div className="scene-shell" role="region" aria-label={tr("可交互三维装柜视图")}>
+<SceneWorkbench editor={editor} result={result} boxes={inspection.displayBoxes} selected={selected} onSelect={selectBox} inspector={result&&<><nav className="scene-inspector-tabs" aria-label={tr("三维工作台工具","Scene workbench tools")}>{[["inspect","属性与测量","Inspect & measure"],["edit","编辑","Edit"],["space","空隙","Gaps"],["load","承重","Loads"],["access","装卸","Access"]].map(([id,zh,en])=><button key={id} disabled={id!=="inspect"&&(!products.length||result.metrics.loadedCount!==result.placements.length)||id==="edit"&&!editor} aria-pressed={tool===id} onClick={()=>setTool(id)}>{tr(zh,en)}</button>)}</nav>{tool==="edit"&&editor&&<SceneEditPanel editor={editor}/>} {tool==="space"&&<SceneSpacePanel plan={result} products={products} report={spaces} selected={gapId} onSelect={setGapId} onOpen={setSpaceOpen}/>} {tool==="load"&&<SceneLoadPanel report={loads} mode={heat} onMode={setHeat} selected={selected}/>} {tool==="access"&&<SceneAccessPanel key={result.id} plan={result} products={products} onAdopt={onAdopt} onHighlight={setHighlight} disabled={!!editor?.disabled||!!editor?.changed}/>} {tool==="inspect"&&<SceneInspector result={result} selected={selected} inspection={inspection} onClearSelection={()=>{setSelection(null);setFocusId(null);}} onFocus={webglSupported!==false&&selected?()=>{setFocusId(selected.id);onCameraViewChange("perspective");onProjectionModeChange("perspective");}:undefined}/>}</>}><div className="scene-shell" role="region" aria-label={tr("可交互三维装柜视图")}>
       {!result ? (
         <div className="scene-empty">
           <div className="scene-empty-cube" aria-hidden="true" />
@@ -245,7 +269,7 @@ export function ContainerScene({
       ) : webglSupported === null ? (
         <div className="scene-loading">{tr("正在检测三维图形能力…")}</div>
       ) : !webglSupported ? (
-        <LoadingSceneFallback result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} selected={selected} onSelect={selectBox} section={inspection.value.section} manualMeasurement={inspection.measurement}/>
+        <LoadingSceneFallback editor={editor?.enabled?editor:undefined} regions={regions} heatColors={heatColors} result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} selected={selected} onSelect={selectBox} section={inspection.value.section} manualMeasurement={inspection.measurement}/>
       ) : (
         <>
           <div className="scene-canvas">
@@ -259,9 +283,10 @@ export function ContainerScene({
               <ambientLight intensity={.8} />
               <hemisphereLight args={["#ffffff", "#61747a", .8]} />
               <directionalLight castShadow={!reducedRendering} position={[5, 9, 4]} intensity={2.1} shadow-mapSize-width={reducedRendering ? 256 : 1024} shadow-mapSize-height={reducedRendering ? 256 : 1024} />
-              <ContainerModel result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} reducedRendering={reducedRendering} presentation={presentation} modelMode={appearance.mode} transparency={appearance.transparency} labels={labels} selected={selected} onSelect={selectBox} section={inspection.value.section} manualMeasurement={inspection.measurement}/>
+              <ContainerModel editor={editor} onDragging={setDragging} regions={regions} heatColors={heatColors} result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} reducedRendering={reducedRendering} presentation={presentation} modelMode={appearance.mode} transparency={appearance.transparency} labels={labels} selected={selected} onSelect={selectBox} section={inspection.value.section} manualMeasurement={inspection.measurement}/>
               <SceneCapture register={registerCapture}/>
               <SceneCameraRig
+                enabled={!dragging&&!editor?.rectangle}
                 controller={cameraController}
                 containerSize={containerSize}
                 sceneBounds={sceneBounds}

@@ -1,3 +1,5 @@
+import { parsePalletization, validatePalletizedCargo } from "./prebuilt-pallets";
+import { parseDelivery } from "./access";
 import { arrangeFloorPallets, parseFloorPalletConfig, palletAnchors, palletSupportProducts, assignPalletReferences, palletCargoCeiling, supportingPalletIds } from "./floor-pallets";
 import { parseLoadingRules, parseOrientations, CARGO_TYPES, requiredSupport, applyTypeSupport } from "./loading-rules";
 import { executionAudit } from "./execution";
@@ -26,7 +28,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.20.0";
+export const ENGINE_VERSION = "0.21.0";
 
 type Orientation = {
   dx: number;
@@ -283,7 +285,7 @@ export function calculateReverseCounts(
   };
 }
 
-function getOrientations(product: ProductInput, deduplicate = true): Orientation[] {
+export function getOrientations(product: ProductInput, deduplicate = true): Orientation[] {
   if (product.allowedOrientations) {
     const dimensions: Record<string, number> = { L: product.length, W: product.width, H: product.height };
     const seen = new Set<string>();
@@ -1749,7 +1751,7 @@ export function validatePacking(
       if (strategy === "practical" && !product.allowedOrientations && Math.abs(box.dz - positive(product.height)) > EPS) {
         errors.push(`${box.sku} 的箱体 ${index + 1} 在现场易执行方案中发生侧翻；现场模式只允许保持原包装高度。`);
       }
-      if (product.bottomOnly === true && box.z > EPS && !(floorConfig && Math.abs(box.z - floorConfig.height) < EPS)) errors.push(`${box.sku} 的箱体 ${index + 1} 未按“必须底置”规则放在柜底。`);
+      if (product.bottomOnly === true && box.z > EPS && !(pallets.some(p=>Math.abs(box.z-p.dz)<EPS&&contactArea(box,palletAnchors([p])[0])>EPS))) errors.push(`${box.sku} 的箱体 ${index + 1} 未按“必须底置”规则放在柜底。`);
       if (!canPassDoor({ dx: box.dx, dy: box.dy, dz: box.dz, label: box.orientation }, effective)) {
         errors.push(`${box.sku} 的箱体 ${index + 1} 无法按当前方向通过门洞。`);
       }
@@ -2334,7 +2336,10 @@ export function packWithComparison(request: PackingRequest): PackingResult {
 }
 
 /** Revalidate a manual edit and rebuild every geometry-dependent metric. */
-export function revisePackingResult(original: PackingResult, placements: PlacedBox[], products: ProductInput[]): PackingResult {
+export function revisePackingResult(original: PackingResult, placements: PlacedBox[], products: ProductInput[], pallets:PlacedPallet[]=original.pallets??[]): PackingResult {
+  if(original.metrics.loadedCount!==original.placements.length)throw new Error("A complete coordinate plan is required for editing.");
+  if(pallets.length!==(original.pallets??[]).length||pallets.some(p=>{const old=original.pallets?.find(q=>q.id===p.id);return !old||p.weight!==old.weight||p.maxLoad!==old.maxLoad||p.presetId!==old.presetId||p.dz!==old.dz;}))throw new Error("Pallet identity or specification cannot change during editing.");
+  if(!original.palletization&&JSON.stringify(pallets)!==JSON.stringify(original.pallets??[]))throw new Error("Floor pallet layout is fixed; edit its configuration instead.");
   products = applyTypeSupport(products, original.loadingRules);
   if (placements.length !== original.placements.length || new Set(placements.map(b => b.id)).size !== placements.length) throw new Error("手动调整不能增删箱体或重复追踪 ID。");
   const before = new Map(original.placements.map(b => [b.id, b]));
@@ -2345,20 +2350,21 @@ export function revisePackingResult(original: PackingResult, placements: PlacedB
   }
   const productMap = new Map(products.map(p => [p.id, p]));
   const levels = new Map<number, PlacedBox[]>();
-  for (const b of palletAnchors(original.pallets ?? [])) appendMapArray(levels, supportLevelKey(b.z+b.dz), b);
+  for (const b of palletAnchors(pallets)) appendMapArray(levels, supportLevelKey(b.z+b.dz), b);
   const relayered = [...placements].sort((a,b) => a.z-b.z).map(b => {
     const box = { ...b, layer: supportDetails(b, levels, productMap).layer };
     appendMapArray(levels, supportLevelKey(box.z+box.dz), box);
     return box;
   });
-  const ordered = assignPalletReferences(orderForLoading(relayered), original.pallets ?? []);
-  const validation = validatePacking(ordered, original.container, original.clearance, products, original.strategy, original.mode, original.pallets, original.floorPallets);
+  const ordered = assignPalletReferences(orderForLoading(relayered), pallets);
+  const validation = validatePacking(ordered, original.container, original.clearance, products, original.strategy, original.mode, pallets, original.floorPallets);
   if (!validation.valid) throw new Error(validation.errors.slice(0,3).join("\n"));
+  if(original.palletization){const errors=validatePalletizedCargo(ordered,pallets,original.container,original.clearance,original.palletization);if(errors.length)throw new Error(errors.slice(0,3).join("\n"));}
   const effective = effectiveContainer(original.container, original.clearance);
-  return { ...original, id: `manual-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, placements: ordered,
+  return { ...original, id: `manual-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, placements: ordered,pallets,
     strategyPlans: undefined, strategyComparison: undefined, quoteEstimate: undefined, validation,
     warnings: ["手动调整已重新校验；继续优化会保留锁定箱位及其支撑；重新计算整个订单将创建新方案。"],
-    metrics: { ...original.metrics, centerOfGravity: calculateCenterOfGravity([...palletAnchors(original.pallets??[]),...ordered],effective), executionComplexity: calculateExecutionComplexity(ordered,products) }, createdAt: new Date().toISOString() };
+    metrics: { ...original.metrics, centerOfGravity: calculateCenterOfGravity([...palletAnchors(pallets),...ordered],effective), executionComplexity: calculateExecutionComplexity(ordered,products) }, createdAt: new Date().toISOString() };
 }
 
 export function explainUnloaded(result: PackingResult, products: ProductInput[]) {
@@ -2416,10 +2422,13 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   if(limit!==undefined&&(!Number.isInteger(limit)||Number(limit)<1))throw new Error("归档计划上限无效。");
   if (raw.strategy!=="practical"&&raw.strategy!=="maximum") throw new Error("归档算法标识无效。");
   if (!Array.isArray(raw.placements)||raw.placements.length>MAX_VISIBLE_PLACEMENTS) throw new Error("归档箱体坐标数量无效。");
-  const pallets=request.floorPallets?arrangeFloorPallets(request.container,request.clearance,request.floorPallets):[];
-  if (pallets.length) {
+  const palletization=parsePalletization(raw.palletization);
+  if(palletization&&request.floorPallets)throw new Error("Prebuilt and floor pallet modes cannot be combined");
+  if(palletization&&!Array.isArray(raw.pallets))throw new Error("Prebuilt pallet coordinates are missing");
+  const pallets=palletization?raw.pallets as PlacedPallet[]:request.floorPallets?arrangeFloorPallets(request.container,request.clearance,request.floorPallets):[];
+  if (!palletization && pallets.length) {
     if (!Array.isArray(raw.pallets) || raw.pallets.length!==pallets.length || raw.pallets.some((p,i)=>!p||typeof p!=="object"||Object.entries(pallets[i]).some(([k,v])=>(p as Record<string,unknown>)[k]!==v))) throw new Error("归档托盘记录与底层托盘设置不一致。");
-  } else if (raw.pallets!==undefined && (!Array.isArray(raw.pallets)||raw.pallets.length)) throw new Error("归档含有未配置的底层托盘。");
+  } else if (!palletization && raw.pallets!==undefined && (!Array.isArray(raw.pallets)||raw.pallets.length)) throw new Error("归档含有未配置的底层托盘。");
   const products=selectProductsForMode(applyTypeSupport(request.products, request.loadingRules),request.mode);
   const byId=new Map(products.map(p=>[p.id,p]));
   const placements:PlacedBox[]=raw.placements.map((value:unknown)=>{
@@ -2438,6 +2447,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   const ordered=assignPalletReferences(orderForLoading(placements),pallets);
   const validation=validatePacking(ordered,request.container,request.clearance,products,raw.strategy,request.mode,pallets,request.floorPallets);
   if(!validation.valid)throw new Error(`归档坐标未通过当前校验：${validation.errors.slice(0,3).join("；")}`);
+  if(palletization){const errors=validatePalletizedCargo(ordered,pallets,request.container,request.clearance,palletization);if(errors.length)throw new Error(errors.join("; "));}
   if(request.mode==="single"&&limit!==undefined&&ordered.length>Number(limit))throw new Error("归档箱数超过计划上限。");
   const normalized: PackingRequest={...request,products,strategy:raw.strategy,singleCartonLimit:limit as number|undefined};
   const summaries=buildSummaries(normalized,ordered);
@@ -2447,7 +2457,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   const grossWeight=summaries.reduce((n,s)=>n+s.loadedWeight,0)+pallets.reduce((n,p)=>n+p.weight,0);
   const effectiveVolume=effective.length*effective.width*effective.height;
   return {id:`restored-${Date.now()}`,mode:request.mode,strategy:raw.strategy,practicalTargetUtilization:practicalTarget(normalized),engineVersion:ENGINE_VERSION,
-    floorPallets:request.floorPallets,pallets,container:request.container,clearance:request.clearance,singleCartonLimit:normalized.singleCartonLimit,placements:ordered,summaries,setSummaries,validation,
+    palletization,delivery:parseDelivery(raw.delivery,new Set(products.map(p=>p.id))),floorPallets:request.floorPallets,pallets,container:request.container,clearance:request.clearance,singleCartonLimit:normalized.singleCartonLimit,placements:ordered,summaries,setSummaries,validation,
     metrics:{loadedCount:ordered.length,requestedCount:summaries.reduce((n,s)=>n+s.requested,0),loadedVolume,grossWeight,effectiveVolume,
       volumeUtilization:loadedVolume/effectiveVolume,weightUtilization:grossWeight/request.container.maxWeight,
       centerOfGravity:calculateCenterOfGravity([...palletAnchors(pallets),...ordered],effective),executionComplexity:calculateExecutionComplexity(ordered,products),solveTimeMs:0},
@@ -2457,6 +2467,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
 
 /** Retain locked boxes, their support closure and complete kits; only rebuild the free remainder. */
 export function improvePacking(original: PackingResult, products: ProductInput[], pass = 0): PackingResult {
+  if(original.palletization)throw new Error("Prebuilt pallet loads must be regenerated as complete units.");
   products = applyTypeSupport(products, original.loadingRules);
   const request: PackingRequest = {floorPallets:original.floorPallets,loadingRules:original.loadingRules,mode:original.mode,strategy:original.strategy,container:original.container,clearance:original.clearance,practicalTargetUtilization:original.practicalTargetUtilization,products};
   const baseline=restorePackingSnapshot(request,{strategy:original.strategy,placements:original.placements,pallets:original.pallets});
@@ -2478,7 +2489,7 @@ export function improvePacking(original: PackingResult, products: ProductInput[]
   const score=(p:PackingResult)=>weightedScore(p.placements,products);
   if(score(candidate)<score(baseline)||candidate.metrics.loadedCount<baseline.metrics.loadedCount)return original;
   if(score(candidate)===score(baseline)&&executionAudit(candidate).score>=executionAudit(baseline).score)return original;
-  candidate.id=`optimized-${Date.now()}-${pass}`;candidate.singleCartonLimit=original.singleCartonLimit;
+  candidate.id=`optimized-${Date.now()}-${pass}`;candidate.singleCartonLimit=original.singleCartonLimit;candidate.delivery=original.delivery;
   candidate.warnings=[`已保留 ${fixed.size} 个固定／支撑／成套箱位，其余空间完成第 ${pass+1} 轮搜索。`,...candidate.warnings];
   return candidate;
 }

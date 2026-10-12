@@ -94,8 +94,8 @@ export function parseWorkspaceBackup(contents: string): WorkspaceInputs {
 export function serializeWorkspaceBackup(inputs: WorkspaceInputs, engineVersion: string, plan?: PackingResult | null, plans?: PackingResult["strategyPlans"]): string {
   return JSON.stringify({ format: "cargo-fit-workspace", version: 1, engineVersion,
     createdAt: new Date().toISOString(), inputs,
-    coordinatePlans: Object.fromEntries(Object.entries(plan?.validation.valid?(plans??plan.strategyPlans??{}):{}).filter(([,p])=>p?.validation.valid).map(([key,p])=>[key,{strategy:p!.strategy,singleCartonLimit:p!.singleCartonLimit,placements:p!.placements,pallets:p!.pallets}])),
-    ...(plan?.validation.valid ? { coordinatePlan: { strategy: plan.strategy, singleCartonLimit: plan.singleCartonLimit, placements: plan.placements,pallets:plan.pallets } } : {}) }, null, 2);
+    coordinatePlans: Object.fromEntries(Object.entries(plan?.validation.valid?(plans??plan.strategyPlans??{}):{}).filter(([,p])=>p?.validation.valid).map(([key,p])=>[key,{strategy:p!.strategy,singleCartonLimit:p!.singleCartonLimit,placements:p!.placements,pallets:p!.pallets,palletization:p!.palletization,delivery:p!.delivery}])),
+    ...(plan?.validation.valid ? { coordinatePlan: { strategy: plan.strategy, singleCartonLimit: plan.singleCartonLimit, placements: plan.placements,pallets:plan.pallets,palletization:plan.palletization,delivery:plan.delivery } } : {}) }, null, 2);
 }
 
 
