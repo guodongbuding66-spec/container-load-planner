@@ -20,7 +20,7 @@ export function palletizeThenPack(request:PackingRequest,input:FloorPalletConfig
   }
   if(!prepared.length)throw new Error("No complete cargo load fits the chosen pallet");
   const units:ProductInput[]=prepared.map(p=>({id:p.id,sku:p.id,name:config.name,length:config.length,width:config.width,height:p.height,weight:p.weight,quantity:1,priority:50,rotationPolicy:"upright",allowedOrientations:p.cargo.every(b=>{const input=request.products.find(q=>q.id===b.productId)!;return getOrientations(input,false).some(o=>o.dx===b.dy&&o.dy===b.dx&&o.dz===b.dz&&(!input.allowedOrientations||o.label===`${b.orientation[1]}${b.orientation[0]}${b.orientation[2]}`));})?["LWH","WLH"]:["LWH"],stackable:false,maxStackLayers:1,bottomOnly:true,cargoType:"pallet",palletBaseHeight:config.height,color:"#997947"}));
-  const outer=pack({...request,floorPallets:undefined,products:units,loadingRules:request.loadingRules?{...request.loadingRules,supportByType:undefined}:undefined,mode:"mixed",strategy:"practical",practicalTargetUtilization:.95});
+  const outer=pack({...request,floorPallets:undefined,products:units,loadingRules:request.loadingRules?{...request.loadingRules,supportByType:undefined}:undefined,mode:"mixed",strategy:"practical"});
   if(!outer.validation.valid)throw new Error(outer.validation.errors.join("; "));
   const placements:PlacedBox[]=[],pallets:PlacedPallet[]=[],setCounters=new Map<string,number>();
   for(const b of outer.placements){const unit=prepared.find(p=>p.id===b.productId)!,cross=b.orientation==="WLH",palletId=`floor-pallet-${pallets.length+1}`,setMap=new Map<string,number>();
