@@ -16,6 +16,7 @@ it("shares validated drafts, undo/redo, selection and adoption, and drops drafts
   function Hook(){const [plan,setPlan]=useState(source);replace=setPlan;editor=usePlanEditor(plan,products,false,p=>{adopted=p;setPlan(p);});return <group/>;}
   try{await act(async()=>root.render(<Hook/>));await act(async()=>{editor.update({enabled:true});editor.selectMany(source.placements.map(b=>b.id));});
     await act(async()=>editor.move({x:0,y:100,z:0}));expect(editor.changed).toBe(true);expect(editor.undo).toHaveLength(1);const draft=editor.plan!;expect(draft.placements.every(b=>b.y===600)).toBe(true);
+    await act(async()=>editor.update({enabled:false,rectangle:false}));expect(editor.plan).toBe(draft);expect(editor.changed).toBe(true);
     await act(async()=>editor.undoEdit());expect(editor.plan).toBe(source);await act(async()=>editor.redoEdit());expect(editor.plan).toBe(draft);
     await act(async()=>editor.move({x:0,y:0,z:100}));expect(editor.plan).toBe(draft);expect(editor.message).toBeTruthy();expect(editor.undo).toHaveLength(1);
     await act(async()=>editor.apply());expect(adopted).toBe(draft);expect(editor.changed).toBe(false);expect(editor.ids).toHaveLength(0);
