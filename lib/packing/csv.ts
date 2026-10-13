@@ -185,10 +185,10 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
     const palletBaseHeight = get("palletBaseHeight").trim() ? toMillimeters(number("palletBaseHeight", 0), lengthUnit) : undefined;
     if (palletBaseHeight !== undefined && palletBaseHeight >= height) throw invalid("palletBaseHeight");
     const shape = parseShapeFields({cargoType: rawCargo || undefined, cargoShape:get("cargoShape").trim() || undefined, shapeAxis:get("shapeAxis").trim() || undefined, shapeTopRatio:get("shapeTopRatio").trim() ? number("shapeTopRatio", 0, 1) : undefined,
-      shapeWallRatio:get("shapeWallRatio").trim()?number("shapeWallRatio",.05,.45):undefined,
-      shapeWallHeightRatio:get("shapeWallHeightRatio").trim()?number("shapeWallHeightRatio",.05,.45):undefined,
-      shapeStepLengthRatio:get("shapeStepLengthRatio").trim()?number("shapeStepLengthRatio",.1,.9):undefined,
-      shapeStepHeightRatio:get("shapeStepHeightRatio").trim()?number("shapeStepHeightRatio",.1,.9):undefined});
+      shapeWallRatio:get("shapeWallRatio").trim()?number("shapeWallRatio",.000001,.999999):undefined,
+      shapeWallHeightRatio:get("shapeWallHeightRatio").trim()?number("shapeWallHeightRatio",.000001,.999999):undefined,
+      shapeStepLengthRatio:get("shapeStepLengthRatio").trim()?number("shapeStepLengthRatio",.000001,.999999):undefined,
+      shapeStepHeightRatio:get("shapeStepHeightRatio").trim()?number("shapeStepHeightRatio",.000001,.999999):undefined});
     return withShapeSupport({
       ...shape,
       ...(rawCargo ? { cargoType: rawCargo as ProductInput["cargoType"] } : {}),

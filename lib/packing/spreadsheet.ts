@@ -33,7 +33,7 @@ export async function createSpreadsheetTemplate() {
     ["allowedOrientations: JSON array containing at least one of LWH,LHW,WLH,WHL,HLW,HWL."],
     ["minimumSupportRatio: >0 to 1. Pallet base is already included in outer height."],
     ["cargoShape: box,cylinder,wedge,trapezoid,frustum,l-profile,u-profile,t-profile,step,irregular. shapeAxis: L,W,H."],
-    ["shapeTopRatio: trapezoid 0.1–1, frustum 0–1; profile walls 0.05–0.45; step length/height 0.1–0.9."],
+    ["shapeTopRatio: trapezoid >0–1, frustum 0–1; wall and step ratios >0 and <1; U vertical wall <0.5 (minimum ratio 0.000001)."],
     ["Profiles use solid blocks and horizontal support faces. Curved cargo reserves bounding envelopes and cannot support top loads."],
     ["No formulas; import validates every row before replacing the current manifest."],
   ]); help.getColumn(1).width = 110;

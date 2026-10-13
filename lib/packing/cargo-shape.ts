@@ -18,14 +18,14 @@ export function cylinderAxisOf(p: ShapeFields): "L" | "W" | "H" {
 export function parseShapeFields(v: Record<string, unknown>): ShapeFields {
   if (v.cargoShape !== undefined && !CARGO_SHAPES.includes(v.cargoShape as CargoShape)) throw new Error("货物外形无效");
   if (v.shapeAxis !== undefined && !["L", "W", "H"].includes(v.shapeAxis as string)) throw new Error("圆筒轴向无效");
-  if (v.shapeTopRatio !== undefined && (typeof v.shapeTopRatio !== "number" || !Number.isFinite(v.shapeTopRatio) || v.shapeTopRatio < (v.cargoShape === "frustum" ? 0 : .1) || v.shapeTopRatio > 1)) throw new Error(v.cargoShape === "frustum" ? "圆台顶径比例须为 0%–100%" : "梯形顶边比例须为 10%–100%");
+  if (v.shapeTopRatio !== undefined && (typeof v.shapeTopRatio !== "number" || !Number.isFinite(v.shapeTopRatio) || v.shapeTopRatio < (v.cargoShape === "frustum" ? 0 : .000001) || v.shapeTopRatio > 1)) throw new Error(v.cargoShape === "frustum" ? "圆台顶径比例须为 0%–100%" : "梯形顶边比例须大于 0 且不超过 100%");
   for (const key of ["shapeWallRatio", "shapeWallHeightRatio"] as const) {
     const n = v[key];
-    if (n !== undefined && (typeof n !== "number" || !Number.isFinite(n) || n < .05 || n > .45)) throw new Error("型件壁厚比例须为 5%–45%");
+    if (n !== undefined && (typeof n !== "number" || !Number.isFinite(n) || n < .000001 || n >= (key === "shapeWallRatio" && v.cargoShape === "u-profile" ? .5 : 1))) throw new Error("型件壁厚无效，须保留有效截面空间");
   }
   for (const key of ["shapeStepLengthRatio", "shapeStepHeightRatio"] as const) {
     const n = v[key];
-    if (n !== undefined && (typeof n !== "number" || !Number.isFinite(n) || n < .1 || n > .9)) throw new Error("阶梯长度与高度比例须为 10%–90%");
+    if (n !== undefined && (typeof n !== "number" || !Number.isFinite(n) || n < .000001 || n > .999999)) throw new Error("阶梯长度与高度须在总尺寸内");
   }
   if (v.cargoType === "pallet" && v.cargoShape !== undefined && v.cargoShape !== "box") throw new Error("托盘货物外包络须为长方体");
   return {

@@ -124,7 +124,7 @@ describe("asymmetric rotations and durable shape data",()=>{
     expect(p).toMatchObject(values);expect(parseProductInput(JSON.parse(JSON.stringify(p)))).toMatchObject(values);
     const plan=pack(request([p]));expect(restorePackingSnapshot(request([p]),plan).cargoDetails?.[p.id]).toMatchObject(values);
     const csv=parseCsvRecords(buildPlacementCsv(plan));expect(csv[1]).toHaveLength(csv[0].length);expect(csv[1].slice(23,27)).toEqual(["0.2","0.3","0.4","0.6"]);
-    for(const bad of [{shapeWallRatio:.46},{shapeWallHeightRatio:NaN},{shapeStepLengthRatio:0},{shapeStepHeightRatio:Infinity}])expect(()=>parseProductInput({...p,...bad})).toThrow();
+    for(const bad of [{shapeWallRatio:1},{shapeWallHeightRatio:NaN},{shapeStepLengthRatio:0},{shapeStepHeightRatio:Infinity}])expect(()=>parseProductInput({...p,...bad})).toThrow();
     expect(validatePacking(plan.placements,container,0,[{...p,shapeWallRatio:0}]).valid).toBe(false);
   });
   it("includes usable shape columns in the downloadable Excel template",async()=>{

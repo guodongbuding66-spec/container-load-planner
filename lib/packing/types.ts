@@ -61,10 +61,10 @@ export type ProductInput = {
   shapeAxis?: "L" | "W" | "H";
   /** Trapezoid top length / bottom length; preview keeps the full envelope. */
   shapeTopRatio?: number;
-  /** Profile wall width / L and wall height / H, each 0.05–0.45. */
+  /** Profile wall width / L and wall height / H, positive fractions; U vertical walls remain below 0.5. */
   shapeWallRatio?: number;
   shapeWallHeightRatio?: number;
-  /** Raised step length / L and lower step height / H, each 0.1–0.9. */
+  /** Raised step length / L and lower step height / H, positive fractions below 1. */
   shapeStepLengthRatio?: number;
   shapeStepHeightRatio?: number;
   allowedOrientations?: OrientationCode[];
