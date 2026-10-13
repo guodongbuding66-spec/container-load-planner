@@ -249,8 +249,8 @@
 .scene-header-controls .scene-quick-controls { flex: 0 1 auto; max-width: 100%; }
 .scene-header-controls .scene-camera-controls { max-width: none; }
 .scene-header-controls .scene-view-controls { width: auto; }
-.scene-header-controls .scene-tools { position: static; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; padding: 0; border: 0; background: transparent; min-width: 0; }
-.scene-header-controls .scene-tools .dimension-controls { flex: 0 1 auto; width: auto; margin: 0; gap: 4px 8px; }
+.scene-header-controls .scene-tools { position: static; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; padding: 0; border: 0; background: transparent; min-width: 0; max-width: 100%; }
+.scene-header-controls .scene-tools .dimension-controls { display: contents; }
 .scene-header-controls .scene-tools button,.scene-header-controls .transport-model-modes button { min-height: 32px; padding: 4px 8px; font-size: 12px; white-space: nowrap; }
 .scene-header-controls .transport-model-controls { flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-start; gap: 4px 8px; padding: 0; margin: 0; border: 0; background: transparent; }
 .scene-header-controls .transport-opacity { flex: 0 1 180px; min-width: 160px; max-width: 180px; gap: 4px; }
