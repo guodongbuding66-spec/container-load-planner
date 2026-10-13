@@ -1,5 +1,7 @@
 "use client";
 
+import { cargoShapeOf } from "../lib/packing/cargo-shape";
+import { cargoShapeGeometry } from "../lib/packing/cargo-shape-geometry";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Box, DoorOpen, Eye, ScanLine, ImageDown, RotateCcw, Tag } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -34,7 +36,7 @@ import { SceneEditPanel } from "./scene-edit-panel";
 import { SceneEditHandles } from "./scene-edit-handles";
 import { SceneAnalysisOverlay, type AnalysisRegion } from "./scene-analysis-overlay";
 import type { PlanEditor } from "./use-plan-editor";
-import type { PackingResult, ProductInput, PlacedBox } from "../lib/packing/types";
+import type { PackingResult, ProductInput, PlacedBox, OrientationCode } from "../lib/packing/types";
 import { EMPTY_SECTION, inspectBoxes, sectionBox, type Measurement, type Point3, type Section } from "../lib/packing/inspection";
 import { useSceneInspection } from "./use-scene-inspection";
 import { SceneInspector } from "./scene-inspector";
@@ -61,7 +63,10 @@ type InstanceGroup = {
   productId: string;
   sku: string;
   orientation: string;
-  cargoType?: string;
+  cargoType?: ProductInput["cargoType"];
+  cargoShape?: ProductInput["cargoShape"];
+  shapeAxis?: ProductInput["shapeAxis"];
+  shapeTopRatio?: number;
   baseHeight?: number;
   color: string;
   boxes: PlacedBox[];
@@ -76,14 +81,16 @@ function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSele
   useLanguage();
   const meshRef = useRef<THREE.InstancedMesh>(null), baseRef = useRef<THREE.InstancedMesh>(null);
   const transform = useMemo(() => new THREE.Object3D(), []);
-  const first=group.boxes[0];
+  const first=group.boxes[0], shape=cargoShapeOf(group);
+  const geometry=useMemo(()=>cargoShapeGeometry({cargoType:group.cargoType,cargoShape:group.cargoShape,shapeAxis:group.shapeAxis,shapeTopRatio:group.shapeTopRatio},group.orientation as OrientationCode,reducedRendering),[group.cargoType,group.cargoShape,group.shapeAxis,group.shapeTopRatio,group.orientation,reducedRendering]);
+  useEffect(()=>()=>geometry.dispose(),[geometry]);
   const materials = useMemo(() => {
     const dims=[first.dx,first.dz,first.dy], axis=first.orientation.indexOf("H");
     if(group.cargoType==="pallet")dims[axis===0?0:axis===1?2:1]=Math.max(1,dims[axis===0?0:axis===1?2:1]-(group.baseHeight??0));
-    const textures=labels?[boxFaceTexture(group.sku,group.color,dims[2],dims[1],group.orientation[2]),boxFaceTexture(group.sku,group.color,dims[0],dims[2]),boxFaceTexture(group.sku,group.color,dims[0],dims[1],group.orientation[2])]:[];
+    const textures=labels&&shape==="box"?[boxFaceTexture(group.sku,group.color,dims[2],dims[1],group.orientation[2]),boxFaceTexture(group.sku,group.color,dims[0],dims[2]),boxFaceTexture(group.sku,group.color,dims[0],dims[1],group.orientation[2])]:[];
     const maps=[textures[0],textures[0],textures[1],textures[1],textures[2],textures[2]];
-    return maps.map(map=>new THREE.MeshStandardMaterial({map:map??null,color:map?"white":group.color,roughness:.82}));
-  },[first.dx,first.dy,first.dz,first.orientation,group.baseHeight,group.cargoType,group.sku,group.color,group.orientation,labels]);
+    return maps.map(map=>new THREE.MeshStandardMaterial({map:map??null,color:map?"white":group.color,roughness:.82,wireframe:shape==="irregular",transparent:shape==="irregular",opacity:shape==="irregular"?.6:1}));
+  },[first.dx,first.dy,first.dz,first.orientation,group.baseHeight,group.cargoType,group.sku,group.color,group.orientation,labels,shape]);
   useEffect(()=>()=>{new Set(materials.map(m=>m.map)).forEach(t=>t?.dispose());materials.forEach(m=>m.dispose());},[materials]);
   const parts=useMemo(()=>group.cargoType!=="pallet"||!group.baseHeight?[]:group.sources.flatMap(box=>{
     const world=[box.dx,box.dy,box.dz];
@@ -96,7 +103,8 @@ function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSele
   }),[group.sources,group.baseHeight,group.cargoType]);
   useLayoutEffect(() => {
     if (!meshRef.current) return;
-    group.boxes.forEach((box,index)=>{
+    group.boxes.forEach((clipped,index)=>{
+      const box=shape==="box"?clipped:group.sources[index];
       const dims=[box.dx,box.dz,box.dy], pos=[(box.x+box.dx/2)*scale+offset.x,(box.z+box.dz/2)*scale+offset.y,(box.y+box.dy/2)*scale+offset.z];
       const originalAxis=box.orientation.indexOf("H"), axis=originalAxis===0?0:originalAxis===1?2:1;
       const source=group.sources[index],sourcePosition=[source.x,source.z,source.y],displayPosition=[box.x,box.z,box.y];
@@ -106,8 +114,8 @@ function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSele
     });
     meshRef.current.instanceMatrix.needsUpdate=true;meshRef.current.computeBoundingSphere();
     if(baseRef.current){parts.forEach((p,i)=>{transform.position.set((p.x+p.dx/2)*scale+offset.x,(p.z+p.dz/2)*scale+offset.y,(p.y+p.dy/2)*scale+offset.z);transform.scale.set(p.dx*scale*.997,p.dz*scale*.995,p.dy*scale*.997);transform.updateMatrix();baseRef.current!.setMatrixAt(i,transform.matrix);baseRef.current!.setColorAt(i,new THREE.Color(p.kind==="block"?"#ac8151":"#d4af7b"));});baseRef.current.instanceMatrix.needsUpdate=true;if(baseRef.current.instanceColor)baseRef.current.instanceColor.needsUpdate=true;baseRef.current.computeBoundingSphere();}
-  },[group.boxes,group.sources,group.baseHeight,group.cargoType,parts,materials,offset,scale,transform]);
-  return <><instancedMesh ref={meshRef} args={[undefined,materials,group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering} onClick={e=>{if(e.delta>3)return;e.stopPropagation();if(e.instanceId!==undefined)onSelect(group.boxes[e.instanceId],e.point?[(e.point.x-offset.x)/scale,(e.point.z-offset.z)/scale,(e.point.y-offset.y)/scale]:undefined,e.shiftKey);}}><boxGeometry args={[1,1,1]}/></instancedMesh>{parts.length>0&&<instancedMesh ref={baseRef} args={[undefined,undefined,parts.length]}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>}</>;
+  },[group.boxes,group.sources,group.baseHeight,group.cargoType,parts,materials,offset,scale,transform,shape]);
+  return <><instancedMesh ref={meshRef} args={[geometry,materials,group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering} onClick={e=>{if(e.delta>3)return;e.stopPropagation();if(e.instanceId!==undefined)onSelect(group.boxes[e.instanceId],e.point?[(e.point.x-offset.x)/scale,(e.point.z-offset.z)/scale,(e.point.y-offset.y)/scale]:undefined,e.shiftKey);}}></instancedMesh>{parts.length>0&&<instancedMesh ref={baseRef} args={[undefined,undefined,parts.length]}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>}</>;
 }
 
 function SceneCapture({ register }: { register: (capture: () => Promise<Blob>) => void }) {
@@ -148,7 +156,7 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
       const color=heatColors?.get(box.id)??box.color;
       const key = `${box.productId}:${box.orientation}:${box.dx}:${box.dy}:${box.dz}:${color}`;
       const meta = result.cargoDetails?.[box.productId];
-      const current = map.get(key) ?? { productId: key, sku: box.sku, orientation: box.orientation, cargoType: meta?.cargoType, baseHeight: meta?.palletBaseHeight, color, boxes: [],sources:[] };
+      const current = map.get(key) ?? { productId: key, sku: box.sku, orientation: box.orientation, cargoType: meta?.cargoType,cargoShape:meta?.cargoShape,shapeAxis:meta?.shapeAxis,shapeTopRatio:meta?.shapeTopRatio, baseHeight: meta?.palletBaseHeight, color, boxes: [],sources:[] };
       current.boxes.push(box);
       current.sources.push(sources.get(box.id)!);
       map.set(key, current);

@@ -1,4 +1,9 @@
 export const ENGLISH: Record<string, string> = {
+  "货物外形无效": "Invalid cargo shape",
+  "圆筒轴向无效": "Invalid cylinder axis",
+  "梯形顶边比例须为 10%–100%": "Trapezoid top ratio must be 10\u2013100%",
+  "托盘货物外包络须为长方体": "Pallet loads require a cuboid envelope",
+  "非长方体按最大外接尺寸预留空间与估算重心；不做异型嵌套，曲面或斜面货物不承托上方货物。": "Non-cuboid cargo reserves its bounding envelope; gravity is estimated from envelope centres. No nesting or load-bearing tops for curved or sloped cargo.",
   "关闭": "Close",
   "取消": "Cancel",
   "保存": "Save",

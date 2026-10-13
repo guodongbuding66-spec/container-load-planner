@@ -3,6 +3,7 @@ export type PackingStrategy = "practical" | "maximum";
 export type RotationPolicy = "fixed" | "upright" | "any";
 export type OrientationCode = "LWH" | "LHW" | "WLH" | "WHL" | "HLW" | "HWL";
 export type CargoType = "carton" | "pallet" | "crate" | "drum" | "roll" | "loose";
+export type CargoShape = "box" | "cylinder" | "wedge" | "trapezoid" | "irregular";
 export type FloorPalletConfig = {
   presetId: string;
   name: string;
@@ -54,6 +55,11 @@ export type ContainerSpec = {
 
 export type ProductInput = {
   cargoType?: CargoType;
+  cargoShape?: CargoShape;
+  /** Original axis of a cylindrical package, before its placement rotation. */
+  shapeAxis?: "L" | "W" | "H";
+  /** Trapezoid top length / bottom length; preview keeps the full envelope. */
+  shapeTopRatio?: number;
   allowedOrientations?: OrientationCode[];
   minimumSupportRatio?: number;
   /** Already included in outer height; never added to the cargo envelope. */
@@ -277,7 +283,7 @@ export type PackingResult = {
   floorPallets?: FloorPalletConfig;
   pallets?: PlacedPallet[];
   loadingRules?: LoadingRules;
-  cargoDetails?: Record<string, Pick<ProductInput, "cargoType" | "palletBaseHeight">>;
+  cargoDetails?: Record<string, Pick<ProductInput, "cargoType" | "palletBaseHeight" | "cargoShape" | "shapeAxis" | "shapeTopRatio">>;
   id: string;
   mode: PackingMode;
   strategy: PackingStrategy;

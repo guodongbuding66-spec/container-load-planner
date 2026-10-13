@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import { MAX_CSV_BYTES, MAX_CSV_ROWS, parseProductsCsv, toCsvCell } from "./csv";
-export const SPREADSHEET_COLUMNS = ["sku", "name", "length", "width", "height", "lengthUnit", "weight", "weightUnit", "quantity", "priority", "setCode", "unitsPerSet", "rotationPolicy", "stackable", "maxStackLayers", "mustLoad", "bottomOnly", "color", "maxTopLoadKg", "topLoadLengthKg", "topLoadWidthKg", "topLoadHeightKg", "allowedAboveSkus", "cargoType", "allowedOrientations", "minimumSupportRatio", "palletBaseHeight"];
+export const SPREADSHEET_COLUMNS = ["sku", "name", "length", "width", "height", "lengthUnit", "weight", "weightUnit", "quantity", "priority", "setCode", "unitsPerSet", "rotationPolicy", "stackable", "maxStackLayers", "mustLoad", "bottomOnly", "color", "maxTopLoadKg", "topLoadLengthKg", "topLoadWidthKg", "topLoadHeightKg", "allowedAboveSkus", "cargoType", "allowedOrientations", "minimumSupportRatio", "palletBaseHeight", "cargoShape", "shapeAxis", "shapeTopRatio"];
 
 /** Validate ZIP directory sizes before ExcelJS inflates any entry. */
 export function validateSpreadsheetZip(buffer: ArrayBuffer) {
@@ -32,6 +32,8 @@ export async function createSpreadsheetTemplate() {
     ["Length units: mm,cm,m,in. Weight units: kg,lb. Layer limit 0 means no artificial limit."],
     ["allowedOrientations: JSON array containing at least one of LWH,LHW,WLH,WHL,HLW,HWL."],
     ["minimumSupportRatio: >0 to 1. Pallet base is already included in outer height."],
+    ["cargoShape: box,cylinder,wedge,trapezoid,irregular. shapeAxis: L,W,H. shapeTopRatio: 0.1–1."],
+    ["Non-cuboid cargo uses bounding envelopes, no nesting and no load-bearing top."],
     ["No formulas; import validates every row before replacing the current manifest."],
   ]); help.getColumn(1).width = 110;
   return new Uint8Array(await book.xlsx.writeBuffer());

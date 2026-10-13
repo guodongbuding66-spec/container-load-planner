@@ -1,3 +1,4 @@
+import { parseShapeFields, withShapeSupport } from "./cargo-shape";
 import { CARGO_TYPES, parseOrientations } from "./loading-rules";
 import type { PackingResult, ProductInput, RotationPolicy } from "./types";
 import { isLengthUnit, isWeightUnit, toKilograms, toMillimeters } from "./units";
@@ -5,7 +6,7 @@ import { roundedCartonVolumeCbm } from "./volume";
 
 export const MAX_CSV_BYTES = 5 * 1024 * 1024;
 export const MAX_CSV_ROWS = 10_000;
-export const PLACEMENT_CSV_HEADER = "序号,SKU,品名,套装编码,套号,套内序号,X(mm),Y(mm),Z(mm),长(mm),宽(mm),高(mm),方向,层级,重量(kg),记录类型,托盘关联,客户,目的地,卸货站次";
+export const PLACEMENT_CSV_HEADER = "序号,SKU,品名,套装编码,套号,套内序号,X(mm),Y(mm),Z(mm),长(mm),宽(mm),高(mm),方向,层级,重量(kg),记录类型,托盘关联,客户,目的地,卸货站次,货物外形,圆筒轴向,梯形顶边比例";
 
 const REQUIRED_PRODUCT_COLUMNS = ["sku", "name", "length", "width", "height", "weight", "quantity"];
 const VALID_COLOR = /^#[0-9a-f]{6}$/i;
@@ -47,9 +48,12 @@ export function buildPlacementCsv(result: PackingResult) {
     result.delivery?.[box.productId]?.customer??"",
     result.delivery?.[box.productId]?.destination??"",
     result.delivery?.[box.productId]?.stop??"",
+    result.cargoDetails?.[box.productId]?.cargoShape??(["drum","roll"].includes(result.cargoDetails?.[box.productId]?.cargoType??"")?"cylinder":"box"),
+    result.cargoDetails?.[box.productId]?.shapeAxis??(result.cargoDetails?.[box.productId]?.cargoType==="roll"?"L":"H"),
+    result.cargoDetails?.[box.productId]?.shapeTopRatio??"",
   ].map(toCsvCell).join(","));
 
-  const palletRows=(result.pallets??[]).map(p=>[0,p.id,p.name,"","","",p.x,p.y,p.z,p.dx,p.dy,p.dz,p.orientation,0,p.weight,"pallet",p.id,"","",""].map(toCsvCell).join(","));
+  const palletRows=(result.pallets??[]).map(p=>[0,p.id,p.name,"","","",p.x,p.y,p.z,p.dx,p.dy,p.dz,p.orientation,0,p.weight,"pallet",p.id,"","","","box","",""].map(toCsvCell).join(","));
   return [PLACEMENT_CSV_HEADER, ...palletRows, ...rows].join("\r\n");
 }
 
@@ -175,7 +179,9 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
     const minimumSupportRatio = get("minimumSupportRatio").trim() ? number("minimumSupportRatio", Number.MIN_VALUE, 1) : undefined;
     const palletBaseHeight = get("palletBaseHeight").trim() ? toMillimeters(number("palletBaseHeight", 0), lengthUnit) : undefined;
     if (palletBaseHeight !== undefined && palletBaseHeight >= height) throw invalid("palletBaseHeight");
-    return {
+    const shape = parseShapeFields({cargoType: rawCargo || undefined, cargoShape:get("cargoShape").trim() || undefined, shapeAxis:get("shapeAxis").trim() || undefined, shapeTopRatio:get("shapeTopRatio").trim() ? number("shapeTopRatio", .1, 1) : undefined});
+    return withShapeSupport({
+      ...shape,
       ...(rawCargo ? { cargoType: rawCargo as ProductInput["cargoType"] } : {}),
       ...(allowedOrientations ? { allowedOrientations } : {}),
       ...(minimumSupportRatio === undefined ? {} : { minimumSupportRatio }),
@@ -201,7 +207,7 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
       setCode: sanitizeText(get("setCode"), 80),
       unitsPerSet: number("unitsPerSet", 1, 99, 1, true),
       color: VALID_COLOR.test(rawColor) ? rawColor : fallbackColor,
-    } satisfies ProductInput;
+    } satisfies ProductInput);
   });
 
   if (!products.length) throw new Error("CSV 中没有可导入的数据行。");

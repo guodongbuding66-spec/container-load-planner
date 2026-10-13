@@ -1,3 +1,4 @@
+import { withShapeSupport } from "./cargo-shape";
 import type { CargoType, LoadingRules, OrientationCode, ProductInput, PackingStrategy } from "./types";
 
 export const ORIENTATION_CODES: readonly OrientationCode[] = ["LWH", "LHW", "WLH", "WHL", "HLW", "HWL"];
@@ -19,4 +20,4 @@ export function requiredSupport(product: ProductInput | undefined, strategy: Pac
   return product?.minimumSupportRatio ?? (strategy === "practical" ? 0.995 : 0.68);
 }
 
-export function applyTypeSupport(products: ProductInput[], rules?: LoadingRules): ProductInput[] { return products.map(product => product.minimumSupportRatio === undefined && rules?.supportByType?.[product.cargoType ?? "carton"] !== undefined ? { ...product, minimumSupportRatio: rules.supportByType[product.cargoType ?? "carton"] } : product); }
+export function applyTypeSupport(products: ProductInput[], rules?: LoadingRules): ProductInput[] { return products.map(withShapeSupport).map(product => product.minimumSupportRatio === undefined && rules?.supportByType?.[product.cargoType ?? "carton"] !== undefined ? { ...product, minimumSupportRatio: rules.supportByType[product.cargoType ?? "carton"] } : product); }

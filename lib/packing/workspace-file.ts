@@ -1,3 +1,4 @@
+import { parseShapeFields, withShapeSupport } from "./cargo-shape";
 import { parseFloorPalletConfig } from "./floor-pallets";
 import { parseLoadingRules, parseOrientations, CARGO_TYPES } from "./loading-rules";
 import type { ContainerSpec, PackingMode, PackingResult, PackingStrategy, ProductInput, LoadingRules, FloorPalletConfig } from "./types";
@@ -59,7 +60,7 @@ export function parseProductInput(value: unknown): ProductInput {
   const color = text(v.color, 7);
   if (!/^#[0-9a-f]{6}$/i.test(color)) throw new Error("箱型颜色无效。");
   if (v.cargoType !== undefined && !CARGO_TYPES.includes(v.cargoType as never)) throw new Error("货物类型无效。");
-  return { ...(v.cargoType === undefined ? {} : { cargoType: v.cargoType as ProductInput["cargoType"] }), ...(v.allowedOrientations === undefined ? {} : { allowedOrientations: parseOrientations(v.allowedOrientations) }), ...(v.minimumSupportRatio === undefined ? {} : { minimumSupportRatio: number(v.minimumSupportRatio, Number.MIN_VALUE, 1) }), ...(v.palletBaseHeight === undefined ? {} : { palletBaseHeight: (() => { const base = number(v.palletBaseHeight); if (base >= number(v.height)) throw new Error("底座必须小于总高。"); return base; })() }), id: text(v.id, 120), sku: text(v.sku, 80), name: text(v.name, 200),
+  return withShapeSupport({ ...parseShapeFields(v), ...(v.cargoType === undefined ? {} : { cargoType: v.cargoType as ProductInput["cargoType"] }), ...(v.allowedOrientations === undefined ? {} : { allowedOrientations: parseOrientations(v.allowedOrientations) }), ...(v.minimumSupportRatio === undefined ? {} : { minimumSupportRatio: number(v.minimumSupportRatio, Number.MIN_VALUE, 1) }), ...(v.palletBaseHeight === undefined ? {} : { palletBaseHeight: (() => { const base = number(v.palletBaseHeight); if (base >= number(v.height)) throw new Error("底座必须小于总高。"); return base; })() }), id: text(v.id, 120), sku: text(v.sku, 80), name: text(v.name, 200),
     length: number(v.length), width: number(v.width), height: number(v.height),
     weight: number(v.weight), quantity: integer(v.quantity, 0, 1_000_000),
     priority: integer(v.priority, 0, 100), rotationPolicy: v.rotationPolicy,
@@ -72,7 +73,7 @@ export function parseProductInput(value: unknown): ProductInput {
     ...(v.topLoadByVerticalAxis === undefined ? {} : {topLoadByVerticalAxis: Object.fromEntries(Object.entries(record(v.topLoadByVerticalAxis)).map(([k,n])=>{if(!["length","width","height"].includes(k))throw new Error("承重方向无效");return [k,number(n)];}))}),
     ...(v.source === undefined ? {} : {source:(()=>{const source=record(v.source);if(source.system!=="aftos")throw new Error("来源无效");return {system:"aftos" as const,skuId:text(source.skuId,120),packageId:text(source.packageId,120),orderId:text(source.orderId,120)};})()}),
     ...(v.packaging === undefined ? {} : {packaging: (()=>{const p=record(v.packaging);return {revision:text(p.revision,100),effectiveDate:text(p.effectiveDate,10),notes:text(p.notes,2000)};})()}),
-    ...(v.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: number(v.maxTopLoadKg) }), color };
+    ...(v.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: number(v.maxTopLoadKg) }), color });
 }
 export function parseWorkspaceBackup(contents: string): WorkspaceInputs {
   const file = record(JSON.parse(contents));

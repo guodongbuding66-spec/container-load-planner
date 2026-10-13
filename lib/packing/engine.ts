@@ -1,3 +1,4 @@
+import { parseShapeFields, shapeDetails, cargoShapeOf, withShapeSupport } from "./cargo-shape";
 import { parsePalletization, validatePalletizedCargo } from "./prebuilt-pallets";
 import { parseDelivery } from "./access";
 import { arrangeFloorPallets, parseFloorPalletConfig, palletAnchors, palletSupportProducts, assignPalletReferences, palletCargoCeiling, supportingPalletIds } from "./floor-pallets";
@@ -28,7 +29,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.21.3";
+export const ENGINE_VERSION = "0.22.0";
 
 type Orientation = {
   dx: number;
@@ -138,6 +139,7 @@ function assertValidRequest(request: PackingRequest) {
       throw new Error(`${product.sku} 的外箱尺寸必须是大于 0 的有限数字。`);
     }
     if (product.allowedOrientations !== undefined) parseOrientations(product.allowedOrientations);
+    parseShapeFields(product as unknown as Record<string, unknown>);
     if (product.cargoType !== undefined && !CARGO_TYPES.includes(product.cargoType)) throw new Error("货物类型无效。");
     if (product.minimumSupportRatio !== undefined && (!Number.isFinite(product.minimumSupportRatio) || product.minimumSupportRatio <= 0 || product.minimumSupportRatio > 1)) throw new Error("承托比例必须大于 0 且不超过 100%。");
     if (product.palletBaseHeight !== undefined && (!Number.isFinite(product.palletBaseHeight) || product.palletBaseHeight < 0 || product.palletBaseHeight >= product.height)) throw new Error("货物托盘底座必须小于外箱总高。");
@@ -1698,7 +1700,7 @@ export function validatePacking(
   const errors: string[] = [];
   const spatial = new SpatialIndex(effective);
   const topLevels = new Map<number, PlacedBox[]>();
-  const productMap = new Map(products.map((product) => [product.id, product]));
+  const productMap = new Map(products.map(withShapeSupport).map((product) => [product.id, product]));
   if (productMap.size !== products.length) errors.push("产品资料存在重复 ID，无法独立核对箱体归属。");
   const placementIds = new Set<string>();
   const orientationsByProduct = new Map<string, Set<string>>();
@@ -1927,7 +1929,7 @@ function calculateExecutionComplexity(
   products: ProductInput[],
 ): PackingResult["metrics"]["executionComplexity"] {
   const orientationsByProduct = new Map<string, Set<string>>();
-  const productMap = new Map(products.map((product) => [product.id, product]));
+  const productMap = new Map(products.map(withShapeSupport).map((product) => [product.id, product]));
   const topLevels = new Map<number, PlacedBox[]>();
   let partialSupportCount = 0;
   let tippedCartonCount = 0;
@@ -2055,6 +2057,7 @@ export function pack(request: PackingRequest): PackingResult {
   if (!bearingCheck.verified) warnings.push(`承重未核验：${bearingCheck.unknownIds.length} 个受压箱体尚未填写该朝向的承重参数；几何通过不代表承重已确认。`);
   if (normalized.products.some(p => (p.minimumSupportRatio ?? 1) < 0.995)) warnings.push("已按自定义承托比例计算；承重能力仍需按包装参数核验。");
   if (normalized.products.some(p => ["drum", "roll", "loose"].includes(p.cargoType ?? ""))) warnings.push("圆桶、卷材和散件按矩形外包络计算，不进行圆形交错嵌套。");
+  if (normalized.products.some(p => cargoShapeOf(p) !== "box")) warnings.push("非长方体按最大外接尺寸预留空间与估算重心；不做异型嵌套，曲面或斜面货物不承托上方货物。");
   if (normalized.container.specificationNote) warnings.push(normalized.container.specificationNote);
   if (normalized.loadingRules || normalized.products.some(p => p.allowedOrientations)) warnings.push("已启用自定义布局、朝向或承托规则，独立校验使用相同约束。");
   if (bearingEnabled) warnings.push("已启用逐箱上方累计承重约束，按接触面积分配静态竖向载荷；结果可能比无承重约束的排列更保守。");
@@ -2133,7 +2136,7 @@ export function pack(request: PackingRequest): PackingResult {
     singleCartonLimit: normalized.singleCartonLimit,
     floorPallets: normalized.floorPallets, pallets,
     loadingRules: normalized.loadingRules,
-    cargoDetails: Object.fromEntries(normalized.products.map(p => [p.id, { cargoType: p.cargoType, palletBaseHeight: p.palletBaseHeight }])),
+    cargoDetails: Object.fromEntries(normalized.products.map(p => [p.id, shapeDetails(p)])),
     engineVersion: ENGINE_VERSION,
     container: normalized.container,
     clearance: normalized.clearance,
@@ -2461,7 +2464,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
     metrics:{loadedCount:ordered.length,requestedCount:summaries.reduce((n,s)=>n+s.requested,0),loadedVolume,grossWeight,effectiveVolume,
       volumeUtilization:loadedVolume/effectiveVolume,weightUtilization:grossWeight/request.container.maxWeight,
       centerOfGravity:calculateCenterOfGravity([...palletAnchors(pallets),...ordered],effective),executionComplexity:calculateExecutionComplexity(ordered,products),solveTimeMs:0},
-    loadingRules: request.loadingRules, cargoDetails: Object.fromEntries(products.map(p=>[p.id,{cargoType:p.cargoType,palletBaseHeight:p.palletBaseHeight}])),
+    loadingRules: request.loadingRules, cargoDetails: Object.fromEntries(products.map(p=>[p.id,shapeDetails(p)])),
     warnings:["历史箱位已按当前箱规与引擎重新校验。自动重算已暂停，可继续手动调整或生成新方案。"],createdAt:new Date().toISOString()};
 }
 

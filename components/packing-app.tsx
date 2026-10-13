@@ -33,6 +33,7 @@ import {
   X,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import { cargoShapeOf } from "../lib/packing/cargo-shape";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { CameraProjection, CameraView } from "../lib/packing/camera-fit";
@@ -1430,7 +1431,7 @@ export function PackingApp() {
 
   const downloadTemplate = () => {
     const lines = [
-      "sku,name,length,width,height,lengthUnit,weight,weightUnit,quantity,priority,setCode,unitsPerSet,rotationPolicy,stackable,maxStackLayers,mustLoad,bottomOnly,color,maxTopLoadKg,topLoadLengthKg,topLoadWidthKg,topLoadHeightKg,allowedAboveSkus",
+      "sku,name,length,width,height,lengthUnit,weight,weightUnit,quantity,priority,setCode,unitsPerSet,rotationPolicy,stackable,maxStackLayers,mustLoad,bottomOnly,color,maxTopLoadKg,topLoadLengthKg,topLoadWidthKg,topLoadHeightKg,allowedAboveSkus,cargoType,allowedOrientations,minimumSupportRatio,palletBaseHeight,cargoShape,shapeAxis,shapeTopRatio",
       tr("SET5-A-128,五箱套装A箱,1280,540,110,mm,40,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#2f7f89"),
       tr("SET5-B-068,五箱套装B箱,680,540,110,mm,14,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#a95e78"),
       tr("SET5-C-103,五箱套装C箱,1030,620,120,mm,30,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#d5a72f"),
@@ -1784,7 +1785,7 @@ export function PackingApp() {
                         <option value="any">{tr("任意旋转")}</option>
                       </select>
                     </td>
-                    <td><label className="switch" title={tr("关闭后，其他箱体不能放在此产品上方")}><input aria-label={tt`${product.sku} 可承托`} type="checkbox" checked={product.stackable} onChange={(event) => updateProduct(product.id, "stackable", event.target.checked)} /><span /></label></td>
+                    <td><label className="switch" title={tr("关闭后，其他箱体不能放在此产品上方")}><input aria-label={tt`${product.sku} 可承托`} type="checkbox" checked={cargoShapeOf(product)==="box"&&product.stackable} disabled={cargoShapeOf(product)!=="box"} onChange={(event) => updateProduct(product.id, "stackable", event.target.checked)} /><span /></label></td>
                     <td><label className="switch" title={tr("开启后该产品只允许摆放在集装箱地板")}><input aria-label={tt`${product.sku} 必须底置`} type="checkbox" checked={product.bottomOnly === true} onChange={(event) => updateProduct(product.id, "bottomOnly", event.target.checked)} /><span /></label></td>
                     <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${product.sku} 层数上限`} value={product.maxStackLayers} integer max={99} onValueChange={(value) => updateProduct(product.id, "maxStackLayers", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:maxStackLayers`, valid)} /><small className="cell-meta" title={tr("0 表示不设置人为层数上限，仍受柜高、门高、承托和载重约束")}>{tr("0 = 自动按柜高")}</small></td>
                     </>}
