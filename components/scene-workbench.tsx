@@ -1,6 +1,6 @@
 "use client";
-import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, PanelLeft, PanelRight, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { ChevronLeft, ChevronRight, PanelLeft, PanelRight, RotateCcw, Search } from "lucide-react";
 import type { PlanEditor } from "./use-plan-editor";
 import type { PackingResult, PlacedBox } from "../lib/packing/types";
 import { tr, useLanguage } from "./language";
@@ -29,10 +29,13 @@ function CargoList({result,boxes,selected,onSelect,editor}:{result:PackingResult
 }
 export function SceneWorkbench({result,boxes,selected,onSelect,inspector,children,editor}:{result:PackingResult|null;boxes:PlacedBox[];selected:PlacedBox|null;onSelect:(box:PlacedBox,point?:undefined,add?:boolean)=>void;inspector:ReactNode;children:ReactNode;editor?:PlanEditor}){
   useLanguage();const a=useTransportAppearance();
-  return <div className="scene-workbench-container"><div className="scene-dock-toolbar"><div><button aria-pressed={a.leftOpen} onClick={()=>a.updatePreferences({leftOpen:!a.leftOpen})}><PanelLeft size={15}/>{tr("货物栏","Cargo panel")}</button><button aria-pressed={a.rightOpen} onClick={()=>a.updatePreferences({rightOpen:!a.rightOpen})}><PanelRight size={15}/>{tr("属性与测量","Inspect & measure")}</button></div><span role="status">{a.saveFailed?tr("偏好仅保留本次会话","Preferences saved for this session only"):tr("查看偏好自动保存","View preferences save automatically")}</span><button onClick={a.resetPreferences}>{tr("恢复查看默认值","Reset view preferences")}</button></div>
-    <div className={`scene-workbench ${a.leftOpen&&result?"has-cargo":""} ${a.rightOpen&&result?"has-inspector":""}`} style={{"--cargo-width":`${a.leftWidth}px`,"--inspector-width":`${a.rightWidth}px`} as CSSProperties}>
-      {a.leftOpen&&result&&<><CargoList editor={editor} result={result} boxes={boxes} selected={selected} onSelect={onSelect}/><DockResize side="left"/></>}
+  const host=useRef<HTMLDivElement>(null),[compact,setCompact]=useState(false),[compactPanel,setCompactPanel]=useState<"cargo"|"inspector"|null>(null);
+  useEffect(()=>{const element=host.current;if(!element)return;const observer=new ResizeObserver(([entry])=>setCompact(entry.contentRect.width<860));observer.observe(element);return()=>observer.disconnect();},[]);
+  const leftOpen=compact?compactPanel==="cargo":a.leftOpen,rightOpen=compact?compactPanel==="inspector":a.rightOpen;
+  return <div ref={host} className="scene-workbench-container"><div className="scene-dock-toolbar"><div><button aria-pressed={leftOpen} onClick={()=>compact?setCompactPanel(leftOpen?null:"cargo"):a.updatePreferences({leftOpen:!a.leftOpen})}><PanelLeft size={15}/>{tr("货物栏","Cargo panel")}</button><button aria-pressed={rightOpen} onClick={()=>compact?setCompactPanel(rightOpen?null:"inspector"):a.updatePreferences({rightOpen:!a.rightOpen})}><PanelRight size={15}/>{tr("属性与测量","Inspect & measure")}</button></div><span className="scene-preference-status" data-failed={a.saveFailed} role="status">{a.saveFailed?tr("偏好仅保留本次会话","Preferences saved for this session only"):tr("查看偏好自动保存","View preferences save automatically")}</span><button aria-label={tr("恢复查看默认值","Reset view preferences")} title={tr("恢复查看默认值","Reset view preferences")} onClick={()=>{a.resetPreferences();setCompactPanel(null);}}><RotateCcw size={14}/><span className="scene-reset-label">{tr("恢复查看默认值","Reset view preferences")}</span></button></div>
+    <div className={`scene-workbench ${compact?"is-compact":""} ${leftOpen&&result?"has-cargo":""} ${rightOpen&&result?"has-inspector":""}`} style={{"--cargo-width":`${a.leftWidth}px`,"--inspector-width":`${a.rightWidth}px`} as CSSProperties}>
+      {leftOpen&&result&&<><CargoList editor={editor} result={result} boxes={boxes} selected={selected} onSelect={onSelect}/><DockResize side="left"/></>}
       <div className="scene-workbench-view">{children}</div>
-      {a.rightOpen&&result&&<><DockResize side="right"/><aside className="scene-inspector-dock" aria-label={tr("三维属性与测量","Scene inspector and measurements")}>{inspector}</aside></>}
+      {rightOpen&&result&&<><DockResize side="right"/><aside className="scene-inspector-dock" aria-label={tr("三维属性与测量","Scene inspector and measurements")}>{inspector}</aside></>}
     </div></div>;
 }

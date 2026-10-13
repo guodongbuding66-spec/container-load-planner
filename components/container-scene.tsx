@@ -235,7 +235,7 @@ export function ContainerScene({
   const containerSize = useMemo<SceneSize>(() => (result ? normalizedSceneSize(result) : [5.6, 1.25, 1.1]), [result]);
   const sceneBounds = useMemo(() => result ? transportSceneBounds(result.container,5.6/Math.max(result.container.length-result.clearance*2,result.container.width-result.clearance*2,result.container.height-result.clearance+(result.container.baseHeight??0)),appearance.mode) : undefined,[result,appearance.mode]);
   return (
-    <SceneFullscreen>          <div className="scene-camera-controls">
+    <SceneFullscreen><details className="scene-view-options"><summary className="button small">{tr("视图设置", "View settings")}</summary><div className="scene-options-panel"><div className="scene-camera-controls">
             <div className="scene-projection-controls" role="toolbar" aria-label={tr("三维投影方式")}>
               <button type="button" disabled={webglSupported===false} className={projectionMode === "perspective" ? "active" : ""} aria-pressed={projectionMode === "perspective"} onClick={() => { setFocusId(null); onProjectionModeChange("perspective"); }}>{tr("透视投影")}</button>
               <button type="button" disabled={webglSupported===false} className={projectionMode === "orthographic" ? "active" : ""} aria-pressed={projectionMode === "orthographic"} onClick={() => { setFocusId(null); onProjectionModeChange("orthographic"); }}>{tr("正交投影")}</button>
@@ -257,8 +257,10 @@ export function ContainerScene({
             </div>
           </div>
           <div className="scene-tools" aria-label={tr("三维工具", "3D tools")}><button type="button" disabled={!result} aria-pressed={labels} onClick={()=>setLabels(!labels)}><Tag size={14}/>{tr("箱标","Labels")}</button><DimensionControls/><button type="button" onClick={()=>{setSelection(null);setFocusId(null);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" disabled={!webglSupported} onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
-{editor?.changed&&<p className="scene-draft-notice" role="status">{tr("正在预览编辑草稿；采用后更新指标与导出。","Previewing edit draft. Apply to update totals and exports.")}</p>}
+
 {webglSupported!==false&&<TransportModelControls/>}
+</div></details>
+{editor?.changed&&<p className="scene-draft-notice" role="status">{tr("正在预览编辑草稿；采用后更新指标与导出。","Previewing edit draft. Apply to update totals and exports.")}</p>}
 <SceneWorkbench editor={editor} result={result} boxes={inspection.displayBoxes} selected={selected} onSelect={selectBox} inspector={result&&<><nav className="scene-inspector-tabs" aria-label={tr("三维工作台工具","Scene workbench tools")}>{[["inspect","属性与测量","Inspect & measure"],["edit","编辑","Edit"],["space","空隙","Gaps"],["load","承重","Loads"],["access","装卸","Access"]].map(([id,zh,en])=><button key={id} disabled={id!=="inspect"&&(!products.length||result.metrics.loadedCount!==result.placements.length)||id==="edit"&&!editor} aria-pressed={tool===id} onClick={()=>{setTool(id);if(id!=="edit"&&editor?.enabled)editor.update({enabled:false,rectangle:false});}}>{tr(zh,en)}</button>)}</nav>{tool==="edit"&&editor&&<SceneEditPanel editor={editor}/>} {tool==="space"&&<SceneSpacePanel plan={result} products={products} report={spaces} selected={gapId} onSelect={setGapId} onOpen={setSpaceOpen}/>} {tool==="load"&&<SceneLoadPanel report={loads} mode={heat} onMode={setHeat} selected={selected}/>} {tool==="access"&&<SceneAccessPanel key={result.id} plan={result} products={products} onAdopt={onAdopt} onHighlight={setHighlight} disabled={!!editor?.disabled||!!editor?.changed}/>} {tool==="inspect"&&<SceneInspector result={result} selected={selected} inspection={inspection} onClearSelection={()=>{setSelection(null);setFocusId(null);}} onFocus={webglSupported!==false&&selected?()=>{setFocusId(selected.id);onCameraViewChange("perspective");onProjectionModeChange("perspective");}:undefined}/>}</>}><div className="scene-shell" role="region" aria-label={tr("可交互三维装柜视图")}>
       {!result ? (
         <div className="scene-empty">

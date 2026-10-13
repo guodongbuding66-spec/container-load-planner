@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./features.css";
 import "./scene-workbench.css";
+import "./compact-workspace.css";
 import { GalaxyEcosystemMenu } from "../components/galaxy-ecosystem-menu";
 import { AppLanguageTitle } from "../components/language";
 
