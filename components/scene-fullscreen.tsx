@@ -6,7 +6,7 @@ import { Expand, Minimize } from "lucide-react";
 import { tr, useLanguage } from "./language";
 
 /** A top-layer viewport dialog remains usable when native fullscreen is denied. */
-export function SceneFullscreen({ children }: { children: ReactNode }) {
+export function SceneFullscreen({ children, toolbar }: { children: ReactNode; toolbar?: ReactNode }) {
   useLanguage();
   const [expanded, setExpanded] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -51,7 +51,7 @@ export function SceneFullscreen({ children }: { children: ReactNode }) {
     }
   };
   const content = <div className={`scene-workspace ${expanded ? "scene-workspace-expanded" : ""}`}>
-    <div className="scene-workspace-heading"><div><span className="section-kicker">3D WORKSPACE</span><strong>{tr("三维装载视图", "3D loading view")}</strong></div><button ref={buttonRef} type="button" className="button small scene-fullscreen-toggle" aria-expanded={expanded} onClick={toggle}>{expanded ? <Minimize size={16}/> : <Expand size={16}/>}<span>{tr(expanded ? "退出全屏" : "全屏")}</span>{expanded && <kbd>Esc</kbd>}</button></div>
+    <div className="scene-workspace-heading"><div className="scene-heading-title"><span className="section-kicker">3D WORKSPACE</span><strong>{tr("三维装载视图", "3D loading view")}</strong></div>{toolbar}<button ref={buttonRef} type="button" className="button small scene-fullscreen-toggle" aria-expanded={expanded} onClick={toggle}>{expanded ? <Minimize size={16}/> : <Expand size={16}/>}<span>{tr(expanded ? "退出全屏" : "全屏")}</span>{expanded && <kbd>Esc</kbd>}</button></div>
     {children}
   </div>;
   return expanded ? createPortal(<dialog ref={dialogRef} className="scene-fullscreen-dialog" aria-label={tr("全屏三维查看器", "Fullscreen 3D viewer")} onCancel={e => { e.preventDefault(); e.stopPropagation(); close(); }}>{content}</dialog>, document.body) : content;
