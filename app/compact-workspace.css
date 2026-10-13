@@ -23,8 +23,8 @@
 .workspace-utilities .language-switch { margin: 0; padding: 2px; }
 .workspace-utilities .language-switch button { min-height: 32px; padding: 4px 8px; }
 .workspace-help-menu,.plan-calculation-menu { position: relative; }
-.workspace-help-menu > summary,.plan-calculation-menu > summary,.scene-view-options > summary { list-style: none; cursor: pointer; }
-.workspace-help-menu > summary::-webkit-details-marker,.plan-calculation-menu > summary::-webkit-details-marker,.scene-view-options > summary::-webkit-details-marker { display: none; }
+.workspace-help-menu > summary,.plan-calculation-menu > summary { list-style: none; cursor: pointer; }
+.workspace-help-menu > summary::-webkit-details-marker,.plan-calculation-menu > summary::-webkit-details-marker::-webkit-details-marker { display: none; }
 .workspace-help-panel,.plan-calculation-panel,.scene-options-panel { padding: 12px; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 28px #1839481a; background: var(--surface); z-index: 25; }
 .workspace-help-panel { position: absolute; right: 0; top: calc(100% + 8px); width: min(440px,calc(100vw - 32px)); max-height: 70dvh; overflow: auto; }
 .workspace-help-panel .learning-nav { margin: 0; padding: 0 0 8px; border: 0; border-radius: 0; gap: 4px; }
@@ -118,12 +118,6 @@
 .scene-workspace { position: relative; }
 .scene-workspace-heading { padding: 4px 12px; min-height: 40px; }
 .scene-workspace-heading .section-kicker { display: none; }
-.scene-view-options { position: absolute; right: 104px; top: 4px; z-index: 8; }
-.scene-view-options > summary { min-height: 32px; padding: 4px 8px; font-size: 12px; }
-.scene-options-panel { position: absolute; right: 0; top: calc(100% + 8px); width: min(580px,calc(100vw - 40px)); max-height: 65dvh; overflow: auto; }
-.scene-options-panel .scene-camera-controls,.scene-options-panel .scene-tools { padding: 0 0 8px; margin: 0 0 8px; gap: 4px; background: transparent; }
-.scene-options-panel .scene-tools .dimension-controls { width: 100%; flex-wrap: wrap; }
-.scene-options-panel .transport-model-controls { margin: 0; padding: 8px; }
 .scene-dock-toolbar { padding: 4px 12px; gap: 8px; font-size: 12px; }
 .scene-dock-toolbar button,.scene-inspector-tabs button { min-height: 32px; padding: 4px 8px; }
 .scene-workbench { height: clamp(320px,52dvh,560px); }
@@ -149,7 +143,6 @@
 .scene-workspace-expanded .scene-workbench.is-compact .scene-workbench-view > .scene-shell { height: 100%; min-height: 220px; }
 .scene-workspace-expanded .scene-workbench.is-compact .scene-inspector-dock,.scene-workspace-expanded .scene-workbench.is-compact .scene-cargo-dock { flex: 0 0 auto; max-height: 220px; }
 .scene-progress { padding: 6px 12px; gap: 8px; }
-.viewer-column > .scene-workspace:not(.scene-workspace-expanded) > .scene-progress { display: none; }
 .scene-reset-label { display: inline; }
 @container(max-width:860px) { .scene-preference-status:not([data-failed=true]) { display: none; }.scene-reset-label { display: none; }.scene-dock-toolbar > span { flex-basis: auto; }.scene-dock-toolbar > button { margin-left: auto; }.scene-cargo-items { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:1100px) { .compact-workspace .topbar { flex-wrap: wrap; }.compact-workspace .top-actions { justify-content: flex-start; }.compact-workspace .wizard-space-grid { grid-template-columns: minmax(0,1fr); }.compact-workspace .inline-loading-rules .support-rule-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }.plan-command-actions { margin-left: 0; } }
@@ -215,9 +208,6 @@
 .scene-quick-controls .scene-camera-controls { padding: 0; border: 0; background: transparent; display: flex; flex-wrap: nowrap; gap: 8px; justify-content: flex-start; }
 .scene-quick-controls .scene-projection-controls,.scene-quick-controls .scene-view-controls { flex-shrink: 0; display: flex; flex-wrap: nowrap; padding: 0; background: transparent; }
 .scene-quick-controls .scene-camera-controls button { min-height: 32px; padding: 4px 8px; font-size: 12px; }
-.scene-view-options { position: relative; inset: auto; justify-self: end; }
-.scene-view-options > summary { white-space: nowrap; }
-.scene-options-panel { z-index: 30; width: min(560px,calc(100vw - 32px)); }
 .scene-inspector-tabs { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 4px; }
 .scene-inspector-tabs button { min-width: 0; white-space: nowrap; padding: 4px; font-size: 12px; }
 .compact-workspace .product-table .cargo-sku-heading,.compact-workspace .product-table .cargo-sku-cell { width: 180px; min-width: 140px; }
@@ -233,13 +223,6 @@
 .compact-workspace .wizard-page .compact-cargo-table { min-width: 880px; }
 .compact-workspace .unit-input-strip { padding: 8px 12px; gap: 8px; }
 .compact-workspace .set-builder { padding: 12px; }
-@container scene (max-width:740px) {
-  .scene-workspace-heading { grid-template-columns: minmax(0,1fr) auto auto; }
-  .scene-quick-controls { grid-column: 1 / -1; grid-row: 2; }
-  .scene-view-options { grid-column: 2; grid-row: 1; }
-  .scene-fullscreen-toggle { grid-column: 3; grid-row: 1; }
-  .scene-heading-title { grid-column: 1; grid-row: 1; }
-}
 @media(max-width:680px) {
   .workspace-help-panel { left: auto; right: 8px; width: min(288px,calc(100vw - 16px)); }
   .feature-dialog { width: calc(100vw - 16px); max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); border-radius: 8px; }
@@ -257,4 +240,38 @@
   .compact-workspace .product-table td:first-child,.compact-workspace .product-table th:first-child { min-width: 40px; width: 40px; padding-inline: 4px; }
   .compact-workspace .product-table .cargo-settings-button { padding: 6px; gap: 4px; }
   .cargo-settings-label { display: none; }.cargo-settings-short { display: inline; }
+}
+
+/* Keep all view preferences in the header, outside the model canvas. */
+.scene-workspace-heading { grid-template-columns: auto minmax(0,1fr) auto; align-items: start; }
+.scene-heading-title,.scene-fullscreen-toggle { margin-top: 2px; }
+.scene-header-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; min-width: 0; }
+.scene-header-controls .scene-quick-controls { flex: 0 1 auto; max-width: 100%; }
+.scene-header-controls .scene-camera-controls { max-width: none; }
+.scene-header-controls .scene-view-controls { width: auto; }
+.scene-header-controls .scene-tools { position: static; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; padding: 0; border: 0; background: transparent; min-width: 0; }
+.scene-header-controls .scene-tools .dimension-controls { flex: 0 1 auto; width: auto; margin: 0; gap: 4px 8px; }
+.scene-header-controls .scene-tools button,.scene-header-controls .transport-model-modes button { min-height: 32px; padding: 4px 8px; font-size: 12px; white-space: nowrap; }
+.scene-header-controls .transport-model-controls { flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-start; gap: 4px 8px; padding: 0; margin: 0; border: 0; background: transparent; }
+.scene-header-controls .transport-opacity { flex: 0 1 180px; min-width: 160px; max-width: 180px; gap: 4px; }
+.scene-header-controls .transport-opacity input { min-height: 32px; }
+.scene-header-controls button:focus-visible,.scene-header-controls input:focus-visible,.scene-header-controls select:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.viewer-scene .scene-workbench-container { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.viewer-scene .scene-workbench { flex: 1; height: auto; min-height: 240px; }
+.viewer-scene .scene-workbench-view > .scene-shell { height: 100%; min-height: 0; flex: none; }
+.scene-fullscreen-dialog .scene-progress { flex-shrink: 0; }
+@container scene (max-width:1100px) {
+  .scene-workspace-heading { grid-template-columns: minmax(0,1fr) auto; }
+  .scene-heading-title { grid-column: 1; grid-row: 1; }
+  .scene-fullscreen-toggle { grid-column: 2; grid-row: 1; }
+  .scene-header-controls { grid-column: 1 / -1; grid-row: 2; }
+}
+@container scene (max-width:740px) {
+  .scene-header-controls .scene-quick-controls { flex-basis: 100%; }
+  .scene-header-controls .scene-tools { width: 100%; }
+  .scene-header-controls .scene-tools button,.scene-header-controls .scene-camera-controls button,.scene-header-controls .transport-model-modes button { min-height: 36px; }
+  .scene-header-controls .dimension-controls select { min-height: 36px; }
+  .scene-header-controls .transport-opacity input { min-height: 36px; }
+  .viewer-scene .scene-workbench.is-compact { min-height: 320px; }
+  .viewer-scene .scene-workbench.is-compact .scene-workbench-view > .scene-shell { height: 100%; min-height: 320px; }
 }

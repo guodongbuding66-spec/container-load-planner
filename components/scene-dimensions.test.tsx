@@ -5,6 +5,8 @@ import * as THREE from "three";
 import { createRoot, extend, _roots } from "@react-three/fiber";
 import { ContainerModel } from "./container-scene";
 import { TransportAppearanceProvider, useTransportAppearance } from "./transport-appearance";
+import { updateViewPreferences } from "./view-preferences";
+import { DEFAULT_VIEW_PREFERENCES } from "../lib/packing/view-preferences";
 import { LoadingSceneFallback, topViewFootprints } from "./loading-scene-fallback";
 import { ModelPreviewFallback } from "./model-preview-fallback";
 import { pack } from "../lib/packing/engine";
@@ -16,7 +18,7 @@ import { cameraDimensionProjector, projectDimensions, sceneMeasurement } from ".
 import { DimensionSvg } from "./dimension-svg";
 
 const result=pack({mode:"mixed",strategy:"practical",container:CONTAINER_PRESETS[0],clearance:20,products:[{id:"shed",sku:"SHED-101",name:"shed",length:2200,width:620,height:180,weight:20,quantity:6,color:"#98b9de",priority:1,rotationPolicy:"upright",stackable:true,maxStackLayers:10}]});
-afterEach(()=>vi.unstubAllGlobals());
+afterEach(()=>{vi.unstubAllGlobals();updateViewPreferences(DEFAULT_VIEW_PREFERENCES);});
 
 describe("actual scene graph dimensions and selected-carton regression",()=>{
   it("removes every dimension when off, keeps selection, and never duplicates the selected SKU badge",async()=>{
@@ -42,6 +44,8 @@ describe("actual scene graph dimensions and selected-carton regression",()=>{
     try{
       await act(async()=>{root.render(<TransportAppearanceProvider><Scene/></TransportAppearanceProvider>);});
       expect(names().filter(n=>n==="scene-dimensions")).toHaveLength(1);
+      expect(names().filter(n=>n==="scene-label:SHED-101")).toHaveLength(0);
+      await act(async()=>appearance.setSkuSummaries(true));
       expect(names().filter(n=>n==="scene-label:SHED-101")).toHaveLength(1);
       expect(names()).toContain("selection-outline");
       frame();expect(painted).toContain("L 2200 mm");expect(painted).toContain("W 620 mm");expect(painted).toContain("H 180 mm");
@@ -80,6 +84,8 @@ describe("actual scene graph dimensions and selected-carton regression",()=>{
       expect(names()).not.toContain("scene-dimensions");expect(names()).toContain("selection-outline");
       painted.length=0;frame();expect(painted.some(s=>/\b(mm|cm|m)$/.test(s))).toBe(false);
       await act(async()=>appearance.setLabels(false));
+      expect(names().filter(n=>n.startsWith("scene-label:"))).toHaveLength(1);
+      await act(async()=>appearance.setSkuSummaries(false));
       expect(names().filter(n=>n.startsWith("scene-label:"))).toEqual([]);expect(names()).toContain("selection-outline");
       const cargo:THREE.InstancedMesh[]=[];store.getState().scene.traverse(o=>{if(o instanceof THREE.InstancedMesh)cargo.push(o);});
       expect(cargo.length).toBeGreaterThan(0);expect(cargo.flatMap(o=>o.material).every(m=>!(m as THREE.MeshStandardMaterial).map)).toBe(true);
@@ -109,7 +115,7 @@ describe("real-coordinate SVG fallback",()=>{
   it("renders the same unboxed edge dimensions in main, space and pallet previews",()=>{
     const main=renderToStaticMarkup(<TransportAppearanceProvider><LoadingSceneFallback result={result} visibleProducts={new Set(["shed"])} visibleCount={result.placements.length} selected={result.placements[0]} onSelect={()=>{}}/></TransportAppearanceProvider>);
     expect(main).toContain('data-dimension-count="2"');expect(main).toContain("L 2200 mm");expect(main).toContain("W 620 mm");expect(main).not.toContain("H 180 mm");
-    expect(main.match(/>SHED-101</g)).toHaveLength(1);
+    expect(main.match(/>SHED-101</g) ?? []).toHaveLength(0);
     for(const props of [{space:result.container},{}]){
       const html=renderToStaticMarkup(<TransportAppearanceProvider><ModelPreviewFallback {...props} mode="model" transparency={65}/></TransportAppearanceProvider>);
       expect(html).toContain('data-dimension-count="3"');expect(html).toContain('stroke="#467ee6"');expect(html).toContain('paint-order="stroke"');

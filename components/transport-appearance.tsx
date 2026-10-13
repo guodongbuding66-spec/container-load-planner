@@ -8,7 +8,7 @@ import type { ViewPreferences } from "../lib/packing/view-preferences";
 import { resetViewPreferences, updateViewPreferences, useViewPreferences } from "./view-preferences";
 
 type Appearance = ViewPreferences & { setMode: (mode: TransportDisplayMode) => void; setTransparency: (value: number) => void;
-  dimensions:boolean;setDimensions:(value:boolean)=>void; labels:boolean;setLabels:(value:boolean)=>void;
+  dimensions:boolean;setDimensions:(value:boolean)=>void; labels:boolean;setLabels:(value:boolean)=>void;setSkuSummaries:(value:boolean)=>void;
   dimensionUnit:DimensionUnit;setDimensionUnit:(unit:DimensionUnit)=>void;dimensionFontSize:number;setDimensionFontSize:(size:number)=>void;
   dimensionStyle:DimensionStyle;setDimensionStyle:(style:DimensionStyle)=>void;dimensionLineColor:string;setDimensionLineColor:(color:string)=>void;dimensionTextColor:string;setDimensionTextColor:(color:string)=>void;
   saveFailed:boolean;updatePreferences:typeof updateViewPreferences;resetPreferences:typeof resetViewPreferences;
@@ -18,7 +18,7 @@ export function TransportAppearanceProvider({ children }: { children: ReactNode 
   const snapshot=useViewPreferences();
   const value=useMemo<Appearance>(()=>({...snapshot.preferences,saveFailed:snapshot.saveFailed,updatePreferences:updateViewPreferences,resetPreferences:resetViewPreferences,
     setMode:mode=>updateViewPreferences({mode}),setTransparency:transparency=>updateViewPreferences({transparency}),
-    setDimensions:dimensions=>updateViewPreferences({dimensions}),setLabels:labels=>updateViewPreferences({labels}),
+    setDimensions:dimensions=>updateViewPreferences({dimensions}),setLabels:labels=>updateViewPreferences({labels}),setSkuSummaries:skuSummaries=>updateViewPreferences({skuSummaries}),
     setDimensionUnit:dimensionUnit=>updateViewPreferences({dimensionUnit}),setDimensionFontSize:dimensionFontSize=>updateViewPreferences({dimensionFontSize}),
     setDimensionStyle:dimensionStyle=>updateViewPreferences({dimensionStyle}),setDimensionLineColor:dimensionLineColor=>updateViewPreferences({dimensionLineColor}),setDimensionTextColor:dimensionTextColor=>updateViewPreferences({dimensionTextColor})
   }),[snapshot]);
