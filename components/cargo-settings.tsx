@@ -14,7 +14,7 @@ import { tr, useLanguage } from "./language";
 
 export function CargoSettings({ product, mode, lengthUnit, weightUnit, onClose, onSave }: { product: ProductInput; mode: PackingMode; lengthUnit: LengthUnit; weightUnit: WeightUnit; onClose: () => void; onSave: (product: ProductInput) => void }) {
   useLanguage();
-  const [draft,setDraft]=useState<ProductInput>({...product,cargoType:product.cargoType??"carton"});
+  const [draft,setDraft]=useState<ProductInput>({...product,cargoType:product.cargoType??"carton",cargoShape:cargoShapeOf(product)});
   const [directions,setDirections]=useState<OrientationCode[]>(product.allowedOrientations??(product.rotationPolicy==="fixed"?["LWH"]:product.rotationPolicy==="upright"?["LWH","WLH"]:[...ORIENTATION_CODES]));
   const [sizes,setSizes]=useState(()=>sizeDraftOf(product,lengthUnit));
   const [sizeOptions,setSizeOptions]=useState(()=>sizeOptionsOf(product));
