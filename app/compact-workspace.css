@@ -268,6 +268,10 @@
 }
 /* Cargo editor: physical dimensions stay beside a full interactive model. */
 .feature-dialog:has(.cargo-shape-section) { width: min(960px,calc(100vw - 32px)); }
+.feature-dialog:has(.cargo-shape-section) .feature-dialog-heading { align-items: center; }
+.feature-dialog:has(.cargo-shape-section) .feature-dialog-heading > div { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; }
+.feature-dialog:has(.cargo-shape-section) .feature-dialog-heading .eyebrow { display: none; }
+.feature-dialog:has(.cargo-shape-section) .feature-dialog-heading h2,.feature-dialog:has(.cargo-shape-section) .feature-dialog-heading p { margin: 0; }
 .cargo-types-compact .feature-choice { flex-direction: row; min-height: 36px; padding: 6px 8px; gap: 6px; border-radius: 6px; }
 .cargo-types-compact .feature-choice strong { font-size: 12px; }
 .cargo-shape-section { padding: 8px 0 12px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
@@ -321,14 +325,19 @@
 .cargo-shape-limitations { margin-top: 8px; font-size: 12px; line-height: 1.6; color: var(--muted); }
 .cargo-shape-limitations summary { cursor: pointer; }
 .cargo-shape-limitations p { margin: 6px 0 0; }
-.cargo-meta-fields { gap: 10px; margin: 12px 0; }
+.feature-dialog .cargo-meta-fields { gap: 10px; margin: 12px 0; grid-template-columns: repeat(6,minmax(0,1fr)); }
 .cargo-meta-fields small { font-size: 12px; }
-.cargo-shape-orientations { gap: 6px; }
+.feature-dialog:has(.cargo-shape-section) .feature-toggle-row { margin: 10px 0; }
+.feature-dialog:has(.cargo-shape-section) .feature-toggle-row + .feature-section-heading { margin: 12px 0 6px; }
+.feature-dialog:has(.cargo-shape-section) .feature-muted { margin: 4px 0 8px; }
+.feature-dialog .cargo-shape-orientations { gap: 6px; }
 .cargo-shape-orientations .orientation-choice { padding: 6px 4px; gap: 3px; border-radius: 6px; }
 .cargo-shape-orientations .orientation-choice svg:first-child { width: 62px; height: 44px; }
 .cargo-shape-orientations .orientation-choice strong { font-size: 12px; letter-spacing: 0; }
 .cargo-shape-picker button:focus-visible,.cargo-preview-toolbar button:focus-visible,.cargo-model-surface:focus-visible,.cargo-preview-orientation select:focus-visible,.cargo-round-options select:focus-visible,.cargo-shape-orientations button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-@media(max-width:740px) { .cargo-shape-editor { grid-template-columns: minmax(0,1fr); gap: 12px; }.cargo-model-surface { height: 220px; }.cargo-shape-picker { grid-template-columns: repeat(5,minmax(0,1fr)); } }
+@media(min-width:850px) { .cargo-shape-picker { grid-template-columns: repeat(10,minmax(0,1fr)); }.cargo-shape-picker button { min-height: 70px; justify-content: center; } }
+@media(max-width:850px) { .feature-dialog .cargo-meta-fields { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+@media(max-width:740px) { .cargo-shape-editor { grid-template-columns: minmax(0,1fr); gap: 12px; }.cargo-model-surface { height: 220px; }.cargo-shape-picker { grid-template-columns: repeat(5,minmax(0,1fr)); }.feature-dialog .cargo-meta-fields { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:560px) { .cargo-shape-picker { grid-template-columns: repeat(3,minmax(0,1fr)); }.cargo-types-compact { grid-template-columns: repeat(3,minmax(0,1fr)); }.cargo-types-compact .feature-choice { min-height: 36px; }.cargo-shape-orientations { grid-template-columns: repeat(3,minmax(0,1fr)); } }
 @media(max-width:360px) { .cargo-size-fields { grid-template-columns: minmax(0,1fr); }.cargo-round-options label { flex: 1 1 100%; } }
 @container scene (max-width:740px) {
