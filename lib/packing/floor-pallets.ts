@@ -1,5 +1,7 @@
 import type { ContainerSpec, FloorPalletConfig, PlacedBox, PlacedPallet, ProductInput } from "./types";
 
+import { bodyContactArea, bodyTopLevels } from "./cargo-body";
+
 export const PALLET_PRODUCT_ID = "__floor-pallet__";
 export function parseFloorPalletConfig(value: unknown): FloorPalletConfig {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("底层托盘设置无效。");
@@ -75,16 +77,17 @@ export function palletAnchors(pallets: PlacedPallet[]): PlacedBox[] {
   return palletSupportBoxes(pallets).map(b => ({ ...b, productId: b.id }));
 }
 
-export function assignPalletReferences(boxes: PlacedBox[], pallets: PlacedPallet[]): PlacedBox[] {
+export function assignPalletReferences(boxes: PlacedBox[], pallets: PlacedPallet[], products: ProductInput[] = []): PlacedBox[] {
+  const rules=new Map(products.map(p=>[p.id,p]));
   const levels = new Map<number, PlacedBox[]>(), refs = new Map<string, string[]>();
   const key = (z: number) => Math.round(z / .0001);
   for (const p of palletAnchors(pallets)) { refs.set(p.id, [p.id]); levels.set(key(p.z + p.dz), [...(levels.get(key(p.z + p.dz)) ?? []), p]); }
   const result = new Map<string, PlacedBox>();
   for (const box of [...boxes].sort((a, b) => a.z - b.z)) {
     const ids = new Set<string>();
-    for (const below of levels.get(key(box.z)) ?? []) if (Math.min(box.x + box.dx, below.x + below.dx) > Math.max(box.x, below.x) + .0001 && Math.min(box.y + box.dy, below.y + below.dy) > Math.max(box.y, below.y) + .0001) for (const id of refs.get(below.id) ?? []) ids.add(id);
+    for (const below of levels.get(key(box.z)) ?? []) if (bodyContactArea(box,below,rules.get(box.productId),rules.get(below.productId))>.0001) for (const id of refs.get(below.id) ?? []) ids.add(id);
     refs.set(box.id, [...ids]); result.set(box.id, { ...box, palletIds: ids.size ? [...ids].sort() : undefined });
-    levels.set(key(box.z + box.dz), [...(levels.get(key(box.z + box.dz)) ?? []), box]);
+    for(const z of bodyTopLevels(box,rules.get(box.productId)))levels.set(key(z),[...(levels.get(key(z))??[]),box]);
   }
   return boxes.map(b => result.get(b.id)!);
 }

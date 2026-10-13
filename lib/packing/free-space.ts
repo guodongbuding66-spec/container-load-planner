@@ -1,3 +1,4 @@
+import { cargoBodyParts, bodyContactArea } from "./cargo-body";
 import { applyTypeSupport } from "./loading-rules";
 import { getOrientations, validatePacking } from "./engine";
 import { palletAnchors } from "./floor-pallets";
@@ -28,7 +29,7 @@ function mergeSpaces(input:BoundsBox[]){
 export function analyzeEmptySpaces(plan:PackingResult,limit=600){
   if(plan.metrics.loadedCount!==plan.placements.length)return {spaces:[] as EmptySpace[],truncated:true,incomplete:true,coveredVolume:0};
   let spaces:BoundsBox[]=[{x:0,y:0,z:0,dx:plan.container.length-2*plan.clearance,dy:plan.container.width-2*plan.clearance,dz:plan.container.height-plan.clearance}],truncated=false;
-  for(const box of [...palletAnchors(plan.pallets??[]),...plan.placements]){
+  for(const box of [...palletAnchors(plan.pallets??[]),...plan.placements].flatMap(b=>cargoBodyParts(b,plan.cargoDetails?.[b.productId]))){
     spaces=spaces.flatMap(s=>subtractSpace(s,box));
     if(spaces.length>limit){truncated=true;spaces.sort((a,b)=>volume(b)-volume(a));spaces.length=limit;}
   }
@@ -53,7 +54,7 @@ export function probeEmptySpace(plan:PackingResult,inputs:ProductInput[],product
     for(const x of [...new Set([s.x,s.x+s.dx-o.dx])])for(const y of [...new Set([s.y,s.y+s.dy-o.dy])]){
       if(++tested>240)return result("not-found",[...errors].slice(0,3),tested-1);
       const b:PlacedBox={id:"space-probe",productId:p.id,sku:p.sku,name:p.name,color:p.color,x,y,z:s.z,dx:o.dx,dy:o.dy,dz:o.dz,weight:p.weight,orientation:o.label,layer:1};
-      const supporters=plan.placements.filter(a=>Math.abs(a.z+a.dz-b.z)<EPS&&a.x<b.x+b.dx&&b.x<a.x+a.dx&&a.y<b.y+b.dy&&b.y<a.y+a.dy);
+      const supporters=plan.placements.filter(a=>bodyContactArea(b,a,p,products.find(p=>p.id===a.productId))>EPS);
       b.layer=supporters.length?Math.max(...supporters.map(a=>a.layer))+1:1;
       const validation=validatePacking([...plan.placements,b].sort((a,b)=>a.z-b.z||a.x-b.x),plan.container,plan.clearance,checkedProducts,plan.strategy,plan.mode,plan.pallets,plan.floorPallets);
       if(validation.valid&&plan.palletization)validation.errors.push(...validatePalletizedCargo([...plan.placements,b],plan.pallets??[],plan.container,plan.clearance,plan.palletization));

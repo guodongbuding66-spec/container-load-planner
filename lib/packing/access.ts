@@ -1,5 +1,5 @@
 import type { PackingResult, PlacedBox } from "./types";
-import { contactArea } from "./bearing";
+import { bodyContactArea } from "./cargo-body";
 import { palletAnchors } from "./floor-pallets";
 export type Delivery={customer:string;destination:string;stop:number};
 export type DeliveryMap=Record<string,Delivery>;
@@ -19,7 +19,7 @@ export function auditAccess(plan:PackingResult,delivery:DeliveryMap=plan.deliver
     if(!stops[b.productId]?.stop)issues.push({id:b.id,phase:"unload",reason:"unassigned",obstacles:[]});
     const other=items.filter(a=>a.id!==b.id&&remaining.has(a.id));
     if(!open){const obstacles=other.filter(a=>corridor(a,b)).map(a=>a.id);if(!throughDoor(b,plan))issues.push({id:b.id,phase:"unload",reason:"door",obstacles:[]});if(obstacles.length)issues.push({id:b.id,phase:"unload",reason:"blocked",obstacles});}
-    const above=other.filter(a=>Math.abs(b.z+b.dz-a.z)<EPS&&contactArea(a,b)>EPS).map(a=>a.id);if(above.length)issues.push({id:b.id,phase:"unload",reason:"support",obstacles:above});
+    const above=other.filter(a=>bodyContactArea(a,b,plan.cargoDetails?.[a.productId],plan.cargoDetails?.[b.productId])>EPS).map(a=>a.id);if(above.length)issues.push({id:b.id,phase:"unload",reason:"support",obstacles:above});
     remaining.delete(b.id);
   }
   return {issues,order,model:open?"open-access":"straight-rear",complete:order.every(b=>!!stops[b.productId]?.stop),valid:issues.every(i=>i.reason==="unassigned")};

@@ -1,4 +1,5 @@
 import { pack, restorePackingSnapshot, getOrientations } from "./engine";
+import { quarterTurnOrientation } from "./cargo-body";
 import { parseFloorPalletConfig, palletCargoCeiling } from "./floor-pallets";
 import type { PackingRequest, PackingResult, PlacedBox, PlacedPallet, ProductInput, FloorPalletConfig } from "./types";
 export type PreparedUnit={id:string;cargo:PlacedBox[];height:number;weight:number;tail:boolean};
@@ -26,7 +27,7 @@ export function palletizeThenPack(request:PackingRequest,input:FloorPalletConfig
   for(const b of outer.placements){const unit=prepared.find(p=>p.id===b.productId)!,cross=b.orientation==="WLH",palletId=`floor-pallet-${pallets.length+1}`,setMap=new Map<string,number>();
     pallets.push({id:palletId,presetId:config.presetId,name:config.name,x:b.x,y:b.y,z:0,dx:b.dx,dy:b.dy,dz:config.height,weight:config.weight,maxLoad:config.maxLoad,orientation:cross?"WLH":"LWH"});
     for(const c of unit.cargo){let setNumber=c.setNumber;if(c.setCode){const key=`${c.setCode}/${c.setNumber}`;if(!setMap.has(key)){const next=(setCounters.get(c.setCode)??0)+1;setCounters.set(c.setCode,next);setMap.set(key,next);}setNumber=setMap.get(key);}
-      placements.push({...c,id:`prebuilt-${placements.length+1}`,x:b.x+(cross?c.y:c.x),y:b.y+(cross?c.x:c.y),z:c.z+config.height,dx:cross?c.dy:c.dx,dy:cross?c.dx:c.dy,orientation:cross?`${c.orientation[1]}${c.orientation[0]}${c.orientation[2]}`:c.orientation,setNumber,palletIds:[palletId]});
+      placements.push({...c,id:`prebuilt-${placements.length+1}`,x:b.x+(cross?c.y:c.x),y:b.y+(cross?config.length-c.x-c.dx:c.y),z:c.z+config.height,dx:cross?c.dy:c.dx,dy:cross?c.dx:c.dy,...(cross?quarterTurnOrientation(c):{}),setNumber,palletIds:[palletId]});
     }
   }
   const plan:PackingResult=restorePackingSnapshot({...request,floorPallets:undefined,strategy:"practical"},{strategy:"practical",placements,pallets,palletization:{config,mix}});

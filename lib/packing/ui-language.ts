@@ -1,4 +1,9 @@
 export const ENGLISH: Record<string, string> = {
+  "箱体旋转方向无效。": "Invalid cargo rotation.",
+  "圆台顶径比例须为 0%–100%": "Frustum top diameter ratio must be 0–100%",
+  "型件壁厚比例须为 5%–45%": "Profile wall ratios must be 5–45%",
+  "阶梯长度与高度比例须为 10%–90%": "Step length and height ratios must be 10–90%",
+  "规则型件按实际组成块校验碰撞、水平承托面和空隙；曲面与其他异型件仍按外包络占位。测量与重心仍按外包络估算。": "Profiles use solid blocks for collision, horizontal support and free spaces. Curved and custom irregular cargo reserve full envelopes. Measurements and gravity centres remain envelope estimates.",
   "货物外形无效": "Invalid cargo shape",
   "圆筒轴向无效": "Invalid cylinder axis",
   "梯形顶边比例须为 10%–100%": "Trapezoid top ratio must be 10\u2013100%",

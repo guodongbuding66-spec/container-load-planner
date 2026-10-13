@@ -1,4 +1,5 @@
 import type { PlacedBox, ProductInput } from "./types";
+import { bodyContactArea, bodyTopLevels } from "./cargo-body";
 
 export function contactArea(a: PlacedBox, b: PlacedBox) {
   return Math.max(0, Math.min(a.x + a.dx, b.x + b.dx) - Math.max(a.x, b.x)) *
@@ -6,17 +7,20 @@ export function contactArea(a: PlacedBox, b: PlacedBox) {
 }
 
 /** Static vertical load distributed by contact area, including every upper tier. */
-export function bearingLoads(boxes: PlacedBox[]) {
+export function bearingLoads(boxes: PlacedBox[], products: ProductInput[] = []) {
   const loads = new Map<string, number>();
+  const rules = new Map(products.map(p=>[p.id,p]));
   const sorted = [...boxes].sort((a, b) => b.z - a.z);
   const byTop = new Map<number, PlacedBox[]>();
   for (const b of boxes) {
-    const key = Math.round((b.z + b.dz) / 0.0001);
-    const list=byTop.get(key);if(list)list.push(b);else byTop.set(key,[b]);
+    for(const z of bodyTopLevels(b,rules.get(b.productId))){
+      const key = Math.round(z / 0.0001);
+      const list=byTop.get(key);if(list)list.push(b);else byTop.set(key,[b]);
+    }
   }
   for (const b of sorted) {
     const below = (byTop.get(Math.round(b.z / 0.0001)) ?? []).filter(x => x.id !== b.id);
-    const areas = below.map(x => contactArea(b, x));
+    const areas = below.map(x => bodyContactArea(b,x,rules.get(b.productId),rules.get(x.productId)));
     const totalArea = areas.reduce((a, c) => a + c, 0);
     if (!totalArea) continue;
     const mass = b.weight + (loads.get(b.id) ?? 0);
@@ -38,13 +42,13 @@ export function bearingLimit(b: PlacedBox, p: ProductInput|undefined) {
   return values.length ? Math.min(...values) : undefined;
 }
 export function bearingStatus(boxes: PlacedBox[], products: ProductInput[]) {
-  const loads = bearingLoads(boxes);
+  const loads = bearingLoads(boxes,products);
   const unknown = boxes.filter(b => (loads.get(b.id) ?? 0) > 0 && bearingLimit(b, products.find(p => p.id === b.productId)!) === undefined);
   return { unknownIds: unknown.map(b => b.id), verified: unknown.length === 0 };
 }
 export function bearingErrors(boxes: PlacedBox[], products: ProductInput[]) {
   if (!products.some(hasBearingRules)) return [];
-  const loads = bearingLoads(boxes);
+  const loads = bearingLoads(boxes,products);
   const rules = new Map(products.map(p => [p.id, p]));
   const errors: string[] = [];
   for (const b of boxes) {
@@ -52,7 +56,7 @@ export function bearingErrors(boxes: PlacedBox[], products: ProductInput[]) {
     const limit = bearingLimit(b, p), actual = loads.get(b.id) ?? 0;
     if (limit !== undefined && actual > limit + 0.00001) errors.push(`${b.sku} 箱体 ${b.id} 上方累计 ${actual.toFixed(2)} kg，超过允许承重 ${limit} kg。`);
     if (p.allowedAboveSkus !== undefined) for (const upper of boxes) {
-      if (Math.abs(upper.z - b.z - b.dz) < 0.0001 && contactArea(b, upper) > 0 && !p.allowedAboveSkus.includes(upper.sku)) errors.push(`${b.sku} 不允许 ${upper.sku} 直接叠放于上方。`);
+      if (upper.id!==b.id && bodyContactArea(upper,b,rules.get(upper.productId),p) > 0 && !p.allowedAboveSkus.includes(upper.sku)) errors.push(`${b.sku} 不允许 ${upper.sku} 直接叠放于上方。`);
     }
   }
   return errors;

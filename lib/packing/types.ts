@@ -2,8 +2,9 @@ export type PackingMode = "single" | "mixed";
 export type PackingStrategy = "practical" | "maximum";
 export type RotationPolicy = "fixed" | "upright" | "any";
 export type OrientationCode = "LWH" | "LHW" | "WLH" | "WHL" | "HLW" | "HWL";
+export type OrientationSigns = [1 | -1, 1 | -1, 1 | -1];
 export type CargoType = "carton" | "pallet" | "crate" | "drum" | "roll" | "loose";
-export type CargoShape = "box" | "cylinder" | "wedge" | "trapezoid" | "irregular";
+export type CargoShape = "box" | "cylinder" | "wedge" | "trapezoid" | "frustum" | "l-profile" | "u-profile" | "t-profile" | "step" | "irregular";
 export type FloorPalletConfig = {
   presetId: string;
   name: string;
@@ -60,6 +61,12 @@ export type ProductInput = {
   shapeAxis?: "L" | "W" | "H";
   /** Trapezoid top length / bottom length; preview keeps the full envelope. */
   shapeTopRatio?: number;
+  /** Profile wall width / L and wall height / H, each 0.05–0.45. */
+  shapeWallRatio?: number;
+  shapeWallHeightRatio?: number;
+  /** Raised step length / L and lower step height / H, each 0.1–0.9. */
+  shapeStepLengthRatio?: number;
+  shapeStepHeightRatio?: number;
   allowedOrientations?: OrientationCode[];
   minimumSupportRatio?: number;
   /** Already included in outer height; never added to the cargo envelope. */
@@ -136,6 +143,8 @@ export type ReverseCountResult = {
 };
 
 export type PlacedBox = {
+  /** Signed world X/Y/Z axes preserve all four horizontal turns of asymmetric bodies. */
+  orientationSigns?: OrientationSigns;
   /** Internal support envelope; never used for a customer carton. */
   supportOnly?: boolean;
   palletIds?: string[];
@@ -283,7 +292,7 @@ export type PackingResult = {
   floorPallets?: FloorPalletConfig;
   pallets?: PlacedPallet[];
   loadingRules?: LoadingRules;
-  cargoDetails?: Record<string, Pick<ProductInput, "cargoType" | "palletBaseHeight" | "cargoShape" | "shapeAxis" | "shapeTopRatio">>;
+  cargoDetails?: Record<string, Pick<ProductInput, "cargoType" | "palletBaseHeight" | "cargoShape" | "shapeAxis" | "shapeTopRatio" | "shapeWallRatio" | "shapeWallHeightRatio" | "shapeStepLengthRatio" | "shapeStepHeightRatio">>;
   id: string;
   mode: PackingMode;
   strategy: PackingStrategy;

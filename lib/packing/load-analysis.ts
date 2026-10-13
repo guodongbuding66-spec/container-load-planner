@@ -6,7 +6,7 @@ export type LoadCell={id:string;load:number;limit?:number;ratio?:number;status:L
 export type HeatMode="off"|"top"|"pallet"|"zone";
 export const loadColor=(ratio:number)=>ratio>1?"#c23832":ratio>.75?"#d58425":ratio>.5?"#d7ae38":"#2b8d83";
 export function analyzeLoads(plan:PackingResult,products:ProductInput[]){
-  const loads=bearingLoads([...palletAnchors(plan.pallets??[]),...plan.placements]),byId=new Map(products.map(p=>[p.id,p]));
+  const loads=bearingLoads([...palletAnchors(plan.pallets??[]),...plan.placements],products),byId=new Map(products.map(p=>[p.id,p]));
   const cell=(id:string,limit:number|undefined):LoadCell=>{const load=loads.get(id)??0,ratio=limit===undefined?undefined:limit===0?(load>0?Infinity:0):load/limit,status=limit===undefined?(load>0?"unknown":"no-load"):load>limit+.0001?"overload":"verified";return {id,load,limit,ratio,status,color:status==="unknown"?"#7d8393":status==="no-load"?"#98bbb5":loadColor(ratio??0)};};
   const boxes=plan.placements.map(b=>cell(b.id,byId.get(b.productId)?bearingLimit(b,byId.get(b.productId)!):undefined));
   const pallets=(plan.pallets??[]).map(p=>cell(p.id,p.maxLoad));

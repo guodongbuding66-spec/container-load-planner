@@ -63,10 +63,15 @@ type InstanceGroup = {
   productId: string;
   sku: string;
   orientation: string;
+  orientationSigns?: PlacedBox["orientationSigns"];
   cargoType?: ProductInput["cargoType"];
   cargoShape?: ProductInput["cargoShape"];
   shapeAxis?: ProductInput["shapeAxis"];
   shapeTopRatio?: number;
+  shapeWallRatio?: number;
+  shapeWallHeightRatio?: number;
+  shapeStepLengthRatio?: number;
+  shapeStepHeightRatio?: number;
   baseHeight?: number;
   color: string;
   boxes: PlacedBox[];
@@ -82,7 +87,7 @@ function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSele
   const meshRef = useRef<THREE.InstancedMesh>(null), baseRef = useRef<THREE.InstancedMesh>(null);
   const transform = useMemo(() => new THREE.Object3D(), []);
   const first=group.boxes[0], shape=cargoShapeOf(group);
-  const geometry=useMemo(()=>cargoShapeGeometry({cargoType:group.cargoType,cargoShape:group.cargoShape,shapeAxis:group.shapeAxis,shapeTopRatio:group.shapeTopRatio},group.orientation as OrientationCode,reducedRendering),[group.cargoType,group.cargoShape,group.shapeAxis,group.shapeTopRatio,group.orientation,reducedRendering]);
+  const geometry=useMemo(()=>cargoShapeGeometry({cargoType:group.cargoType,cargoShape:group.cargoShape,shapeAxis:group.shapeAxis,shapeTopRatio:group.shapeTopRatio,shapeWallRatio:group.shapeWallRatio,shapeWallHeightRatio:group.shapeWallHeightRatio,shapeStepLengthRatio:group.shapeStepLengthRatio,shapeStepHeightRatio:group.shapeStepHeightRatio},group.orientation as OrientationCode,reducedRendering,group.orientationSigns),[group.cargoType,group.cargoShape,group.shapeAxis,group.shapeTopRatio,group.shapeWallRatio,group.shapeWallHeightRatio,group.shapeStepLengthRatio,group.shapeStepHeightRatio,group.orientation,group.orientationSigns,reducedRendering]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
   const materials = useMemo(() => {
     const dims=[first.dx,first.dz,first.dy], axis=first.orientation.indexOf("H");
@@ -154,9 +159,9 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
     const sources=new Map(result.placements.map(b=>[b.id,b]));
     for (const box of inspectBoxes(result,visibleProducts,visibleCount,section)) {
       const color=heatColors?.get(box.id)??box.color;
-      const key = `${box.productId}:${box.orientation}:${box.dx}:${box.dy}:${box.dz}:${color}`;
+      const key = `${box.productId}:${box.orientation}:${box.orientationSigns?.join("/")??""}:${box.dx}:${box.dy}:${box.dz}:${color}`;
       const meta = result.cargoDetails?.[box.productId];
-      const current = map.get(key) ?? { productId: key, sku: box.sku, orientation: box.orientation, cargoType: meta?.cargoType,cargoShape:meta?.cargoShape,shapeAxis:meta?.shapeAxis,shapeTopRatio:meta?.shapeTopRatio, baseHeight: meta?.palletBaseHeight, color, boxes: [],sources:[] };
+      const current = map.get(key) ?? { productId: key, sku: box.sku, orientation: box.orientation, orientationSigns:box.orientationSigns, cargoType: meta?.cargoType,cargoShape:meta?.cargoShape,shapeAxis:meta?.shapeAxis,shapeTopRatio:meta?.shapeTopRatio,shapeWallRatio:meta?.shapeWallRatio,shapeWallHeightRatio:meta?.shapeWallHeightRatio,shapeStepLengthRatio:meta?.shapeStepLengthRatio,shapeStepHeightRatio:meta?.shapeStepHeightRatio, baseHeight: meta?.palletBaseHeight, color, boxes: [],sources:[] };
       current.boxes.push(box);
       current.sources.push(sources.get(box.id)!);
       map.set(key, current);

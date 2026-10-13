@@ -6,7 +6,7 @@ import type { PackingResult, PlacedBox } from "../lib/packing/types";
 import type { SceneInspection } from "./use-scene-inspection";
 import { useTransportAppearance } from "./transport-appearance";
 import { tr, useLanguage } from "./language";
-import { cargoShapeOf, SHAPE_LABELS } from "../lib/packing/cargo-shape";
+import { cargoShapeOf, isRectilinearShape, SHAPE_LABELS } from "../lib/packing/cargo-shape";
 
 const MODES:[MeasureMode,string,string][]=[["off","关闭测量","Off"],["points","两点距离","Point distance"],["gap","两箱间距","Carton gap"],["wall","柜壁距离","Wall clearance"]];
 const WALLS:[WallSide,string,string][]=[["x-","柜头","Rear wall"],["x+","箱门","Door plane"],["y-","左侧","Left wall"],["y+","右侧","Right wall"],["z-","柜底","Floor"],["z+","柜顶","Ceiling"]];
@@ -27,7 +27,7 @@ export function SceneInspector({result,selected,inspection,onClearSelection,onFo
   return <>
     <section className="scene-inspector-section"><div className="scene-dock-title"><strong>{tr("选中属性","Selection")}</strong>{selected&&<button aria-label={tr("关闭箱体详情","Close box details")} onClick={onClearSelection}><X size={16}/></button>}</div>
       {selected?<><strong className="scene-inspector-sku">{selected.sku}</strong><small>{selected.id}</small><dl className="scene-properties"><dt>{tr("尺寸","Size")}</dt><dd>{[selected.dx,selected.dy,selected.dz].map(fmt).join(" × ")}</dd><dt>XYZ</dt><dd>{[selected.x,selected.y,selected.z].map(fmt).join(" / ")}</dd><dt>{tr("重量","Weight")}</dt><dd>{selected.weight} kg</dd>{selected.setCode&&<><dt>{tr("套号","Set")}</dt><dd>{selected.setCode} · #{selected.setNumber}</dd></>}{!!selected.palletIds?.length&&<><dt>{tr("托盘","Pallet")}</dt><dd>{selected.palletIds.map(p=>p.replace("floor-pallet-","P")).join(" / ")}</dd></>}</dl>{onFocus&&<button className="scene-inspector-action" onClick={onFocus}>{tr("放大查看","Focus on selection")}</button>}</>:<p>{tr("点击模型或货物列表查看属性。","Select a model or cargo-list item to inspect it.")}</p>}
-      {selected&&shape!=="box"&&<p>{tr(...SHAPE_LABELS[shape])} · {tr("当前尺寸、间距和捕捉点按完整外包络；重心为外包络中心估算。","Dimensions, gaps and snap features use the full envelope; gravity centre is estimated from envelope centres.")}</p>}
+      {selected&&shape!=="box"&&<p>{tr(...SHAPE_LABELS[shape])} · {isRectilinearShape(result.cargoDetails?.[selected.productId]??{})&&tr("实际组成块已用于碰撞与水平承托校验。","Solid blocks are used for collision and horizontal support checks.")} {tr("当前尺寸、间距和捕捉点按完整外包络；重心为外包络中心估算。","Dimensions, gaps and snap features use the full envelope; gravity centre is estimated from envelope centres.")}</p>}
     </section>
     <section className="scene-inspector-section"><h3><Ruler size={16}/>{tr("测量工具","Measurement")}</h3>
       <label>{tr("测量方式","Mode")}<select aria-label={tr("测量方式","Measurement mode")} value={value.mode} onChange={e=>inspection.setMode(e.target.value as MeasureMode)}>{MODES.map(([id,zh,en])=><option key={id} value={id}>{tr(zh,en)}</option>)}</select></label>
