@@ -407,3 +407,8 @@
 .wizard-space-grid.pallet-only-setup{grid-template-columns:minmax(0,1fr)}
 .pallet-only-setup .pallet-build-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
 @media(max-width:760px){.loading-workflow-options{grid-template-columns:repeat(2,minmax(0,1fr))}.pallet-build-grid,.pallet-only-setup .pallet-build-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.compact-workspace .wizard-mode{grid-template-columns:96px minmax(0,1fr);align-items:start;gap:8px 12px}
+.compact-workspace .wizard-mode h3{grid-row:1 / span 2;align-self:center}
+.compact-workspace .wizard-mode .helper-text{grid-column:2;line-height:1.5}
+@media(max-width:980px){.loading-workflow-options{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){.compact-workspace .wizard-mode{grid-template-columns:minmax(0,1fr)}.compact-workspace .wizard-mode h3{grid-row:auto}.compact-workspace .wizard-mode .helper-text{grid-column:1}}
