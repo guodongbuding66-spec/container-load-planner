@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef } from "react";
 import type { CameraView } from "../lib/packing/camera-fit";
 import type { PackingResult, PlacedBox } from "../lib/packing/types";
 import { cargoShapeProjections } from "../lib/packing/cargo-shape-geometry";
+import {cargoShapeOf} from '../lib/packing/cargo-shape';
 import type { OrientationCode } from "../lib/packing/types";
 
 type ViewKind = "top" | "side" | "door";
@@ -103,7 +104,7 @@ function ProjectionPrintSvg({
             fillRule="nonzero"
             fill={box.color}
             fillOpacity="0.82"
-            stroke="#ffffff"
+            stroke={!details?.[box.productId]?.solidModel && cargoShapeOf(details?.[box.productId]??{})==='box' ? '#ffffff' : 'none'}
             strokeOpacity="0.82"
             strokeWidth="1.2"
           />
@@ -227,7 +228,7 @@ function ProjectionCanvas({
         context.globalAlpha = 0.72;
         context.strokeStyle = "#ffffff";
         context.lineWidth = Math.min(1.25, Math.max(0.45, boxWidth / 24));
-        context.stroke();
+        if(!details?.[box.productId]?.solidModel && cargoShapeOf(details?.[box.productId]??{})==='box')context.stroke();
       }
       context.globalAlpha = 1;
       context.strokeStyle = "#597b83";

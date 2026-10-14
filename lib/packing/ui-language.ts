@@ -1297,6 +1297,7 @@ export const ENGLISH: Record<string, string> = {
   "方向切换需要主管复核": "Orientation changes require supervisor review",
   "单个 SKU 最多出现 {0} 种方向；现场方案仍限制为最多两种同高度水平方向。": "Up to {0} orientations per SKU; the practical plan remains limited to two horizontal orientations preserving height.",
   "计划量之外保留为安全余量": "Safety reserve beyond planned quantity",
+  "现场方案尚未达到计划上限；当前增量来自不同搜索与装载规则，不能解释为主动预留余量。可切换高密度方案检查坐标并复核现场可执行性。": "The practical plan has not reached its planning limit. The gain comes from different searches and loading rules, rather than a planned reserve. Inspect the high-density coordinates and verify on-site feasibility.",
   "可解除旧基准后进行现场试装": "Raise the historical baseline for a warehouse trial",
   "可作为下一轮现场试装目标": "Candidate for the next warehouse trial",
   "当前差距首先来自主动设置的体积/载重计划上限，不是算法自相矛盾；需要冲量时切换“高密度参考”，页面会立即改用已缓存的高密度数量、三视图、坐标与导出方案。": "The difference comes from volume/payload planning limits. Switch to High-density reference to use its cached quantity, views, coordinates and exports.",

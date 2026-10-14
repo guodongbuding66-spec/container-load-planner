@@ -7,6 +7,7 @@ import {
   HISTORICAL_LOADING_RECORDS,
 } from "./quote-estimator";
 import type { PackingRequest, ProductInput } from "./types";
+import {defaultSolidModel} from './solid-model';
 
 function productsForRecord(
   record: (typeof HISTORICAL_LOADING_RECORDS)[number],
@@ -124,6 +125,13 @@ describe("dual-track quote estimator", () => {
   it("does not apply a single-product quotation model to mixed orders", () => {
     const input = { ...request(productsForRecord(HISTORICAL_LOADING_RECORDS[0]), 2), mode: "mixed" as const };
     expect(estimateQuoteLoading(input, effectiveVolume(input), 0)).toBeUndefined();
+  });
+  it("does not transfer carton fingerprints or backtest accuracy to irregular, modeled or protected cargo",()=>{
+    const ordinary=productsForRecord(HISTORICAL_LOADING_RECORDS[0]);
+    for(const overrides of [{cargoShape:'tube' as const},{cargoShape:'l-profile' as const},{cargoType:'drum' as const},{protectionGap:10},{solidModel:defaultSolidModel('box',[ordinary[0].length,ordinary[0].width,ordinary[0].height])}]){
+      const input=request(ordinary.map((p,i)=>i===0?{...p,...overrides}:p),2);
+      expect(estimateQuoteLoading(input,effectiveVolume(input),0)).toBeUndefined();
+    }
   });
 
   it("uses auto-calculated two-decimal CBM instead of a manually supplied value", () => {

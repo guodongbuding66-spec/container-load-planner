@@ -2361,13 +2361,16 @@ function buildStrategyComparison(practical: PackingResult, maximum: PackingResul
       const historicalBaselineActive = practical.quoteEstimate?.source === "historical-exact" &&
         practical.quoteEstimate.physicallyPossibleByBounds &&
         practical.practicalTargetUtilization <= defaultTarget + EPS;
+      const planningCeilingReached=practical.singleCartonLimit!==undefined && practical.metrics.loadedCount>=practical.singleCartonLimit;
       guidance.push({
         level: "review",
-        title: practical.singleCartonLimit !== undefined
+        title: planningCeilingReached
           ? "计划量之外保留为安全余量"
           : historicalBaselineActive ? "可解除旧基准后进行现场试装" : "可作为下一轮现场试装目标",
-        detail: practical.singleCartonLimit !== undefined
+        detail: planningCeilingReached
           ? "当前差距首先来自主动设置的体积/载重计划上限，不是算法自相矛盾；需要冲量时切换“高密度参考”，页面会立即改用已缓存的高密度数量、三视图、坐标与导出方案。"
+          : practical.singleCartonLimit !== undefined
+          ? "现场方案尚未达到计划上限；当前增量来自不同搜索与装载规则，不能解释为主动预留余量。可切换高密度方案检查坐标并复核现场可执行性。"
           : historicalBaselineActive
           ? `当前按历史实装 ${practical.quoteEstimate!.predictedSets.toLocaleString()} ${displayUnit === "set" ? "套" : "箱"}封顶；将现场经验装载率从 ${(defaultTarget * 100).toFixed(1)}% 主动调高到 ${(defaultTarget * 100 + 1).toFixed(1)}% 或以上后，系统会解除旧基准硬封顶，并继续只输出不侧翻、完整承托的现场候选。`
           : "剩余差距没有侧翻、局部承托或多方向风险；建议每次提高 1–2 个百分点试装，并在确认门口操作空间后记录新的实装数量。",

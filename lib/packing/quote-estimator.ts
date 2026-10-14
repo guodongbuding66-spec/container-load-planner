@@ -228,6 +228,10 @@ export function estimateQuoteLoading(
   physicalLoadedSets: number,
 ): QuoteEstimate | undefined {
   if (request.mode !== "single" || !request.products.length) return undefined;
+  // These observations describe ordinary cartons. A matching envelope cannot
+  // certify a curved model, fixture assembly or protective spacing, nor can
+  // the carton backtest's error be transferred to those cargo categories.
+  if (request.products.some(p => (p.cargoShape ?? "box") !== "box" || p.solidModel || (p.protectionGap ?? 0) > 0 || (p.cargoType ?? "carton") !== "carton")) return undefined;
   const volumes = setVolumes(request.products);
   if (volumes.rounded <= 0 || volumes.physical <= 0) return undefined;
 

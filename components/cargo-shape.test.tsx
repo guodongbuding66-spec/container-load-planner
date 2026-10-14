@@ -35,5 +35,5 @@ it("mounts real wedge geometry and clips it without squeezing its source shape",
 it("keeps fallback envelopes but draws an actual cylinder silhouette and preserves picking",()=>{
   const cylinder=pack({mode:"mixed",strategy:"maximum",container:plan.container,clearance:0,products:[{...p,cargoShape:"cylinder"}]});
   const html=renderToStaticMarkup(<TransportAppearanceProvider><LoadingSceneFallback result={cylinder} visibleProducts={new Set([p.id])} visibleCount={1} selected={null} onSelect={()=>{}}/></TransportAppearanceProvider>);
-  expect(html).toContain('data-cargo-shape="cylinder"');expect(html).toContain('<polygon');expect(html).toContain('clip-path="url(');expect(html).toContain('role="button"');
+  expect(html).toContain('data-cargo-shape="cylinder"');expect(html).toContain('fill-rule="nonzero"');expect(html).toContain('clip-path="url(');expect(html).toContain('role="button"');
 });
