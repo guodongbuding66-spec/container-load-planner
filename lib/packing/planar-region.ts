@@ -1,10 +1,32 @@
 /** Certified planar support sets. Curves use interval bounds, never a faceted false full-contact area. */
-import { polygonArea,convexHull2,pointInPolygon,type V2 } from './solid-math';
+import { polygonArea,convexHull2,pointInPolygon,ccw,clipPolygon,type V2 } from './solid-math';
 export type Interval=[number,number];
 export type Region={kind:'polygon';points:V2[]}|{kind:'ellipse';cx:number;cy:number;rx:number;ry:number;inner:number}|{kind:'union';items:Region[]}|{kind:'intersection'|'difference';a:Region;b:Region};
 const EPS=1e-9;
 export const polygonRegion=(points:V2[]):Region=>({kind:'polygon',points});
 export function unionRegion(items:Region[]):Region{return items.length===1?items[0]:{kind:'union',items};}
+/** Recover a planar triangulation's boundary only after proving its triangles do not overlap. */
+export function triangulatedRegion(input:V2[][]):Region|null{
+ if(!input.length||input.length>512||input.some(p=>p.length!==3))return null;
+ const triangles=input.map(ccw),key=(p:V2)=>JSON.stringify(p);
+ for(let i=0;i<triangles.length;i++)for(let j=0;j<i;j++)if(polygonArea(clipPolygon(triangles[i],triangles[j]))>EPS)return null;
+ const edges=new Map<string,{a:V2;b:V2;count:number;balance:number}>();
+ for(const t of triangles)for(let i=0;i<3;i++){const a=t[i],b=t[(i+1)%3],A=key(a),B=key(b),k=A<B?`${A}|${B}`:`${B}|${A}`,e=edges.get(k)??{a,b,count:0,balance:0};e.count++;e.balance+=A<B?1:-1;edges.set(k,e);}
+ if([...edges.values()].some(e=>e.count>2||e.count===2&&e.balance!==0))return null;
+ const boundary=new Map<string,{a:V2;b:V2}>(),incoming=new Map<string,number>();
+ for(const e of edges.values())if(e.count===1){const A=key(e.a),B=key(e.b);if(boundary.has(A))return null;boundary.set(A,e);incoming.set(B,(incoming.get(B)??0)+1);}
+ if([...boundary.keys()].some(k=>incoming.get(k)!==1))return null;
+ const loops:V2[][]=[];
+ while(boundary.size){const start=boundary.keys().next().value!,loop:V2[]=[];let at=start;
+  do{const e=boundary.get(at);if(!e)return null;loop.push(e.a);boundary.delete(at);at=key(e.b);}while(at!==start);
+  if(loop.length<3)return null;let first=0;for(let i=1;i<loop.length;i++)if(loop[i][0]<loop[first][0]||loop[i][0]===loop[first][0]&&loop[i][1]<loop[first][1])first=i;loops.push([...loop.slice(first),...loop.slice(0,first)]);
+ }
+ const signed=(p:V2[])=>p.reduce((n,a,i)=>{const b=p[(i+1)%p.length];return n+a[0]*b[1]-b[0]*a[1];},0)/2;
+ const outer=loops.filter(p=>signed(p)>EPS).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))),holes=loops.filter(p=>signed(p)<-EPS),owned=outer.map(()=>[] as V2[][]);
+ for(const hole of holes){let owner=-1;for(let i=0;i<outer.length;i++)if(hole.every(p=>pointInPolygon(p,outer[i]))&&(owner<0||polygonArea(outer[i])<polygonArea(outer[owner])))owner=i;if(owner<0)return null;owned[owner].push(ccw(hole));}
+ if(!outer.length)return null;
+ return unionRegion(outer.map((p,i)=>owned[i].length?differenceRegion(polygonRegion(p),unionRegion(owned[i].sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))).map(polygonRegion))):polygonRegion(p)));
+}
 function calculateRegionBounds(r:Region):[number,number,number,number]{
  if(r.kind==='polygon'){const x=r.points.map(p=>p[0]),y=r.points.map(p=>p[1]);return [Math.min(...x),Math.min(...y),Math.max(...x),Math.max(...y)];}
  if(r.kind==='ellipse')return [r.cx-r.rx,r.cy-r.ry,r.cx+r.rx,r.cy+r.ry];
@@ -61,7 +83,7 @@ function contains(container:Region,inside:Region):boolean{
  }
  return false;
 }
-export function intersectRegion(a:Region,b:Region):Region{const A=regionBounds(a),B=regionBounds(b);if(A[2]<=B[0]||B[2]<=A[0]||A[3]<=B[1]||B[3]<=A[1])return {kind:'union',items:[]};if(contains(a,b))return b;if(contains(b,a))return a;return {kind:'intersection',a,b};}
+export function intersectRegion(a:Region,b:Region):Region{const A=regionBounds(a),B=regionBounds(b);if(A[2]<=B[0]||B[2]<=A[0]||A[3]<=B[1]||B[3]<=A[1])return {kind:'union',items:[]};if(contains(b,a))return a;if(contains(a,b))return b;return {kind:'intersection',a,b};}
 export function differenceRegion(a:Region,b:Region):Region{if(contains(b,a))return {kind:'union',items:[]};return {kind:'difference',a,b};}
 export function pointInRegion(p:V2,r:Region):boolean{
  if(r.kind==='polygon')return pointInPolygon(p,r.points);if(r.kind==='ellipse'){const q=((p[0]-r.cx)/r.rx)**2+((p[1]-r.cy)/r.ry)**2;return q<=1+EPS&&q>=r.inner*r.inner-EPS;}

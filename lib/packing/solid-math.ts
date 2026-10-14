@@ -33,7 +33,7 @@ export function subtractPolygon(subject:V2[],clip:V2[]):V2[][]{
   if(polygonArea(neg)>EPS)result.push(neg);inside=polygonArea(pos)>EPS?pos:[];
  }return result;
 }
-export function unionPolygons(input:V2[][]){const disjoint:V2[][]=[];for(const p of input){let parts=[ccw(p)];for(const old of disjoint)parts=parts.flatMap(a=>subtractPolygon(a,old));disjoint.push(...parts);}return disjoint;}
+export function unionPolygons(input:V2[][]){const disjoint:V2[][]=[];for(const p of input){let parts=[ccw(p)];for(const old of disjoint){const next:V2[][]=[];for(const a of parts){for(const piece of subtractPolygon(a,old)){next.push(piece);if(next.length+disjoint.length>4096)throw Error('平面多边形碎片超过分析预算。');}}parts=next;}for(const part of parts){disjoint.push(part);if(disjoint.length>4096)throw Error('平面多边形碎片超过分析预算。');}}return disjoint;}
 export function convexHull2(points:V2[]):V2[]{
  const a=[...new Map(points.map(p=>[p.join('/'),p])).values()].sort((p,q)=>p[0]-q[0]||p[1]-q[1]);if(a.length<3)return a;
  const c=(o:V2,p:V2,q:V2)=>(p[0]-o[0])*(q[1]-o[1])-(p[1]-o[1])*(q[0]-o[0]),half=(arr:V2[])=>{const h:V2[]=[];for(const p of arr){while(h.length>1&&c(h.at(-2)!,h.at(-1)!,p)<=EPS)h.pop();h.push(p);}return h;};

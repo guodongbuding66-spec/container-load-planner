@@ -1,6 +1,6 @@
 import { buildSolidModel, type SignedFace, type SolidModel } from './solid-model';
-import { polygonRegion,unionRegion,differenceRegion,regionBounds,regionAreaBounds,regionWitnessHull,type Region } from './planar-region';
-import { add, sub, mul, convexOverlap, convexHull2, polygonArea, unionPolygons, subtractPolygon, type SolidCell, type V2, type V3 } from './solid-math';
+import { polygonRegion,unionRegion,triangulatedRegion,differenceRegion,regionBounds,regionAreaBounds,regionWitnessHull,type Region } from './planar-region';
+import { add, sub, mul, convexOverlap, convexHull2, polygonArea, ccw, unionPolygons, subtractPolygon, type SolidCell, type V2, type V3 } from './solid-math';
 import type { ProductInput, PlacedBox, OrientationCode, OrientationSigns } from './types';
 export type ModelBody=Pick<PlacedBox,'x'|'y'|'z'|'dx'|'dy'|'dz'> & {orientation?:string;orientationSigns?:OrientationSigns};
 export type PolygonSurface={x:number;y:number;dx:number;dy:number;polygon:V2[];region?:Region;areaLower?:number;areaUpper?:number};
@@ -27,9 +27,19 @@ function buildModelSurfaces(b:ModelBody,p:Shape,level:number,top:boolean):Polygo
   const poly=points.map(v=>[v[0],v[1]] as V2);return polygonArea(poly)>EPS?[poly]:[];
  });
  const caps=built.caps.flatMap(c=>{const key=faceKey(c.normal);if(!key||!permissions.includes(key))return [];const normal=axes.map(a=>c.normal[a.original]*(a.negative?-1:1));if(top?normal[2]<.999999:normal[2]>-.999999)return [];const center=mapPoint(b,c.center);if(Math.abs(center[2]-level)>EPS)return [];const u=sub(mapPoint(b,add(c.center,c.u)),center),v=sub(mapPoint(b,add(c.center,c.v)),center);return [{kind:'ellipse',cx:center[0],cy:center[1],rx:Math.hypot(u[0],v[0]),ry:Math.hypot(u[1],v[1]),inner:c.inner} as Region];});
- const polygons=unionPolygons(raw);if(!caps.length){let exposed=polygons;if(top)for(const c of worldModelCells(b,p).filter(c=>Math.min(...c.vertices.map(v=>v[2]))<=level+EPS&&Math.max(...c.vertices.map(v=>v[2]))>level+EPS)){const mask=slice(c,level);if(mask.length)exposed=exposed.flatMap(a=>subtractPolygon(a,mask));}return exposed.map(polygon=>{const [x,y,X,Y]=regionBounds(polygonRegion(polygon));return {x,y,dx:X-x,dy:Y-y,polygon};});}
- let region=unionRegion([...polygons.map(polygonRegion),...caps]);if(top){const masks=worldModelCells(b,p).filter(c=>Math.min(...c.vertices.map(v=>v[2]))<=level+EPS&&Math.max(...c.vertices.map(v=>v[2]))>level+EPS).map(c=>slice(c,level)).filter(c=>c.length);if(masks.length)region=differenceRegion(region,unionRegion(unionPolygons(masks).map(polygonRegion)));}
- const area=regionAreaBounds(region,.0002,512);if(area.upper<EPS)return [];const [x,y,X,Y]=regionBounds(region);return [{x,y,dx:X-x,dy:Y-y,polygon:regionWitnessHull(region),region,areaLower:area.lower,areaUpper:area.upper}];
+ const regionSurfaces=(polygons:V2[][]):PolygonSurface[]=>{
+  // Mesh triangles must remain a set union: repeatedly subtracting nearly
+  // coincident floating-point edges can create exponentially many slivers.
+  const unique=new Map<string,V2[]>();for(const input of polygons){const poly=ccw(input);let first=0;for(let i=1;i<poly.length;i++)if(poly[i][0]<poly[first][0]||poly[i][0]===poly[first][0]&&poly[i][1]<poly[first][1])first=i;const canonical=[...poly.slice(first),...poly.slice(0,first)];unique.set(JSON.stringify(canonical),canonical);}
+  const sorted=Array.from(unique.entries()).sort(([a],[b])=>a.localeCompare(b)).map(([,poly])=>poly);
+  let region=unionRegion([...(sorted.length?[triangulatedRegion(sorted)??unionRegion(sorted.map(polygonRegion))]:[]),...caps]);
+  if(top){const masks=worldModelCells(b,p).filter(c=>Math.min(...c.vertices.map(v=>v[2]))<=level+EPS&&Math.max(...c.vertices.map(v=>v[2]))>level+EPS).map(c=>slice(c,level)).filter(c=>c.length);if(masks.length)region=differenceRegion(region,unionRegion(masks.map(polygonRegion)));}
+  const area=regionAreaBounds(region,.0002,512);if(area.upper<EPS)return [];const [x,y,X,Y]=regionBounds(region);return [{x,y,dx:X-x,dy:Y-y,polygon:regionWitnessHull(region),region,areaLower:area.lower,areaUpper:area.upper}];
+ };
+ if(model.parts.some(part=>part.kind==='mesh'))return regionSurfaces(raw);
+ let polygons:V2[][];try{polygons=unionPolygons(raw);}catch{return regionSurfaces(raw);}
+ if(!caps.length){let exposed=polygons;if(top)for(const c of worldModelCells(b,p).filter(c=>Math.min(...c.vertices.map(v=>v[2]))<=level+EPS&&Math.max(...c.vertices.map(v=>v[2]))>level+EPS)){const mask=slice(c,level);if(mask.length)exposed=exposed.flatMap(a=>subtractPolygon(a,mask));if(exposed.length>4096)return regionSurfaces(raw);}return exposed.map(polygon=>{const [x,y,X,Y]=regionBounds(polygonRegion(polygon));return {x,y,dx:X-x,dy:Y-y,polygon};});}
+ return regionSurfaces(polygons);
 }
 const surfaceCache=new WeakMap<SolidModel,Map<string,PolygonSurface[]>>();
 function shiftRegion(region:Region,x:number,y:number):Region{

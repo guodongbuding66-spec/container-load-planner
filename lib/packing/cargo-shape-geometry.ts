@@ -81,7 +81,8 @@ export function cargoShapeProjections(p:ShapeFields,orientation:OrientationCode,
     g.dispose();
   }
   const unique=new Map<string,V2[]>();for(const poly of polys){const k=poly.map(v=>v.map(n=>n.toFixed(8)).join('/')).sort().join('|');if(!unique.has(k))unique.set(k,poly);}
-  polys=[...unique.values()];const result=polys.length<=128?unionPolygons(polys):polys;
+  polys=[...unique.values()];let result=polys;
+  if(!p.solidModel?.parts.some(part=>part.kind==='mesh')&&polys.length<=128){try{result=unionPolygons(polys);}catch{result=polys;}}
   if(bucket.size>=128)bucket.clear();bucket.set(key,result);projectionCache.set(source,bucket);return result;
 }
 export function cargoShapeFootprints(p:ShapeFields,orientation:OrientationCode,orientationSigns?:OrientationSigns){return cargoShapeProjections(p,orientation,'top',orientationSigns);}
