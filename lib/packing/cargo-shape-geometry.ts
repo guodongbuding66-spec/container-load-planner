@@ -12,7 +12,9 @@ export function cargoShapeGeometry(p: ShapeFields, orientation: OrientationCode 
   const model=p.solidModel??(ADVANCED_SHAPES.includes(shape)&&shape!=="mesh"?defaultSolidModel(shape==="compound"?"box":shape as ModelKind,[1,1,1]):undefined);
   if(model){
     const built=buildSolidModel(model),parts=collisionProxy||reduced&&built.display.reduce((n,c)=>n+c.faces.length,0)>1500?built.cells:built.display,positions:number[]=[];
-    for(const cell of parts)for(const f of cell.faces)for(let i=1;i<f.length-1;i++)for(const index of [f[0],f[i+1],f[i]]){const v=cell.vertices[index];positions.push(v[0]-.5,v[2]-.5,v[1]-.5);}
+    const faces=new Map<string,{points:number[][];signs:Set<number>}>();
+    for(const cell of parts)for(const f of cell.faces){const points=f.map(i=>cell.vertices[i]),key=points.map(v=>v.map(n=>n.toFixed(8)).join('/')).sort().join('|'),a=points[0],b=points[1],c=points[2],u=b.map((n,i)=>n-a[i]),v=c.map((n,i)=>n-a[i]),normal=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],sign=Math.sign(normal.find(n=>Math.abs(n)>1e-10)??0),old=faces.get(key);if(old)old.signs.add(sign);else faces.set(key,{points,signs:new Set([sign])});}
+    for(const {points,signs} of faces.values()){if(signs.has(-1)&&signs.has(1))continue;for(let i=1;i<points.length-1;i++)for(const index of [0,i+1,i]){const v=points[index];positions.push(v[0]-.5,v[2]-.5,v[1]-.5);}}
     geometry=new THREE.BufferGeometry();geometry.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));geometry.computeVertexNormals();geometry.addGroup(0,positions.length/3,0);
   } else if (shape === "cylinder" || shape === "frustum") {
     geometry = new THREE.CylinderGeometry(shape === "frustum" ? (p.shapeTopRatio ?? .5)/2 : .5, .5, 1, reduced ? 12 : 24);
