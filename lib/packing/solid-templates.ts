@@ -3,6 +3,12 @@ import { cargoShapeOf,cylinderAxisOf } from './cargo-shape';
 import type { ProductInput } from './types';
 export type SolidTemplate={id:string;name:string;updated:string;model:SolidModel};
 export const SOLID_TEMPLATE_KEY='cargofit-solid-templates-v1';
+export function duplicateModelPart(model:SolidModel,id:string):SolidModel{
+ const clean=parseSolidModel(model)!;if(clean.parts.length>=24)throw Error('组合模型最多 24 个部件。');const part=clean.parts.find(p=>p.id===id);if(!part)throw Error('未找到所选部件。');
+ const copy=structuredClone(part);let suffix=1;while(clean.parts.some(p=>p.id===`${part.id}-copy-${suffix}`))suffix++;
+ copy.id=`${part.id}-copy-${suffix}`;copy.name=`${part.name??part.id} (${suffix})`;copy.position=[part.position[0]+(buildSolidModel(clean).size[0]+10)/(clean.calibration?.[0]??1),part.position[1],part.position[2]];
+ return parseSolidModel({...clean,parts:[...clean.parts,copy]})!;
+}
 export function legacySolidModel(p:ProductInput):SolidModel{
  const kind=cargoShapeOf(p);if(kind==='irregular')throw Error('通用异型包络需先选择基本形体或导入模型。');
  if(p.solidModel)return p.solidModel;

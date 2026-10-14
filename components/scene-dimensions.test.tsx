@@ -115,7 +115,7 @@ describe("real-coordinate SVG fallback",()=>{
   it("renders the same unboxed edge dimensions in main, space and pallet previews",()=>{
     const main=renderToStaticMarkup(<TransportAppearanceProvider><LoadingSceneFallback result={result} visibleProducts={new Set(["shed"])} visibleCount={result.placements.length} selected={result.placements[0]} onSelect={()=>{}}/></TransportAppearanceProvider>);
     expect(main).toContain('data-dimension-count="2"');expect(main).toContain("L 2200 mm");expect(main).toContain("W 620 mm");expect(main).not.toContain("H 180 mm");
-    expect(main.match(/>SHED-101</g) ?? []).toHaveLength(0);
+    expect(main.match(/>SHED-101</g) ?? []).toHaveLength(topViewFootprints(result.placements,new Set(["shed"]),result.placements.length).length);
     for(const props of [{space:result.container},{}]){
       const html=renderToStaticMarkup(<TransportAppearanceProvider><ModelPreviewFallback {...props} mode="model" transparency={65}/></TransportAppearanceProvider>);
       expect(html).toContain('data-dimension-count="3"');expect(html).toContain('stroke="#467ee6"');expect(html).toContain('paint-order="stroke"');

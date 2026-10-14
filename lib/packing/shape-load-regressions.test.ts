@@ -33,6 +33,12 @@ describe.each(["practical", "maximum"] as const)("shape loading in %s", strategy
 });
 
 describe("zero-load causes", () => {
+  it('streams dense curved-grid candidates without overflowing call arguments',()=>{
+    const model=defaultSolidModel('tube',[500,500,200]),p={...cargo('tube'),solidModel:model,length:500,width:500,height:200,weight:.1,stackable:true,protectionGap:10,rotationPolicy:'any' as const,allowedOrientations:['LWH','LHW','WLH','WHL','HLW','HWL'] as ProductInput['allowedOrientations']};
+    const gp={...container,length:12032,width:2352,height:2395,doorWidth:2340,doorHeight:2280,maxWeight:28750};
+    const result=pack({mode:'single',strategy:'maximum',clearance:10,container:gp,products:[p]});
+    expect(result.metrics.loadedCount).toBeGreaterThan(900);expect(result.validation.errors).toEqual([]);
+  },45000);
   it.each(["practical", "maximum"] as const)("loads the screenshot's solid trapezoid with 1 cm protection gap (%s)",strategy=>{
     const solidModel=defaultSolidModel('trapezoid',[500,500,850]);
     solidModel.parts[0].dimensions.topLength=250;

@@ -6,7 +6,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { Box, DoorOpen, Eye, ScanLine, ImageDown, RotateCcw, Tag } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import * as THREE from "three";
-import { boxFaceTexture, MetricLabel, PalletStructures, SelectionOutline } from "./scene-details";
+import { boxFaceTexture, CargoLabelInstances, MetricLabel, PalletStructures, SelectionOutline } from "./scene-details";
 import { SceneDimensions } from "./scene-dimensions";
 import { DimensionControls } from "./dimension-controls";
 import { LoadingSceneFallback } from "./loading-scene-fallback";
@@ -191,6 +191,7 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
       {editor?.enabled&&editor.selected.filter(b=>b.id!==selected?.id).map(b=><SelectionOutline key={b.id} box={b} scale={scale} offset={offset}/>)}
       {selected && sectionBox(selected,result,section) && <SelectionOutline box={sectionBox(selected,result,section)!} scale={scale} offset={offset}/>}
       </SectionGeometry>
+      {labels&&groups.filter(g=>g.solidModel||cargoShapeOf(g)!=='box').sort((a,b)=>Number(b.boxes.some(c=>c.id===selected?.id))-Number(a.boxes.some(c=>c.id===selected?.id))).map(g=><CargoLabelInstances key={`labels:${g.productId}`} sku={g.sku} boxes={g.boxes} scale={scale} offset={offset} selectedId={selected?.id}/>)}
       {appearance.skuSummaries && annotations.map(([id,a])=><MetricLabel key={id} text={a.sku} size={.12} position={[(a.minX+a.maxX)/2*scale+offset.x,a.maxY*scale+offset.y+.15,(a.minZ+a.maxZ)/2*scale+offset.z]}/>)}
       {appearance.dimensions&&<SceneDimensions bounds={measurement.bounds} values={measurement.values} unit={appearance.dimensionUnit} fontSize={appearance.dimensionFontSize} style={appearance.dimensionStyle} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}
       {appearance.dimensions&&manualMeasurement&&<SceneMeasurement measurement={manualMeasurement} scale={scale} offset={offset}/>}
@@ -269,7 +270,7 @@ export function ContainerScene({
                 </button>
               ))}
             </div>
-          </div></div><div className="scene-tools" aria-label={tr("三维工具", "3D tools")}><button type="button" disabled={!result} aria-pressed={labels} onClick={()=>setLabels(!labels)}><Tag size={14}/>{tr("箱标","Labels")}</button><button type="button" disabled={!result} aria-pressed={appearance.skuSummaries} onClick={()=>appearance.setSkuSummaries(!appearance.skuSummaries)} title={tr("在货物上方显示每个 SKU 的汇总标签。","Show one summary label above each SKU.")}><Tag size={14}/>{tr("SKU 汇总","SKU summaries")}</button><button type="button" disabled={!result||!Object.values(result.cargoDetails??{}).some(p=>p.solidModel)} aria-pressed={appearance.collisionProxy} onClick={()=>appearance.updatePreferences({collisionProxy:!appearance.collisionProxy})}>{tr("碰撞体","Collision bodies")}</button><DimensionControls/><button type="button" onClick={()=>{setSelection(null);setFocusId(null);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" disabled={!webglSupported} onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
+          </div></div><div className="scene-tools" aria-label={tr("三维工具", "3D tools")}><button type="button" disabled={!result} aria-pressed={labels} title={tr("异型件箱标按屏幕空间避让；放大或选中查看拥挤区域。","Irregular-cargo labels adapt to screen space; zoom or select cargo in crowded areas.")} onClick={()=>setLabels(!labels)}><Tag size={14}/>{tr("箱标","Labels")}</button><button type="button" disabled={!result} aria-pressed={appearance.skuSummaries} onClick={()=>appearance.setSkuSummaries(!appearance.skuSummaries)} title={tr("在货物上方显示每个 SKU 的汇总标签。","Show one summary label above each SKU.")}><Tag size={14}/>{tr("SKU 汇总","SKU summaries")}</button><button type="button" disabled={!result||!Object.values(result.cargoDetails??{}).some(p=>p.solidModel)} aria-pressed={appearance.collisionProxy} onClick={()=>appearance.updatePreferences({collisionProxy:!appearance.collisionProxy})}>{tr("碰撞体","Collision bodies")}</button><DimensionControls/><button type="button" onClick={()=>{setSelection(null);setFocusId(null);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" disabled={!webglSupported} onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
 
 {webglSupported!==false&&<TransportModelControls/>}</div>} fullscreenFooter={result&&onVisibleCountChange&&<footer className="scene-progress"><span>{tr("装载进度")}</span><input type="range" min={0} max={result.placements.length} value={visibleCount} aria-label={tr("三维装载进度", "3D loading progress")} onChange={e=>onVisibleCountChange(Number(e.target.value))}/><output>{visibleCount} / {result.placements.length} {tr("箱")}</output></footer>}>
 {editor?.changed&&<p className="scene-draft-notice" role="status">{tr("正在预览编辑草稿；采用后更新指标与导出。","Previewing edit draft. Apply to update totals and exports.")}</p>}

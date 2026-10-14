@@ -63,12 +63,25 @@ export function cargoShapeFootprint(p: ShapeFields, orientation: OrientationCode
 }
 
 /** Keep concave footprints instead of filling an L/U/T recess with a convex hull. */
-const footprintCache=new WeakMap<object,Map<string,V2[][]>>();
-export function cargoShapeFootprints(p:ShapeFields,orientation:OrientationCode,orientationSigns?:OrientationSigns) {
-  if(p.solidModel){const key=orientation+orientationSigns?.join(),cached=footprintCache.get(p.solidModel)??new Map<string,V2[][]>(),old=cached.get(key);if(old)return old;const built=buildSolidModel(p.solidModel),axes=orientationAxes(orientation,orientationSigns),project=(v:number[]):V2=>axes.slice(0,2).map(a=>(a.negative?1-v[a.original]:v[a.original])-.5) as V2;const polys=(built.display.reduce((n,c)=>n+c.faces.length,0)>800?built.cells:built.display).flatMap(c=>c.faces.length>64?c.faces.map(f=>convexHull2(f.map(i=>project(c.vertices[i])))):[convexHull2(c.vertices.map(project))]).filter(p=>polygonArea(p)>1e-8);const result=polys.length<=128?unionPolygons(polys):polys;cached.set(key,result);footprintCache.set(p.solidModel,cached);return result;}
-  if(!isRectilinearShape(p))return [cargoShapeFootprint(p,orientation,orientationSigns)];
-  // Import-free geometry projection uses each disjoint rectangular part.
-  return cargoBodyParts({x:0,y:0,z:0,dx:1,dy:1,dz:1,orientation,orientationSigns},p).map(b=>[
-    [b.x-.5,b.y-.5],[b.x+b.dx-.5,b.y-.5],[b.x+b.dx-.5,b.y+b.dy-.5],[b.x-.5,b.y+b.dy-.5],
-  ] as Array<[number,number]>);
+export type CargoProjectionView='top'|'side'|'door';
+const projectionCache=new WeakMap<object,Map<string,V2[][]>>();
+/** Project actual display faces; a hole stays empty only when no face projects over it. */
+export function cargoShapeProjections(p:ShapeFields,orientation:OrientationCode,view:CargoProjectionView,orientationSigns?:OrientationSigns):V2[][] {
+  const source=p.solidModel??p,key=orientation+'/'+orientationSigns?.join()+'/'+view,bucket=projectionCache.get(source)??new Map<string,V2[][]>(),old=bucket.get(key);if(old)return old;
+  const worldAxes=view==='top'?[0,1]:view==='side'?[0,2]:[1,2];let polys:V2[][]=[];
+  if(p.solidModel){
+    const axes=orientationAxes(orientation,orientationSigns),project=(v:number[]):V2=>worldAxes.map(i=>{const a=axes[i];return (a.negative?1-v[a.original]:v[a.original])-.5;}) as V2;
+    for(const cell of buildSolidModel(p.solidModel).display)for(const face of cell.faces){const poly=convexHull2(face.map(i=>project(cell.vertices[i])));if(polygonArea(poly)>1e-8)polys.push(poly);}
+  }else if(isRectilinearShape(p)||cargoShapeOf(p)==='box'){
+    const positions=['x','y','z'] as const,sizes=['dx','dy','dz'] as const;
+    polys=cargoBodyParts({x:0,y:0,z:0,dx:1,dy:1,dz:1,orientation,orientationSigns},p).map(b=>{const [a,c]=worldAxes,x=b[positions[a]]-.5,y=b[positions[c]]-.5,w=b[sizes[a]],h=b[sizes[c]];return [[x,y],[x+w,y],[x+w,y+h],[x,y+h]];});
+  }else{
+    const g=cargoShapeGeometry(p,orientation,false,orientationSigns),positions=g.getAttribute('position'),indices=g.getIndex(),n=indices?.count??positions.count,axes=view==='top'?[0,2]:view==='side'?[0,1]:[2,1];
+    for(let i=0;i+2<n;i+=3){const points=[0,1,2].map(j=>{const k=indices?indices.getX(i+j):i+j;return axes.map(a=>a===0?positions.getX(k):a===1?positions.getY(k):positions.getZ(k)) as V2;});const poly=convexHull2(points);if(polygonArea(poly)>1e-8)polys.push(poly);}
+    g.dispose();
+  }
+  const unique=new Map<string,V2[]>();for(const poly of polys){const k=poly.map(v=>v.map(n=>n.toFixed(8)).join('/')).sort().join('|');if(!unique.has(k))unique.set(k,poly);}
+  polys=[...unique.values()];const result=polys.length<=128?unionPolygons(polys):polys;
+  if(bucket.size>=128)bucket.clear();bucket.set(key,result);projectionCache.set(source,bucket);return result;
 }
+export function cargoShapeFootprints(p:ShapeFields,orientation:OrientationCode,orientationSigns?:OrientationSigns){return cargoShapeProjections(p,orientation,'top',orientationSigns);}

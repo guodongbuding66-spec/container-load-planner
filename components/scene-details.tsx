@@ -4,8 +4,8 @@ import { Edges } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { palletParts } from "../lib/packing/floor-pallets";
-import type { PlacedPallet } from "../lib/packing/types";
-import { createSceneLabelMaterial, LABEL_RENDER_ORDER, layoutSceneLabel, sceneLabelFrame, sceneLabelPose } from "../lib/packing/scene-labels";
+import type { PlacedBox, PlacedPallet } from "../lib/packing/types";
+import { createSceneLabelMaterial, LABEL_RENDER_ORDER, labelsOverlap, layoutSceneLabel, sceneLabelFrame, sceneLabelPose } from "../lib/packing/scene-labels";
 
 /** Each face gets a canvas matching its physical aspect, so text never stretches. */
 export function boxFaceTexture(sku: string, color: string, width: number, height: number, up?: string) {
@@ -50,6 +50,23 @@ export function MetricLabel({text,position,size=.09,color="#376272",screenOffset
   const target=useMemo(()=>new THREE.Vector3(...position),[position]);
   useFrame(state=>{if(!ref.current||!state.size.width||!state.size.height)return;const px=size<.08?18:size>.1?25:22;const anchor=target.clone();ref.current.parent?.localToWorld(anchor);const p=anchor.clone().project(state.camera);const occupied=sceneLabelFrame(state.camera,state.clock.elapsedTime);const rect=layoutSceneLabel({x:(p.x+1)*state.size.width/2+screenOffset[0]-label.ratio*px/2,y:(1-p.y)*state.size.height/2-screenOffset[1]-px/2,width:label.ratio*px,height:px},state.size,occupied);occupied.push(rect);const pose=sceneLabelPose(state.camera,anchor,state.size,rect,px);ref.current.position.copy(ref.current.parent?.worldToLocal(pose.position)??pose.position);ref.current.quaternion.copy(state.camera.quaternion);ref.current.scale.set(pose.scale*Math.min(1,rect.width/(label.ratio*px)),pose.scale,pose.scale);});
   return <group name={`scene-label:${text}`} ref={ref}><mesh material={material} renderOrder={LABEL_RENDER_ORDER} frustumCulled={false} raycast={()=>{}}><planeGeometry args={[label.ratio,1]}/></mesh></group>;
+}
+
+/** One texture and one draw call per SKU, including curved and imported models. */
+export function CargoLabelInstances({sku,boxes,scale,offset,selectedId}:{sku:string;boxes:PlacedBox[];scale:number;offset:THREE.Vector3;selectedId?:string}){
+  const ref=useRef<THREE.InstancedMesh>(null),matrix=useMemo(()=>new THREE.Matrix4(),[]),zero=useMemo(()=>new THREE.Matrix4().makeScale(0,0,0),[]);
+  const label=useMemo(()=>{const c=document.createElement('canvas'),ctx=c.getContext('2d')!;ctx.font='600 40px Arial,sans-serif';c.width=Math.ceil(ctx.measureText(sku).width+24);c.height=64;ctx.font='600 40px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='rgba(247,251,251,.95)';ctx.fillRect(0,0,c.width,64);ctx.fillStyle='#376272';ctx.fillText(sku,c.width/2,33);const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;return {texture,ratio:c.width/c.height};},[sku]);
+  const material=useMemo(()=>createSceneLabelMaterial(label.texture),[label]),geometry=useMemo(()=>new THREE.PlaneGeometry(label.ratio,1),[label.ratio]);
+  useEffect(()=>()=>{geometry.dispose();material.dispose();label.texture.dispose();},[geometry,material,label]);
+  useFrame(state=>{const mesh=ref.current;if(!mesh||!state.size.width||!state.size.height)return;const occupied=sceneLabelFrame(state.camera,state.clock.elapsedTime),px=18,inverse=mesh.matrixWorld.clone().invert();
+    const indices=boxes.map((b,i)=>i).sort((a,b)=>Number(boxes[b].id===selectedId)-Number(boxes[a].id===selectedId)),limit=Math.max(16,Math.floor(state.size.width*state.size.height/(108*30)));
+    indices.forEach(i=>{const b=boxes[i];if(occupied.length>=limit){mesh.setMatrixAt(i,zero);return;}const anchor=new THREE.Vector3((b.x+b.dx/2)*scale+offset.x,(b.z+b.dz/2)*scale+offset.y,(b.y+b.dy/2)*scale+offset.z),p=anchor.clone().project(state.camera);
+      if(p.z<-1||p.z>1||Math.abs(p.x)>1.15||Math.abs(p.y)>1.15){mesh.setMatrixAt(i,zero);return;}
+      const rect=layoutSceneLabel({x:(p.x+1)*state.size.width/2-label.ratio*px/2,y:(1-p.y)*state.size.height/2-px/2,width:label.ratio*px,height:px},state.size,occupied);if(occupied.some(r=>labelsOverlap(rect,r))){mesh.setMatrixAt(i,zero);return;}occupied.push(rect);
+      const pose=sceneLabelPose(state.camera,anchor,state.size,rect,px),size=pose.scale*Math.min(1,rect.width/(label.ratio*px));matrix.compose(pose.position,state.camera.quaternion,new THREE.Vector3(size,pose.scale,pose.scale));matrix.premultiply(inverse);mesh.setMatrixAt(i,matrix);
+    });mesh.instanceMatrix.needsUpdate=true;
+  });
+  return <instancedMesh name={`cargo-labels:${sku}`} ref={ref} args={[geometry,material,boxes.length]} renderOrder={LABEL_RENDER_ORDER} frustumCulled={false} raycast={()=>{}}/>;
 }
 
 /** Selection is separate from measurements; the Dimensions switch never clears selection. */

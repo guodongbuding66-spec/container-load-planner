@@ -4,8 +4,22 @@ import {
   isObsoleteCalculation,
   resultDisplayQuantity,
   selectStrategyResult,
+  solverOutcome,
 } from "./calculation-state";
 import type { PackingResult, ReverseCountResult } from "./types";
+
+it.each(['practical','maximum'] as const)('keeps a peer alive when %s fails before it finishes',failed=>{
+  const peer=failed==='practical'?'maximum':'practical',errors=new Map([[failed,'stack overflow']]),valid={validation:{valid:true}} as PackingResult;
+  expect(solverOutcome(new Set(),errors,{})).toBe('waiting');
+  expect(solverOutcome(new Set(),errors,{[peer]:valid})).toBe('waiting');
+  expect(solverOutcome(new Set([peer]),errors,{[peer]:valid})).toBe('retain');
+});
+it('retains a validated intermediate plan if both searches fail, and refuses an invalid snapshot',()=>{
+  const errors=new Map([['practical','failed'],['maximum','failed']] as const);
+  expect(solverOutcome(new Set(),errors,{practical:{validation:{valid:true}} as PackingResult})).toBe('retain');
+  expect(solverOutcome(new Set(),errors,{practical:{validation:{valid:false}} as PackingResult})).toBe('failed');
+  expect(solverOutcome(new Set(['practical','maximum']),new Map(),{})).toBe('compare');
+});
 
 function result(strategy: "practical" | "maximum", sets: number): PackingResult {
   return {

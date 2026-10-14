@@ -10,6 +10,13 @@ export function isObsoleteCalculation(activeRevision: number | null, inputRevisi
   return activeRevision !== null && activeRevision !== inputRevision;
 }
 
+/** A failed solver cannot cancel a peer that may still produce a valid plan. */
+export function solverOutcome(finished:ReadonlySet<PackingStrategy>,failed:ReadonlyMap<PackingStrategy,string>,plans:Partial<Record<PackingStrategy,PackingResult>>):'waiting'|'compare'|'retain'|'failed'{
+  if(new Set([...finished,...failed.keys()]).size<2)return 'waiting';
+  if(finished.has('practical')&&finished.has('maximum'))return 'compare';
+  return Object.values(plans).some(p=>p?.validation.valid)?'retain':'failed';
+}
+
 /**
  * A dual-solver response is one immutable calculation bundle. UI strategy
  * switches must select from that bundle instead of copying a plan into a

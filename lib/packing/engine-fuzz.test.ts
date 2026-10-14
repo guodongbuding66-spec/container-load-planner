@@ -39,6 +39,18 @@ function randomProduct(random: () => number, caseIndex: number, productIndex: nu
 }
 
 describe("deterministic packing stress regression", () => {
+  it('checks randomized box coordinates against an independent boundary, overlap and payload reference',()=>{
+    const random=randomGenerator(0x2512abcd),container={id:'reference',name:'Reference',length:2000,width:1200,height:1200,doorWidth:1100,doorHeight:1100,maxWeight:1000};
+    for(let n=0;n<24;n++){
+      const products=Array.from({length:3},(_,i)=>({...randomProduct(random,n,i),length:between(random,150,700),width:between(random,150,500),height:between(random,100,500),quantity:between(random,1,8)}));
+      const plan=pack({mode:'mixed',strategy:n%2?'practical':'maximum',container,clearance:10,products}),boxes=plan.placements;
+      expect(plan.validation.valid).toBe(true);expect(boxes.reduce((sum,b)=>sum+b.weight,0)).toBeLessThanOrEqual(container.maxWeight);
+      for(let i=0;i<boxes.length;i++){const a=boxes[i];expect(a.x>=0&&a.y>=0&&a.z>=0&&a.x+a.dx<=1980.000001&&a.y+a.dy<=1180.000001&&a.z+a.dz<=1190.000001).toBe(true);expect(a.dy<=1080.000001&&a.dz<=1090.000001).toBe(true);
+        for(let j=0;j<i;j++){const b=boxes[j],intersection=[Math.min(a.x+a.dx,b.x+b.dx)-Math.max(a.x,b.x),Math.min(a.y+a.dy,b.y+b.dy)-Math.max(a.y,b.y),Math.min(a.z+a.dz,b.z+b.dz)-Math.max(a.z,b.z)];expect(intersection.every(length=>length>1e-6)).toBe(false);}
+      }
+      for(const p of products)expect(boxes.filter(b=>b.productId===p.id).length).toBeLessThanOrEqual(p.quantity);
+    }
+  });
   it("keeps randomized mixed orders valid across both strategies and all standard containers", () => {
     const random = randomGenerator(0x5eedcafe);
     for (let caseIndex = 0; caseIndex < 24; caseIndex += 1) {

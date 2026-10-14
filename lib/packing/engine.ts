@@ -35,7 +35,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.25.1";
+export const ENGINE_VERSION = "0.25.2";
 
 type Orientation = {
   dx: number;
@@ -1557,14 +1557,18 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
 
   rebuildIndexes();
   if (anchors.length) {
-    points.push(...anchors.flatMap(b=>{
+    for(const b of anchors){
       const product=productMap.get(b.productId),gap=product?.protectionGap??0;
-      return [
+      const additions:Point[]=[
         {x:b.x+b.dx+gap,y:b.y,z:b.z,envelope:true},{x:b.x,y:b.y+b.dy+gap,z:b.z,envelope:true},{x:b.x,y:b.y,z:b.z+b.dz,envelope:true},
         {x:0,y:b.y,z:b.z+b.dz,envelope:true},{x:b.x,y:0,z:b.z+b.dz,envelope:true},{x:b.x+b.dx+gap,y:0,z:0,envelope:true},
         ...(product?modelCandidatePoints(b,product):[]),
       ];
-    }));
+      for(const point of additions)points.push(point);
+      // Detailed curved models may contribute hundreds of points per anchor.
+      // Stream into the bounded pool instead of creating a huge call-argument array.
+      if(points.length>12800)points=selectPoints(points,strategy==='maximum'?3200:1600);
+    }
     const unique=new Map(points.map(p=>[pointKey(p),p]));
     points=selectPoints([...unique.values()],strategy==='maximum'?3200:1600);
   }

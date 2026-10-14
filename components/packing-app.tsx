@@ -40,6 +40,7 @@ import { flushSync } from "react-dom";
 import type { CameraProjection, CameraView } from "../lib/packing/camera-fit";
 import {
   feasibleRecommendation,
+  solverOutcome,
   isObsoleteCalculation,
   resultDisplayQuantity,
   selectStrategyResult,
@@ -1118,6 +1119,7 @@ export function PackingApp() {
     activeRevisionRef.current = inputRevisionRef.current;
     workerResultsRef.current = {};
     const finishedStrategies = new Set<PackingStrategy>();
+    const failedStrategies = new Map<PackingStrategy,string>();
     const runtimePolicy = { ...detectRuntimePolicy(), ...(calculationBudget ? { calculationTimeoutMs: calculationBudget * 1000 } : {}) };
     setSolverSchedule(runtimePolicy.schedule);
     setStatus("working");
@@ -1135,8 +1137,8 @@ export function PackingApp() {
     const completeWithAvailablePlan = (reason: string) => {
       if (requestId !== activeRequestRef.current) return false;
       const plans: NonNullable<PackingResult["strategyPlans"]> = {
-        ...(workerResultsRef.current.practical ? { practical: workerResultsRef.current.practical } : {}),
-        ...(workerResultsRef.current.maximum ? { maximum: workerResultsRef.current.maximum } : {}),
+        ...(workerResultsRef.current.practical?.validation.valid ? { practical: workerResultsRef.current.practical } : {}),
+        ...(workerResultsRef.current.maximum?.validation.valid ? { maximum: workerResultsRef.current.maximum } : {}),
       };
       const selected = plans[strategyRef.current] ?? plans.practical ?? plans.maximum;
       if (!selected) return false;
@@ -1187,8 +1189,13 @@ export function PackingApp() {
           startStrategyWorker(solverStrategy, attempt + 1);
           return;
         }
-        if (completeWithAvailablePlan(tt`${solverStrategy === "practical" ? tr("现场") : tr("高密度")}算法连续失败，`)) return;
-        failCalculation(tt`${solverStrategy === "practical" ? tr("现场易执行") : tr("高密度参考")}算法连续两次失败：${trText(message)}`);
+        failedStrategies.set(solverStrategy,message);
+        if(solverOutcome(finishedStrategies,failedStrategies,workerResultsRef.current)!=="waiting"){
+          if (completeWithAvailablePlan(tt`${solverStrategy === "practical" ? tr("现场") : tr("高密度")}算法连续失败，`)) return;
+          failCalculation(tt`${solverStrategy === "practical" ? tr("现场易执行") : tr("高密度参考")}算法连续两次失败：${trText(message)}`);return;
+        }
+        setMessage(tr("一套算法重试后仍失败，另一套继续独立计算；已校验方案会保留。","One solver failed after retry; the other continues independently. Validated plans will be retained."));
+        if(runtimePolicy.schedule==='practical-first'&&solverStrategy==='practical'){armCalculationTimeout();startStrategyWorker('maximum');}
       };
 
       worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
@@ -1213,6 +1220,11 @@ export function PackingApp() {
         settled = true;
         finishedStrategies.add(solverStrategy);
         workerResultsRef.current[solverStrategy] = response.payload;
+        const other=solverStrategy==='practical'?'maximum':'practical';
+        if(failedStrategies.has(other)){
+          if(discardObsoleteCalculation())return;
+          completeWithAvailablePlan(tr("另一套算法失败，","The other solver failed;"));return;
+        }
         const practicalResult = workerResultsRef.current.practical;
         const maximumResult = workerResultsRef.current.maximum;
         if (!practicalResult || !maximumResult || !finishedStrategies.has("practical") || !finishedStrategies.has("maximum")) {

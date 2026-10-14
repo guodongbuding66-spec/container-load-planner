@@ -6,6 +6,8 @@ import { Check, Rotate3D } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import type { CameraView } from "../lib/packing/camera-fit";
 import type { PackingResult, PlacedBox } from "../lib/packing/types";
+import { cargoShapeProjections } from "../lib/packing/cargo-shape-geometry";
+import type { OrientationCode } from "../lib/packing/types";
 
 type ViewKind = "top" | "side" | "door";
 
@@ -32,16 +34,23 @@ function projectBox(box: PlacedBox, kind: ViewKind) {
   return { x: box.y, y: box.z, width: box.dy, height: box.dz, depth: box.x };
 }
 
+function shapePolygons(box:PlacedBox,kind:ViewKind,details:PackingResult['cargoDetails']){
+  const projection=projectBox(box,kind);
+  return cargoShapeProjections(details?.[box.productId]??{},box.orientation as OrientationCode,kind,box.orientationSigns).map(poly=>poly.map(([x,y])=>[projection.x+(x+.5)*projection.width,projection.y+(y+.5)*projection.height] as [number,number]));
+}
+
 function ProjectionPrintSvg({
   kind,
   boxes,
   horizontalSize,
   verticalSize,
+  details,
 }: {
   kind: ViewKind;
   boxes: PlacedBox[];
   horizontalSize: number;
   verticalSize: number;
+  details:PackingResult['cargoDetails'];
 }) {
   useLanguage();
   const width = 1000;
@@ -83,18 +92,15 @@ function ProjectionPrintSvg({
           </g>
         );
       })}
-      {projected.map(({ box, projection }) => {
-        const x = plotX + projection.x * scale;
-        const y = kind === "top"
-          ? plotY + projection.y * scale
-          : plotY + (verticalSize - projection.y - projection.height) * scale;
+      {projected.map(({ box }) => {
+        const path=shapePolygons(box,kind,details).map(poly=>poly.map(([x,y],i)=>`${i?'L':'M'}${plotX+x*scale},${plotY+(kind==='top'?y:verticalSize-y)*scale}`).join(' ')+'Z').join(' ');
         return (
-          <rect
+          <path
             key={`${kind}-${box.id}`}
-            x={x}
-            y={y}
-            width={Math.max(1, projection.width * scale)}
-            height={Math.max(1, projection.height * scale)}
+            data-cargo-projection={kind}
+            data-cargo-id={box.id}
+            d={path}
+            fillRule="nonzero"
             fill={box.color}
             fillOpacity="0.82"
             stroke="#ffffff"
@@ -146,12 +152,14 @@ function ProjectionCanvas({
   horizontalSize,
   verticalSize,
   renderPrintSvg,
+  details,
 }: {
   kind: ViewKind;
   boxes: PlacedBox[];
   horizontalSize: number;
   verticalSize: number;
   renderPrintSvg: boolean;
+  details:PackingResult['cargoDetails'];
 }) {
   useLanguage();
   const language = useLanguage();
@@ -208,19 +216,18 @@ function ProjectionCanvas({
 
       const projected = boxes.map((box) => ({ box, projection: projectBox(box, kind) })).sort((a, b) => a.projection.depth - b.projection.depth);
       for (const { box, projection } of projected) {
-        const x = plotX + projection.x * scale;
-        const y = kind === "top"
-          ? plotY + projection.y * scale
-          : plotY + (verticalSize - projection.y - projection.height) * scale;
         const boxWidth = Math.max(1, projection.width * scale);
-        const boxHeight = Math.max(1, projection.height * scale);
         context.globalAlpha = 0.82;
         context.fillStyle = box.color;
-        context.fillRect(x, y, boxWidth, boxHeight);
+        context.beginPath();
+        for(const polygon of shapePolygons(box,kind,details)){
+          polygon.forEach(([a,b],i)=>{const px=plotX+a*scale,py=plotY+(kind==='top'?b:verticalSize-b)*scale;if(i)context.lineTo(px,py);else context.moveTo(px,py);});context.closePath();
+        }
+        context.fill('nonzero');
         context.globalAlpha = 0.72;
         context.strokeStyle = "#ffffff";
         context.lineWidth = Math.min(1.25, Math.max(0.45, boxWidth / 24));
-        context.strokeRect(x + 0.35, y + 0.35, Math.max(0, boxWidth - 0.7), Math.max(0, boxHeight - 0.7));
+        context.stroke();
       }
       context.globalAlpha = 1;
       context.strokeStyle = "#597b83";
@@ -259,13 +266,13 @@ function ProjectionCanvas({
       observer.disconnect();
       window.cancelAnimationFrame(frame);
     };
-  }, [boxes, horizontalSize, kind, verticalSize, language]);
+  }, [boxes, details, horizontalSize, kind, verticalSize, language]);
 
   return (
     <>
       <canvas ref={canvasRef} className="projection-canvas" role="img" aria-label={tt`${tr(VIEW_COPY[kind].title)}，当前显示 ${cargoCount} 箱${palletCount ? tt`，${palletCount} 个托盘` : ""}`} />
       {renderPrintSvg
-        ? <ProjectionPrintSvg kind={kind} boxes={boxes} horizontalSize={horizontalSize} verticalSize={verticalSize} />
+        ? <ProjectionPrintSvg kind={kind} boxes={boxes} details={details} horizontalSize={horizontalSize} verticalSize={verticalSize} />
         : null}
     </>
   );
@@ -339,6 +346,7 @@ export function OrthographicViews({
               horizontalSize={view.horizontalSize}
               verticalSize={view.verticalSize}
               renderPrintSvg={renderPrintSvg}
+              details={result.cargoDetails}
             />
             <footer>
               <span>{tr("横向占用 ")}{Math.round(occupied.horizontal).toLocaleString()} mm</span>
