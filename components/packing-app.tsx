@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleAlert,
+  AlertTriangle,
   Container,
   Crosshair,
   Download,
@@ -110,6 +111,7 @@ import { OrthographicViews } from "./orthographic-views";
 import { SceneErrorBoundary } from "./scene-error-boundary";
 
 import { CargoSettings } from "./cargo-settings";
+import { ZeroLoadNotice } from "./cargo-fit-notice";
 import { LoadingRuleSettings } from "./loading-rule-settings";
 import { TransportPicker } from "./transport-picker";
 import { LearningHub } from "./learning-hub";
@@ -1238,7 +1240,7 @@ export function PackingApp() {
         const combined = combineStrategyResults(practicalResult, maximumResult, strategyRef.current);
         acceptResult(
           combined,
-          tt`现场与高密度双算法已并行完成，并通过${combined.validation.valid ? tr("独立校验") : tr("异常检查")}`,
+          combined.metrics.loadedCount === 0 ? tr("双算法已完成，但未装入货物，请查看零装载原因。", "Both solvers finished without loading cargo; review the zero-load diagnosis.") : tt`现场与高密度双算法已并行完成，并通过${combined.validation.valid ? tr("独立校验") : tr("异常检查")}`,
         );
       };
       worker.onerror = () => retryOrFail(tr("计算线程加载或执行失败。"));
@@ -1562,7 +1564,7 @@ export function PackingApp() {
     setWorkflowStep(3);setAutoCalculate(false);setManualRun(v=>v+1);
     window.requestAnimationFrame(()=>document.querySelector('.wizard-steps')?.scrollIntoView({behavior:"smooth",block:"start"}));
   };
-  const canExport = Boolean(result?.validation.valid && !dirty && !hasPendingDimensionChanges);
+  const canExport = Boolean(result?.validation.valid && result.metrics.loadedCount > 0 && !dirty && !hasPendingDimensionChanges);
 
   return (
     <main className={`app-shell compact-workspace ${navCollapsed ? "nav-collapsed" : "nav-expanded"}`}>
@@ -1619,7 +1621,7 @@ export function PackingApp() {
         {showTransport && <TransportPicker selected={container} customContainers={customContainers} onCustomChange={spaces=>{setCustomContainers(spaces);persistDraft({customContainers:spaces});}} onSelect={space=>{persistDraft({container:space,practicalTargetPercent:recommendedPracticalTarget(space)*100});clearNumericDraftErrors();setContainer(space);setPracticalTargetPercent(recommendedPracticalTarget(space)*100);markDirty();}} onClose={()=>setShowTransport(false)}/>}
         {showFloorPallets && <FloorPalletSettings config={floorPallets} container={container} clearance={clearance} customSpaces={customContainers} onClose={()=>setShowFloorPallets(false)} onSave={next=>{persistDraft({floorPallets:next});setFloorPallets(next);markDirty();}}/>}
         {showRules && <LoadingRuleSettings rules={loadingRules} products={products} onSave={(rules,next)=>{persistDraft({loadingRules:rules,products:next});setLoadingRules(rules);setProducts(next);markDirty();}} onClose={()=>setShowRules(false)}/>}
-        {activeCargo && products.find(p=>p.id===activeCargo) && <CargoSettings product={products.find(p=>p.id===activeCargo)!} mode={mode} lengthUnit={lengthUnit} weightUnit={weightUnit} onSave={product=>{if(product.cargoType !== products.find(p=>p.id===product.id)?.cargoType) product = {...product,minimumSupportRatio:loadingRules.supportByType?.[product.cargoType ?? "carton"]};persistDraft({products:products.map(p=>p.id===product.id?product:p)});clearNumericDraftErrors();setProducts(current=>current.map(p=>p.id===product.id?product:p));markDirty();}} onClose={()=>setActiveCargo(null)}/>}
+        {activeCargo && products.find(p=>p.id===activeCargo) && <CargoSettings product={products.find(p=>p.id===activeCargo)!} mode={mode} lengthUnit={lengthUnit} weightUnit={weightUnit} container={container} clearance={clearance} strategy={strategy} onSave={product=>{if(product.cargoType !== products.find(p=>p.id===product.id)?.cargoType) product = {...product,minimumSupportRatio:loadingRules.supportByType?.[product.cargoType ?? "carton"]};persistDraft({products:products.map(p=>p.id===product.id?product:p)});clearNumericDraftErrors();setProducts(current=>current.map(p=>p.id===product.id?product:p));markDirty();}} onClose={()=>setActiveCargo(null)}/>}
         {showViewer && result && <PlanViewer plans={[result]} onClose={()=>setShowViewer(false)}/>}
 
         <WorkflowSteps current={workflowStep} resultAvailable={Boolean(result)||status==="working"} onSelect={goToStep}/>
@@ -1951,7 +1953,7 @@ export function PackingApp() {
               <div><span className="section-kicker">2D + LIVE 3D</span><h2>{tr("装柜方案联动复核")}</h2></div>
               <div className="viewer-status-group">
                 {result?.mode === "single" ? <div className={`plan-context-chip ${result.strategy === "maximum" ? "capacity" : "planned"}`}><b>{result.strategy === "maximum" ? tr("高密度参考方案") : tr("现场计划方案")}</b><span>{formatNumber(resultLoadedDisplay)} {resultDisplayUnit === "set" ? tr("套") : tr("箱")}{tr(" · 统一建议 ")}{formatNumber(selectedFeasibleRecommendation.displayQuantity)} {reversePlan.displayUnit === "set" ? tr("套") : tr("箱")}{resultPlanningDelta ? ` · ${resultPlanningDelta > 0 ? "+" : "−"}${formatNumber(Math.abs(resultPlanningDelta))}` : tr(" · 一致")}</span></div> : null}
-                <div className="validation-chip">{hasPendingDimensionChanges ? <LoaderCircle size={16} /> : result?.validation.valid ? <CheckCircle2 size={16} /> : status === "working" ? <LoaderCircle className="spin" size={16} /> : <ShieldCheck size={16} />}{hasPendingDimensionChanges ? tr("尺寸录入中 · 已暂停计算") : result ? result.validation.valid ? tr("布局校验通过") : tr("发现异常") : status === "working" ? tr("待重新计算") : tr("等待计算")}</div>
+                <div className="validation-chip">{hasPendingDimensionChanges ? <LoaderCircle size={16} /> : result?.metrics.loadedCount === 0 ? <AlertTriangle size={16} /> : result?.validation.valid ? <CheckCircle2 size={16} /> : status === "working" ? <LoaderCircle className="spin" size={16} /> : <ShieldCheck size={16} />}{hasPendingDimensionChanges ? tr("尺寸录入中 · 已暂停计算") : result ? result.metrics.loadedCount === 0 ? tr("未装入货物，请查看原因", "No cargo loaded; review the causes") : result.validation.valid ? tr("布局校验通过") : tr("发现异常") : status === "working" ? tr("待重新计算") : tr("等待计算")}</div>
               </div>
             </div>
             <details className="viewer-input-details"><summary>{tr("输入快照", "Input snapshot")} · {activeProducts.length} SKU · {inputVolume.toFixed(2)} m³ · {formatNumber(inputWeight,1)} kg</summary><section className="viewer-input-strip" aria-label={tr("当前统一输入快照")}>
@@ -1961,6 +1963,7 @@ export function PackingApp() {
               <article><span>{tr("当前约束")}</span><strong>{clearance} mm</strong><small>{tr("安全间隙 · 目标 ")}{targetVolumePercent}% / {targetWeightPercent}%</small></article>
             </section>
             </details>
+            {result?.metrics.loadedCount === 0 && <ZeroLoadNotice result={result} products={activeProducts} unit={lengthUnit} onEdit={id=>{goToStep(1);if(id)setActiveCargo(id);}}/>}
             {result ? <RemainingCapacity result={result} pending={hasPendingDimensionChanges} /> : null}
             {result ? (
               <>
@@ -1986,7 +1989,7 @@ export function PackingApp() {
                     ? <><span>{progressSummary.isSetMode && progressSummary.currentSetNumber
                       ? tt`已完成 ${formatNumber(progressSummary.completedSets)}/${formatNumber(progressSummary.totalSets)} 套 · 当前箱归属套号 ${formatNumber(progressSummary.currentSetNumber)} · 套内 ${formatNumber(progressSummary.currentSetItemNumber ?? 1)}/${formatNumber(progressSummary.currentSetCartons ?? 1)} 箱`
                       : tt`当前第 ${formatNumber(progressSummary.visibleCartons)} 箱`}</span><strong>{progressSummary.currentPlacement.sku}{progressSummary.currentPlacement.setCode ? ` · ${progressSummary.currentPlacement.setCode}` : ""}</strong><b>{tt`坐标 ${formatNumber(progressSummary.currentPlacement.x)} / ${formatNumber(progressSummary.currentPlacement.y)} / ${formatNumber(progressSummary.currentPlacement.z)} mm · 第 ${progressSummary.currentPlacement.layer} 层`}</b></>
-                    : <><span>{tr("准备开始")}</span><strong>{tr("尚未装入箱体")}</strong><b>{tr("点击播放或下一步查看装柜顺序")}</b></>}
+                    : <><span>{result.metrics.loadedCount === 0 ? tr("装载为空", "Empty load") : tr("准备开始")}</span><strong>{tr("尚未装入箱体")}</strong><b>{result.metrics.loadedCount === 0 ? tr("请查看上方零装载原因。", "Review the zero-load diagnosis above.") : tr("点击播放或下一步查看装柜顺序")}</b></>}
                 </div>
                 <section className="viewer-projections" aria-label={tr("三视图相机控制")}>
                   <div className="viewer-projection-head">
@@ -2076,7 +2079,7 @@ export function PackingApp() {
               />
               <MetricCard icon={<Layers3 size={21} />} label={tr("体积利用率")} value={formatPercent(result.metrics.volumeUtilization)} detail={`${(result.metrics.loadedVolume / 1_000_000_000).toFixed(2)} CBM`} tone="blue" />
               <MetricCard icon={<Weight size={21} />} label={tr("已装毛重")} value={`${formatNumber(result.metrics.grossWeight, 1)} kg`} detail={tt`载重利用 ${formatPercent(result.metrics.weightUtilization)}`} tone="amber" />
-              <MetricCard icon={<ShieldCheck size={21} />} label={tr("独立校验")} value={result.validation.valid ? tr("全部通过") : tt`${result.validation.errors.length} 项异常`} detail={tr("边界 · 重叠 · 堆叠 · 载重")} tone={result.validation.valid ? "green" : "red"} />
+              <MetricCard icon={<ShieldCheck size={21} />} label={tr("独立校验")} value={result.metrics.loadedCount === 0 ? tr("无货物可校验", "No cargo to validate") : result.validation.valid ? tr("全部通过") : tt`${result.validation.errors.length} 项异常`} detail={tr("边界 · 重叠 · 堆叠 · 载重")} tone={result.metrics.loadedCount === 0 ? "amber" : result.validation.valid ? "green" : "red"} />
             </div>
 
             {result.mode === "single" && !dirty ? (
@@ -2206,9 +2209,9 @@ export function PackingApp() {
                   </div>
                   <b>{result.metrics.centerOfGravity.balanced ? tr("重心位于建议区间") : tr("重心偏离建议区间，请复核配重")}</b>
                 </div>
-                <div className={`validation-box ${result.validation.valid ? "valid" : "invalid"}`}>
-                  {result.validation.valid ? <CheckCircle2 size={20} /> : <X size={20} />}
-                  <div><strong>{result.validation.valid ? tr("方案数据合法") : tr("方案校验未通过")}</strong><span>{result.validation.valid ? tr("所有箱体均在有效边界内，无重叠且未超载。") : trText(result.validation.errors[0])}</span></div>
+                <div className={`validation-box ${result.metrics.loadedCount === 0 ? "incomplete" : result.validation.valid ? "valid" : "invalid"}`}>
+                  {result.metrics.loadedCount === 0 ? <AlertTriangle size={20} /> : result.validation.valid ? <CheckCircle2 size={20} /> : <X size={20} />}
+                  <div><strong>{result.metrics.loadedCount === 0 ? tr("未生成可执行装载方案", "No executable load plan was generated") : result.validation.valid ? tr("方案数据合法") : tr("方案校验未通过")}</strong><span>{result.metrics.loadedCount === 0 ? tr("空坐标通过数据检查不代表货物可以装入，请查看零装载原因。", "Valid empty coordinates do not establish loadability; review the zero-load diagnosis.") : result.validation.valid ? tr("所有箱体均在有效边界内，无重叠且未超载。") : trText(result.validation.errors[0])}</span></div>
                 </div>
                 <ul className="warning-list">
                   {(result.warnings.length ? result.warnings : [tr("未发现门洞、载重或订单缺口告警。")]).map((warning) => <li key={trText(warning)}><CircleAlert size={15} />{trText(warning)}</li>)}

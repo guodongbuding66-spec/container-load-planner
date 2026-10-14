@@ -63,15 +63,22 @@ export function orientFaces(cell:SolidCell):SolidCell{
 export function planesOf(cell:SolidCell):Plane[]{return cell.faces.flatMap(f=>{const n=norm(cross(sub(cell.vertices[f[1]],cell.vertices[f[0]]),sub(cell.vertices[f[2]],cell.vertices[f[0]])));return Math.hypot(...n)>EPS?[{normal:n,offset:dot(n,cell.vertices[f[0]])}]:[];});}
 export function cellBounds(c:SolidCell){const min:[number,number,number]=[Infinity,Infinity,Infinity],max:[number,number,number]=[-Infinity,-Infinity,-Infinity];for(const p of c.vertices)for(let i=0;i<3;i++){min[i]=Math.min(min[i],p[i]-(c.padding??0));max[i]=Math.max(max[i],p[i]+(c.padding??0));}return {min,max};}
 export function cellVolumeCentroid(cell:SolidCell){const origin=cell.vertices[0];let volume=0,c:V3=[0,0,0];for(const f of cell.faces)for(let i=1;i<f.length-1;i++){const a=sub(cell.vertices[f[0]],origin),b=sub(cell.vertices[f[i]],origin),d=sub(cell.vertices[f[i+1]],origin),v=dot(a,cross(b,d))/6;volume+=v;c=add(c,mul(add(add(a,b),d),v/4));}return {volume:Math.abs(volume),center:Math.abs(volume)>EPS?add(origin,mul(c,1/volume)):mul(cell.vertices.reduce(add,[0,0,0]),1/cell.vertices.length)};}
-const collisionCache=new WeakMap<SolidCell,{bounds:ReturnType<typeof cellBounds>;normals:V3[];edges?:V3[]}>();
-function collisionInfo(c:SolidCell){let data=collisionCache.get(c);if(data)return data;const normals:V3[]=[];for(const p of planesOf(c))if(!normals.some(a=>Math.abs(dot(a,p.normal))>1-1e-9))normals.push(p.normal);data={bounds:cellBounds(c),normals};collisionCache.set(c,data);return data;}
+const collisionCache=new WeakMap<SolidCell,{bounds:ReturnType<typeof cellBounds>;normals?:V3[];edges?:V3[];planes?:Plane[];center?:V3}>();
+function collisionInfo(c:SolidCell){let data=collisionCache.get(c);if(data)return data;data={bounds:cellBounds(c)};collisionCache.set(c,data);return data;}
+function collisionPlanes(c:SolidCell){const info=collisionInfo(c);return info.planes??(info.planes=planesOf(c));}
+function cellCenter(c:SolidCell){const info=collisionInfo(c);return info.center??(info.center=mul(c.vertices.reduce(add,[0,0,0]),1/c.vertices.length));}
+function strictInside(point:V3,cell:SolidCell){return collisionPlanes(cell).every(p=>dot(p.normal,point)<p.offset-EPS);}
+function cellNormals(c:SolidCell){const info=collisionInfo(c);if(info.normals)return info.normals;const normals:V3[]=[];for(const p of collisionPlanes(c))if(!normals.some(a=>Math.abs(dot(a,p.normal))>1-1e-9))normals.push(p.normal);info.normals=normals;return normals;}
 function cellEdges(c:SolidCell){const info=collisionInfo(c);if(info.edges)return info.edges;const edges:V3[]=[];for(const f of c.faces)for(let i=0;i<f.length;i++){const v=norm(sub(c.vertices[f[(i+1)%f.length]],c.vertices[f[i]]));if(Math.hypot(...v)>EPS&&!edges.some(a=>Math.abs(dot(a,v))>1-1e-9))edges.push(v);}info.edges=edges;return edges;}
 /** SAT is exact for convex polytopes; padding adds conservative separation distance. */
 export function convexOverlap(a:SolidCell,b:SolidCell,gap=0){
  const ai=collisionInfo(a),bi=collisionInfo(b),ab=ai.bounds,bb=bi.bounds,padding=(a.padding??0)+(b.padding??0)+gap;
  if(ab.min.some((n,i)=>ab.max[i]+gap<=bb.min[i]+EPS||bb.max[i]+gap<=n+EPS))return false;
+ // An interior witness proves real penetration without enumerating every edge-cross axis.
+ const ac=cellCenter(a),bc=cellCenter(b),mid=mul(add(ac,bc),.5);
+ if(strictInside(ac,b)||strictInside(bc,a)||(strictInside(mid,a)&&strictInside(mid,b)))return true;
  const separated=(n:V3)=>{let amin=Infinity,amax=-Infinity,bmin=Infinity,bmax=-Infinity;for(const v of a.vertices){const d=dot(v,n);amin=Math.min(amin,d);amax=Math.max(amax,d);}for(const v of b.vertices){const d=dot(v,n);bmin=Math.min(bmin,d);bmax=Math.max(bmax,d);}return amax+padding<=bmin+EPS||bmax+padding<=amin+EPS;};
- for(const n of ai.normals)if(separated(n))return false;for(const n of bi.normals)if(separated(n))return false;
+ for(const n of cellNormals(a))if(separated(n))return false;for(const n of cellNormals(b))if(separated(n))return false;
  for(const x of cellEdges(a))for(const y of cellEdges(b)){const n=cross(x,y);if(Math.hypot(...n)>1e-7&&separated(norm(n)))return false;}
  return true;
 }

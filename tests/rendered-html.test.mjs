@@ -47,7 +47,7 @@ test("blocks stale or invalid exports and discards obsolete worker results", asy
   const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
   const calculationState = await readFile(new URL("../lib/packing/calculation-state.ts", import.meta.url), "utf8");
 
-  assert.match(source, /const canExport = Boolean\(result\?\.validation\.valid && !dirty && !hasPendingDimensionChanges\)/);
+  assert.match(source, /const canExport = Boolean\(result\?\.validation\.valid && result\.metrics\.loadedCount > 0 && !dirty && !hasPendingDimensionChanges\)/);
   assert.match(source, /disabled=\{!canExport\}/);
   assert.match(source, /discardObsoleteCalculation/);
   assert.match(source, /旧结果已安全丢弃/);

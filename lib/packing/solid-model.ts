@@ -1,4 +1,4 @@
-import { add, sub, mul, dot, cross, norm, boxCell, prismCell, orientFaces, clipCell, planesOf, cellVolumeCentroid, triangulatePolygon, ccw, polygonArea, unionCells, convexOverlap, type SolidCell, type V2, type V3 } from './solid-math';
+import { add, sub, mul, dot, cross, norm, boxCell, prismCell, orientFaces, clipCell, planesOf, cellVolumeCentroid, triangulatePolygon, ccw, polygonArea, unionCells, convexOverlap, cellBounds, type SolidCell, type V2, type V3 } from './solid-math';
 import type { OrientationCode, OrientationSigns } from './types';
 export const MODEL_KINDS=['box','cylinder','wedge','trapezoid','frustum','l-profile','u-profile','t-profile','step','polygon','tube','reel','bend','ellipsoid','capsule','custom-prism','mesh'] as const;
 export type ModelKind=typeof MODEL_KINDS[number];
@@ -132,7 +132,8 @@ export function buildSolidModel(model:SolidModel):BuiltModel{
  const size=maximum.map((n,i)=>n-minimum[i]) as V3;if(!size.every(n=>Number.isFinite(n)&&n>0)||!Number.isFinite(size[0]*size[1]*size[2]))throw Error('模型尺寸无效或超出有效范围。');
  const normalize=(p:V3)=>p.map((n,i)=>(n-minimum[i])/size[i]) as V3;
  let cells:SolidCell[]=parts.flatMap(p=>p.cells);if(cells.length>800)throw Error('模型分解超过 800 个凸体，请减少部件或弯管角度。');
- const overlaps=parts.some((p,i)=>parts.slice(i+1).some(q=>p.cells.some(a=>q.cells.some(b=>convexOverlap(a,b)))));
+ const actualBounds=parts.map((p,i)=>cellBounds({vertices:(model.parts[i].kind==='mesh'?p.cells:p.display).flatMap(c=>c.vertices),faces:[]}));
+ const overlaps=parts.some((p,i)=>parts.slice(i+1).some((q,j)=>{const a=actualBounds[i],b=actualBounds[i+j+1];if(a.min.some((n,k)=>a.max[k]<=b.min[k]+1e-7||b.max[k]<=n+1e-7))return false;return p.cells.some(a=>q.cells.some(b=>convexOverlap(a,b)));}));
  const volumeExact=parts.every(p=>p.exact)&&!overlaps;let volume=parts.reduce((n,p)=>n+p.volume,0);
  let momentCells=display;if(overlaps){const union=unionCells(model.parts.some(p=>p.kind==="mesh")?cells:display,800);volume=union.reduce((n,c)=>n+cellVolumeCentroid(c).volume,0);momentCells=union;if(!cells.some(c=>c.padding))cells=unionCells(cells,800);}
  const volumeRatio=Math.min(1,Math.max(1e-12,volume/(size[0]*size[1]*size[2]))),moments=momentCells.map(cellVolumeCentroid),total=moments.reduce((n,m)=>n+m.volume,0),center=normalize(mul(moments.reduce((n,m)=>add(n,mul(m.center,m.volume)),[0,0,0]),1/(total||1)));

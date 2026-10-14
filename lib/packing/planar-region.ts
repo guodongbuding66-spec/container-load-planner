@@ -5,12 +5,14 @@ export type Region={kind:'polygon';points:V2[]}|{kind:'ellipse';cx:number;cy:num
 const EPS=1e-9;
 export const polygonRegion=(points:V2[]):Region=>({kind:'polygon',points});
 export function unionRegion(items:Region[]):Region{return items.length===1?items[0]:{kind:'union',items};}
-export function regionBounds(r:Region):[number,number,number,number]{
+function calculateRegionBounds(r:Region):[number,number,number,number]{
  if(r.kind==='polygon'){const x=r.points.map(p=>p[0]),y=r.points.map(p=>p[1]);return [Math.min(...x),Math.min(...y),Math.max(...x),Math.max(...y)];}
  if(r.kind==='ellipse')return [r.cx-r.rx,r.cy-r.ry,r.cx+r.rx,r.cy+r.ry];
  if(r.kind==='union'){const b=r.items.map(regionBounds);return b.length?[Math.min(...b.map(b=>b[0])),Math.min(...b.map(b=>b[1])),Math.max(...b.map(b=>b[2])),Math.max(...b.map(b=>b[3]))]:[0,0,0,0];}
  const a=regionBounds(r.a),b=regionBounds(r.b);return r.kind==='difference'?a:[Math.max(a[0],b[0]),Math.max(a[1],b[1]),Math.min(a[2],b[2]),Math.min(a[3],b[3])];
 }
+const boundsCache=new WeakMap<Region,[number,number,number,number]>();
+export function regionBounds(r:Region):[number,number,number,number]{const old=boundsCache.get(r);if(old)return old;const bounds=calculateRegionBounds(r);boundsCache.set(r,bounds);return bounds;}
 export function mergeIntervals(input:Interval[]):Interval[]{const out:Interval[]=[];for(const p of input.filter(p=>p[1]-p[0]>EPS).sort((a,b)=>a[0]-b[0])){const last=out.at(-1);if(last&&p[0]<=last[1]+EPS)last[1]=Math.max(last[1],p[1]);else out.push([...p]);}return out;}
 export function intervalIntersection(a:Interval[],b:Interval[]):Interval[]{const out:Interval[]=[];for(const p of a)for(const q of b){const lo=Math.max(p[0],q[0]),hi=Math.min(p[1],q[1]);if(hi>lo+EPS)out.push([lo,hi]);}return mergeIntervals(out);}
 export function intervalDifference(a:Interval[],b:Interval[]):Interval[]{let result=a;for(const q of b)result=result.flatMap(p=>q[1]<=p[0]||q[0]>=p[1]?[p]:[[p[0],Math.min(p[1],q[0])],[Math.max(p[0],q[1]),p[1]]].filter(v=>v[1]>v[0]+EPS) as Interval[]);return mergeIntervals(result);}

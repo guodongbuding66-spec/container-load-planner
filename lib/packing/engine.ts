@@ -35,7 +35,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.25.0";
+export const ENGINE_VERSION = "0.25.1";
 
 type Orientation = {
   dx: number;
@@ -357,6 +357,27 @@ function getPracticalOrientations(product: ProductInput): Orientation[] {
 
 function canPassDoor(orientation: Orientation, container: EffectiveContainer) {
   return orientation.dy <= container.doorWidth + EPS && orientation.dz <= container.doorHeight + EPS;
+}
+
+/** Necessary first-item checks only; passing does not prove that an order can be packed. */
+export function inspectCargoFit(product: ProductInput, container: ContainerSpec, clearance = 0, strategy: PackingStrategy = "maximum") {
+  const effective = effectiveContainer(container, clearance);
+  const allowed = strategy === "practical" ? getPracticalOrientations(product) : getOrientations(product);
+  const inside = allowed.filter(o => o.dx <= effective.length + EPS && o.dy <= effective.width + EPS && o.dz <= effective.height + EPS);
+  const through = allowed.filter(o => canPassDoor(o, effective));
+  const fitting = inside.filter(o => canPassDoor(o, effective));
+  const reasons: string[] = [];
+  if (!inside.length) reasons.push("当前允许朝向的外接尺寸均超出柜内净空，请核对尺寸单位或更换装载空间。");
+  if (!through.length) reasons.push("当前允许朝向均无法通过门洞，请核对尺寸单位、朝向或门洞尺寸。");
+  if (inside.length && through.length && !fitting.length) reasons.push("没有同一个允许朝向同时满足柜内净空和门洞尺寸。");
+  if (fitting.length && product.solidModel) {
+    const boxes = fitting.map(o => makePlacement(product, 0, {x:0,y:0,z:0}, o));
+    const rest = boxes.filter(b => !modelRestError(b, product));
+    if (!rest.length) reasons.push("适配柜体的朝向均缺少有效平底、允许受托面或防滚固定；请添加真实底座／支架并确认防滚，或调整允许受托面和朝向。");
+    else if (!rest.some(b => supportDetails(b, new Map(), new Map([[product.id, product]])).ratio + EPS >= requiredSupport(product, strategy))) reasons.push("适配柜体的底面无法稳定支撑货物重心，请调整部件位置、配重或支架。");
+  }
+  if (product.weight > container.maxWeight + EPS) reasons.push("单件毛重超过装载空间最大载重，请核对重量单位或更换装载空间。");
+  return { effective, reasons };
 }
 
 function overlaps(a: Pick<PlacedBox, "x" | "y" | "z" | "dx" | "dy" | "dz">, b: Pick<PlacedBox, "x" | "y" | "z" | "dx" | "dy" | "dz">) {
@@ -1593,6 +1614,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
     return true;
   };
 
+  const failedProductRevision = new Map<string, number>();
   for (const batch of batches) {
     if (batch.setCode && blockedSetCodes.has(batch.setCode)) continue;
     const batchVolume = batch.items.reduce((sum, product) => sum + product.length * product.width * product.height * bodyVolumeRatio(product), 0);
@@ -1601,7 +1623,10 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
       continue;
     }
     if (!batch.setCode) {
-      placeProduct(batch.items[0]);
+      const product = batch.items[0];
+      // Identical cargo cannot succeed while coordinates, supports and remaining payload are unchanged.
+      // A later SKU may add support, so retry after any successful placement changes this revision.
+      if (failedProductRevision.get(product.id) !== placements.length && !placeProduct(product)) failedProductRevision.set(product.id, placements.length);
       continue;
     }
 
@@ -2404,14 +2429,11 @@ export function revisePackingResult(original: PackingResult, placements: PlacedB
 
 export function explainUnloaded(result: PackingResult, products: ProductInput[]) {
   products = applyTypeSupport(products, result.loadingRules);
-  const effective = effectiveContainer(result.container,result.clearance);
-  return result.summaries.filter(s => s.unloaded > 0).map(s => {
+  return result.summaries.filter(s => s.unloaded > 0 || (result.mode === "single" && s.loaded === 0)).map(s => {
     const p = products.find(p => p.id===s.productId);
     const reasons: string[] = [];
     if (!p) return { ...s, reasons: ["缺少箱规资料"] };
-    const orientations = orientationsForStrategy(p,effective,result.strategy);
-    if (!getOrientations(p).some(o=>canPassDoor(o,effective))) reasons.push("允许的方向均无法通过柜门（确定限制）");
-    if (!orientations.some(o=>o.dx<=effective.length && o.dy<=effective.width && o.dz<=effective.height)) reasons.push("当前策略下的尺寸或方向超出柜内空间（确定限制）");
+    reasons.push(...inspectCargoFit(p, result.container, result.clearance, result.strategy).reasons);
     if (p.weight > result.container.maxWeight-result.metrics.grossWeight) reasons.push("剩余载重不足以再加入一箱（确定限制）");
     if (p.length*p.width*p.height*bodyVolumeRatio(p) > result.metrics.effectiveVolume-result.metrics.loadedVolume) reasons.push("剩余总容积不足一箱（确定限制）");
     if (p.setCode) reasons.push("必须整套装入；任一组件不足或放不下会整套回退");

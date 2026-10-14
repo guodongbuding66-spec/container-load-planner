@@ -1,4 +1,11 @@
 export const ENGLISH: Record<string, string> = {
+  "当前允许朝向的外接尺寸均超出柜内净空，请核对尺寸单位或更换装载空间。": "Every allowed envelope exceeds the usable interior. Check dimension units or choose another loading space.",
+  "当前允许朝向均无法通过门洞，请核对尺寸单位、朝向或门洞尺寸。": "No allowed orientation passes through the door. Check dimension units, orientations and the door opening.",
+  "没有同一个允许朝向同时满足柜内净空和门洞尺寸。": "No single allowed orientation satisfies both the usable interior and door opening.",
+  "适配柜体的朝向均缺少有效平底、允许受托面或防滚固定；请添加真实底座／支架并确认防滚，或调整允许受托面和朝向。": "All fitting orientations lack a valid flat base, permitted resting face or rolling restraint. Add a physical base/support and confirm restraint, or adjust resting faces and orientations.",
+  "适配柜体的底面无法稳定支撑货物重心，请调整部件位置、配重或支架。": "The fitting bases cannot stably support the center of gravity. Adjust part positions, mass distribution or supports.",
+  "单件毛重超过装载空间最大载重，请核对重量单位或更换装载空间。": "One item exceeds the maximum payload. Check weight units or choose another loading space.",
+
   "请填写垫木／支架重量。": "Enter dunnage / fixture tare.",
   "货物保护间隙须为 0–100000 mm。": "Cargo protection gap must be 0–100000 mm.",
   "该外形需填写实体模型参数。": "This shape requires solid-model parameters.",
