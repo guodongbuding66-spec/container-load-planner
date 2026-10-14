@@ -104,6 +104,9 @@ import { ArchiveLibrary, BearingRules, UnloadedReasons, ManualPlan, FieldGuide, 
 import { RemainingCapacity } from "./remaining-capacity";
 import { SpaceModelPreview } from "./space-model-preview";
 import { usePlanEditor } from "./use-plan-editor";
+import { PalletBuildSettings } from "./pallet-build-settings";
+import { DEFAULT_PALLET_BUILD, parseLoadingWorkflow, parsePalletBuild } from "../lib/packing/loading-workflow";
+import type { LoadingWorkflow, PalletBuildOptions } from "../lib/packing/types";
 import { PrebuiltPalletPanel } from "./prebuilt-pallet-panel";
 import { PalletManifest } from "./pallet-manifest";
 import { WorkflowSteps } from "./workflow-steps";
@@ -345,6 +348,10 @@ export function PackingApp() {
   const [navCollapsed, setNavCollapsed] = useState(true);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [mode, setMode] = useState<PackingMode>("mixed");
+  const [loadingWorkflow, setLoadingWorkflow] = useState<LoadingWorkflow>("direct");
+  const [palletBuild, setPalletBuild] = useState<PalletBuildOptions>(() => structuredClone(DEFAULT_PALLET_BUILD));
+  const workflow: LoadingWorkflow = mode === "single" ? "single-capacity" : loadingWorkflow === "single-capacity" ? "direct" : loadingWorkflow;
+  const isPalletWorkflow = workflow === "pallet-only" || workflow === "palletized";
   const [strategy, setStrategy] = useState<PackingStrategy>("practical");
   const [practicalTargetPercent, setPracticalTargetPercent] = useState(
     recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100,
@@ -481,6 +488,8 @@ export function PackingApp() {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const data = JSON.parse(saved) as {
+            workflow?: LoadingWorkflow;
+            palletBuild?: PalletBuildOptions;
             floorPallets?: FloorPalletConfig;
             loadingRules?: LoadingRules;
             mode?: PackingMode;
@@ -495,6 +504,8 @@ export function PackingApp() {
             lengthUnit?: LengthUnit;
             weightUnit?: WeightUnit;
           };
+          setLoadingWorkflow(parseLoadingWorkflow(data.workflow, data.mode));
+          if (data.palletBuild) setPalletBuild(parsePalletBuild(data.palletBuild));
           if (data.floorPallets) setFloorPallets(parseFloorPalletConfig(data.floorPallets));
           if (data.loadingRules) setLoadingRules(parseLoadingRules(data.loadingRules));
           if (data.mode === "single" || data.mode === "mixed") setMode(data.mode);
@@ -531,7 +542,7 @@ export function PackingApp() {
   const persistDraft = useCallback((patch: Partial<WorkspaceInputs> = {}) => {
     if (!hydrated) return;
     try {
-      const snapshot = { floorPallets, loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit, ...patch };
+      const snapshot = { workflow, palletBuild, floorPallets, loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit, ...patch };
       lastSavedDraftRef.current = snapshot;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
       setStorageState("saved");
@@ -539,16 +550,16 @@ export function PackingApp() {
       setStorageState("error");
       setMessage(tr("本机草稿保存失败：浏览器存储不可用或空间不足"));
     }
-  }, [floorPallets,loadingRules, clearance, container, customContainers, hydrated, lengthUnit, mode, practicalTargetPercent, products, strategy, targetVolumePercent, targetWeightPercent, weightUnit]);
+  }, [workflow,palletBuild,floorPallets,loadingRules, clearance, container, customContainers, hydrated, lengthUnit, mode, practicalTargetPercent, products, strategy, targetVolumePercent, targetWeightPercent, weightUnit]);
 
   useEffect(() => {
     if (!hydrated) return;
-    lastSavedDraftRef.current = { floorPallets, loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit };
+    lastSavedDraftRef.current = { workflow, palletBuild, floorPallets, loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit };
     const saveTimer = window.setTimeout(() => persistDraft(), STORAGE_SAVE_DELAY_MS);
     const saveBeforeLeaving = () => persistDraft(lastSavedDraftRef.current);
     window.addEventListener("pagehide", saveBeforeLeaving);
     return () => { window.clearTimeout(saveTimer); window.removeEventListener("pagehide", saveBeforeLeaving); };
-  }, [hydrated, persistDraft, floorPallets, loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit]);
+  }, [hydrated, persistDraft, workflow, palletBuild, floorPallets, loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers, targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit]);
 
   useEffect(() => () => {
     terminateActiveWorkers();
@@ -757,7 +768,7 @@ export function PackingApp() {
       setMessage(tr("请先填写自定义柜型名称。"));
       return;
     }
-    const containerError = validateContainerInput(container, clearance);
+    const containerError = workflow === "pallet-only" ? null : validateContainerInput(container, clearance);
     if (containerError) {
       setStatus("error");
       setMessage(tt`无法保存柜型：${containerError}`);
@@ -1092,7 +1103,7 @@ export function PackingApp() {
   const validateInputs = useCallback(() => {
     if (invalidNumericFields.size) return tr("有数字输入尚未完成，请填写后再计算。");
     if (!activeProducts.length) return tr("请至少添加一个产品。");
-    const containerError = validateContainerInput(container, clearance);
+    const containerError = workflow === "pallet-only" ? null : validateContainerInput(container, clearance);
     if (containerError) return containerError;
     const invalid = activeProducts.find(
       (item) =>
@@ -1109,7 +1120,7 @@ export function PackingApp() {
         (mode === "mixed" && (!Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 1_000_000)),
     );
     return invalid ? tt`${invalid.sku || tr("未命名产品")} 的尺寸、重量或数量不完整。` : null;
-  }, [activeProducts, clearance, container, invalidNumericFields, mode]);
+  }, [workflow,activeProducts, clearance, container, invalidNumericFields, mode]);
 
   const submitPacking = useCallback((payload: PackingRequest, workingMessage = tr("正在生成可行摆放并执行边界、重叠与载重校验…")) => {
     if (activeRequestRef.current) clearActiveCalculation();
@@ -1283,7 +1294,8 @@ export function PackingApp() {
       return;
     }
     submitPacking({
-      floorPallets, loadingRules,
+      workflow, palletBuild: isPalletWorkflow ? palletBuild : undefined,
+      floorPallets: isPalletWorkflow ? undefined : floorPallets, loadingRules,
       mode,
       strategy: "practical",
       practicalTargetUtilization: practicalTargetPercent / 100,
@@ -1294,7 +1306,7 @@ export function PackingApp() {
     }, mode === "single"
       ? tt`正在实时重算现场与极限方案；计划上限 ${reversePlan.recommendedDisplay.toLocaleString()} ${reversePlan.displayUnit === "set" ? tr("套") : tr("箱")}…`
       : tr("正在实时重算双算法坐标，并执行边界、重叠与载重校验…"));
-  }, [floorPallets,loadingRules, activeProducts, clearance, clearActiveCalculation, container, hasPendingDimensionChanges, isEditingDimensions, mode, practicalTargetPercent, reversePlan, submitPacking, validateInputs]);
+  }, [workflow,palletBuild,isPalletWorkflow,floorPallets,loadingRules, activeProducts, clearance, clearActiveCalculation, container, hasPendingDimensionChanges, isEditingDimensions, mode, practicalTargetPercent, reversePlan, submitPacking, validateInputs]);
 
   useEffect(() => {
     if (workflowStep !== 3 || manualRun || status === "working" || !autoCalculate || !hydrated || isEditingDimensions || hasPendingDimensionChanges) return;
@@ -1365,7 +1377,7 @@ export function PackingApp() {
       return;
     }
     const contents = serializeWorkspaceBackup(
-      { floorPallets, loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers,
+      { workflow, palletBuild, floorPallets, loadingRules, mode, strategy, practicalTargetPercent, container, clearance, products, customContainers,
         targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit }, ENGINE_VERSION, result, resultBundle?.strategyPlans,
     );
     downloadFile(tt`装柜工作区_${new Date().toISOString().slice(0, 10)}.json`, contents, "application/json");
@@ -1388,6 +1400,8 @@ export function PackingApp() {
       setPendingRestore(null);
       clearActiveCalculation();
       clearNumericDraftErrors();
+      setLoadingWorkflow(parseLoadingWorkflow(restored.workflow,restored.mode));
+      setPalletBuild(restored.palletBuild ?? structuredClone(DEFAULT_PALLET_BUILD));
       setFloorPallets(restored.floorPallets);
       setLoadingRules(restored.loadingRules ?? {...DEFAULT_LOADING_RULES});
       setMode(restored.mode);
@@ -1521,7 +1535,7 @@ export function PackingApp() {
     setProductPage(0);
     markDirty();
   };
-  const workspaceBackup = useMemo(() => serializeWorkspaceBackup({floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,result,resultBundle?.strategyPlans), [floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit,result,resultBundle?.strategyPlans]);
+  const workspaceBackup = useMemo(() => serializeWorkspaceBackup({workflow,palletBuild,floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,result,resultBundle?.strategyPlans), [workflow,palletBuild,floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit,result,resultBundle?.strategyPlans]);
   const upgradesDisabled = hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0 || status === "working";
   const adoptManualPlan=(next:PackingResult)=>{next={...next,delivery:next.delivery??result?.delivery,accessConfig:next.accessConfig??result?.accessConfig};clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。"));};
   const planEditor=usePlanEditor(result,activeProducts,upgradesDisabled||!result?.validation.valid||result.metrics.loadedCount!==result.placements.length,adoptManualPlan);
@@ -1529,7 +1543,7 @@ export function PackingApp() {
 
   const downloadExcelTemplate = async () => { setMessage(tr("正在生成 Excel 模板…")); try { const { createSpreadsheetTemplate } = await import("../lib/packing/spreadsheet"); const bytes=await createSpreadsheetTemplate(); const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));const a=document.createElement("a");a.href=url;a.download="CargoFit_products_template.xlsx";document.body.appendChild(a);a.click();a.remove();setMessage(tr("Excel 模板已生成。"));setTimeout(()=>URL.revokeObjectURL(url),10000); } catch(e) {setMessage(e instanceof Error?e.message:"Excel export failed");} };
   const downloadPdf = async () => { if(!result?.validation.valid)return;setExportingPdf(true);try{const {downloadPdfGuide}=await import("../lib/packing/pdf-guide");await downloadPdfGuide(result,getAppLanguage());}catch(e){setMessage(e instanceof Error?e.message:"PDF export failed");}finally{setExportingPdf(false);} };
-  const loadIndustryCase = (example: IndustryCase) => {setWorkflowStep(1);palletDraftRef.current=null;rulesDraftRef.current=null;clearNumericDraftErrors();setMode("mixed");setContainer({...example.container});setProducts(example.products.map(p=>({...p})));setFloorPallets(undefined);setLoadingRules({...DEFAULT_LOADING_RULES});setClearance(10);setProductPage(0);setAutoCalculate(false);setPracticalTargetPercent(recommendedPracticalTarget(example.container)*100);markDirty();scrollTo("workspace");};
+  const loadIndustryCase = (example: IndustryCase) => {setWorkflowStep(1);palletDraftRef.current=null;rulesDraftRef.current=null;clearNumericDraftErrors();setMode("mixed");setLoadingWorkflow("direct");setContainer({...example.container});setProducts(example.products.map(p=>({...p})));setFloorPallets(undefined);setLoadingRules({...DEFAULT_LOADING_RULES});setClearance(10);setProductPage(0);setAutoCalculate(false);setPracticalTargetPercent(recommendedPracticalTarget(example.container)*100);markDirty();scrollTo("workspace");};
   const tutorialAction = (step: string) => {if(step==="cargo"){setActiveCargo(activeProducts[0]?.id??null);return;}if(step==="rules"){setShowRules(true);return;}if(step==="calculate"){goToStep(2);return;}if(step==="viewer"){if(result)setShowViewer(true);else setMessage(tr("请先计算有效方案。","Calculate a valid plan first."));return;}if(step==="pdf"){void downloadPdf();return;}if(step==="cloud"){const el=document.getElementById("cloud-workspace");if(el instanceof HTMLDetailsElement)el.open=true;scrollTo("cloud-workspace");return;}goToStep(1);};
 
   const receivePalletDraft=useCallback((value:FloorPalletConfig|undefined,invalid:boolean)=>{
@@ -1636,7 +1650,7 @@ export function PackingApp() {
         {activeCargo && products.find(p=>p.id===activeCargo) && <CargoSettings product={products.find(p=>p.id===activeCargo)!} mode={mode} lengthUnit={lengthUnit} weightUnit={weightUnit} container={container} clearance={clearance} strategy={strategy} onSave={product=>{if(product.cargoType !== products.find(p=>p.id===product.id)?.cargoType) product = {...product,minimumSupportRatio:loadingRules.supportByType?.[product.cargoType ?? "carton"]};persistDraft({products:products.map(p=>p.id===product.id?product:p)});clearNumericDraftErrors();setProducts(current=>current.map(p=>p.id===product.id?product:p));markDirty();}} onClose={()=>setActiveCargo(null)}/>}
         {showViewer && result && <PlanViewer plans={[result]} onClose={()=>setShowViewer(false)}/>}
 
-        <WorkflowSteps current={workflowStep} resultAvailable={Boolean(result)||status==="working"} onSelect={goToStep}/>
+        <WorkflowSteps palletOnly={workflow === "pallet-only"} current={workflowStep} resultAvailable={Boolean(result)||status==="working"} onSelect={goToStep}/>
 
         <section className="status-strip" aria-live="polite">
           <div className={`status-dot status-${status}`} />
@@ -1653,15 +1667,14 @@ export function PackingApp() {
 
         {workflowStep===1 && <section className="wizard-page" aria-label={tr("第一步：货物清单")}>
           <div className="wizard-page-heading"><div><span className="section-kicker">STEP 01</span><h2>{tr("货物清单")}</h2><p>{tr("先录入完整箱规、毛重与数量，再确认装载空间。")}</p></div><div className="wizard-input-summary"><strong>{activeProducts.length}{tr(" 个箱型")}</strong><span>{inputVolume.toFixed(2)} m³ · {formatNumber(inputWeight,1)} kg{mode==="single"?tr(" / 单件或单套"):tr(" / 订单")}</span></div></div>
-          <article className="panel wizard-mode"><h3>{tr("计算模式")}</h3>              <div className="segmented" role="group" aria-label={tr("计算模式")}>
-                <button aria-pressed={mode === "single"} className={mode === "single" ? "active" : ""} onClick={() => { if (mode !== "single") { clearNumericDraftErrors(); setMode("single"); markDirty(); } }}><Box size={17} />{tr("单品最大装柜")}</button>
-                <button aria-pressed={mode === "mixed"} className={mode === "mixed" ? "active" : ""} onClick={() => { if (mode !== "mixed") { clearNumericDraftErrors(); setMode("mixed"); markDirty(); } }}><Boxes size={17} />{tr("多 SKU 拼柜")}</button>
+          <article className="panel wizard-mode"><h3>{tr("计算模式")}</h3>              <div className="loading-workflow-options" role="group" aria-label={tr("装载方式", "Loading workflow")}>
+                {([ ["direct", "直接装箱", "Direct load", "多 SKU 拼柜"], ["pallet-only", "只打托不装箱", "Palletize only", "订单 → 独立托盘"], ["palletized", "先打托后装箱", "Palletize then load", "订单 → 整托 → 装柜"], ["single-capacity", "单品单箱测算", "Single product capacity", "支持单品多箱整套测算"] ] as const).map(([value, zh, en, hint]) => <button key={value} aria-pressed={workflow === value} className={workflow === value ? "active" : ""} onClick={() => { if (workflow !== value) { clearNumericDraftErrors(); palletDraftRef.current=null; setLoadingWorkflow(value); setMode(value === "single-capacity" ? "single" : "mixed"); markDirty(); } }}><strong>{tr(zh, en)}</strong><small>{tr(hint, value === "direct" ? "Mixed-SKU order" : value === "pallet-only" ? "Order → independent pallets" : value === "palletized" ? "Order → loaded pallets → vehicle" : "Single or multi-carton product")}</small></button>)}
               </div>
               <p className="helper-text">{mode === "single"
                 ? isSingleProductSet
                   ? tt`这是一个 ${singleSetSummary?.cartonsPerSet ?? 0} 箱/套的单品包装，自动计算最大完整套数，不需要填写需求箱数。`
                   : tr("单箱或多箱都属于单品最大装柜，系统自动计算可装量，不需要填写需求数量。")
-                : tr("按订单数量、优先级、门洞与载重生成可校验的混装方案。")}</p>
+                : isPalletWorkflow ? tr("按订单先生成单品托或混托，整套不拆托；尾数按实际高度与重量单独成托。", "Build single-product or mixed pallets from order quantities. Kits stay together; remainders use actual height and weight.") : tr("按订单数量、优先级、门洞与载重生成可校验的混装方案。")}</p>
 </article>
         <section id="products" className="panel product-panel">
           <div className="panel-head">
@@ -1820,11 +1833,11 @@ export function PackingApp() {
           ) : null}
         </section>
 
-          <div className="wizard-navigation"><span>{tr("输入过程中仅保存草稿；确认配置后统一计算。")}</span><button className="button primary" onClick={advanceToConfiguration} disabled={invalidNumericFields.size>0}>{tr("下一步：选择柜型与托盘 ")}<ChevronRight size={17}/></button></div>
+          <div className="wizard-navigation"><span>{tr("输入过程中仅保存草稿；确认配置后统一计算。")}</span><button className="button primary" onClick={advanceToConfiguration} disabled={invalidNumericFields.size>0}>{workflow === "pallet-only" ? tr("下一步：配置打托", "Next: Pallet settings") : tr("下一步：选择柜型与托盘 ")}<ChevronRight size={17}/></button></div>
         </section>}
         {workflowStep===2 && <section id="workspace" className="wizard-page" aria-label={tr("第二步：装载配置")}>
-          <div className="wizard-page-heading"><div><span className="section-kicker">STEP 02</span><h2>{tr("装载配置")}</h2><p>{tr("确认柜内净空；按需要启用托盘，设置承托与搜索规则。")}</p></div><span className="wizard-input-summary">{activeProducts.length}{tr(" 个箱型 · ")}{mode==="single"?tr("单品最大装柜"):tr("按订单拼柜")}</span></div>
-          <div className="wizard-space-grid"><div className="vehicle-config">            <article className="panel">
+          <div className="wizard-page-heading"><div><span className="section-kicker">STEP 02</span><h2>{tr("装载配置")}</h2><p>{workflow === "pallet-only" ? tr("设置托盘尺寸、每托限高、重量和单品托 / 混托规则。", "Set pallet dimensions, cargo height, payload and mix policy.") : tr("确认柜内净空；按需要启用托盘，设置承托与搜索规则。")}</p></div><span className="wizard-input-summary">{activeProducts.length}{tr(" 个箱型 · ")}{mode==="single"?tr("单品最大装柜"):tr("按订单拼柜")}</span></div>
+          <div className={`wizard-space-grid ${workflow === "pallet-only" ? "pallet-only-setup" : ""}`}>{workflow !== "pallet-only" && <div className="vehicle-config">            <article className="panel">
               <div className="panel-head"><div><span className="section-kicker">02</span><h2>{tr("集装箱 / 车辆","Container / vehicle")}</h2></div><span className="pill">{tr("可编辑")}</span></div>
               <details className="space-preview-details"><summary>{tr("柜体模型与尺寸", "Container model and dimensions")}</summary><SpaceModelPreview space={container}/></details>
               <button className="button small space-library-button" onClick={()=>setShowTransport(true)}><Container size={15}/>{tr("浏览装载空间库","Browse spaces")}</button>
@@ -1868,11 +1881,11 @@ export function PackingApp() {
               ) : null}
             </article>
 
-</div>
-            <FloorPalletSettings inline config={floorPallets} container={container} clearance={clearance} customSpaces={customContainers} onDraftChange={receivePalletDraft} onSave={()=>{}} onClose={()=>{}}/>
+</div>}
+            {isPalletWorkflow ? <PalletBuildSettings value={palletBuild} only={workflow === "pallet-only"} onChange={value=>{setPalletBuild(value);markDirty();}} onValidityChange={setNumericFieldValidity}/> : <FloorPalletSettings inline config={floorPallets} container={container} clearance={clearance} customSpaces={customContainers} onDraftChange={receivePalletDraft} onSave={()=>{}} onClose={()=>{}}/>}
           </div>
           <LoadingRuleSettings inline rules={loadingRules} products={products} onDraftChange={receiveRulesDraft} onSave={()=>{}} onClose={()=>{}}/>
-          <details className="wizard-advanced"><summary>{tr("计算偏好与计划目标")}</summary><div className="wizard-preference-grid">            <article className="panel mode-panel">
+          {workflow !== "pallet-only" && <details className="wizard-advanced"><summary>{tr("计算偏好与计划目标")}</summary><div className="wizard-preference-grid">            <article className="panel mode-panel">
               <div className="panel-head compact"><div><span className="section-kicker">01</span><h2>{tr("计算偏好","Solver preferences")}</h2></div></div>
               <div className="strategy-divider" />
               <div className="strategy-heading"><strong>{tr("独立求解算法")}</strong><span>{strategy === "practical" ? tr("工人可直接照做") : tr("高密度搜索参考")}</span></div>
@@ -1949,11 +1962,11 @@ export function PackingApp() {
                   ? tt`体积/载重先倒推上限，算法再验证真实可装量；当前统一建议 ${formatNumber(selectedFeasibleRecommendation.displayQuantity)} ${reversePlan.displayUnit === "set" ? tr("套") : tr("箱")}。切换算法会同步切换整张坐标方案。`
                   : tr("倒推先保持当前 SKU 数量比例；箱型方向、门洞和碎片空间会影响最终实际利用率，应用后将用装箱算法重新验证。")}</p>
             </article>
-</div></details>
+</div></details>}
           <div className="wizard-navigation"><button className="button" onClick={()=>goToStep(1)}><ChevronLeft size={17}/>{tr("上一步：货物清单")}</button><div><span>{setupInvalid?tr("托盘参数尚未完成，请先修正。"):tr("配置完成后生成双算法方案与完整坐标。")}</span><button className="button primary" disabled={setupInvalid||invalidNumericFields.size>0||hasPendingDimensionChanges} onClick={startConfiguredCalculation}>{tr("开始计算 ")}<ChevronRight size={17}/></button></div></div>
         </section>}
         {workflowStep===3 && <section className="wizard-page" aria-label={tr("第三步：装箱方案")}>
-          <div className="wizard-page-heading"><div><span className="section-kicker">STEP 03</span><h2>{tr("装箱方案")}</h2><p>{tr(container.name)} · {result?.palletization?tr("先打托，再装柜","Palletize first, then load"):floorPallets?tt`使用托盘 ${floorPallets.length} × ${floorPallets.width} × ${floorPallets.height} mm`:tr("直接装柜，无底层托盘")}</p></div><button className="button" onClick={()=>goToStep(2)}><ChevronLeft size={16}/>{tr("修改装载配置")}</button></div>
+          <div className="wizard-page-heading"><div><span className="section-kicker">STEP 03</span><h2>{tr(workflow === "pallet-only" ? "打托方案" : "装箱方案", workflow === "pallet-only" ? "Pallet plan" : "Loading plan")}</h2><p>{tr(result?.container.name ?? container.name)} · {result?.workflow === "pallet-only" ? tr("仅打托，未执行装柜", "Pallets only; no vehicle loading") : result?.palletization?tr("先打托，再装柜","Palletize first, then load"):floorPallets?tt`使用托盘 ${floorPallets.length} × ${floorPallets.width} × ${floorPallets.height} mm`:tr("直接装柜，无底层托盘")}</p></div><button className="button" onClick={()=>goToStep(2)}><ChevronLeft size={16}/>{tr("修改装载配置")}</button></div>
           <div className="plan-command-bar">
           <div className="result-strategy-switch" role="group" aria-label={tr("方案算法切换")}><button className={strategy==="practical"?"selected":""} aria-pressed={strategy==="practical"} onClick={()=>switchStrategy("practical")}><ShieldCheck size={18}/><span><strong>{tr("现场易执行")}</strong><small>{cachedPracticalPlan?strategyDisplayLabel(cachedPracticalPlan):tr("等待计算")}</small></span></button><button className={strategy==="maximum"?"selected":""} aria-pressed={strategy==="maximum"} onClick={()=>switchStrategy("maximum")}><Gauge size={18}/><span><strong>{tr("高密度参考")}</strong><small>{cachedMaximumPlan?strategyDisplayLabel(cachedMaximumPlan):tr("等待计算")}</small></span></button></div>
           <div className="plan-command-actions"><details className="plan-calculation-menu"><summary className="button"><Settings2 size={15}/>{tr("计算设置", "Calculation settings")}</summary><div className="plan-calculation-panel">          <section className="calculation-controls" aria-label={tr("计算控制")}><label><input type="checkbox" checked={autoCalculate} onChange={e=>setAutoCalculate(e.target.checked)}/>{tr("方案阶段自动更新")}</label><label>{tr("计算时限")}<select aria-label={tr("计算时限")} value={calculationBudget} onChange={e=>setCalculationBudget(Number(e.target.value))}><option value={0}>{tr("按设备自动")}</option><option value={15}>{tr("15 秒")}</option><option value={35}>{tr("35 秒")}</option><option value={60}>{tr("60 秒")}</option><option value={120}>{tr("120 秒")}</option></select></label></section></div></details><button className="button primary" disabled={status==="working"||hasPendingDimensionChanges||invalidNumericFields.size>0} onClick={()=>setManualRun(v=>v+1)}>{tr("重新计算方案")}</button>{status==="working"&&<button className="button" onClick={stopCalculation}>{tr("停止并保留已完成方案")}</button>}</div>
@@ -1971,7 +1984,7 @@ export function PackingApp() {
             <details className="viewer-input-details"><summary>{tr("输入快照", "Input snapshot")} · {activeProducts.length} SKU · {inputVolume.toFixed(2)} m³ · {formatNumber(inputWeight,1)} kg</summary><section className="viewer-input-strip" aria-label={tr("当前统一输入快照")}>
               <article><span>{isSingleProductSet ? tr("包装箱型") : tr("SKU 数量")}</span><strong>{activeProducts.length}</strong><small>{mode === "single" ? tr("单品完整套装") : tr("按订单比例拼柜")}</small></article>
               <article><span>{mode === "single" ? isSingleProductSet ? tr("每套 CBM") : tr("单件 CBM") : tr("需求 CBM")}</span><strong>{inputVolume.toFixed(2)}</strong><small>{tr("由外箱尺寸自动计算")}</small></article>
-              <article><span>{mode === "single" ? isSingleProductSet ? tr("每套毛重") : tr("单件毛重") : tr("需求毛重")}</span><strong>{formatNumber(inputWeight, 1)} kg</strong><small>{tr("柜型上限 ")}{formatNumber(container.maxWeight)} kg</small></article>
+              <article><span>{mode === "single" ? isSingleProductSet ? tr("每套毛重") : tr("单件毛重") : tr("需求毛重")}</span><strong>{formatNumber(inputWeight, 1)} kg</strong><small>{tr("柜型上限 ")}{formatNumber(result?.container.maxWeight ?? container.maxWeight)} kg</small></article>
               <article><span>{tr("当前约束")}</span><strong>{clearance} mm</strong><small>{tr("安全间隙 · 目标 ")}{targetVolumePercent}% / {targetWeightPercent}%</small></article>
             </section>
             </details>
@@ -2258,9 +2271,9 @@ export function PackingApp() {
           <CloudWorkspace backup={workspaceBackup} plan={result} products={activeProducts} disabled={upgradesDisabled} onRestore={backup=>{void restoreWorkspace(new File([backup],tr("云端归档.json"),{type:"application/json"}));}} onProducts={next=>{setMode("mixed");replaceProductInputs(next);}}/>
           </>}
           loading={<>
-          <PrebuiltPalletPanel key={JSON.stringify(fleetRequest)} request={fleetRequest} disabled={upgradesDisabled} onAdopt={next=>{palletDraftRef.current=null;setFloorPallets(undefined);persistDraft({floorPallets:undefined,strategy:"practical"});setStrategy("practical");setWorkflowStep(3);adoptManualPlan(next);}}/>
+          {!isPalletWorkflow && <PrebuiltPalletPanel key={JSON.stringify(fleetRequest)} request={fleetRequest} disabled={upgradesDisabled} onAdopt={next=>{palletDraftRef.current=null;setFloorPallets(undefined);persistDraft({floorPallets:undefined,strategy:"practical"});setStrategy("practical");setWorkflowStep(3);adoptManualPlan(next);}}/>}
           <BearingRules key={JSON.stringify(products.map(p=>[p.id,p.maxTopLoadKg]))} products={activeProducts} disabled={upgradesDisabled} onChange={next=>replaceProductInputs(products.map(p=>next.find(n=>n.id===p.id)??p))}/>
-          {mode === "mixed" ? <FleetPlanner key={JSON.stringify([fleetRequest,customContainers])} request={fleetRequest} customContainers={customContainers} disabled={upgradesDisabled}/> : null}
+          {mode === "mixed" && !isPalletWorkflow ? <FleetPlanner key={JSON.stringify([fleetRequest,customContainers])} request={fleetRequest} customContainers={customContainers} disabled={upgradesDisabled}/> : null}
             {result && !hasPendingDimensionChanges ? <>
             <UnloadedReasons result={result} products={activeProducts} onFocus={id=>{setVisibleProducts(new Set(result.summaries.map(s=>s.productId)));setCameraView("top");setPackingProgress(result.placements.length);setMessage(tt`已在原因面板突出 ${activeProducts.find(p=>p.id===id)?.sku??tr("当前 SKU")}；三维保留其他货物，避免把隐藏箱位误认为空闲空间。`);}}/>
             <ManualPlan key={result.id} editor={planEditor} result={result} products={activeProducts} disabled={upgradesDisabled||!result.validation.valid} onAdopt={next=>{clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。"));}}/>

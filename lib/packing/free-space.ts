@@ -46,6 +46,7 @@ export type SpaceProbe={candidate:PlacedBox|null;status:"fits"|"kit"|"weight"|"d
 export function probeEmptySpace(plan:PackingResult,inputs:ProductInput[],productId:string,spaces:EmptySpace[],selectedId?:string):SpaceProbe{
   const products=applyTypeSupport(inputs,plan.loadingRules),p=products.find(p=>p.id===productId);
   const result=(status:SpaceProbe["status"],errors:string[]=[],tested=0):SpaceProbe=>({candidate:null,status,errors,tested});
+  if(plan.workflow === "pallet-only")return result("invalid",["只打托请修改订单后重新生成托盘"]);
   if(!p||!plan.validation.valid||plan.metrics.loadedCount!==plan.placements.length)return result("invalid");
   if(p.setCode?.trim())return result("kit");
   if(plan.metrics.grossWeight+p.weight>plan.container.maxWeight+EPS)return result("weight");
@@ -61,7 +62,7 @@ export function probeEmptySpace(plan:PackingResult,inputs:ProductInput[],product
       const b:PlacedBox={id:"space-probe",productId:p.id,sku:p.sku,name:p.name,color:p.color,x,y,z:s.z,dx:o.dx,dy:o.dy,dz:o.dz,weight:p.weight,orientation:o.label,layer:1};
       const supporters=plan.placements.filter(a=>bodyContactArea(b,a,p,products.find(p=>p.id===a.productId))>EPS);
       b.layer=supporters.length?Math.max(...supporters.map(a=>a.layer))+1:1;
-      const validation=validatePacking([...plan.placements,b].sort((a,b)=>a.z-b.z||a.x-b.x),plan.container,plan.clearance,checkedProducts,plan.strategy,plan.mode,plan.pallets,plan.floorPallets);
+      const validation=validatePacking([...plan.placements,b].sort((a,b)=>a.z-b.z||a.x-b.x),plan.container,plan.clearance,checkedProducts,plan.strategy,plan.mode,plan.pallets,plan.floorPallets,plan.palletization);
       if(validation.valid&&plan.palletization)validation.errors.push(...validatePalletizedCargo([...plan.placements,b],plan.pallets??[],plan.container,plan.clearance,plan.palletization));
       if(validation.valid&&!validation.errors.length)return {candidate:b,status:"fits",errors:[],tested};
       validation.errors.forEach(e=>errors.add(e));

@@ -123,6 +123,6 @@ describe("CSV utilities", () => {
     expect(parseCsvRecords(csv)[1]).toHaveLength(parseCsvRecords(csv)[0].length);
     expect(parseCsvRecords(csv)[0].slice(17,20)).toEqual(["客户","目的地","卸货站次"]);
     expect(parseCsvRecords(csv)[0].slice(20,23)).toEqual(["货物外形","圆筒轴向","顶边或顶径比例"]);
-    expect(parseCsvRecords(csv)[0].slice(23)).toEqual(["竖壁厚度比例","横壁厚度比例","高台长度比例","低台高度比例","旋转轴符号","实体模型JSON","保护间隙(mm)"]);
+    expect(parseCsvRecords(csv)[0].slice(23)).toEqual(["竖壁厚度比例","横壁厚度比例","高台长度比例","低台高度比例","旋转轴符号","实体模型JSON","保护间隙(mm)","装载方式","坐标用途"]);
   });
 });

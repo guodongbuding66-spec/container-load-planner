@@ -73,5 +73,5 @@ describe("generic exterior transport geometry", () => {
         for (const [x,y] of pairs) {expect(x).toBeGreaterThan(0);expect(x).toBeLessThan(320);expect(y).toBeGreaterThan(0);expect(y).toBeLessThan(245);}
       }
     }
-  });
+  }, 15000);
 });

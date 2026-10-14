@@ -1,3 +1,4 @@
+import { parseLoadingWorkflow, parsePalletBuild } from "./loading-workflow";
 import { parseShapeFields, withShapeSupport } from "./cargo-shape";
 import { parseFloorPalletConfig } from "./floor-pallets";
 import { parseLoadingRules, parseOrientations, CARGO_TYPES } from "./loading-rules";
@@ -10,6 +11,8 @@ import { MAX_CSV_ROWS } from "./csv";
 // The independent per-plan limit is enforced by restorePackingSnapshot.
 export const MAX_WORKSPACE_BYTES = 50 * 1024 * 1024;
 export type WorkspaceInputs = {
+  workflow?: import("./types").LoadingWorkflow;
+  palletBuild?: import("./types").PalletBuildOptions;
   floorPallets?: FloorPalletConfig;
   loadingRules?: LoadingRules;
   mode: PackingMode;
@@ -86,7 +89,7 @@ export function parseWorkspaceBackup(contents: string): WorkspaceInputs {
   if (!isLengthUnit(v.lengthUnit) || !isWeightUnit(v.weightUnit)) throw new Error("录入单位无效。");
   if (!Array.isArray(v.products) || !v.products.length || v.products.length > MAX_CSV_ROWS) throw new Error("备份的箱型数量无效。");
   if (!Array.isArray(v.customContainers) || v.customContainers.length > 100) throw new Error("自定义柜型数量无效。");
-  return { ...(v.floorPallets === undefined ? {} : {floorPallets:parseFloorPalletConfig(v.floorPallets)}), ...(v.loadingRules === undefined ? {} : { loadingRules: parseLoadingRules(v.loadingRules) }), mode: v.mode, strategy: v.strategy, practicalTargetPercent: number(v.practicalTargetPercent, 50, 95),
+  return { ...(v.workflow===undefined?{}:{workflow:parseLoadingWorkflow(v.workflow,v.mode)}), ...(v.palletBuild===undefined?{}:{palletBuild:parsePalletBuild(v.palletBuild)}), ...(v.floorPallets === undefined ? {} : {floorPallets:parseFloorPalletConfig(v.floorPallets)}), ...(v.loadingRules === undefined ? {} : { loadingRules: parseLoadingRules(v.loadingRules) }), mode: v.mode, strategy: v.strategy, practicalTargetPercent: number(v.practicalTargetPercent, 50, 95),
     container: container(v.container), clearance: number(v.clearance, 0, 50),
     products: v.products.map(parseProductInput), customContainers: v.customContainers.map(container),
     targetVolumePercent: integer(v.targetVolumePercent, 1, 100), targetWeightPercent: integer(v.targetWeightPercent, 1, 100),
@@ -95,14 +98,14 @@ export function parseWorkspaceBackup(contents: string): WorkspaceInputs {
 export function serializeWorkspaceBackup(inputs: WorkspaceInputs, engineVersion: string, plan?: PackingResult | null, plans?: PackingResult["strategyPlans"]): string {
   return JSON.stringify({ format: "cargo-fit-workspace", version: 1, engineVersion,
     createdAt: new Date().toISOString(), inputs,
-    coordinatePlans: Object.fromEntries(Object.entries(plan?.validation.valid?(plans??plan.strategyPlans??{}):{}).filter(([,p])=>p?.validation.valid).map(([key,p])=>[key,{strategy:p!.strategy,singleCartonLimit:p!.singleCartonLimit,placements:p!.placements,pallets:p!.pallets,palletization:p!.palletization,delivery:p!.delivery,accessConfig:p!.accessConfig}])),
-    ...(plan?.validation.valid ? { coordinatePlan: { strategy: plan.strategy, singleCartonLimit: plan.singleCartonLimit, placements: plan.placements,pallets:plan.pallets,palletization:plan.palletization,delivery:plan.delivery,accessConfig:plan.accessConfig } } : {}) }, null, 2);
+    coordinatePlans: Object.fromEntries(Object.entries(plan?.validation.valid?(plans??plan.strategyPlans??{}):{}).filter(([,p])=>p?.validation.valid).map(([key,p])=>[key,{workflow:p!.workflow,palletBuild:p!.palletBuild,strategy:p!.strategy,singleCartonLimit:p!.singleCartonLimit,placements:p!.placements,pallets:p!.pallets,palletization:p!.palletization,delivery:p!.delivery,accessConfig:p!.accessConfig}])),
+    ...(plan?.validation.valid ? { coordinatePlan: { workflow:plan.workflow,palletBuild:plan.palletBuild,strategy: plan.strategy, singleCartonLimit: plan.singleCartonLimit, placements: plan.placements,pallets:plan.pallets,palletization:plan.palletization,delivery:plan.delivery,accessConfig:plan.accessConfig } } : {}) }, null, 2);
 }
 
 
 export function restoreWorkspacePlans(contents: string, inputs: WorkspaceInputs) {
   const raw=record(JSON.parse(contents));
-  const request={floorPallets:inputs.floorPallets,loadingRules:inputs.loadingRules,mode:inputs.mode,strategy:inputs.strategy,practicalTargetUtilization:inputs.practicalTargetPercent/100,container:inputs.container,clearance:inputs.clearance,products:inputs.products};
+  const request={workflow:inputs.workflow,palletBuild:inputs.palletBuild,floorPallets:inputs.workflow==="pallet-only"||inputs.workflow==="palletized"?undefined:inputs.floorPallets,loadingRules:inputs.loadingRules,mode:inputs.mode,strategy:inputs.strategy,practicalTargetUtilization:inputs.practicalTargetPercent/100,container:inputs.container,clearance:inputs.clearance,products:inputs.products};
   const plans:NonNullable<PackingResult["strategyPlans"]>={};
   if(raw.coordinatePlans!==undefined)for(const [key,snapshot] of Object.entries(record(raw.coordinatePlans))){if(key!=="practical"&&key!=="maximum")throw new Error("归档算法无效");const p=restorePackingSnapshot(request,snapshot);if(p.strategy!==key)throw new Error("算法与坐标不一致");plans[key]=p;}
   const selected=raw.coordinatePlan===undefined?plans[inputs.strategy]??plans.practical??plans.maximum:restorePackingSnapshot(request,raw.coordinatePlan);

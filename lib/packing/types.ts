@@ -1,4 +1,13 @@
 export type PackingMode = "single" | "mixed";
+export type LoadingWorkflow = "direct" | "pallet-only" | "palletized" | "single-capacity";
+export type PalletBuildOptions = {
+  config: FloorPalletConfig;
+  mix: "single" | "mixed";
+  maxPallets: number;
+  stackLayers: number;
+  /** Certified additional load above a complete loaded pallet; 0 disables stacking. */
+  maxTopLoadKg: number;
+};
 export type PackingStrategy = "practical" | "maximum";
 export type RotationPolicy = "fixed" | "upright" | "any";
 export type OrientationCode = "LWH" | "LHW" | "WLH" | "WHL" | "HLW" | "HWL";
@@ -103,6 +112,8 @@ export type ProductInput = {
 };
 
 export type PackingRequest = {
+  workflow?: LoadingWorkflow;
+  palletBuild?: PalletBuildOptions;
   delivery?: import("./access").DeliveryMap;
   accessConfig?: import("./maneuver").AccessConfig;
   floorPallets?: FloorPalletConfig;
@@ -297,6 +308,8 @@ export type QuoteEstimate = {
 };
 
 export type PackingResult = {
+  workflow?: LoadingWorkflow;
+  palletBuild?: PalletBuildOptions;
   palletization?: import("./prebuilt-pallets").Palletization;
   delivery?: import("./access").DeliveryMap;
   accessConfig?: import("./maneuver").AccessConfig;

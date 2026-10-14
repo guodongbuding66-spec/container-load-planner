@@ -6,7 +6,7 @@ import { roundedCartonVolumeCbm } from "./volume";
 
 export const MAX_CSV_BYTES = 5 * 1024 * 1024;
 export const MAX_CSV_ROWS = 10_000;
-export const PLACEMENT_CSV_HEADER = "序号,SKU,品名,套装编码,套号,套内序号,X(mm),Y(mm),Z(mm),长(mm),宽(mm),高(mm),方向,层级,重量(kg),记录类型,托盘关联,客户,目的地,卸货站次,货物外形,圆筒轴向,顶边或顶径比例,竖壁厚度比例,横壁厚度比例,高台长度比例,低台高度比例,旋转轴符号,实体模型JSON,保护间隙(mm)";
+export const PLACEMENT_CSV_HEADER = "序号,SKU,品名,套装编码,套号,套内序号,X(mm),Y(mm),Z(mm),长(mm),宽(mm),高(mm),方向,层级,重量(kg),记录类型,托盘关联,客户,目的地,卸货站次,货物外形,圆筒轴向,顶边或顶径比例,竖壁厚度比例,横壁厚度比例,高台长度比例,低台高度比例,旋转轴符号,实体模型JSON,保护间隙(mm),装载方式,坐标用途";
 
 const REQUIRED_PRODUCT_COLUMNS = ["sku", "name", "length", "width", "height", "weight", "quantity"];
 const VALID_COLOR = /^#[0-9a-f]{6}$/i;
@@ -27,6 +27,8 @@ export function toCsvCell(value: string | number | null | undefined) {
 }
 
 export function buildPlacementCsv(result: PackingResult) {
+  const workflow = result.workflow ?? (result.palletization ? "palletized" : result.mode === "single" ? "single-capacity" : "direct");
+  const frame = workflow === "pallet-only" ? "pallet-inspection" : "vehicle-loading";
   const rows = result.placements.map((box, index) => [
     index + 1,
     box.sku,
@@ -56,10 +58,10 @@ export function buildPlacementCsv(result: PackingResult) {
     result.cargoDetails?.[box.productId]?.shapeStepLengthRatio??"",
     result.cargoDetails?.[box.productId]?.shapeStepHeightRatio??"",
     box.orientationSigns?JSON.stringify(box.orientationSigns):"",
-    result.cargoDetails?.[box.productId]?.solidModel?JSON.stringify(result.cargoDetails[box.productId].solidModel):"",result.cargoDetails?.[box.productId]?.protectionGap??"",
+    result.cargoDetails?.[box.productId]?.solidModel?JSON.stringify(result.cargoDetails[box.productId].solidModel):"",result.cargoDetails?.[box.productId]?.protectionGap??"",workflow,frame,
   ].map(toCsvCell).join(","));
 
-  const palletRows=(result.pallets??[]).map(p=>[0,p.id,p.name,"","","",p.x,p.y,p.z,p.dx,p.dy,p.dz,p.orientation,0,p.weight,"pallet",p.id,"","","","box","","","","","","",""].map(toCsvCell).join(","));
+  const palletRows=(result.pallets??[]).map(p=>[0,p.id,p.name,"","","",p.x,p.y,p.z,p.dx,p.dy,p.dz,p.orientation,0,p.weight,"pallet",p.id,"","","","box","","","","","","",""].concat(["","",workflow,frame]).map(toCsvCell).join(","));
   return [PLACEMENT_CSV_HEADER, ...palletRows, ...rows].join("\r\n");
 }
 

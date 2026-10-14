@@ -9,15 +9,16 @@ type Props={result:PackingResult;pending?:boolean;visibleCount?:number};
 export function RemainingCapacity({result,pending=false,visibleCount=result.placements.length}:Props) {
   useLanguage();
   const prefixes=useMemo(()=>packingCapacityPrefixes(result),[result]);
-  if(pending||!result.validation.valid)return <section className="remaining-capacity" aria-label={tr("集装箱剩余容量")}><p role="status">{pending?tr("尺寸尚未提交，剩余容量将在计算完成后更新。"):tr("当前方案未通过校验，暂不提供剩余容量参考。")}</p></section>;
+  if(pending||!result.validation.valid)return <section className="remaining-capacity" aria-label={tr(result.workflow === "pallet-only" ? "托盘剩余容量" : "集装箱剩余容量", result.workflow === "pallet-only" ? "Pallet capacity remaining" : "Remaining container capacity")}><p role="status">{pending?tr("尺寸尚未提交，剩余容量将在计算完成后更新。"):tr("当前方案未通过校验，暂不提供剩余容量参考。")}</p></section>;
   const count=Math.max(0,Math.min(result.placements.length,Math.floor(visibleCount)));
   const cargoVolume=prefixes.volumes[count],cargoWeight=prefixes.weights[count];
   const space=palletSpaceSummary(result.container,result.clearance,result.pallets??[],cargoVolume,cargoWeight);
+  if(result.workflow === "pallet-only") { space.effectiveVolume=result.metrics.effectiveVolume;space.cargoCapacity=Math.max(0,space.effectiveVolume-space.reservedVolume);space.remainingVolume=Math.max(0,space.cargoCapacity-cargoVolume); }
   const total=space.effectiveVolume/1e9,used=(cargoVolume+space.reservedVolume)/1e9,remaining=space.remainingVolume/1e9;
   const remainingRatio=total>0?Math.min(1,remaining/total):0;
   const number=(n:number)=>n.toLocaleString("zh-CN",{maximumFractionDigits:1});
-  return <section className="remaining-capacity" aria-label={tr("集装箱剩余容量")}>
-    <div className="remaining-capacity-heading"><strong>{tr("集装箱剩余容量")}</strong><span>{tr("当前装载", "Current load")} {count} / {result.placements.length} {tr("箱")}</span></div>
+  return <section className="remaining-capacity" aria-label={tr(result.workflow === "pallet-only" ? "托盘剩余容量" : "集装箱剩余容量", result.workflow === "pallet-only" ? "Pallet capacity remaining" : "Remaining container capacity")}>
+    <div className="remaining-capacity-heading"><strong>{tr(result.workflow === "pallet-only" ? "托盘剩余容量" : "集装箱剩余容量", result.workflow === "pallet-only" ? "Pallet capacity remaining" : "Remaining container capacity")}</strong><span>{tr("当前装载", "Current load")} {count} / {result.placements.length} {tr("箱")}</span></div>
     <div className="remaining-capacity-grid">
       <article><span>{tr("剩余有效容积")}</span><strong>{remaining.toFixed(2)} <small>m³ / CBM</small></strong><small>{tr("占有效容积 ")}{(remainingRatio*100).toFixed(1)}%</small></article>
       <article><span>{tr("已用 / 有效总容积")}</span><strong>{used.toFixed(2)} / {total.toFixed(2)} <small>m³</small></strong><small>{result.pallets?.length?tr("已用包含货物与托盘；净空已扣安全间隙"):tr("有效总容积已扣除安全间隙")}</small></article>

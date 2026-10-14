@@ -131,8 +131,8 @@ test("defers the heavy 3D bundle until a result exists and isolates render failu
 test("provides accessible names for mode, ranges, and product data fields", async () => {
   const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
 
-  assert.match(source, /role="group" aria-label=\{tr\("计算模式"\)\}/);
-  assert.match(source, /aria-pressed=\{mode === "single"\}/);
+  assert.match(source, /role="group" aria-label=\{tr\("装载方式", "Loading workflow"\)\}/);
+  assert.match(source, /aria-pressed=\{workflow === value\}/);
   assert.match(source, /aria-label=\{tr\("安全间隙"\)\}/);
   assert.match(source, /aria-label=\{tr\("目标体积利用率滑块"\)\}/);
   assert.match(source, /ariaLabel=\{tt`\$\{product\.sku\} 外箱长`\}/);
@@ -216,7 +216,7 @@ test("runs two independent solvers and exposes actionable strategy guidance", as
   const worker = await readFile(new URL("../lib/packing/packing.worker.ts", import.meta.url), "utf8");
   const views = await readFile(new URL("../components/orthographic-views.tsx", import.meta.url), "utf8");
 
-  assert.match(worker, /pack\(\{/);
+  assert.match(worker, /packLoadingWorkflow\(\{/);
   assert.match(worker, /type !== "pack-strategy"/);
   assert.match(engine, /export function packWithComparison/);
   assert.match(engine, /export function combineStrategyResults/);
