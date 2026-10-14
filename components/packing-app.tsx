@@ -1964,7 +1964,7 @@ export function PackingApp() {
             </section>
             </details>
             {result?.metrics.loadedCount === 0 && <ZeroLoadNotice result={result} products={activeProducts} unit={lengthUnit} onEdit={id=>{goToStep(1);if(id)setActiveCargo(id);}}/>}
-            {result ? <RemainingCapacity result={result} pending={hasPendingDimensionChanges} /> : null}
+            {result ? <RemainingCapacity result={result} visibleCount={packingProgress} pending={hasPendingDimensionChanges} /> : null}
             {result ? (
               <>
                 <div className="packing-timeline">

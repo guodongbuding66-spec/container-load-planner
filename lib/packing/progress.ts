@@ -12,6 +12,17 @@ export type PackingProgressSummary = {
   currentSetCartons?: number;
 };
 
+/** Prefix totals follow executable carton order; visibility filters do not alter a load. */
+export function packingCapacityPrefixes(result:PackingResult){
+  const perCargo=new Map(result.summaries.map(s=>[s.productId,{volume:s.loaded?s.loadedVolume/s.loaded:0}]));
+  const volumes=[0],weights=[0];
+  for(const box of result.placements){
+    volumes.push(volumes.at(-1)!+(perCargo.get(box.productId)?.volume??box.dx*box.dy*box.dz));
+    weights.push(weights.at(-1)!+box.weight);
+  }
+  return {volumes,weights};
+}
+
 function setKey(box: PlacedBox) {
   return box.setCode && box.setNumber !== undefined
     ? `${box.setCode}\u0000${box.setNumber}`

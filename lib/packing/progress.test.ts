@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { summarizePackingProgress } from "./progress";
+import { packingCapacityPrefixes, summarizePackingProgress } from "./progress";
 import type { PackingResult, PlacedBox } from "./types";
 
 function box(id: string, setNumber: number, setItemNumber: number): PlacedBox {
@@ -31,6 +31,12 @@ const result = {
 } as PackingResult;
 
 describe("packing progress", () => {
+  it("accumulates actual shape volume and fixture-inclusive weight in loading order",()=>{
+    const r={...result,summaries:[{productId:'a',loaded:2,loadedVolume:600000},{productId:'b',loaded:2,loadedVolume:200000}]} as PackingResult;
+    const totals=packingCapacityPrefixes(r);
+    expect(totals.volumes).toEqual([0,300000,600000,700000,800000]);
+    expect(totals.weights).toEqual([0,1,2,3,4]);
+  });
   it("uses completed sets as the primary count without losing carton-level loading order", () => {
     expect(summarizePackingProgress(result, 2)).toMatchObject({
       isSetMode: true,

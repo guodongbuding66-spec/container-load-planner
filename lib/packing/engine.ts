@@ -1438,6 +1438,30 @@ function packSingle(request: PackingRequest, container: EffectiveContainer, fiel
   };
 }
 
+/** A certified envelope grid is a starting solution, never a proof that cavities are exhausted. */
+function solidGridSeed(request:PackingRequest,container:EffectiveContainer,fieldLimit?:number){
+  const product=request.products[0],strategy=packingStrategy(request),gap=product.protectionGap??0;
+  const allowed=orientationsForStrategy(product,container,strategy).filter(o=>!modelRestError(makePlacement(product,0,{x:0,y:0,z:0},o),product));
+  let best:PlacedBox[]=[];
+  const accepts=(boxes:PlacedBox[])=>boxes.length>best.length&&validatePacking(boxes,request.container,request.clearance,request.products,strategy,request.mode).valid;
+  if(!gap&&allowed.length){
+    const proposal=packSingle({...request,products:[{...product,allowedOrientations:allowed.map(o=>o.label as OrientationCode)}]},container,fieldLimit);
+    if(!('theoreticalCount' in proposal&&typeof proposal.theoreticalCount==='number'&&proposal.theoreticalCount>proposal.placements.length)&&accepts(proposal.placements))best=proposal.placements;
+  }
+  const volume=product.length*product.width*product.height;
+  const limit=Math.min(MAX_VISIBLE_PLACEMENTS,4000,request.singleCartonLimit??Infinity,product.weight>0?Math.floor(request.container.maxWeight/product.weight):Infinity,fieldLimit??Infinity,strategy==='practical'?Math.max(1,Math.floor(container.length*container.width*container.height*practicalTarget(request)/volume)):Infinity);
+  for(const o of allowed){
+    const nx=Math.floor((container.length+gap)/(o.dx+gap)),ny=Math.floor((container.width+gap)/(o.dy+gap));
+    const nz=Math.min(Math.floor(container.height/o.dz),product.bottomOnly||product.stackable===false?1:maxStackLayers(product)||Infinity);
+    if(nx*ny*nz<=best.length)continue;
+    const boxes:PlacedBox[]=[];
+    for(let z=0;z<nz&&boxes.length<limit;z++)for(let y=0;y<ny&&boxes.length<limit;y++)for(let x=0;x<nx&&boxes.length<limit;x++)boxes.push(makePlacement(product,boxes.length,{x:x*(o.dx+gap),y:y*(o.dy+gap),z:z*o.dz},o,z+1));
+    if(accepts(boxes))best=boxes;
+    else {const floor=boxes.filter(b=>b.z===0);if(accepts(floor))best=floor;}
+  }
+  return best.length?{placements:best,warnings:[] as string[]}:undefined;
+}
+
 type SortStrategy = (a: ProductInput, b: ProductInput) => number;
 
 const strategies: SortStrategy[] = [
@@ -1532,10 +1556,18 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
   };
 
   rebuildIndexes();
-  if (anchors.length) points.push(...anchors.flatMap(b=>[
-    {x:b.x+b.dx,y:b.y,z:b.z},{x:b.x,y:b.y+b.dy,z:b.z},{x:b.x,y:b.y,z:b.z+b.dz},
-    {x:0,y:b.y,z:b.z+b.dz},{x:b.x,y:0,z:b.z+b.dz},{x:b.x+b.dx,y:0,z:0}
-  ]));
+  if (anchors.length) {
+    points.push(...anchors.flatMap(b=>{
+      const product=productMap.get(b.productId),gap=product?.protectionGap??0;
+      return [
+        {x:b.x+b.dx+gap,y:b.y,z:b.z,envelope:true},{x:b.x,y:b.y+b.dy+gap,z:b.z,envelope:true},{x:b.x,y:b.y,z:b.z+b.dz,envelope:true},
+        {x:0,y:b.y,z:b.z+b.dz,envelope:true},{x:b.x,y:0,z:b.z+b.dz,envelope:true},{x:b.x+b.dx+gap,y:0,z:0,envelope:true},
+        ...(product?modelCandidatePoints(b,product):[]),
+      ];
+    }));
+    const unique=new Map(points.map(p=>[pointKey(p),p]));
+    points=selectPoints([...unique.values()],strategy==='maximum'?3200:1600);
+  }
   const placeProduct = (product: ProductInput) => {
     if (totalWeight + product.weight > request.container.maxWeight + EPS) return false;
     let orientations = orientationCache.get(product.id);
@@ -1686,7 +1718,11 @@ function packMixed(request: PackingRequest, container: EffectiveContainer, ancho
   const activeStrategies = request.searchPass !== undefined ? [variants[Math.abs(request.searchPass) % variants.length]] : requested > 4000 && request.loadingRules?.search !== "deep" ? variants.slice(0, 2) : variants;
   let best: PlacedBox[] = [];
   let bestScore = -1;
+  const attemptedOrders=new Set<string>();
   for (const strategy of activeStrategies) {
+    const order=[...request.products].sort(strategy).map(p=>p.id).join('\u0000');
+    if(attemptedOrders.has(order))continue;
+    attemptedOrders.add(order);
     const placements = packMixedWithStrategy(request, container, strategy, anchors);
     const score = weightedScore(placements, request.products);
     if (score > bestScore) {
@@ -2076,13 +2112,12 @@ export function pack(request: PackingRequest): PackingResult {
   const palletUnitCount = normalized.products.reduce((n,p)=>n+(setCode(p)?unitsPerSet(p):1),0);
   const palletUnitLimit = Math.max(0, Math.floor(Math.min((effectiveVolume-pallets.reduce((n,p)=>n+p.dx*p.dy*p.dz,0))/palletUnitVolume, (MAX_VISIBLE_PLACEMENTS-pallets.length)/palletUnitCount, (normalized.singleCartonLimit??MAX_VISIBLE_PLACEMENTS)/palletUnitCount, palletUnitWeight>0?(normalized.container.maxWeight-palletWeight)/palletUnitWeight:Infinity)));
   const palletRequest: PackingRequest = {...normalized, products: [...normalized.products.map(p=>normalized.mode==="single"?{...p,quantity:palletUnitLimit*(setCode(p)?unitsPerSet(p):1)}:p), ...palletSupportProducts(pallets).map(p=>({...p,quantity:0}))]};
-  let certifiedGrid:ReturnType<typeof packSingle>|undefined;
-  if(!pallets.length&&normalized.mode==='single'&&normalized.products.length===1&&normalized.products[0].solidModel&&!normalized.products[0].protectionGap){
-    const product=normalized.products[0],allowed=orientationsForStrategy(product,effective,normalized.strategy!).filter(o=>!modelRestError(makePlacement(product,0,{x:0,y:0,z:0},o),product)).map(o=>o.label as OrientationCode);
-    if(allowed.length){
-      const proposal=packSingle({...normalized,products:[{...product,allowedOrientations:allowed}]},effective,fieldPracticalSetLimit);
-      const reachedLimit=product.weight>0&&proposal.placements.length>=Math.floor(normalized.container.maxWeight/product.weight)||normalized.singleCartonLimit!==undefined&&proposal.placements.length>=normalized.singleCartonLimit;
-      if(proposal.placements.length&&!("theoreticalCount" in proposal&&typeof proposal.theoreticalCount==='number'&&proposal.theoreticalCount>proposal.placements.length)&&(normalized.strategy==='practical'||reachedLimit)&&validatePacking(proposal.placements,normalized.container,normalized.clearance,normalized.products,normalized.strategy,normalized.mode).valid)certifiedGrid=proposal;
+  let certifiedGrid:{placements:PlacedBox[];warnings:string[]}|undefined;
+  if(!pallets.length&&normalized.mode==='single'&&normalized.products.length===1&&normalized.products[0].solidModel&&!setCode(normalized.products[0])){
+    const seed=solidGridSeed(normalized,effective,fieldPracticalSetLimit),product=normalized.products[0];
+    if(seed){
+      const reachedLimit=product.weight>0&&seed.placements.length>=Math.floor(normalized.container.maxWeight/product.weight)||normalized.singleCartonLimit!==undefined&&seed.placements.length>=normalized.singleCartonLimit;
+      certifiedGrid=normalized.strategy==='practical'||reachedLimit?seed:packMixed(bearingRequest,effective,seed.placements);
     }
   }
   const output = certifiedGrid ?? (pallets.length ? packMixed(palletRequest, effective, supports) : bearingEnabled ? packMixed(bearingRequest, effective) : normalized.mode === "single"

@@ -33,6 +33,15 @@ describe.each(["practical", "maximum"] as const)("shape loading in %s", strategy
 });
 
 describe("zero-load causes", () => {
+  it.each(["practical", "maximum"] as const)("loads the screenshot's solid trapezoid with 1 cm protection gap (%s)",strategy=>{
+    const solidModel=defaultSolidModel('trapezoid',[500,500,850]);
+    solidModel.parts[0].dimensions.topLength=250;
+    const p={...cargo('box'),cargoShape:'trapezoid' as const,solidModel:parseSolidModel(solidModel)!,length:500,width:500,height:850,protectionGap:10,weight:42.5,stackable:true,rotationPolicy:'any' as const,allowedOrientations:['LWH','LHW','WLH','WHL','HLW','HWL'] as ProductInput['allowedOrientations']};
+    const gp={...container,length:12032,width:2352,height:2395,doorWidth:2340,doorHeight:2280,maxWeight:28600};
+    const result=pack({mode:'single',strategy,container:gp,clearance:10,products:[p]});
+    expect(result.validation.errors).toEqual([]);expect(result.metrics.loadedCount).toBeGreaterThan(60);
+    expect(result.placements.every(b=>p.allowedOrientations!.includes(b.orientation as never))).toBe(true);
+  },20000);
   it.each(["practical", "maximum"] as const)("calculates full-size HQ tube capacity instead of timing out (%s)", strategy => {
     const solidModel=parseSolidModel(defaultSolidModel("tube",[500,500,200]))!;
     const p={...cargo("tube"),solidModel,length:500,width:500,height:200,weight:42.5,stackable:true,rotationPolicy:"any" as const,allowedOrientations:["LWH","LHW","WLH","WHL","HLW","HWL"] as ProductInput["allowedOrientations"]};
