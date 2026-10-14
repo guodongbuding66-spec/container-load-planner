@@ -23,11 +23,11 @@ export function CargoSettings({ product, mode, lengthUnit: initialLengthUnit, we
   useLanguage();
   const [lengthUnit,setLengthUnit]=useState(initialLengthUnit);
   const [modeling,setModeling]=useState(false),[exportingModel,setExportingModel]=useState(false),[modelUndo,setModelUndo]=useState<SolidModel[]>([]),[modelRedo,setModelRedo]=useState<SolidModel[]>([]);
-  const [draft,setDraft]=useState<ProductInput>({...product,cargoType:product.cargoType??"carton",cargoShape:cargoShapeOf(product),solidModel:product.solidModel?calibrateSolidModel(product.solidModel,[product.length,product.width,product.height]):undefined});
+  const [draft,setDraft]=useState<ProductInput>(()=>({...product,cargoType:product.cargoType??"carton",cargoShape:cargoShapeOf(product),solidModel:product.solidModel?calibrateSolidModel(product.solidModel,[product.length,product.width,product.height]):undefined}));
   const [directions,setDirections]=useState<OrientationCode[]>(product.allowedOrientations??(product.rotationPolicy==="fixed"?["LWH"]:product.rotationPolicy==="upright"?["LWH","WLH"]:[...ORIENTATION_CODES]));
   const [sizes,setSizes]=useState(()=>sizeDraftOf(product,lengthUnit));
   const [sizeOptions,setSizeOptions]=useState(()=>sizeOptionsOf(product));
-  const [values,setValues]=useState({weight:String(fromKilograms(Math.max(0,product.weight-(product.solidModel?buildSolidModel(product.solidModel).fixtureWeight:0)),weightUnit)),quantity:String(product.quantity),layers:String(product.maxStackLayers),base:String(fromMillimeters(product.palletBaseHeight??144,lengthUnit))});
+  const [values,setValues]=useState(()=>({weight:String(fromKilograms(Math.max(0,product.weight-(product.solidModel?buildSolidModel(product.solidModel).fixtureWeight:0)),weightUnit)),quantity:String(product.quantity),layers:String(product.maxStackLayers),base:String(fromMillimeters(product.palletBaseHeight??144,lengthUnit))}));
   const [previewCode,setPreviewCode]=useState<OrientationCode>("LWH"),[activeDimension,setActiveDimension]=useState<string|undefined>(),[selectedPart,setSelectedPart]=useState<string|undefined>();
   const [error,setError]=useState(""),[modelInputValid,setModelInputValid]=useState(true),[modelBusy,setModelBusy]=useState(false),[modelSession,setModelSession]=useState(0),[protection,setProtection]=useState(()=>String(fromMillimeters(product.protectionGap??0,lengthUnit)));
   const shape=cargoShapeOf(draft),profile=isRectilinearShape(draft),canSupport=shapeCanSupport(draft);

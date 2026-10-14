@@ -1,3 +1,4 @@
+import { visiblePlanPallets } from "./prebuilt-pallets";
 import { describe, expect, it } from "vitest";
 import { buildPlacementCsv, parseCsvRecords } from "./csv";
 import { packLoadingWorkflow } from "./pack-loading";
@@ -11,6 +12,10 @@ const request: PackingRequest = { workflow: "palletized", palletBuild: build, mo
 const inputs = { workflow: request.workflow, palletBuild: build, mode: "mixed" as const, strategy: "maximum" as const, practicalTargetPercent: 95, container: request.container, clearance: 0, products: [product], customContainers: [], targetVolumePercent: 85, targetWeightPercent: 85, lengthUnit: "mm" as const, weightUnit: "kg" as const };
 
 describe("First-class loading workflows", () => {
+  it("fills practical pallet decks fully before applying the vehicle utilization target",()=>{
+    const only=packLoadingWorkflow({...request,strategy:"practical",workflow:"pallet-only"});expect(only.placements).toHaveLength(12);expect(only.pallets).toHaveLength(3);expect(only.metrics.volumeUtilization).toBeCloseTo(1);
+    const loaded=packLoadingWorkflow({...request,strategy:"practical",practicalTargetUtilization:.88});expect(loaded.placements).toHaveLength(8);expect(loaded.pallets!.some(p=>p.z>0)).toBe(true);expect(loaded.metrics.volumeUtilization).toBeLessThanOrEqual(.88);
+  });
   it("builds three rigid layers, preserving actual decks, cargo coordinates, local carton layers and gross weight", () => {
     const plan = packLoadingWorkflow(request);
     expect(plan.validation.errors).toEqual([]);
@@ -19,6 +24,15 @@ describe("First-class loading workflows", () => {
     expect(plan.placements.every(b => b.layer === 1 && b.palletIds?.length === 1)).toBe(true);
     expect(plan.metrics.grossWeight).toBe(180);
     expect(plan.metrics.loadedVolume).toBe(12*500*500*200+3*1000*1000*100);
+  });
+  it("loads all supporting cargo before an elevated pallet starts and synchronizes deck playback",()=>{
+    const plan=packLoadingWorkflow(request);
+    for(const p of plan.pallets!.filter(p=>p.z>0)){
+      const lower=plan.pallets!.find(q=>q.id!==p.id&&q.z<p.z&&q.x===p.x&&q.y===p.y&&Math.max(...plan.placements.filter(b=>b.palletIds?.includes(q.id)).map(b=>b.z+b.dz))===p.z)!;
+      const firstUpper=plan.placements.findIndex(b=>b.palletIds?.includes(p.id));
+      expect(plan.placements.slice(firstUpper).some(b=>b.palletIds?.includes(lower.id))).toBe(false);
+    }
+    expect(visiblePlanPallets(plan,0)).toHaveLength(0);expect(visiblePlanPallets(plan,4)).toHaveLength(1);expect(visiblePlanPallets(plan,5)).toHaveLength(2);expect(visiblePlanPallets(plan,12)).toHaveLength(3);
   });
   it("enforces stack layers, declared unit top load, carton upper load and payload independently", () => {
     expect(packLoadingWorkflow({...request,palletBuild:{...build,stackLayers:1}}).pallets).toHaveLength(1);

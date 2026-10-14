@@ -1,6 +1,12 @@
 import { parseFloorPalletConfig } from "./floor-pallets";
 import { bearingLoads } from "./bearing";
-import type { ContainerSpec, FloorPalletConfig, PlacedBox, PlacedPallet } from "./types";
+import type { ContainerSpec, FloorPalletConfig, PackingResult, PlacedBox, PlacedPallet } from "./types";
+/** A prebuilt deck appears when its unit begins; floor-laid decks are present from the start. */
+export function visiblePlanPallets(plan: PackingResult, visibleCount: number): PlacedPallet[] {
+  if (!plan.palletization) return plan.pallets ?? [];
+  const ids = new Set(plan.placements.slice(0, Math.max(0, Math.floor(visibleCount))).flatMap(b=>b.palletIds ?? []));
+  return (plan.pallets ?? []).filter(p=>ids.has(p.id));
+}
 export type Palletization = { config: FloorPalletConfig; mix: "single" | "mixed"; stackLayers?: number; maxTopLoadKg?: number; preparedCount?: number; bounded?: boolean; only?: boolean };
 export function parsePalletization(value: unknown): Palletization | undefined {
   if (value === undefined) return undefined;

@@ -74,6 +74,7 @@ function packingStrategy(request: PackingRequest): PackingStrategy {
 }
 
 function practicalTarget(request: PackingRequest) {
+  if (request.palletBuildStage && request.container.category === "pallet") return 1;
   return request.practicalTargetUtilization ?? recommendedPracticalTarget(request.container);
 }
 
@@ -111,6 +112,7 @@ export function validateContainerInput(container: ContainerSpec, clearance: numb
 }
 
 function assertValidRequest(request: PackingRequest) {
+  if (request.palletBuildStage !== undefined && (request.palletBuildStage !== true || request.container.category !== "pallet" || request.container.loadingAccess !== "open" || request.mode !== "mixed")) throw new Error("Invalid pallet-building stage");
   if (request.mode !== "single" && request.mode !== "mixed") {
     throw new Error("计算模式必须是单品最大装柜或多 SKU 拼柜。");
   }
@@ -2473,7 +2475,7 @@ export function revisePackingResult(original: PackingResult, placements: PlacedB
     indexSupport(levels,box,productMap);
     return box;
   });
-  const ordered = assignPalletReferences(orderForLoading(relayered,products), pallets, products);
+  const ordered = assignPalletReferences(orderForLoading([...palletAnchors(pallets),...relayered],[...products,...palletSupportProducts(pallets)]).filter(b=>!b.supportOnly), pallets, products);
   const validation = validatePacking(ordered, original.container, original.clearance, products, original.strategy, original.mode, pallets, original.floorPallets, original.palletization);
   if (!validation.valid) throw new Error(validation.errors.slice(0,3).join("\n"));
   if(original.palletization){const errors=validatePalletizedCargo(ordered,pallets,original.container,original.clearance,original.palletization);if(errors.length)throw new Error(errors.slice(0,3).join("\n"));}
@@ -2563,7 +2565,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
       weight:b.weight as number,layer:b.layer as number,orientation:b.orientation as string,orientationSigns:b.orientationSigns as PlacedBox["orientationSigns"],locked:b.locked as boolean|undefined,
       setCode:b.setCode as string|undefined,setNumber:b.setNumber as number|undefined,setItemNumber:b.setItemNumber as number|undefined};
   });
-  const ordered=assignPalletReferences(orderForLoading(placements,products),pallets,products);
+  const ordered=assignPalletReferences(orderForLoading([...palletAnchors(pallets),...placements],[...products,...palletSupportProducts(pallets)]).filter(b=>!b.supportOnly),pallets,products);
   const validation=validatePacking(ordered,request.container,request.clearance,products,raw.strategy,request.mode,pallets,request.floorPallets,palletization);
   if(!validation.valid)throw new Error(`归档坐标未通过当前校验：${validation.errors.slice(0,3).join("；")}`);
   if(palletization){const errors=validatePalletizedCargo(ordered,pallets,request.container,request.clearance,palletization);if(errors.length)throw new Error(errors.join("; "));}

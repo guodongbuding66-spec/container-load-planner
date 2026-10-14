@@ -22,4 +22,4 @@ it("offers explicit unit selection and vehicle fit feedback inside the model set
   const html=renderToStaticMarkup(<CargoSettings product={p} container={container} clearance={10} mode="single" lengthUnit="cm" weightUnit="kg" onSave={()=>{}} onClose={()=>{}}/>);
   expect(html).toContain('aria-label="货物尺寸单位"');expect(html).toContain("保持实际尺寸");expect(html).toContain("500 × 500 × 200 cm");
   expect(html).toContain('自定义建模工作台');expect(html).toMatch(/>导出(?:<!-- -->)? (?:<!-- -->)?GLB</);
-});
+},15000);

@@ -1,5 +1,6 @@
 "use client";
 
+import { visiblePlanPallets } from "../lib/packing/prebuilt-pallets";
 import {tr, tt, useLanguage} from "./language";
 import { palletAnchors } from "../lib/packing/floor-pallets";
 import { Check, Rotate3D } from "lucide-react";
@@ -305,8 +306,8 @@ export function OrthographicViews({
 }: Props) {
   useLanguage();
   const boxes = useMemo(
-    () => [...palletAnchors(result.pallets??[]), ...result.placements.slice(0, Math.max(0, visibleCount)).filter((box) => visibleProducts.has(box.productId))],
-    [result.placements, result.pallets, visibleCount, visibleProducts],
+    () => [...palletAnchors(visiblePlanPallets(result,visibleCount)), ...result.placements.slice(0, Math.max(0, visibleCount)).filter((box) => visibleProducts.has(box.productId))],
+    [result, visibleCount, visibleProducts],
   );
   const effective = {
     length: Math.max(1, result.container.length - result.clearance * 2),

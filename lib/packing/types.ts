@@ -112,6 +112,8 @@ export type ProductInput = {
 };
 
 export type PackingRequest = {
+  /** Internal pallet-building stage: use the full deck envelope while retaining practical support/orientation rules. */
+  palletBuildStage?: true;
   workflow?: LoadingWorkflow;
   palletBuild?: PalletBuildOptions;
   delivery?: import("./access").DeliveryMap;

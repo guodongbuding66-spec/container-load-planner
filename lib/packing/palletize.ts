@@ -41,14 +41,14 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
     const first = remaining.find(p => p.quantity > 0 && !failed.has(p.id));
     if (!first) break;
     const products = remaining.filter(p => p.quantity > 0 && (mix === "mixed" || (first.setCode?.trim() ? p.setCode === first.setCode : p.id === first.id)));
-    const local = pack({ ...request, workflow: undefined, palletBuild: undefined, floorPallets: undefined, mode: "mixed", strategy, practicalTargetUtilization: .95,
+    const local = pack({ ...request, palletBuildStage:true, workflow: undefined, palletBuild: undefined, floorPallets: undefined, mode: "mixed", strategy, practicalTargetUtilization: .95,
       container: { id: "build-pallet", name: config.name, category: "pallet", loadingAccess: "open", length: config.length, width: config.width, height: cargoHeight, doorWidth: config.width, doorHeight: cargoHeight, maxWeight: config.maxLoad }, clearance: 0, products });
     if (!local.validation.valid) throw new Error(local.validation.errors.join("; "));
     if (!local.placements.length) { products.forEach(p => failed.add(p.id)); if (mix === "mixed") break; continue; }
     if (cartonCount + local.placements.length > MAX_VISIBLE_PLACEMENTS) break;
     const height = Math.max(...local.placements.map(b => b.z + b.dz));
     prepared.push({ id: `unit-${prepared.length + 1}`, cargo: local.placements, height: height + config.height, weight: local.metrics.grossWeight + config.weight,
-      tail: local.summaries.every(s => s.unloaded === 0), topCapacity: topCapacity(local.placements, request, config, options) });
+      tail: local.summaries.every(s => s.unloaded === 0), topCapacity: only ? 0 : topCapacity(local.placements, request, config, options) });
     cartonCount += local.placements.length;
     const counts = new Map<string, number>(); for (const b of local.placements) counts.set(b.productId, (counts.get(b.productId) ?? 0) + 1);
     for (const p of remaining) p.quantity -= counts.get(p.id) ?? 0;
@@ -91,7 +91,7 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
     if (plan.metrics.envelopeVolume !== undefined) plan.metrics.envelopeUtilization = plan.metrics.envelopeVolume / plan.metrics.effectiveVolume;
     plan.warnings.unshift("仅生成独立托盘；三维编组位置用于查看，不代表柜内箱位。利用率按每托限高包络统计");
   }
-  if (options.stackLayers > 1) plan.warnings.unshift("整托堆叠按声明的整托上压和已提供的箱体承重核验；缺少箱体承重资料时不能视为逐箱承重已核验");
+  if (!only && options.stackLayers > 1) plan.warnings.unshift("整托堆叠按声明的整托上压和已提供的箱体承重核验；缺少箱体承重资料时不能视为逐箱承重已核验");
   plan.metrics.solveTimeMs = performance.now() - started;
   return { plan, prepared, loadedPallets: pallets.length, unloadedPallets: prepared.length - pallets.length, remaining: plan.summaries.filter(s => s.unloaded > 0), bounded: (prepared.length === options.maxPallets || cartonCount >= MAX_VISIBLE_PLACEMENTS) && remaining.some(p => p.quantity > 0) };
 }

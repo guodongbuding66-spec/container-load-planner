@@ -1,5 +1,6 @@
 "use client";
 
+import { visiblePlanPallets } from "../lib/packing/prebuilt-pallets";
 import { cargoShapeOf } from "../lib/packing/cargo-shape";
 import { cargoShapeGeometry } from "../lib/packing/cargo-shape-geometry";
 import { Canvas, useThree } from "@react-three/fiber";
@@ -186,7 +187,7 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
       <SectionGeometry result={result} section={section} scale={scale} offset={offset}>
       {result.workflow !== "pallet-only" && <group position={[0,baseHeight*scale,0]}><TransportModel space={result.container} scale={scale} mode={modelMode} transparency={transparency}/></group>}
       {baseHeight > 0 && (result.container.category !== "pallet" || modelMode === "wireframe") && <PalletStructures pallets={[{id:"space-base",presetId:result.container.id,name:result.container.name,x:0,y:0,z:-baseHeight,dx:effective.length,dy:effective.width,dz:baseHeight,weight:0,maxLoad:result.container.maxWeight,orientation:"LWH"}]} scale={scale} offset={offset}/>}
-      <PalletStructures pallets={(result.pallets??[]).filter(p=>section.isolation!=="pallet"||section.target===p.id)} scale={scale} offset={offset} onSelect={p=>onSelect(palletAnchors([p])[0])}/>
+      <PalletStructures pallets={visiblePlanPallets(result,visibleCount).filter(p=>section.isolation!=="pallet"||section.target===p.id)} scale={scale} offset={offset} onSelect={p=>onSelect(palletAnchors([p])[0])}/>
       {groups.map((group) => (
         <InstancedBoxes key={group.productId} group={group} collisionProxy={appearance.collisionProxy} scale={scale} offset={offset} reducedRendering={reducedRendering} labels={labels} onSelect={onSelect} />
       ))}
