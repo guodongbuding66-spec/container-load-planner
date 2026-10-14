@@ -6,7 +6,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { Box, DoorOpen, Eye, ScanLine, ImageDown, RotateCcw, Tag } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import * as THREE from "three";
-import { boxFaceTexture, CargoLabelInstances, MetricLabel, PalletStructures, SelectionOutline } from "./scene-details";
+import { boxFaceTexture, CargoSurfaceLabels, MetricLabel, PalletStructures, SelectionOutline } from "./scene-details";
 import { SceneDimensions } from "./scene-dimensions";
 import { DimensionControls } from "./dimension-controls";
 import { LoadingSceneFallback } from "./loading-scene-fallback";
@@ -85,11 +85,12 @@ const getServerNotReady = () => false;
 
 function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSelect,collisionProxy=false }: { collisionProxy?:boolean;group: InstanceGroup; scale: number; offset: THREE.Vector3; reducedRendering: boolean; labels:boolean; onSelect:(box:PlacedBox,point?:Point3,add?:boolean)=>void }) {
   useLanguage();
-  const meshRef = useRef<THREE.InstancedMesh>(null), baseRef = useRef<THREE.InstancedMesh>(null);
+  const meshRef = useRef<THREE.InstancedMesh>(null), baseRef = useRef<THREE.InstancedMesh>(null),labelRef=useRef<THREE.InstancedMesh>(null);
   const transform = useMemo(() => new THREE.Object3D(), []);
-  const first=group.boxes[0], shape=cargoShapeOf(group);
+  const first=group.boxes[0],originalFirst=group.sources[0], shape=cargoShapeOf(group);
   const geometry=useMemo(()=>cargoShapeGeometry({cargoType:group.cargoType,cargoShape:group.cargoShape,shapeAxis:group.shapeAxis,shapeTopRatio:group.shapeTopRatio,shapeWallRatio:group.shapeWallRatio,shapeWallHeightRatio:group.shapeWallHeightRatio,shapeStepLengthRatio:group.shapeStepLengthRatio,shapeStepHeightRatio:group.shapeStepHeightRatio,solidModel:group.solidModel},group.orientation as OrientationCode,reducedRendering,group.orientationSigns,collisionProxy),[collisionProxy,group.solidModel,group.cargoType,group.cargoShape,group.shapeAxis,group.shapeTopRatio,group.shapeWallRatio,group.shapeWallHeightRatio,group.shapeStepLengthRatio,group.shapeStepHeightRatio,group.orientation,group.orientationSigns,reducedRendering]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
+  const labelDimensions=useMemo<[number,number,number]>(()=>{const dims:[number,number,number]=[originalFirst.dx,originalFirst.dz,originalFirst.dy],a=originalFirst.orientation.indexOf("H");if(group.cargoType==="pallet")dims[a===0?0:a===1?2:1]-=group.baseHeight??0;return dims;},[originalFirst.dx,originalFirst.dy,originalFirst.dz,originalFirst.orientation,group.baseHeight,group.cargoType]);
   const materials = useMemo(() => {
     const dims=[first.dx,first.dz,first.dy], axis=first.orientation.indexOf("H");
     if(group.cargoType==="pallet")dims[axis===0?0:axis===1?2:1]=Math.max(1,dims[axis===0?0:axis===1?2:1]-(group.baseHeight??0));
@@ -116,12 +117,12 @@ function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSele
       const source=group.sources[index],sourcePosition=[source.x,source.z,source.y],displayPosition=[box.x,box.z,box.y];
       const base=group.cargoType==="pallet"?Math.max(0,Math.min(dims[axis],sourcePosition[axis]+(group.baseHeight??0)-displayPosition[axis])):0;
       dims[axis]-=base;pos[axis]+=base*scale/2;
-      transform.position.set(...pos as [number,number,number]); transform.scale.set(...dims.map(d=>d*scale) as [number,number,number]);transform.updateMatrix();meshRef.current?.setMatrixAt(index,transform.matrix);
+      transform.position.set(...pos as [number,number,number]); transform.scale.set(...dims.map(d=>d*scale) as [number,number,number]);transform.updateMatrix();meshRef.current?.setMatrixAt(index,transform.matrix);labelRef.current?.setMatrixAt(index,transform.matrix);
     });
-    meshRef.current.instanceMatrix.needsUpdate=true;meshRef.current.computeBoundingSphere();
+    meshRef.current.instanceMatrix.needsUpdate=true;meshRef.current.computeBoundingSphere();if(labelRef.current){labelRef.current.instanceMatrix.needsUpdate=true;labelRef.current.computeBoundingSphere();}
     if(baseRef.current){parts.forEach((p,i)=>{transform.position.set((p.x+p.dx/2)*scale+offset.x,(p.z+p.dz/2)*scale+offset.y,(p.y+p.dy/2)*scale+offset.z);transform.scale.set(p.dx*scale*.997,p.dz*scale*.995,p.dy*scale*.997);transform.updateMatrix();baseRef.current!.setMatrixAt(i,transform.matrix);baseRef.current!.setColorAt(i,new THREE.Color(p.kind==="block"?"#ac8151":"#d4af7b"));});baseRef.current.instanceMatrix.needsUpdate=true;if(baseRef.current.instanceColor)baseRef.current.instanceColor.needsUpdate=true;baseRef.current.computeBoundingSphere();}
-  },[group.solidModel,group.boxes,group.sources,group.baseHeight,group.cargoType,parts,materials,offset,scale,transform,shape]);
-  return <><instancedMesh ref={meshRef} args={[geometry,materials,group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering} onClick={e=>{if(e.delta>3)return;e.stopPropagation();if(e.instanceId!==undefined)onSelect(group.boxes[e.instanceId],e.point?[(e.point.x-offset.x)/scale,(e.point.z-offset.z)/scale,(e.point.y-offset.y)/scale]:undefined,e.shiftKey);}}></instancedMesh>{parts.length>0&&<instancedMesh ref={baseRef} args={[undefined,undefined,parts.length]}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>}</>;
+  },[group.solidModel,group.boxes,group.sources,group.baseHeight,group.cargoType,parts,materials,offset,scale,transform,shape,labels]);
+  return <><instancedMesh ref={meshRef} args={[geometry,materials,group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering} onClick={e=>{if(e.delta>3)return;e.stopPropagation();if(e.instanceId!==undefined)onSelect(group.boxes[e.instanceId],e.point?[(e.point.x-offset.x)/scale,(e.point.z-offset.z)/scale,(e.point.y-offset.y)/scale]:undefined,e.shiftKey);}}></instancedMesh>{labels&&(group.solidModel||shape!=="box")&&<CargoSurfaceLabels sku={group.sku} source={geometry} dimensions={labelDimensions} count={group.boxes.length} instanceRef={labelRef}/>} {parts.length>0&&<instancedMesh ref={baseRef} args={[undefined,undefined,parts.length]}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>}</>;
 }
 
 function SceneCapture({ register }: { register: (capture: () => Promise<Blob>) => void }) {
@@ -160,7 +161,8 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
     const sources=new Map(result.placements.map(b=>[b.id,b]));
     for (const box of inspectBoxes(result,visibleProducts,visibleCount,section)) {
       const color=heatColors?.get(box.id)??box.color;
-      const key = `${box.productId}:${box.orientation}:${box.orientationSigns?.join("/")??""}:${box.dx}:${box.dy}:${box.dz}:${color}`;
+      const source=sources.get(box.id)!;
+      const key = `${source.dx}:${source.dy}:${source.dz}:${box.productId}:${box.orientation}:${box.orientationSigns?.join("/")??""}:${box.dx}:${box.dy}:${box.dz}:${color}`;
       const meta = result.cargoDetails?.[box.productId];
       const current = map.get(key) ?? { productId: key, sku: box.sku, orientation: box.orientation, orientationSigns:box.orientationSigns, cargoType: meta?.cargoType,cargoShape:meta?.cargoShape,shapeAxis:meta?.shapeAxis,shapeTopRatio:meta?.shapeTopRatio,shapeWallRatio:meta?.shapeWallRatio,shapeWallHeightRatio:meta?.shapeWallHeightRatio,shapeStepLengthRatio:meta?.shapeStepLengthRatio,shapeStepHeightRatio:meta?.shapeStepHeightRatio,solidModel:meta?.solidModel, baseHeight: meta?.palletBaseHeight, color, boxes: [],sources:[] };
       current.boxes.push(box);
@@ -191,7 +193,6 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
       {editor?.enabled&&editor.selected.filter(b=>b.id!==selected?.id).map(b=><SelectionOutline key={b.id} box={b} scale={scale} offset={offset}/>)}
       {selected && sectionBox(selected,result,section) && <SelectionOutline box={sectionBox(selected,result,section)!} scale={scale} offset={offset}/>}
       </SectionGeometry>
-      {labels&&groups.filter(g=>g.solidModel||cargoShapeOf(g)!=='box').sort((a,b)=>Number(b.boxes.some(c=>c.id===selected?.id))-Number(a.boxes.some(c=>c.id===selected?.id))).map(g=><CargoLabelInstances key={`labels:${g.productId}`} sku={g.sku} boxes={g.boxes} scale={scale} offset={offset} selectedId={selected?.id}/>)}
       {appearance.skuSummaries && annotations.map(([id,a])=><MetricLabel key={id} text={a.sku} size={.12} position={[(a.minX+a.maxX)/2*scale+offset.x,a.maxY*scale+offset.y+.15,(a.minZ+a.maxZ)/2*scale+offset.z]}/>)}
       {appearance.dimensions&&<SceneDimensions bounds={measurement.bounds} values={measurement.values} unit={appearance.dimensionUnit} fontSize={appearance.dimensionFontSize} style={appearance.dimensionStyle} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}
       {appearance.dimensions&&manualMeasurement&&<SceneMeasurement measurement={manualMeasurement} scale={scale} offset={offset}/>}
@@ -270,7 +271,7 @@ export function ContainerScene({
                 </button>
               ))}
             </div>
-          </div></div><div className="scene-tools" aria-label={tr("三维工具", "3D tools")}><button type="button" disabled={!result} aria-pressed={labels} title={tr("异型件箱标按屏幕空间避让；放大或选中查看拥挤区域。","Irregular-cargo labels adapt to screen space; zoom or select cargo in crowded areas.")} onClick={()=>setLabels(!labels)}><Tag size={14}/>{tr("箱标","Labels")}</button><button type="button" disabled={!result} aria-pressed={appearance.skuSummaries} onClick={()=>appearance.setSkuSummaries(!appearance.skuSummaries)} title={tr("在货物上方显示每个 SKU 的汇总标签。","Show one summary label above each SKU.")}><Tag size={14}/>{tr("SKU 汇总","SKU summaries")}</button><button type="button" disabled={!result||!Object.values(result.cargoDetails??{}).some(p=>p.solidModel)} aria-pressed={appearance.collisionProxy} onClick={()=>appearance.updatePreferences({collisionProxy:!appearance.collisionProxy})}>{tr("碰撞体","Collision bodies")}</button><DimensionControls/><button type="button" onClick={()=>{setSelection(null);setFocusId(null);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" disabled={!webglSupported} onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
+          </div></div><div className="scene-tools" aria-label={tr("三维工具", "3D tools")}><button type="button" disabled={!result} aria-pressed={labels} title={tr("箱标贴附在货物表面，随货物旋转和缩放。","Labels are attached to cargo surfaces and follow their orientation and scale.")} onClick={()=>setLabels(!labels)}><Tag size={14}/>{tr("箱标","Labels")}</button><button type="button" disabled={!result} aria-pressed={appearance.skuSummaries} onClick={()=>appearance.setSkuSummaries(!appearance.skuSummaries)} title={tr("在货物上方显示每个 SKU 的汇总标签。","Show one summary label above each SKU.")}><Tag size={14}/>{tr("SKU 汇总","SKU summaries")}</button><button type="button" disabled={!result||!Object.values(result.cargoDetails??{}).some(p=>p.solidModel)} aria-pressed={appearance.collisionProxy} onClick={()=>appearance.updatePreferences({collisionProxy:!appearance.collisionProxy})}>{tr("碰撞体","Collision bodies")}</button><DimensionControls/><button type="button" onClick={()=>{setSelection(null);setFocusId(null);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" disabled={!webglSupported} onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
 
 {webglSupported!==false&&<TransportModelControls/>}</div>} fullscreenFooter={result&&onVisibleCountChange&&<footer className="scene-progress"><span>{tr("装载进度")}</span><input type="range" min={0} max={result.placements.length} value={visibleCount} aria-label={tr("三维装载进度", "3D loading progress")} onChange={e=>onVisibleCountChange(Number(e.target.value))}/><output>{visibleCount} / {result.placements.length} {tr("箱")}</output></footer>}>
 {editor?.changed&&<p className="scene-draft-notice" role="status">{tr("正在预览编辑草稿；采用后更新指标与导出。","Previewing edit draft. Apply to update totals and exports.")}</p>}
