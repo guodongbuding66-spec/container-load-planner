@@ -17,3 +17,8 @@ it('keeps separate planar islands and declines to cancel overlapping triangles',
  const fallback=unionRegion([polygonRegion(a),polygonRegion([[1,0],[3,0],[1,2]])]),area=regionAreaBounds(fallback);
  expect(area.lower).toBeLessThanOrEqual(3.5);expect(area.upper).toBeGreaterThanOrEqual(3.5);expect(area.upper-area.lower).toBeLessThan(.005);
 });
+it('bounds a large tessellation within its analysis budget without overstating contact',()=>{
+ const triangles=Array.from({length:1000},(_,i)=>polygonRegion([[i,0],[i+1,0],[i,1]])),area=regionAreaBounds(unionRegion(triangles),.0002,32);
+ expect(area.lower).toBeLessThanOrEqual(500);expect(area.upper).toBeGreaterThanOrEqual(500);expect(area.complete).toBe(false);
+ expect(Number.isFinite(area.lower)&&Number.isFinite(area.upper)).toBe(true);
+});

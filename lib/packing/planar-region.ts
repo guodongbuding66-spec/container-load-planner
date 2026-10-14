@@ -41,6 +41,9 @@ export function intervalDifference(a:Interval[],b:Interval[]):Interval[]{let res
 function primitiveBand(r:Extract<Region,{kind:'polygon'|'ellipse'}>,lo:number,hi:number):{lower:Interval[];upper:Interval[]}{
  if(r.kind==='polygon'){
   const bounds=regionBounds(r);if(hi<=bounds[0]||lo>=bounds[2])return {lower:[],upper:[]};
+  // A bounded coarse band may cross vertices. Edge extrapolation across such
+  // a change is not a proof: reserve the entire vertical bound as uncertainty.
+  if(r.points.some(p=>p[0]>lo&&p[0]<hi))return {lower:[],upper:[[bounds[1],bounds[3]]]};
   const mid=(lo+hi)/2,edges=r.points.flatMap((a,i)=>{const b=r.points[(i+1)%r.points.length];if(!((a[0]<=mid&&b[0]>mid)||(b[0]<=mid&&a[0]>mid)))return [];const at=(x:number)=>a[1]+(b[1]-a[1])*(x-a[0])/(b[0]-a[0]);return [{mid:at(mid),lo:at(lo),hi:at(hi)}];}).sort((a,b)=>a.mid-b.mid);const lower:Interval[]=[],upper:Interval[]=[];for(let i=0;i+1<edges.length;i+=2){lower.push([Math.max(edges[i].lo,edges[i].hi),Math.min(edges[i+1].lo,edges[i+1].hi)]);upper.push([Math.min(edges[i].lo,edges[i].hi),Math.max(edges[i+1].lo,edges[i+1].hi)]);}return {lower:mergeIntervals(lower),upper:mergeIntervals(upper)};
  }
  const height=(x:number,scale=1)=>{const d=(x-r.cx)/(r.rx*scale);return Math.abs(d)>=1?0:r.ry*scale*Math.sqrt(Math.max(0,1-d*d));};
@@ -59,7 +62,8 @@ function knownArea(r:Region):number|null{if(r.kind==='polygon')return polygonAre
 export function regionAreaBounds(r:Region,relativeError=.00005,budget=4096):{lower:number;upper:number;complete:boolean}{
  const exact=knownArea(r);if(exact!==null)return {lower:exact,upper:exact,complete:true};
  const [xmin,ymin,xmax,ymax]=regionBounds(r);if(xmax<=xmin||ymax<=ymin)return {lower:0,upper:0,complete:true};
- const xs=[...new Set([xmin,xmax,...breakpoints(r).filter(x=>x>xmin&&x<xmax)])].sort((a,b)=>a-b),width=(i:Interval[])=>i.reduce((n,p)=>n+p[1]-p[0],0);
+ const points=[...new Set([xmin,xmax,...breakpoints(r).filter(x=>x>xmin&&x<xmax)])].sort((a,b)=>a-b),initialLimit=Math.max(2,Math.floor(budget/2));
+ const xs=points.length>initialLimit?Array.from({length:initialLimit},(_,i)=>points[Math.round(i*(points.length-1)/(initialLimit-1))]):points,width=(i:Interval[])=>i.reduce((n,p)=>n+p[1]-p[0],0);
  const leaf=(lo:number,hi:number)=>{const b=band(r,lo,hi);return {lo,hi,lower:Math.max(0,width(b.lower)*(hi-lo)),upper:Math.max(0,width(b.upper)*(hi-lo))};};
  const leaves=xs.slice(0,-1).map((x,i)=>leaf(x,xs[i+1]));let lower=leaves.reduce((n,b)=>n+b.lower,0),upper=leaves.reduce((n,b)=>n+b.upper,0),count=leaves.length;
  while(upper-lower>Math.max(1e-6,upper*relativeError)&&count<budget){let index=0;for(let i=1;i<leaves.length;i++)if(leaves[i].upper-leaves[i].lower>leaves[index].upper-leaves[index].lower)index=i;const old=leaves[index];if(old.hi-old.lo<1e-8)break;const mid=(old.lo+old.hi)/2,a=leaf(old.lo,mid),b=leaf(mid,old.hi);lower+=a.lower+b.lower-old.lower;upper+=a.upper+b.upper-old.upper;leaves[index]=a;leaves.push(b);count++;}
