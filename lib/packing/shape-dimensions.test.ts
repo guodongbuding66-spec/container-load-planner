@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import { CargoShapeSizes } from "../../components/cargo-shape-sizes";
 import { CargoModelPreview } from "../../components/cargo-model-preview";
-import { CARGO_SHAPES, parseShapeFields } from "./cargo-shape";
+import { LEGACY_SHAPES, parseShapeFields } from "./cargo-shape";
 import { ORIENTATION_CODES } from "./loading-rules";
 import { sizeDraftOf, sizeOptionsOf, sizeFields, resolveShapeSize, switchRadialMode, type ShapeSizeOptions } from "./shape-dimensions";
 import { previewMesh, previewProjection, previewDimensions, previewAnnotationLayout, orbitPreview, fitPreviewCamera, DEFAULT_PREVIEW_CAMERA } from "./shape-preview";
@@ -36,7 +36,7 @@ describe("physical shape size input",()=>{
     expect(sizeOptionsOf({...product,...p}).elliptical).toBe(true);
     expect(resolveShapeSize("frustum",{...roundDraft(),topDiameter:"0"},circle,"cm").shapeTopRatio).toBe(0);
   });
-  it.each(CARGO_SHAPES)("round-trips %s through inches and the canonical mm schema",cargoShape=>{
+  it.each(LEGACY_SHAPES)("round-trips %s through inches and the canonical mm schema",cargoShape=>{
     const p={...product,cargoShape,shapeTopRatio:.35,shapeWallRatio:.0025,shapeWallHeightRatio:.15,shapeStepLengthRatio:.38,shapeStepHeightRatio:.62};
     const options=sizeOptionsOf(p),d=sizeDraftOf(p,"in",options),resolved=resolveShapeSize(cargoShape,d,options,"in");
     for(const key of ["length","width","height"] as const)expect(resolved[key]).toBeCloseTo(p[key],7);
@@ -102,7 +102,7 @@ describe("interactive mesh preview and overlay dimensions",()=>{
     const initial=previewProjection(mesh,DEFAULT_PREVIEW_CAMERA),after=previewProjection(mesh,orbitPreview(DEFAULT_PREVIEW_CAMERA,100,30));
     expect(initial.faces).not.toEqual(after.faces);expect(JSON.stringify(mesh)).toBe(before);expect(p.allowedOrientations).toEqual(["LWH"]);
   });
-  it.each(CARGO_SHAPES)("keeps %s measurements attached to the correct geometry in all six orientations",cargoShape=>{
+  it.each(LEGACY_SHAPES)("keeps %s measurements attached to the correct geometry in all six orientations",cargoShape=>{
     const p={...product,cargoShape,shapeTopRatio:.35,shapeWallRatio:.2,shapeWallHeightRatio:.3,shapeStepLengthRatio:.4,shapeStepHeightRatio:.6},dimensions=[p.length,p.width,p.height],options=sizeOptionsOf(p),max=Math.max(...dimensions);
     for(const code of ORIENTATION_CODES){
       const mesh=previewMesh(p,dimensions,code),annotations=previewDimensions(p,dimensions,options,code,mesh);

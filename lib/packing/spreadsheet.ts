@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import { MAX_CSV_BYTES, MAX_CSV_ROWS, parseProductsCsv, toCsvCell } from "./csv";
-export const SPREADSHEET_COLUMNS = ["sku", "name", "length", "width", "height", "lengthUnit", "weight", "weightUnit", "quantity", "priority", "setCode", "unitsPerSet", "rotationPolicy", "stackable", "maxStackLayers", "mustLoad", "bottomOnly", "color", "maxTopLoadKg", "topLoadLengthKg", "topLoadWidthKg", "topLoadHeightKg", "allowedAboveSkus", "cargoType", "allowedOrientations", "minimumSupportRatio", "palletBaseHeight", "cargoShape", "shapeAxis", "shapeTopRatio", "shapeWallRatio", "shapeWallHeightRatio", "shapeStepLengthRatio", "shapeStepHeightRatio"];
+export const SPREADSHEET_COLUMNS = ["sku", "name", "length", "width", "height", "lengthUnit", "weight", "weightUnit", "quantity", "priority", "setCode", "unitsPerSet", "rotationPolicy", "stackable", "maxStackLayers", "mustLoad", "bottomOnly", "color", "maxTopLoadKg", "topLoadLengthKg", "topLoadWidthKg", "topLoadHeightKg", "allowedAboveSkus", "cargoType", "allowedOrientations", "minimumSupportRatio", "palletBaseHeight", "cargoShape", "shapeAxis", "shapeTopRatio", "shapeWallRatio", "shapeWallHeightRatio", "shapeStepLengthRatio", "shapeStepHeightRatio","solidModel","protectionGap"];
 
 /** Validate ZIP directory sizes before ExcelJS inflates any entry. */
 export function validateSpreadsheetZip(buffer: ArrayBuffer) {
@@ -35,6 +35,8 @@ export async function createSpreadsheetTemplate() {
     ["cargoShape: box,cylinder,wedge,trapezoid,frustum,l-profile,u-profile,t-profile,step,irregular. shapeAxis: L,W,H."],
     ["shapeTopRatio: trapezoid >0–1, frustum 0–1; wall and step ratios >0 and <1; U vertical wall <0.5 (minimum ratio 0.000001)."],
     ["Profiles use solid blocks and horizontal support faces. Curved cargo reserves bounding envelopes and cannot support top loads."],
+    ["solidModel: validated model JSON (model dimensions are always mm). protectionGap uses lengthUnit; supporting contact is exempt."],
+    ["Additional shapes: polygon,tube,reel,bend,ellipsoid,capsule,custom-prism,compound,mesh. Advanced shapes require solidModel."],
     ["No formulas; import validates every row before replacing the current manifest."],
   ]); help.getColumn(1).width = 110;
   return new Uint8Array(await book.xlsx.writeBuffer());

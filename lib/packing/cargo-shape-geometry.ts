@@ -1,13 +1,20 @@
+import {convexHull2,polygonArea,unionPolygons,type V2} from "./solid-math";
 import * as THREE from "three";
-import { cargoShapeOf, cylinderAxisOf, isRectilinearShape, type ShapeFields } from "./cargo-shape";
+import { ADVANCED_SHAPES, cargoShapeOf, cylinderAxisOf, isRectilinearShape, type ShapeFields } from "./cargo-shape";
 import type { OrientationCode, OrientationSigns } from "./types";
+import { defaultSolidModel, buildSolidModel, type ModelKind } from "./solid-model";
 import { cargoBodyParts, orientationAxes } from "./cargo-body";
 
 /** A unit envelope uses X=L, Y=H, Z=W. Geometry is rotated BEFORE envelope scaling. */
-export function cargoShapeGeometry(p: ShapeFields, orientation: OrientationCode = "LWH", reduced = false, signs?:OrientationSigns) {
+export function cargoShapeGeometry(p: ShapeFields, orientation: OrientationCode = "LWH", reduced = false, signs?:OrientationSigns,collisionProxy=false) {
   const shape = cargoShapeOf(p);
   let geometry: THREE.BufferGeometry;
-  if (shape === "cylinder" || shape === "frustum") {
+  const model=p.solidModel??(ADVANCED_SHAPES.includes(shape)&&shape!=="mesh"?defaultSolidModel(shape==="compound"?"box":shape as ModelKind,[1,1,1]):undefined);
+  if(model){
+    const built=buildSolidModel(model),parts=collisionProxy||reduced&&built.display.reduce((n,c)=>n+c.faces.length,0)>1500?built.cells:built.display,positions:number[]=[];
+    for(const cell of parts)for(const f of cell.faces)for(let i=1;i<f.length-1;i++)for(const index of [f[0],f[i+1],f[i]]){const v=cell.vertices[index];positions.push(v[0]-.5,v[2]-.5,v[1]-.5);}
+    geometry=new THREE.BufferGeometry();geometry.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));geometry.computeVertexNormals();geometry.addGroup(0,positions.length/3,0);
+  } else if (shape === "cylinder" || shape === "frustum") {
     geometry = new THREE.CylinderGeometry(shape === "frustum" ? (p.shapeTopRatio ?? .5)/2 : .5, .5, 1, reduced ? 12 : 24);
     const axis = cylinderAxisOf(p);
     if (axis === "L") geometry.rotateZ(Math.PI / 2);
@@ -27,7 +34,7 @@ export function cargoShapeGeometry(p: ShapeFields, orientation: OrientationCode 
     geometry = new THREE.ExtrudeGeometry(outline, { depth: 1, bevelEnabled: false, steps: 1 });
     geometry.translate(0, 0, -.5);
   } else geometry = new THREE.BoxGeometry(1, 1, 1);
-  if (shape !== "box" && shape !== "irregular") {
+  if (model || shape !== "box" && shape !== "irregular") {
     const axes=orientationAxes(orientation,signs),originalToThree=[0,2,1];
     const row=(i:number)=>[0,1,2].map(j=>originalToThree[axes[i].original]===j?(axes[i].negative?-1:1):0);
     const x=row(0),y=row(2),z=row(1);
@@ -54,7 +61,9 @@ export function cargoShapeFootprint(p: ShapeFields, orientation: OrientationCode
 }
 
 /** Keep concave footprints instead of filling an L/U/T recess with a convex hull. */
+const footprintCache=new WeakMap<object,Map<string,V2[][]>>();
 export function cargoShapeFootprints(p:ShapeFields,orientation:OrientationCode,orientationSigns?:OrientationSigns) {
+  if(p.solidModel){const key=orientation+orientationSigns?.join(),cached=footprintCache.get(p.solidModel)??new Map<string,V2[][]>(),old=cached.get(key);if(old)return old;const built=buildSolidModel(p.solidModel),axes=orientationAxes(orientation,orientationSigns),project=(v:number[]):V2=>axes.slice(0,2).map(a=>(a.negative?1-v[a.original]:v[a.original])-.5) as V2;const polys=(built.display.reduce((n,c)=>n+c.faces.length,0)>800?built.cells:built.display).flatMap(c=>c.faces.length>64?c.faces.map(f=>convexHull2(f.map(i=>project(c.vertices[i])))):[convexHull2(c.vertices.map(project))]).filter(p=>polygonArea(p)>1e-8);const result=polys.length<=128?unionPolygons(polys):polys;cached.set(key,result);footprintCache.set(p.solidModel,cached);return result;}
   if(!isRectilinearShape(p))return [cargoShapeFootprint(p,orientation,orientationSigns)];
   // Import-free geometry projection uses each disjoint rectangular part.
   return cargoBodyParts({x:0,y:0,z:0,dx:1,dy:1,dz:1,orientation,orientationSigns},p).map(b=>[

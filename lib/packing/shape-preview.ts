@@ -1,3 +1,4 @@
+import { modelAnnotations } from "./model-annotations";
 import { cargoShapeGeometry } from "./cargo-shape-geometry";
 import { orientationAxes } from "./cargo-body";
 import { cargoShapeOf, cylinderAxisOf, type ShapeFields } from "./cargo-shape";
@@ -10,10 +11,10 @@ export const DEFAULT_PREVIEW_CAMERA:PreviewCamera={yaw:Math.PI/4,pitch:.42,zoom:
 export type PreviewFace={points:Vec3[];normal:Vec3};
 export type PreviewMesh={faces:PreviewFace[];radius:number;scale:Vec3};
 const dot=(a:Vec3,b:Vec3)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
-export function previewMesh(p:ShapeFields,dimensions:number[],orientation:OrientationCode):PreviewMesh {
+export function previewMesh(p:ShapeFields,dimensions:number[],orientation:OrientationCode,collisionProxy=false):PreviewMesh {
   const byAxis:{[k:string]:number}={L:dimensions[0],W:dimensions[1],H:dimensions[2]};
   const sizes=[byAxis[orientation[0]],byAxis[orientation[2]],byAxis[orientation[1]]].map(n=>Number.isFinite(n)&&n>0?n:1),max=Math.max(...sizes),scale=sizes.map(n=>n/max) as Vec3;
-  const geometry=cargoShapeGeometry(p,orientation),v=geometry.getAttribute("position"),normal=geometry.getAttribute("normal"),indices=geometry.getIndex(),faces:PreviewFace[]=[];
+  const geometry=cargoShapeGeometry(p,orientation,false,undefined,collisionProxy),v=geometry.getAttribute("position"),normal=geometry.getAttribute("normal"),indices=geometry.getIndex(),faces:PreviewFace[]=[];
   for(let i=0;i<(indices?.count??v.count);i+=3){const ids=[0,1,2].map(j=>indices?indices.getX(i+j):i+j),a=ids[0];
     const n=[normal.getX(a)/Math.max(1e-12,scale[0]),normal.getY(a)/Math.max(1e-12,scale[1]),normal.getZ(a)/Math.max(1e-12,scale[2])],magnitude=Math.hypot(...n)||1;
     faces.push({points:ids.map(j=>[v.getX(j)*scale[0],v.getY(j)*scale[1],v.getZ(j)*scale[2]] as Vec3),normal:n.map(x=>x/magnitude) as Vec3});
@@ -48,7 +49,8 @@ export function pointInPreview(original:Vec3,mesh:PreviewMesh,orientation:Orient
   const axes=orientationAxes(orientation),world=axes.map(a=>(a.negative ? .5-original[a.original] : original[a.original]-.5));
   return [world[0]*mesh.scale[0],world[2]*mesh.scale[1],world[1]*mesh.scale[2]];
 }
-export function previewDimensions(p:ShapeFields,dimensions:number[],options:ShapeSizeOptions,orientation:OrientationCode,mesh:PreviewMesh) {
+export function previewDimensions(p:ShapeFields,dimensions:number[],options:ShapeSizeOptions,orientation:OrientationCode,mesh:PreviewMesh,selectedPart?:string) {
+  if(p.solidModel)return modelAnnotations(p.solidModel,dimensions,selectedPart).map(a=>({...a,a:pointInPreview(a.a,mesh,orientation),b:pointInPreview(a.b,mesh,orientation)}));
   const shape=cargoShapeOf(p),ratio=p.shapeTopRatio??.5,t=p.shapeWallRatio??.25,h=p.shapeWallHeightRatio??.25;
   const l=p.shapeStepLengthRatio??.5,z=p.shapeStepHeightRatio??.5;
   const ranges:Partial<Record<SizeKey,[Vec3,Vec3]>>={

@@ -4,7 +4,7 @@ export type RotationPolicy = "fixed" | "upright" | "any";
 export type OrientationCode = "LWH" | "LHW" | "WLH" | "WHL" | "HLW" | "HWL";
 export type OrientationSigns = [1 | -1, 1 | -1, 1 | -1];
 export type CargoType = "carton" | "pallet" | "crate" | "drum" | "roll" | "loose";
-export type CargoShape = "box" | "cylinder" | "wedge" | "trapezoid" | "frustum" | "l-profile" | "u-profile" | "t-profile" | "step" | "irregular";
+export type CargoShape = "box" | "cylinder" | "wedge" | "trapezoid" | "frustum" | "l-profile" | "u-profile" | "t-profile" | "step" | "irregular" | "polygon" | "tube" | "reel" | "bend" | "ellipsoid" | "capsule" | "custom-prism" | "compound" | "mesh";
 export type FloorPalletConfig = {
   presetId: string;
   name: string;
@@ -55,6 +55,10 @@ export type ContainerSpec = {
 };
 
 export type ProductInput = {
+  /** Validated physical model, shared by rendering, collision and flat-face support. */
+  solidModel?: import("./solid-model").SolidModel;
+  /** Required separation from other cargo, in canonical mm. */
+  protectionGap?: number;
   cargoType?: CargoType;
   cargoShape?: CargoShape;
   /** Original axis of a cylindrical package, before its placement rotation. */
@@ -99,6 +103,8 @@ export type ProductInput = {
 };
 
 export type PackingRequest = {
+  delivery?: import("./access").DeliveryMap;
+  accessConfig?: import("./maneuver").AccessConfig;
   floorPallets?: FloorPalletConfig;
   loadingRules?: LoadingRules;
   searchPass?: number;
@@ -202,6 +208,10 @@ export type SetLoadSummary = {
 };
 
 export type PackingMetrics = {
+  solidVolumeApproximate?:boolean;
+  envelopeVolume?: number;
+  envelopeUtilization?: number;
+  envelopeApproximate?: boolean;
   loadedCount: number;
   requestedCount: number;
   grossWeight: number;
@@ -289,10 +299,11 @@ export type QuoteEstimate = {
 export type PackingResult = {
   palletization?: import("./prebuilt-pallets").Palletization;
   delivery?: import("./access").DeliveryMap;
+  accessConfig?: import("./maneuver").AccessConfig;
   floorPallets?: FloorPalletConfig;
   pallets?: PlacedPallet[];
   loadingRules?: LoadingRules;
-  cargoDetails?: Record<string, Pick<ProductInput, "cargoType" | "palletBaseHeight" | "cargoShape" | "shapeAxis" | "shapeTopRatio" | "shapeWallRatio" | "shapeWallHeightRatio" | "shapeStepLengthRatio" | "shapeStepHeightRatio">>;
+  cargoDetails?: Record<string, Pick<ProductInput, "cargoType" | "palletBaseHeight" | "cargoShape" | "shapeAxis" | "shapeTopRatio" | "shapeWallRatio" | "shapeWallHeightRatio" | "shapeStepLengthRatio" | "shapeStepHeightRatio" | "solidModel" | "protectionGap">>;
   id: string;
   mode: PackingMode;
   strategy: PackingStrategy;

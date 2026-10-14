@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CARGO_SHAPES, cargoShapeOf, isRectilinearShape, parseShapeFields } from "./cargo-shape";
+import { LEGACY_SHAPES, cargoShapeOf, isRectilinearShape, parseShapeFields } from "./cargo-shape";
 import { cargoShapeGeometry, cargoShapeFootprint } from "./cargo-shape-geometry";
 import { ORIENTATION_CODES } from "./loading-rules";
 import { pack, validatePacking, restorePackingSnapshot } from "./engine";
@@ -16,7 +16,7 @@ describe("non-cuboid occupied envelopes",()=>{
   it.each(["practical","maximum"] as const)("uses the same full envelope and no fictional top support in %s",strategy=>{
     const cuboid=pack({mode:"mixed",strategy,container,clearance:0,products:[product]});
     expect(cuboid.metrics.loadedCount).toBe(strategy==="practical"?2:3);
-    for(const cargoShape of CARGO_SHAPES.filter(s=>s!=="box"&&!isRectilinearShape({cargoShape:s}))){
+    for(const cargoShape of LEGACY_SHAPES.filter(s=>s!=="box"&&!isRectilinearShape({cargoShape:s}))){
       const p={...product,cargoShape,maxTopLoadKg:999};
       const result=pack({mode:"mixed",strategy,container,clearance:0,products:[p]});
       expect(result.validation.valid).toBe(true);expect(result.metrics.loadedCount).toBe(1);
@@ -62,7 +62,7 @@ describe("non-cuboid occupied envelopes",()=>{
 
 describe("real shape geometry and placement rotations",()=>{
   it("keeps every family and all six orientations within the exact occupied envelope",()=>{
-    for(const cargoShape of CARGO_SHAPES)for(const code of ORIENTATION_CODES){
+    for(const cargoShape of LEGACY_SHAPES)for(const code of ORIENTATION_CODES){
       const g=cargoShapeGeometry({cargoShape,shapeTopRatio:.25},code),size=g.boundingBox!.getSize(new THREE.Vector3());
       expect(size.toArray().every(n=>Math.abs(n-1)<1e-6)).toBe(true);
       expect(g.getAttribute("normal").array.every(Number.isFinite)).toBe(true);g.dispose();

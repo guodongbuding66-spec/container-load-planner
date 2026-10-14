@@ -1,3 +1,4 @@
+import {auditAccess} from "./access";
 import { arrangeFloorPallets } from "./floor-pallets";
 import { pack } from "./engine";
 import type { ContainerSpec, PackingRequest, PackingResult, ProductInput } from "./types";
@@ -72,7 +73,10 @@ export function optimizeFleetTail(request:PackingRequest, baseline:FleetResult, 
   return best;
 }
 
-export type FleetComparison={label:string;result:FleetResult;allocatedSets:number;costPerSet:number|null};
+export type FleetReview={pathIssues:number;unassigned:number;balanceWarnings:number;leftoverCount:number;constraints:string[];costKnown:boolean};
+export type FleetComparison={label:string;result:FleetResult;allocatedSets:number;costPerSet:number|null;review:FleetReview};
+export function reviewFleet(result:FleetResult):FleetReview{let pathIssues=0,unassigned=0,balanceWarnings=0;const constraints=new Set<string>();for(const l of result.loads){const audit=auditAccess(l.plan,l.plan.delivery,{maneuver:false,maxLift:0,clearance:0,turn:false,budget:100});pathIssues+=audit.issues.filter(i=>i.reason!=='unassigned').length;unassigned+=audit.issues.filter(i=>i.reason==='unassigned').length;balanceWarnings+=Number(!l.plan.metrics.centerOfGravity.balanced);if(l.plan.metrics.weightUtilization>.98)constraints.add('payload');if(l.plan.metrics.volumeUtilization>.95)constraints.add('space');if(audit.issues.some(i=>i.reason==='door'))constraints.add('door');if(audit.issues.some(i=>i.reason==='blocked'||i.reason==='support'))constraints.add('sequence');if(l.plan.metrics.executionComplexity.partialSupportCount)constraints.add('support');}const leftoverCount=result.remaining.reduce((n,p)=>n+p.quantity,0);if(leftoverCount)constraints.add('stock / dimensions / orientation / kit / support');if(unassigned)constraints.add('unassigned stops');return {pathIssues,unassigned,balanceWarnings,leftoverCount,constraints:[...constraints],costKnown:result.loads.every(l=>l.cost>0)};}
+
 export function fleetEconomics(result:FleetResult){
   const allocations=new Map<string,{code:string;sets:number;volume:number;cost:number}>();
   for(const l of result.loads){
@@ -87,7 +91,7 @@ export function compareFleets(request:PackingRequest, options:FleetOption[],limi
   const groups:{label:string;options:FleetOption[]}[]=[{label:"混合柜型",options},...options.map(o=>({label:`全部 ${o.container.name}`,options:[o]}))];
   if(options.length>2)for(let i=0;i<Math.min(options.length,4);i++)for(let j=i+1;j<Math.min(options.length,4);j++)groups.push({label:`${options[i].container.name} + ${options[j].container.name}`,options:[options[i],options[j]]});
   const out:FleetComparison[]=[];
-  for(const group of groups){const result=optimizeFleetTail(request,allocateFleet(request,group.options,limit,objective),group.options,objective);const economics=fleetEconomics(result);const allocatedSets=economics.reduce((n,a)=>n+a.sets,0);out.push({label:group.label,result,allocatedSets,costPerSet:result.loads.every(l=>l.cost>0)&&allocatedSets?result.totalCost/allocatedSets:null});onProgress?.([...out]);}
+  for(const group of groups){const result=optimizeFleetTail(request,allocateFleet(request,group.options,limit,objective),group.options,objective);const economics=fleetEconomics(result);const allocatedSets=economics.reduce((n,a)=>n+a.sets,0);out.push({label:group.label,result,allocatedSets,review:reviewFleet(result),costPerSet:result.loads.every(l=>l.cost>0)&&allocatedSets?result.totalCost/allocatedSets:null});onProgress?.([...out]);}
   return out.sort((a,b)=>Number(b.result.complete)-Number(a.result.complete)||(a.result.complete?(objective==="cost"?a.result.totalCost-b.result.totalCost:a.result.loads.length-b.result.loads.length):a.result.remaining.reduce((n,p)=>n+p.quantity,0)-b.result.remaining.reduce((n,p)=>n+p.quantity,0))||a.result.totalCost-b.result.totalCost);
 }
 export function proposeOrderTopUp(request:PackingRequest, baseline:FleetResult, options:FleetOption[],percent:number){

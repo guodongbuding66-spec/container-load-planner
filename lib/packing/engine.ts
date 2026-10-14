@@ -1,6 +1,10 @@
 import { parseShapeFields, shapeDetails, cargoShapeOf, isRectilinearShape, withShapeSupport } from "./cargo-shape";
-import { cargoBodyParts, bodyBottomPatches, bodyContactArea, bodyTopLevels, bodyVolumeRatio, bodiesOverlap, surfaceArea, validOrientationSigns } from "./cargo-body";
+import { cargoBodyParts, bodyBottomPatches, bodyContactArea, bodyTopLevels, bodyVolumeRatio, bodiesOverlap, surfaceArea, validOrientationSigns, orientationAxes, intersectSurface, surfacePolygon, bodyTopPatches } from "./cargo-body";
 import { parsePalletization, validatePalletizedCargo } from "./prebuilt-pallets";
+import { modelRestError, modelMassCenter, modelStable } from "./model-body";
+import { buildSolidModel } from "./solid-model";
+import { envelopeMetrics } from "./solid-utilization";
+import { parseAccessConfig } from "./maneuver";
 import { parseDelivery } from "./access";
 import { arrangeFloorPallets, parseFloorPalletConfig, palletAnchors, palletSupportProducts, assignPalletReferences, palletCargoCeiling, supportingPalletIds } from "./floor-pallets";
 import { parseLoadingRules, parseOrientations, CARGO_TYPES, requiredSupport, applyTypeSupport } from "./loading-rules";
@@ -9,6 +13,7 @@ import { bearingErrors, hasBearingRules, bearingStatus, contactArea } from "./be
 import type {
   ContainerSpec,
   PackingMode,
+  OrientationCode,
   PackingRequest,
   PackingResult,
   PackingStrategy,
@@ -30,7 +35,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.24.0";
+export const ENGINE_VERSION = "0.25.0";
 
 type Orientation = {
   dx: number;
@@ -140,7 +145,8 @@ function assertValidRequest(request: PackingRequest) {
       throw new Error(`${product.sku} 的外箱尺寸必须是大于 0 的有限数字。`);
     }
     if (product.allowedOrientations !== undefined) parseOrientations(product.allowedOrientations);
-    parseShapeFields(product as unknown as Record<string, unknown>);
+    const shape=parseShapeFields(product as unknown as Record<string, unknown>);
+    if(shape.solidModel&&shape.solidModel.parts.reduce((n,p)=>n+(p.weight??0),0)>product.weight+EPS)throw new Error("部件和支架重量之和不能超过货物毛重。");
     if (product.cargoType !== undefined && !CARGO_TYPES.includes(product.cargoType)) throw new Error("货物类型无效。");
     if (product.minimumSupportRatio !== undefined && (!Number.isFinite(product.minimumSupportRatio) || product.minimumSupportRatio <= 0 || product.minimumSupportRatio > 1)) throw new Error("承托比例必须大于 0 且不超过 100%。");
     if (product.palletBaseHeight !== undefined && (!Number.isFinite(product.palletBaseHeight) || product.palletBaseHeight < 0 || product.palletBaseHeight >= product.height)) throw new Error("货物托盘底座必须小于外箱总高。");
@@ -383,7 +389,10 @@ class SpatialIndex {
   private readonly cells = new Map<string, number[]>();
   private readonly cellSize: number;
 
-  constructor(container: EffectiveContainer) {
+  private readonly margin:number;
+  private readonly bounds:EffectiveContainer;
+  constructor(container: EffectiveContainer,margin=0) {
+    this.margin=margin;this.bounds=container;
     this.cellSize = Math.max(160, Math.min(container.width, container.height, container.length) / 9);
   }
 
@@ -413,7 +422,9 @@ class SpatialIndex {
 
   query(box: Pick<PlacedBox, "x" | "y" | "z" | "dx" | "dy" | "dz">) {
     const result = new Set<number>();
-    for (const key of this.keys(box)) {
+    const margin=this.margin,x=Math.max(0,box.x-margin),y=Math.max(0,box.y-margin),z=Math.max(0,box.z-margin);
+    const expanded={x,y,z,dx:Math.min(this.bounds.length,box.x+box.dx+margin)-x,dy:Math.min(this.bounds.width,box.y+box.dy+margin)-y,dz:Math.min(this.bounds.height,box.z+box.dz+margin)-z};
+    for (const key of this.keys(expanded)) {
       for (const index of this.cells.get(key) ?? []) result.add(index);
     }
     return result;
@@ -425,9 +436,12 @@ function supportDetails(
   topLevels: Map<number, PlacedBox[]>,
   products: Map<string, ProductInput>,
 ) {
-  if (candidate.z <= EPS) return { ratio: 1, layer: 1 };
+  const own=products.get(candidate.productId),ownPatches=bodyBottomPatches(candidate,products.get(candidate.productId)),coveredBottom=new Set<number>();
+  if(modelRestError(candidate,own??{}))return {ratio:0,layer:1};
+  if (candidate.z <= EPS) return { ratio: modelStable(candidate,own??{},bodyBottomPatches(candidate,own).map(s=>({...s,polygon:s.polygon??[[s.x,s.y],[s.x+s.dx,s.y],[s.x+s.dx,s.y+s.dy],[s.x,s.y+s.dy]]})))?1:0, layer: 1 };
   const supporters = topLevels.get(supportLevelKey(candidate.z)) ?? [];
   let supportedArea = 0;
+  const contacts:import("./model-body").PolygonSurface[]=[];
   let layer = 1;
   for (const box of supporters) {
     const overlap = bodyContactArea(candidate,box,products.get(candidate.productId),products.get(box.productId));
@@ -436,11 +450,27 @@ function supportDetails(
       // cartons supply enough area to pass the partial-support threshold.
       if (products.get(box.productId)?.stackable === false) return { ratio: 0, layer: Math.max(layer, (box.supportOnly ? 0 : box.layer || 1) + 1) };
       supportedArea += overlap;
+      if(own?.solidModel)ownPatches.forEach((u,i)=>{for(const l of bodyTopPatches(box,products.get(box.productId),candidate.z)){const c=intersectSurface(u,l);if(c.coversOwn)coveredBottom.add(i);if(surfaceArea(c)>EPS)contacts.push({...c,polygon:surfacePolygon(c)});}});
       layer = Math.max(layer, (box.supportOnly ? 0 : box.layer || 1) + 1);
     }
   }
-  const bottomArea=bodyBottomPatches(candidate,products.get(candidate.productId)).reduce((n,s)=>n+surfaceArea(s),0);
-  return { ratio: Math.min(1, supportedArea / bottomArea), layer };
+  const bottomArea=ownPatches.reduce((n,s)=>n+surfaceArea(s),0);
+  return { ratio: bottomArea>EPS&&modelStable(candidate,own??{},contacts)?(ownPatches.every((_,i)=>coveredBottom.has(i))?1:Math.min(1, supportedArea / bottomArea)):0, layer };
+}
+
+function modelCandidatePoints(b:PlacedBox,p:ProductInput):Point[]{
+  if(!p.solidModel)return [];
+  const built=buildSolidModel(p.solidModel),gap=p.protectionGap??0,points:Point[]=[],axis=orientationAxes(b.orientation as OrientationCode,b.orientationSigns);
+  for(const cell of built.display.slice(0,80))for(const v of cell.vertices.slice(0,48)){
+    const world=axis.map(a=>a.negative?1-v[a.original]:v[a.original]);
+    points.push({x:b.x+world[0]*b.dx+gap,y:b.y+world[1]*b.dy+gap,z:b.z});
+  }
+  const root=p.solidModel.parts[0];
+  if(["cylinder","tube","polygon"].includes(root.kind)&&b.orientation[2]===root.axis){
+    const extra=gap+2*built.error;
+    points.push({x:b.x+b.dx*.5,y:b.y+b.dy*Math.sqrt(3)/2+extra,z:b.z},{x:b.x+b.dx*Math.sqrt(3)/2+extra,y:b.y+b.dy*.5,z:b.z});
+  }
+  return points.filter(p=>p.x>=0&&p.y>=0);
 }
 
 function indexSupport(levels:Map<number,PlacedBox[]>,box:PlacedBox,products:Map<string,ProductInput>) {
@@ -1451,7 +1481,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
     nextSetNumbers.set(batch.setCode, next + 1);
   }
   const placements: PlacedBox[] = anchors.map(b=>({...b}));
-  let spatial = new SpatialIndex(container);
+  let spatial = new SpatialIndex(container,Math.max(0,...request.products.map(p=>p.protectionGap??0)));
   let topLevels = new Map<number, PlacedBox[]>();
   const productMap = new Map(request.products.map((product) => [product.id, product]));
   let points: Point[] = [{ x: 0, y: 0, z: 0 }];
@@ -1463,7 +1493,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
   const volumeLimit = container.length * container.width * container.height * practicalTarget(request);
 
   const rebuildIndexes = () => {
-    spatial = new SpatialIndex(container);
+    spatial = new SpatialIndex(container,Math.max(0,...request.products.map(p=>p.protectionGap??0)));
     topLevels = new Map<number, PlacedBox[]>();
     placements.forEach((box, index) => {
       spatial.add(box, index);
@@ -1539,9 +1569,10 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
     indexSupport(topLevels,placed,productMap);
 
     const additions: Point[] = [
-      ...cargoBodyParts(placed,product).flatMap(b=>[{x:b.x,y:b.y,z:b.z+b.dz},{x:b.x+b.dx,y:b.y,z:b.z},{x:b.x,y:b.y+b.dy,z:b.z}]),
-      { x: placed.x + placed.dx, y: placed.y, z: placed.z },
-      { x: placed.x, y: placed.y + placed.dy, z: placed.z },
+      ...cargoBodyParts(placed,product).flatMap(b=>[{x:b.x,y:b.y,z:b.z+b.dz},{x:b.x+b.dx+(product.protectionGap??0),y:b.y,z:b.z},{x:b.x,y:b.y+b.dy+(product.protectionGap??0),z:b.z}]),
+      ...modelCandidatePoints(placed,product),
+      { x: placed.x + placed.dx+(product.protectionGap??0), y: placed.y, z: placed.z },
+      { x: placed.x, y: placed.y + placed.dy+(product.protectionGap??0), z: placed.z },
       { x: placed.x, y: placed.y, z: placed.z + placed.dz },
     ];
     const next = [...points.filter((point) => !cargoBodyParts(placed,product).some(b=>isInside(point,b))), ...additions].filter(
@@ -1642,7 +1673,8 @@ function packMixed(request: PackingRequest, container: EffectiveContainer, ancho
   return { placements: best, warnings };
 }
 
-function calculateCenterOfGravity(placements: PlacedBox[], container: EffectiveContainer) {
+function calculateCenterOfGravity(placements: PlacedBox[], container: EffectiveContainer, products:ProductInput[]=[]) {
+  const rules=new Map(products.map(p=>[p.id,p]));
   let totalMass = 0;
   let weightedX = 0;
   let weightedY = 0;
@@ -1650,9 +1682,8 @@ function calculateCenterOfGravity(placements: PlacedBox[], container: EffectiveC
   for (const box of placements) {
     const mass = box.weight > 0 ? box.weight : (box.dx * box.dy * box.dz) / 1_000_000_000;
     totalMass += mass;
-    weightedX += (box.x + box.dx / 2) * mass;
-    weightedY += (box.y + box.dy / 2) * mass;
-    weightedZ += (box.z + box.dz / 2) * mass;
+    const center=modelMassCenter(box,rules.get(box.productId)??{});
+    weightedX += center[0] * mass;weightedY += center[1] * mass;weightedZ += center[2] * mass;
   }
   const x = totalMass > 0 ? weightedX / totalMass : 0;
   const y = totalMass > 0 ? weightedY / totalMass : 0;
@@ -1698,9 +1729,9 @@ export function validatePacking(
   if (mode !== "single" && mode !== "mixed") return { valid: false, errors: ["计算模式无效。"] };
   const effective = effectiveContainer(container, clearance);
   const errors: string[] = [];
-  const spatial = new SpatialIndex(effective);
+  const spatial = new SpatialIndex(effective,Math.max(0,...products.map(p=>p.protectionGap??0)));
   const topLevels = new Map<number, PlacedBox[]>();
-  const productMap = new Map(products.map(withShapeSupport).map((product) => [product.id, product]));
+  const productMap = new Map(products.map(p=>withShapeSupport({...p,...parseShapeFields(p as unknown as Record<string,unknown>)})).map((product) => [product.id, product]));
   if (productMap.size !== products.length) errors.push("产品资料存在重复 ID，无法独立核对箱体归属。");
   const placementIds = new Set<string>();
   const orientationsByProduct = new Map<string, Set<string>>();
@@ -1767,6 +1798,7 @@ export function validatePacking(
       errors.push(`${box.sku} 的箱体 ${index + 1} 标注为第 ${box.layer} 层，按支撑关系应为第 ${support.layer} 层。`);
     }
     const supportThreshold = requiredSupport(product, strategy);
+    if(product?.solidModel&&box.z<=EPS&&support.ratio+EPS<supportThreshold)errors.push(`${box.sku} 的实体模型缺少稳定平底、有效承托面或防滚支架。`);
     if (box.z > EPS && support.ratio + EPS < supportThreshold) {
       errors.push(`${box.sku} 的箱体 ${index + 1} 底面支撑不足 ${(supportThreshold * 100).toFixed(1)}%。`);
     }
@@ -1928,7 +1960,7 @@ function calculateExecutionComplexity(
   products: ProductInput[],
 ): PackingResult["metrics"]["executionComplexity"] {
   const orientationsByProduct = new Map<string, Set<string>>();
-  const productMap = new Map(products.map(withShapeSupport).map((product) => [product.id, product]));
+  const productMap = new Map(products.map(p=>withShapeSupport({...p,...parseShapeFields(p as unknown as Record<string,unknown>)})).map((product) => [product.id, product]));
   const topLevels = new Map<number, PlacedBox[]>();
   let partialSupportCount = 0;
   let tippedCartonCount = 0;
@@ -2007,7 +2039,7 @@ export function pack(request: PackingRequest): PackingResult {
     preliminaryQuoteEstimate.physicallyPossibleByBounds
     ? preliminaryQuoteEstimate.predictedSets
     : undefined;
-  const bearingEnabled = normalized.products.some(p => isRectilinearShape(p) || hasBearingRules(p) || p.minimumSupportRatio !== undefined) || (normalized.loadingRules?.layout !== undefined && normalized.loadingRules.layout !== "auto");
+  const bearingEnabled = normalized.products.some(p => p.solidModel || p.protectionGap || isRectilinearShape(p) || hasBearingRules(p) || p.minimumSupportRatio !== undefined) || (normalized.loadingRules?.layout !== undefined && normalized.loadingRules.layout !== "auto");
   const cartonsPerUnit = normalized.products.reduce((sum,p)=>sum+(setCode(p)?unitsPerSet(p):1),0);
   const unitVolume = normalized.products.reduce((sum,p)=>sum+p.length*p.width*p.height*bodyVolumeRatio(p)*(setCode(p)?unitsPerSet(p):1),0);
   const bearingUnitLimit = Math.min(Math.floor(4000/cartonsPerUnit), Math.floor(effectiveVolume/unitVolume), Math.floor((normalized.singleCartonLimit ?? 4000)/cartonsPerUnit));
@@ -2042,7 +2074,7 @@ export function pack(request: PackingRequest): PackingResult {
   const grossWeight = summaries.reduce((sum, item) => sum + item.loadedWeight, 0) + palletWeight;
   const requestedCount = summaries.reduce((sum, item) => sum + item.requested, 0);
   const loadedCount = summaries.reduce((sum, item) => sum + item.loaded, 0);
-  const centerOfGravity = calculateCenterOfGravity([...supports, ...orderedPlacements], effective);
+  const centerOfGravity = calculateCenterOfGravity([...supports, ...orderedPlacements], effective, normalized.products);
   const executionComplexity = calculateExecutionComplexity(orderedPlacements, normalized.products);
   const physicalLoadedSets = normalized.mode === "single"
     ? setSummaries[0]?.loadedSets ?? loadedCount
@@ -2053,8 +2085,9 @@ export function pack(request: PackingRequest): PackingResult {
   const bearingCheck = bearingStatus(orderedPlacements, normalized.products);
   if (!bearingCheck.verified) warnings.push(`承重未核验：${bearingCheck.unknownIds.length} 个受压箱体尚未填写该朝向的承重参数；几何通过不代表承重已确认。`);
   if (normalized.products.some(p => (p.minimumSupportRatio ?? 1) < 0.995)) warnings.push("已按自定义承托比例计算；承重能力仍需按包装参数核验。");
-  if (normalized.products.some(p => ["drum", "roll", "loose"].includes(p.cargoType ?? ""))) warnings.push("圆桶、卷材和散件按矩形外包络计算，不进行圆形交错嵌套。");
-  if (normalized.products.some(p => cargoShapeOf(p) !== "box")) warnings.push("规则型件按实际组成块校验碰撞、水平承托面和空隙；曲面与其他异型件仍按外包络占位。测量与重心仍按外包络估算。");
+  if (normalized.products.some(p => !p.solidModel&&["drum", "roll", "loose"].includes(p.cargoType ?? ""))) warnings.push("圆桶、卷材和散件按矩形外包络计算，不进行圆形交错嵌套。");
+  if (normalized.products.some(p => !p.solidModel&&cargoShapeOf(p) !== "box")) warnings.push("规则型件按实际组成块校验碰撞、水平承托面和空隙；曲面与其他异型件仍按外包络占位。测量与重心仍按外包络估算。");
+  if(normalized.products.some(p=>p.solidModel))warnings.push("实体模型使用相同的凸体分解校验碰撞、平面承托和空隙；曲面使用保守外逼近，弯管有明确误差范围。几何通过不代表材料强度已核验。");
   if (normalized.container.specificationNote) warnings.push(normalized.container.specificationNote);
   if (normalized.loadingRules || normalized.products.some(p => p.allowedOrientations)) warnings.push("已启用自定义布局、朝向或承托规则，独立校验使用相同约束。");
   if (bearingEnabled) warnings.push("已启用逐箱上方累计承重约束，按接触面积分配静态竖向载荷；结果可能比无承重约束的排列更保守。");
@@ -2126,6 +2159,7 @@ export function pack(request: PackingRequest): PackingResult {
   }
 
   return {
+    delivery:parseDelivery(request.delivery,new Set(normalized.products.map(p=>p.id))),accessConfig:parseAccessConfig(request.accessConfig),
     id: `plan-${Date.now()}-${normalized.strategy}`,
     mode: normalized.mode,
     strategy: normalized.strategy!,
@@ -2142,6 +2176,7 @@ export function pack(request: PackingRequest): PackingResult {
     setSummaries,
     quoteEstimate,
     metrics: {
+      ...envelopeMetrics(orderedPlacements,normalized.products,effectiveVolume),
       loadedCount,
       requestedCount,
       grossWeight,
@@ -2364,7 +2399,7 @@ export function revisePackingResult(original: PackingResult, placements: PlacedB
   return { ...original, id: `manual-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, placements: ordered,pallets,
     strategyPlans: undefined, strategyComparison: undefined, quoteEstimate: undefined, validation,
     warnings: ["手动调整已重新校验；继续优化会保留锁定箱位及其支撑；重新计算整个订单将创建新方案。"],
-    metrics: { ...original.metrics, centerOfGravity: calculateCenterOfGravity([...palletAnchors(pallets),...ordered],effective), executionComplexity: calculateExecutionComplexity(ordered,products) }, createdAt: new Date().toISOString() };
+    metrics: { ...original.metrics, centerOfGravity: calculateCenterOfGravity([...palletAnchors(pallets),...ordered],effective,products), executionComplexity: calculateExecutionComplexity(ordered,products) }, createdAt: new Date().toISOString() };
 }
 
 export function explainUnloaded(result: PackingResult, products: ProductInput[]) {
@@ -2392,7 +2427,7 @@ export function diagnoseUnloadedPosition(result:PackingResult,products:ProductIn
   products = applyTypeSupport(products, result.loadingRules);
   const p=products.find(p=>p.id===productId);if(!p)return {detail:"缺少箱规",candidate:null};
   const effective=effectiveContainer(result.container,result.clearance),orientations=orientationsForStrategy(p,effective,result.strategy);
-  const spatial=new SpatialIndex(effective),tops=new Map<number,PlacedBox[]>(),rules=new Map(products.map(p=>[p.id,p]));
+  const spatial=new SpatialIndex(effective,Math.max(0,...products.map(p=>p.protectionGap??0))),tops=new Map<number,PlacedBox[]>(),rules=new Map(products.map(p=>[p.id,p]));
   const allBoxes=[...palletAnchors(result.pallets??[]),...result.placements];
   allBoxes.forEach((b,i)=>{spatial.add(b,i);indexSupport(tops,b,rules);});
   const points:Point[]=[{x:0,y:0,z:0},...allBoxes.flatMap(b=>[{x:b.x+b.dx,y:b.y,z:b.z},{x:b.x,y:b.y+b.dy,z:b.z},{x:b.x,y:b.y,z:b.z+b.dz}])];
@@ -2458,10 +2493,10 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   const grossWeight=summaries.reduce((n,s)=>n+s.loadedWeight,0)+pallets.reduce((n,p)=>n+p.weight,0);
   const effectiveVolume=effective.length*effective.width*effective.height;
   return {id:`restored-${Date.now()}`,mode:request.mode,strategy:raw.strategy,practicalTargetUtilization:practicalTarget(normalized),engineVersion:ENGINE_VERSION,
-    palletization,delivery:parseDelivery(raw.delivery,new Set(products.map(p=>p.id))),floorPallets:request.floorPallets,pallets,container:request.container,clearance:request.clearance,singleCartonLimit:normalized.singleCartonLimit,placements:ordered,summaries,setSummaries,validation,
-    metrics:{loadedCount:ordered.length,requestedCount:summaries.reduce((n,s)=>n+s.requested,0),loadedVolume,grossWeight,effectiveVolume,
+    accessConfig:parseAccessConfig(raw.accessConfig),palletization,delivery:parseDelivery(raw.delivery,new Set(products.map(p=>p.id))),floorPallets:request.floorPallets,pallets,container:request.container,clearance:request.clearance,singleCartonLimit:normalized.singleCartonLimit,placements:ordered,summaries,setSummaries,validation,
+    metrics:{...envelopeMetrics(ordered,products,effectiveVolume),loadedCount:ordered.length,requestedCount:summaries.reduce((n,s)=>n+s.requested,0),loadedVolume,grossWeight,effectiveVolume,
       volumeUtilization:loadedVolume/effectiveVolume,weightUtilization:grossWeight/request.container.maxWeight,
-      centerOfGravity:calculateCenterOfGravity([...palletAnchors(pallets),...ordered],effective),executionComplexity:calculateExecutionComplexity(ordered,products),solveTimeMs:0},
+      centerOfGravity:calculateCenterOfGravity([...palletAnchors(pallets),...ordered],effective,products),executionComplexity:calculateExecutionComplexity(ordered,products),solveTimeMs:0},
     loadingRules: request.loadingRules, cargoDetails: Object.fromEntries(products.map(p=>[p.id,shapeDetails(p)])),
     warnings:["历史箱位已按当前箱规与引擎重新校验。自动重算已暂停，可继续手动调整或生成新方案。"],createdAt:new Date().toISOString()};
 }
@@ -2490,7 +2525,7 @@ export function improvePacking(original: PackingResult, products: ProductInput[]
   const score=(p:PackingResult)=>weightedScore(p.placements,products);
   if(score(candidate)<score(baseline)||candidate.metrics.loadedCount<baseline.metrics.loadedCount)return original;
   if(score(candidate)===score(baseline)&&executionAudit(candidate).score>=executionAudit(baseline).score)return original;
-  candidate.id=`optimized-${Date.now()}-${pass}`;candidate.singleCartonLimit=original.singleCartonLimit;candidate.delivery=original.delivery;
+  candidate.id=`optimized-${Date.now()}-${pass}`;candidate.singleCartonLimit=original.singleCartonLimit;candidate.delivery=original.delivery;candidate.accessConfig=original.accessConfig;
   candidate.warnings=[`已保留 ${fixed.size} 个固定／支撑／成套箱位，其余空间完成第 ${pass+1} 轮搜索。`,...candidate.warnings];
   return candidate;
 }

@@ -1,6 +1,9 @@
 import type { CargoShape, ProductInput } from "./types";
-export const CARGO_SHAPES: readonly CargoShape[] = ["box", "cylinder", "wedge", "trapezoid", "frustum", "l-profile", "u-profile", "t-profile", "step", "irregular"];
-export type ShapeFields = Pick<ProductInput, "cargoType" | "cargoShape" | "shapeAxis" | "shapeTopRatio" | "shapeWallRatio" | "shapeWallHeightRatio" | "shapeStepLengthRatio" | "shapeStepHeightRatio">;
+import { parseSolidModel, buildSolidModel } from "./solid-model";
+export const LEGACY_SHAPES: readonly CargoShape[] = ["box", "cylinder", "wedge", "trapezoid", "frustum", "l-profile", "u-profile", "t-profile", "step", "irregular"];
+export const ADVANCED_SHAPES: readonly CargoShape[] = ["polygon", "tube", "reel", "bend", "ellipsoid", "capsule", "custom-prism", "compound", "mesh"];
+export const CARGO_SHAPES: readonly CargoShape[] = [...LEGACY_SHAPES,...ADVANCED_SHAPES];
+export type ShapeFields = Pick<ProductInput, "cargoType" | "cargoShape" | "shapeAxis" | "shapeTopRatio" | "shapeWallRatio" | "shapeWallHeightRatio" | "shapeStepLengthRatio" | "shapeStepHeightRatio" | "solidModel" | "protectionGap">;
 export const SHAPE_LABELS: Record<CargoShape, [string, string]> = {
   box: ["长方体", "Cuboid"], cylinder: ["圆筒／椭圆筒", "Cylinder / oval"],
   wedge: ["三角柱／楔形", "Triangular / wedge"], trapezoid: ["梯形箱", "Trapezoid"],
@@ -8,6 +11,7 @@ export const SHAPE_LABELS: Record<CargoShape, [string, string]> = {
   "u-profile": ["U 型件", "U profile"], "t-profile": ["T 型件", "T profile"],
   step: ["阶梯组合件", "Stepped body"],
   irregular: ["其他异型件", "Other irregular"],
+  polygon:["六角／八角柱","Polygonal prism"], tube:["空心管","Hollow tube"], reel:["卷盘","Cable reel"], bend:["弧形／弯管","Arc / bent tube"], ellipsoid:["球／椭球","Sphere / ellipsoid"], capsule:["胶囊形","Capsule"], "custom-prism":["自定义截面","Custom section"], compound:["组合模型","Compound model"], mesh:["导入模型","Imported model"],
 };
 export function cargoShapeOf(p: ShapeFields): CargoShape {
   return p.cargoShape ?? (["drum", "roll"].includes(p.cargoType ?? "") ? "cylinder" : "box");
@@ -28,7 +32,11 @@ export function parseShapeFields(v: Record<string, unknown>): ShapeFields {
     if (n !== undefined && (typeof n !== "number" || !Number.isFinite(n) || n < .000001 || n > .999999)) throw new Error("阶梯长度与高度须在总尺寸内");
   }
   if (v.cargoType === "pallet" && v.cargoShape !== undefined && v.cargoShape !== "box") throw new Error("托盘货物外包络须为长方体");
+  const solidModel=parseSolidModel(v.solidModel);
+  if(ADVANCED_SHAPES.includes(v.cargoShape as CargoShape)&&!solidModel)throw new Error("该外形需填写实体模型参数。");
+  if(v.protectionGap!==undefined&&(typeof v.protectionGap!=="number"||!Number.isFinite(v.protectionGap)||v.protectionGap<0||v.protectionGap>100000))throw new Error("货物保护间隙须为 0–100000 mm。");
   return {
+    ...(solidModel?{solidModel}:{}),...(v.protectionGap===undefined?{}:{protectionGap:v.protectionGap as number}),
     ...(v.cargoShape === undefined ? {} : { cargoShape: v.cargoShape as CargoShape }),
     ...(v.shapeAxis === undefined ? {} : { shapeAxis: v.shapeAxis as "L" | "W" | "H" }),
     ...(v.shapeTopRatio === undefined ? {} : { shapeTopRatio: v.shapeTopRatio as number }),
@@ -43,7 +51,7 @@ export function withShapeSupport(p: ProductInput): ProductInput {
   return shapeCanSupport(p) ? p : { ...p, stackable: false };
 }
 export function isRectilinearShape(p: ShapeFields) { return ["l-profile", "u-profile", "t-profile", "step"].includes(cargoShapeOf(p)); }
-export function shapeCanSupport(p: ShapeFields) { return cargoShapeOf(p) === "box" || isRectilinearShape(p); }
+export function shapeCanSupport(p: ShapeFields) { try{return p.solidModel?!!p.solidModel.loadFaces.length&&(buildSolidModel(p.solidModel).flatFaces.length+buildSolidModel(p.solidModel).caps.length>0):cargoShapeOf(p) === "box" || isRectilinearShape(p);}catch{return false;} }
 export function shapeDetails(p: ProductInput) {
   return { ...parseShapeFields(p as unknown as Record<string, unknown>), cargoType: p.cargoType, palletBaseHeight: p.palletBaseHeight };
 }

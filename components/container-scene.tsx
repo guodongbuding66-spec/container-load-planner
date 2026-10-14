@@ -66,6 +66,7 @@ type InstanceGroup = {
   orientationSigns?: PlacedBox["orientationSigns"];
   cargoType?: ProductInput["cargoType"];
   cargoShape?: ProductInput["cargoShape"];
+  solidModel?:ProductInput["solidModel"];
   shapeAxis?: ProductInput["shapeAxis"];
   shapeTopRatio?: number;
   shapeWallRatio?: number;
@@ -82,20 +83,20 @@ const subscribeToClientReady = () => () => undefined;
 const getClientReady = () => true;
 const getServerNotReady = () => false;
 
-function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSelect }: { group: InstanceGroup; scale: number; offset: THREE.Vector3; reducedRendering: boolean; labels:boolean; onSelect:(box:PlacedBox,point?:Point3,add?:boolean)=>void }) {
+function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSelect,collisionProxy=false }: { collisionProxy?:boolean;group: InstanceGroup; scale: number; offset: THREE.Vector3; reducedRendering: boolean; labels:boolean; onSelect:(box:PlacedBox,point?:Point3,add?:boolean)=>void }) {
   useLanguage();
   const meshRef = useRef<THREE.InstancedMesh>(null), baseRef = useRef<THREE.InstancedMesh>(null);
   const transform = useMemo(() => new THREE.Object3D(), []);
   const first=group.boxes[0], shape=cargoShapeOf(group);
-  const geometry=useMemo(()=>cargoShapeGeometry({cargoType:group.cargoType,cargoShape:group.cargoShape,shapeAxis:group.shapeAxis,shapeTopRatio:group.shapeTopRatio,shapeWallRatio:group.shapeWallRatio,shapeWallHeightRatio:group.shapeWallHeightRatio,shapeStepLengthRatio:group.shapeStepLengthRatio,shapeStepHeightRatio:group.shapeStepHeightRatio},group.orientation as OrientationCode,reducedRendering,group.orientationSigns),[group.cargoType,group.cargoShape,group.shapeAxis,group.shapeTopRatio,group.shapeWallRatio,group.shapeWallHeightRatio,group.shapeStepLengthRatio,group.shapeStepHeightRatio,group.orientation,group.orientationSigns,reducedRendering]);
+  const geometry=useMemo(()=>cargoShapeGeometry({cargoType:group.cargoType,cargoShape:group.cargoShape,shapeAxis:group.shapeAxis,shapeTopRatio:group.shapeTopRatio,shapeWallRatio:group.shapeWallRatio,shapeWallHeightRatio:group.shapeWallHeightRatio,shapeStepLengthRatio:group.shapeStepLengthRatio,shapeStepHeightRatio:group.shapeStepHeightRatio,solidModel:group.solidModel},group.orientation as OrientationCode,reducedRendering,group.orientationSigns,collisionProxy),[collisionProxy,group.solidModel,group.cargoType,group.cargoShape,group.shapeAxis,group.shapeTopRatio,group.shapeWallRatio,group.shapeWallHeightRatio,group.shapeStepLengthRatio,group.shapeStepHeightRatio,group.orientation,group.orientationSigns,reducedRendering]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
   const materials = useMemo(() => {
     const dims=[first.dx,first.dz,first.dy], axis=first.orientation.indexOf("H");
     if(group.cargoType==="pallet")dims[axis===0?0:axis===1?2:1]=Math.max(1,dims[axis===0?0:axis===1?2:1]-(group.baseHeight??0));
-    const textures=labels&&shape==="box"?[boxFaceTexture(group.sku,group.color,dims[2],dims[1],group.orientation[2]),boxFaceTexture(group.sku,group.color,dims[0],dims[2]),boxFaceTexture(group.sku,group.color,dims[0],dims[1],group.orientation[2])]:[];
+    const textures=labels&&shape==="box"&&!group.solidModel?[boxFaceTexture(group.sku,group.color,dims[2],dims[1],group.orientation[2]),boxFaceTexture(group.sku,group.color,dims[0],dims[2]),boxFaceTexture(group.sku,group.color,dims[0],dims[1],group.orientation[2])]:[];
     const maps=[textures[0],textures[0],textures[1],textures[1],textures[2],textures[2]];
-    return maps.map(map=>new THREE.MeshStandardMaterial({map:map??null,color:map?"white":group.color,roughness:.82,wireframe:shape==="irregular",transparent:shape==="irregular",opacity:shape==="irregular"?.6:1}));
-  },[first.dx,first.dy,first.dz,first.orientation,group.baseHeight,group.cargoType,group.sku,group.color,group.orientation,labels,shape]);
+    return maps.map(map=>new THREE.MeshStandardMaterial({map:map??null,color:map?"white":group.color,roughness:.82,wireframe:collisionProxy||shape==="irregular",transparent:collisionProxy||shape==="irregular",opacity:collisionProxy?.75:shape==="irregular"?.6:1}));
+  },[first.dx,first.dy,first.dz,first.orientation,group.baseHeight,group.cargoType,group.sku,group.color,group.orientation,group.solidModel,labels,shape,collisionProxy]);
   useEffect(()=>()=>{new Set(materials.map(m=>m.map)).forEach(t=>t?.dispose());materials.forEach(m=>m.dispose());},[materials]);
   const parts=useMemo(()=>group.cargoType!=="pallet"||!group.baseHeight?[]:group.sources.flatMap(box=>{
     const world=[box.dx,box.dy,box.dz];
@@ -109,7 +110,7 @@ function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSele
   useLayoutEffect(() => {
     if (!meshRef.current) return;
     group.boxes.forEach((clipped,index)=>{
-      const box=shape==="box"?clipped:group.sources[index];
+      const box=shape==="box"&&!group.solidModel?clipped:group.sources[index];
       const dims=[box.dx,box.dz,box.dy], pos=[(box.x+box.dx/2)*scale+offset.x,(box.z+box.dz/2)*scale+offset.y,(box.y+box.dy/2)*scale+offset.z];
       const originalAxis=box.orientation.indexOf("H"), axis=originalAxis===0?0:originalAxis===1?2:1;
       const source=group.sources[index],sourcePosition=[source.x,source.z,source.y],displayPosition=[box.x,box.z,box.y];
@@ -119,7 +120,7 @@ function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSele
     });
     meshRef.current.instanceMatrix.needsUpdate=true;meshRef.current.computeBoundingSphere();
     if(baseRef.current){parts.forEach((p,i)=>{transform.position.set((p.x+p.dx/2)*scale+offset.x,(p.z+p.dz/2)*scale+offset.y,(p.y+p.dy/2)*scale+offset.z);transform.scale.set(p.dx*scale*.997,p.dz*scale*.995,p.dy*scale*.997);transform.updateMatrix();baseRef.current!.setMatrixAt(i,transform.matrix);baseRef.current!.setColorAt(i,new THREE.Color(p.kind==="block"?"#ac8151":"#d4af7b"));});baseRef.current.instanceMatrix.needsUpdate=true;if(baseRef.current.instanceColor)baseRef.current.instanceColor.needsUpdate=true;baseRef.current.computeBoundingSphere();}
-  },[group.boxes,group.sources,group.baseHeight,group.cargoType,parts,materials,offset,scale,transform,shape]);
+  },[group.solidModel,group.boxes,group.sources,group.baseHeight,group.cargoType,parts,materials,offset,scale,transform,shape]);
   return <><instancedMesh ref={meshRef} args={[geometry,materials,group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering} onClick={e=>{if(e.delta>3)return;e.stopPropagation();if(e.instanceId!==undefined)onSelect(group.boxes[e.instanceId],e.point?[(e.point.x-offset.x)/scale,(e.point.z-offset.z)/scale,(e.point.y-offset.y)/scale]:undefined,e.shiftKey);}}></instancedMesh>{parts.length>0&&<instancedMesh ref={baseRef} args={[undefined,undefined,parts.length]}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>}</>;
 }
 
@@ -161,7 +162,7 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
       const color=heatColors?.get(box.id)??box.color;
       const key = `${box.productId}:${box.orientation}:${box.orientationSigns?.join("/")??""}:${box.dx}:${box.dy}:${box.dz}:${color}`;
       const meta = result.cargoDetails?.[box.productId];
-      const current = map.get(key) ?? { productId: key, sku: box.sku, orientation: box.orientation, orientationSigns:box.orientationSigns, cargoType: meta?.cargoType,cargoShape:meta?.cargoShape,shapeAxis:meta?.shapeAxis,shapeTopRatio:meta?.shapeTopRatio,shapeWallRatio:meta?.shapeWallRatio,shapeWallHeightRatio:meta?.shapeWallHeightRatio,shapeStepLengthRatio:meta?.shapeStepLengthRatio,shapeStepHeightRatio:meta?.shapeStepHeightRatio, baseHeight: meta?.palletBaseHeight, color, boxes: [],sources:[] };
+      const current = map.get(key) ?? { productId: key, sku: box.sku, orientation: box.orientation, orientationSigns:box.orientationSigns, cargoType: meta?.cargoType,cargoShape:meta?.cargoShape,shapeAxis:meta?.shapeAxis,shapeTopRatio:meta?.shapeTopRatio,shapeWallRatio:meta?.shapeWallRatio,shapeWallHeightRatio:meta?.shapeWallHeightRatio,shapeStepLengthRatio:meta?.shapeStepLengthRatio,shapeStepHeightRatio:meta?.shapeStepHeightRatio,solidModel:meta?.solidModel, baseHeight: meta?.palletBaseHeight, color, boxes: [],sources:[] };
       current.boxes.push(box);
       current.sources.push(sources.get(box.id)!);
       map.set(key, current);
@@ -185,7 +186,7 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
       {baseHeight > 0 && (result.container.category !== "pallet" || modelMode === "wireframe") && <PalletStructures pallets={[{id:"space-base",presetId:result.container.id,name:result.container.name,x:0,y:0,z:-baseHeight,dx:effective.length,dy:effective.width,dz:baseHeight,weight:0,maxLoad:result.container.maxWeight,orientation:"LWH"}]} scale={scale} offset={offset}/>}
       <PalletStructures pallets={(result.pallets??[]).filter(p=>section.isolation!=="pallet"||section.target===p.id)} scale={scale} offset={offset} onSelect={p=>onSelect(palletAnchors([p])[0])}/>
       {groups.map((group) => (
-        <InstancedBoxes key={group.productId} group={group} scale={scale} offset={offset} reducedRendering={reducedRendering} labels={labels} onSelect={onSelect} />
+        <InstancedBoxes key={group.productId} group={group} collisionProxy={appearance.collisionProxy} scale={scale} offset={offset} reducedRendering={reducedRendering} labels={labels} onSelect={onSelect} />
       ))}
       {editor?.enabled&&editor.selected.filter(b=>b.id!==selected?.id).map(b=><SelectionOutline key={b.id} box={b} scale={scale} offset={offset}/>)}
       {selected && sectionBox(selected,result,section) && <SelectionOutline box={sectionBox(selected,result,section)!} scale={scale} offset={offset}/>}
@@ -268,7 +269,7 @@ export function ContainerScene({
                 </button>
               ))}
             </div>
-          </div></div><div className="scene-tools" aria-label={tr("三维工具", "3D tools")}><button type="button" disabled={!result} aria-pressed={labels} onClick={()=>setLabels(!labels)}><Tag size={14}/>{tr("箱标","Labels")}</button><button type="button" disabled={!result} aria-pressed={appearance.skuSummaries} onClick={()=>appearance.setSkuSummaries(!appearance.skuSummaries)} title={tr("在货物上方显示每个 SKU 的汇总标签。","Show one summary label above each SKU.")}><Tag size={14}/>{tr("SKU 汇总","SKU summaries")}</button><DimensionControls/><button type="button" onClick={()=>{setSelection(null);setFocusId(null);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" disabled={!webglSupported} onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
+          </div></div><div className="scene-tools" aria-label={tr("三维工具", "3D tools")}><button type="button" disabled={!result} aria-pressed={labels} onClick={()=>setLabels(!labels)}><Tag size={14}/>{tr("箱标","Labels")}</button><button type="button" disabled={!result} aria-pressed={appearance.skuSummaries} onClick={()=>appearance.setSkuSummaries(!appearance.skuSummaries)} title={tr("在货物上方显示每个 SKU 的汇总标签。","Show one summary label above each SKU.")}><Tag size={14}/>{tr("SKU 汇总","SKU summaries")}</button><button type="button" disabled={!result||!Object.values(result.cargoDetails??{}).some(p=>p.solidModel)} aria-pressed={appearance.collisionProxy} onClick={()=>appearance.updatePreferences({collisionProxy:!appearance.collisionProxy})}>{tr("碰撞体","Collision bodies")}</button><DimensionControls/><button type="button" onClick={()=>{setSelection(null);setFocusId(null);onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" disabled={!webglSupported} onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
 
 {webglSupported!==false&&<TransportModelControls/>}</div>} fullscreenFooter={result&&onVisibleCountChange&&<footer className="scene-progress"><span>{tr("装载进度")}</span><input type="range" min={0} max={result.placements.length} value={visibleCount} aria-label={tr("三维装载进度", "3D loading progress")} onChange={e=>onVisibleCountChange(Number(e.target.value))}/><output>{visibleCount} / {result.placements.length} {tr("箱")}</output></footer>}>
 {editor?.changed&&<p className="scene-draft-notice" role="status">{tr("正在预览编辑草稿；采用后更新指标与导出。","Previewing edit draft. Apply to update totals and exports.")}</p>}
