@@ -73,7 +73,7 @@ export function bodiesOverlap(a: OrientedBody, b: OrientedBody, pa:ShapeFields={
   const gap=Math.max(pa.protectionGap??0,pb.protectionGap??0),broad=a.x+a.dx+gap>b.x+EPS&&b.x+b.dx+gap>a.x+EPS&&a.y+a.dy+gap>b.y+EPS&&b.y+b.dy+gap>a.y+EPS&&a.z+a.dz+gap>b.z+EPS&&b.z+b.dz+gap>a.z+EPS;
   if(!broad)return false;
   const contact=gap&&(bodyContactArea(a,b,pa,pb)>EPS||bodyContactArea(b,a,pb,pa)>EPS);
-  if(pa.solidModel||pb.solidModel||gap)return modelBodiesOverlap(a,b,pa,pb,cargoBodyParts(a,pa).map(c=>boxCell(c.x,c.y,c.z,c.dx,c.dy,c.dz)),cargoBodyParts(b,pb).map(c=>boxCell(c.x,c.y,c.z,c.dx,c.dy,c.dz)),contact?0:gap);
+  if(pa.solidModel||pb.solidModel||gap)return modelBodiesOverlap(a,b,pa,pb,pa.solidModel?[]:cargoBodyParts(a,pa).map(c=>boxCell(c.x,c.y,c.z,c.dx,c.dy,c.dz)),pb.solidModel?[]:cargoBodyParts(b,pb).map(c=>boxCell(c.x,c.y,c.z,c.dx,c.dy,c.dz)),contact?0:gap);
   return overlap(a,b) && cargoBodyParts(a,pa).some(x=>cargoBodyParts(b,pb).some(y=>overlap(x,y)));
 }
 export function surfaceArea(s: Surface) { return s.areaUpper??(s.polygon?polygonArea(s.polygon):s.dx*s.dy); }
@@ -106,6 +106,7 @@ export function bodyTopLevels(b:OrientedBody,p:ShapeFields={}) {
   return [...new Set(cargoBodyParts(b,p).map(c=>c.z+c.dz))].filter(z=>bodyTopPatches(b,p,z).length);
 }
 export function bodyContactArea(upper:OrientedBody,lower:OrientedBody,pu:ShapeFields={},pl:ShapeFields={}) {
+  if(upper.x+upper.dx<=lower.x||lower.x+lower.dx<=upper.x||upper.y+upper.dy<=lower.y||lower.y+lower.dy<=upper.y)return 0;
   if(!pu.solidModel&&!pl.solidModel&&!isRectilinearShape(pu)&&!isRectilinearShape(pl))return Math.abs(lower.z+lower.dz-upper.z)<EPS?surfaceArea(intersectSurface(upper,lower)):0;
   return bodyBottomPatches(upper,pu).reduce((area,u)=>area+bodyTopPatches(lower,pl,upper.z).reduce((n,l)=>n+supportedSurfaceArea(intersectSurface(u,l)),0),0);
 }

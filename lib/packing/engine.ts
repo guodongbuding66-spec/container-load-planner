@@ -44,7 +44,7 @@ type Orientation = {
   label: string;
 };
 
-type Point = { x: number; y: number; z: number };
+type Point = { x: number; y: number; z: number; envelope?: boolean };
 
 type EffectiveContainer = {
   length: number;
@@ -1505,12 +1505,21 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
   let spatial = new SpatialIndex(container,Math.max(0,...request.products.map(p=>p.protectionGap??0)));
   let topLevels = new Map<number, PlacedBox[]>();
   const productMap = new Map(request.products.map((product) => [product.id, product]));
-  let points: Point[] = [{ x: 0, y: 0, z: 0 }];
+  const orientationCache = new Map<string, Orientation[]>();
+  let points: Point[] = [{ x: 0, y: 0, z: 0, envelope: true }];
   let totalWeight = placements.reduce((n,b)=>n+b.weight,0);
   let totalVolume = placements.reduce((n,b)=>n+b.dx*b.dy*b.dz*bodyVolumeRatio(productMap.get(b.productId)??{}),0);
   let placementIndex = anchors.length ? 1 + Math.max(0,...placements.map(b=>Number(b.id.split("-").at(-1))||0)) : 0;
   const blockedSetCodes = new Set<string>();
   const strategy = packingStrategy(request);
+  const pointOrder = (request.loadingRules?.layout === "deep-first" || (request.loadingRules?.layout !== "layers" && strategy === "practical"))
+    ? (a:Point,b:Point) => a.x-b.x || a.z-b.z || a.y-b.y
+    : (a:Point,b:Point) => a.z-b.z || a.y-b.y || a.x-b.x;
+  const pointKey = (p:Point) => `${p.x.toFixed(3)}|${p.y.toFixed(3)}|${p.z.toFixed(3)}`;
+  const selectPoints = (list:Point[],budget:number) => {
+    const sorted=[...list].sort(pointOrder),essential=sorted.filter(p=>p.envelope).slice(0,Math.floor(budget/2)),keys=new Set(essential.map(pointKey));
+    return [...essential,...sorted.filter(p=>!keys.has(pointKey(p))).slice(0,budget-essential.length)].sort(pointOrder);
+  };
   const volumeLimit = container.length * container.width * container.height * practicalTarget(request);
 
   const rebuildIndexes = () => {
@@ -1529,18 +1538,18 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
   ]));
   const placeProduct = (product: ProductInput) => {
     if (totalWeight + product.weight > request.container.maxWeight + EPS) return false;
-    const orientations = orientationsForStrategy(product, container, strategy);
+    let orientations = orientationCache.get(product.id);
+    if (!orientations) {
+      orientations = orientationsForStrategy(product, container, strategy).filter(o => !modelRestError(makePlacement(product, 0, {x:0,y:0,z:0}, o), product));
+      orientationCache.set(product.id, orientations);
+    }
     if (orientations.length === 0) return false;
 
     let best: { point: Point; orientation: Orientation; layer: number; score: number; palletIds: string[] } | undefined;
     const depthMultiplier = request.loadingRules?.search === "deep" ? 2 : 1;
     const candidateBudget = (strategy === "maximum" ? 2600 : 1200) * depthMultiplier;
     const retainedPointBudget = (strategy === "maximum" ? 3200 : 1600) * depthMultiplier;
-    const candidatePoints = [...points]
-      .sort((request.loadingRules?.layout === "deep-first" || (request.loadingRules?.layout !== "layers" && strategy === "practical"))
-        ? (a, b) => a.x - b.x || a.z - b.z || a.y - b.y
-        : (a, b) => a.z - b.z || a.y - b.y || a.x - b.x)
-      .slice(0, candidateBudget);
+    const candidatePoints = selectPoints(points,candidateBudget);
     for (const point of candidatePoints) {
       for (const orientation of orientations) {
         const candidate = makePlacement(product, placementIndex, point, orientation);
@@ -1554,6 +1563,15 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
         ) {
           continue;
         }
+        const topPenalty = (request.loadingRules?.layout === "deep-first" || (request.loadingRules?.layout !== "layers" && strategy === "practical"))
+          ? candidate.x * 1_000_000_000
+          : candidate.z * 1_000_000_000;
+        const sidePenalty = (request.loadingRules?.layout === "deep-first" || (request.loadingRules?.layout !== "layers" && strategy === "practical"))
+          ? candidate.z * 1_000_000 + candidate.y * 100
+          : candidate.y * 1_000_000 + candidate.x * 100;
+        const compactness = candidate.x + candidate.dx + candidate.y + candidate.dy + candidate.z + candidate.dz;
+        const score = topPenalty + sidePenalty + compactness;
+        if (best && score >= best.score) continue;
         let collides = false;
         for (const index of spatial.query(candidate)) {
           if (bodiesOverlap(candidate, placements[index],product,productMap.get(placements[index].productId))) {
@@ -1568,14 +1586,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
         const layerLimit = maxStackLayers(product);
         if (support.ratio + EPS < requiredSupport(product, strategy) || (layerLimit > 0 && support.layer > layerLimit)) continue;
         if (request.products.some(hasBearingRules) && bearingErrors([...placements, candidate], request.products).length) continue;
-        const topPenalty = (request.loadingRules?.layout === "deep-first" || (request.loadingRules?.layout !== "layers" && strategy === "practical"))
-          ? candidate.x * 1_000_000_000
-          : candidate.z * 1_000_000_000;
-        const sidePenalty = (request.loadingRules?.layout === "deep-first" || (request.loadingRules?.layout !== "layers" && strategy === "practical"))
-          ? candidate.z * 1_000_000 + candidate.y * 100
-          : candidate.y * 1_000_000 + candidate.x * 100;
-        const compactness = candidate.x + candidate.dx + candidate.y + candidate.dy + candidate.z + candidate.dz;
-        const score = topPenalty + sidePenalty + compactness;
+
         if (!best || score < best.score) best = { point, orientation, layer: support.layer, score, palletIds };
       }
     }
@@ -1592,25 +1603,16 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
     const additions: Point[] = [
       ...cargoBodyParts(placed,product).flatMap(b=>[{x:b.x,y:b.y,z:b.z+b.dz},{x:b.x+b.dx+(product.protectionGap??0),y:b.y,z:b.z},{x:b.x,y:b.y+b.dy+(product.protectionGap??0),z:b.z}]),
       ...modelCandidatePoints(placed,product),
-      { x: placed.x + placed.dx+(product.protectionGap??0), y: placed.y, z: placed.z },
-      { x: placed.x, y: placed.y + placed.dy+(product.protectionGap??0), z: placed.z },
-      { x: placed.x, y: placed.y, z: placed.z + placed.dz },
+      { x: placed.x + placed.dx+(product.protectionGap??0), y: placed.y, z: placed.z, envelope: true },
+      { x: placed.x, y: placed.y + placed.dy+(product.protectionGap??0), z: placed.z, envelope: true },
+      { x: placed.x, y: placed.y, z: placed.z + placed.dz, envelope: true },
     ];
-    const next = [...points.filter((point) => !cargoBodyParts(placed,product).some(b=>isInside(point,b))), ...additions].filter(
+    const next = [...points.filter((point) => !cargoBodyParts(placed,product).some(b=>isInside(point,b))).map(point=>point.envelope&&isInside(point,placed)?{...point,envelope:false}:point), ...additions].filter(
       (point) => point.x < container.length - EPS && point.y < container.width - EPS && point.z < container.height - EPS,
     );
-    const seen = new Set<string>();
-    points = next
-      .filter((point) => {
-        const key = `${point.x.toFixed(3)}|${point.y.toFixed(3)}|${point.z.toFixed(3)}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      })
-      .sort((request.loadingRules?.layout === "deep-first" || (request.loadingRules?.layout !== "layers" && strategy === "practical"))
-        ? (a, b) => a.x - b.x || a.z - b.z || a.y - b.y
-        : (a, b) => a.z - b.z || a.y - b.y || a.x - b.x)
-      .slice(0, retainedPointBudget);
+    const unique = new Map<string,Point>();
+    for(const point of next){const key=pointKey(point),old=unique.get(key);if(!old||point.envelope&&!old.envelope)unique.set(key,point);}
+    points = selectPoints([...unique.values()],retainedPointBudget);
     return true;
   };
 
@@ -2074,9 +2076,18 @@ export function pack(request: PackingRequest): PackingResult {
   const palletUnitCount = normalized.products.reduce((n,p)=>n+(setCode(p)?unitsPerSet(p):1),0);
   const palletUnitLimit = Math.max(0, Math.floor(Math.min((effectiveVolume-pallets.reduce((n,p)=>n+p.dx*p.dy*p.dz,0))/palletUnitVolume, (MAX_VISIBLE_PLACEMENTS-pallets.length)/palletUnitCount, (normalized.singleCartonLimit??MAX_VISIBLE_PLACEMENTS)/palletUnitCount, palletUnitWeight>0?(normalized.container.maxWeight-palletWeight)/palletUnitWeight:Infinity)));
   const palletRequest: PackingRequest = {...normalized, products: [...normalized.products.map(p=>normalized.mode==="single"?{...p,quantity:palletUnitLimit*(setCode(p)?unitsPerSet(p):1)}:p), ...palletSupportProducts(pallets).map(p=>({...p,quantity:0}))]};
-  const output = pallets.length ? packMixed(palletRequest, effective, supports) : bearingEnabled ? packMixed(bearingRequest, effective) : normalized.mode === "single"
+  let certifiedGrid:ReturnType<typeof packSingle>|undefined;
+  if(!pallets.length&&normalized.mode==='single'&&normalized.products.length===1&&normalized.products[0].solidModel&&!normalized.products[0].protectionGap){
+    const product=normalized.products[0],allowed=orientationsForStrategy(product,effective,normalized.strategy!).filter(o=>!modelRestError(makePlacement(product,0,{x:0,y:0,z:0},o),product)).map(o=>o.label as OrientationCode);
+    if(allowed.length){
+      const proposal=packSingle({...normalized,products:[{...product,allowedOrientations:allowed}]},effective,fieldPracticalSetLimit);
+      const reachedLimit=product.weight>0&&proposal.placements.length>=Math.floor(normalized.container.maxWeight/product.weight)||normalized.singleCartonLimit!==undefined&&proposal.placements.length>=normalized.singleCartonLimit;
+      if(proposal.placements.length&&!("theoreticalCount" in proposal&&typeof proposal.theoreticalCount==='number'&&proposal.theoreticalCount>proposal.placements.length)&&(normalized.strategy==='practical'||reachedLimit)&&validatePacking(proposal.placements,normalized.container,normalized.clearance,normalized.products,normalized.strategy,normalized.mode).valid)certifiedGrid=proposal;
+    }
+  }
+  const output = certifiedGrid ?? (pallets.length ? packMixed(palletRequest, effective, supports) : bearingEnabled ? packMixed(bearingRequest, effective) : normalized.mode === "single"
     ? packSingle(normalized, effective, fieldPracticalSetLimit)
-    : packMixed(normalized, effective);
+    : packMixed(normalized, effective));
   // Solvers may discover the final geometry layer-by-layer. Playback, exports
   // and field instructions must instead follow a physically executable route:
   // finish the container nose first, load every direct support before the box

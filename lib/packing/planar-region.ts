@@ -61,7 +61,7 @@ function contains(container:Region,inside:Region):boolean{
  }
  return false;
 }
-export function intersectRegion(a:Region,b:Region):Region{if(contains(a,b))return b;if(contains(b,a))return a;return {kind:'intersection',a,b};}
+export function intersectRegion(a:Region,b:Region):Region{const A=regionBounds(a),B=regionBounds(b);if(A[2]<=B[0]||B[2]<=A[0]||A[3]<=B[1]||B[3]<=A[1])return {kind:'union',items:[]};if(contains(a,b))return b;if(contains(b,a))return a;return {kind:'intersection',a,b};}
 export function differenceRegion(a:Region,b:Region):Region{if(contains(b,a))return {kind:'union',items:[]};return {kind:'difference',a,b};}
 export function pointInRegion(p:V2,r:Region):boolean{
  if(r.kind==='polygon')return pointInPolygon(p,r.points);if(r.kind==='ellipse'){const q=((p[0]-r.cx)/r.rx)**2+((p[1]-r.cy)/r.ry)**2;return q<=1+EPS&&q>=r.inner*r.inner-EPS;}
@@ -69,6 +69,6 @@ export function pointInRegion(p:V2,r:Region):boolean{
 }
 function samples(r:Region):V2[]{if(r.kind==='polygon')return r.points;if(r.kind==='ellipse')return [1,...(r.inner?[r.inner]:[])].flatMap(scale=>Array.from({length:128},(_,i)=>{const t=2*Math.PI*i/128;return [r.cx+r.rx*scale*Math.cos(t),r.cy+r.ry*scale*Math.sin(t)] as V2;}));if(r.kind==='union')return r.items.flatMap(samples);return [...samples(r.a),...samples(r.b)];}
 /** Stability witnesses are actual material-contact points, including region boundary crossings. */
-export function regionWitnessHull(r:Region):V2[]{const p=samples(r).filter(p=>pointInRegion(p,r));const [lo,ym,hi,yM]=regionBounds(r);for(let i=0;i<=128;i++){const x=lo+(hi-lo)*i/128,b=band(r,x,x);for(const [a,c] of b.lower){const y=(a+c)/2;if(pointInRegion([x,y],r))p.push([x,y]);}}
+export function regionWitnessHull(r:Region):V2[]{const bounds=regionBounds(r);if(bounds[2]<=bounds[0]||bounds[3]<=bounds[1])return [];const p=samples(r).filter(p=>pointInRegion(p,r));const [lo,ym,hi,yM]=regionBounds(r);for(let i=0;i<=128;i++){const x=lo+(hi-lo)*i/128,b=band(r,x,x);for(const [a,c] of b.lower){const y=(a+c)/2;if(pointInRegion([x,y],r))p.push([x,y]);}}
  if(!p.length&&hi>lo&&yM>ym){const mid:[number,number]=[(lo+hi)/2,(ym+yM)/2];if(pointInRegion(mid,r))p.push(mid);}return convexHull2(p);
 }

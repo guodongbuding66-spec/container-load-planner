@@ -48,7 +48,21 @@ export function modelSurfaces(b:ModelBody,p:Shape,level:number,top:boolean):Poly
  return surfaces.map(s=>({...s,x:s.x+b.x,y:s.y+b.y,polygon:s.polygon.map(v=>[v[0]+b.x,v[1]+b.y]),...(s.region?{region:shiftRegion(s.region,b.x,b.y)}:{})}));
 }
 export function modelTopLevels(b:ModelBody,p:Shape){if(!p.solidModel)return [];const built=buildSolidModel(p.solidModel),axes=axesOf((b.orientation??'LWH') as OrientationCode,b.orientationSigns),faces=[...built.flatFaces.map(f=>({point:f.points[0],normal:f.normal})),...built.caps.map(c=>({point:c.center,normal:c.normal}))];return [...new Set(faces.filter(f=>{const k=faceKey(f.normal);return k&&p.solidModel!.loadFaces.includes(k)&&f.normal[axes[2].original]*(axes[2].negative?-1:1)>.999999;}).map(f=>mapPoint(b,f.point)[2]))].filter(z=>modelSurfaces(b,p,z,true).length);}
-export function modelBodiesOverlap(a:ModelBody,b:ModelBody,pa:Shape,pb:Shape,fallbackA:SolidCell[],fallbackB:SolidCell[],gap=0){const ac=pa.solidModel?worldModelCells(a,pa):fallbackA,bc=pb.solidModel?worldModelCells(b,pb):fallbackB;return ac.some(a=>bc.some(b=>convexOverlap(a,b,gap)));}
+type CircularPrism={x:number;y:number;radius:number;inner:number};
+function circularPrism(b:ModelBody,p:Shape):CircularPrism|null{
+ if(!p.solidModel||p.solidModel.parts.length!==1||!['tube','cylinder'].includes(p.solidModel.parts[0].kind))return null;
+ const cap=buildSolidModel(p.solidModel).caps[0];if(!cap)return null;
+ const center=mapPoint(b,cap.center),u=sub(mapPoint(b,add(cap.center,cap.u)),center),v=sub(mapPoint(b,add(cap.center,cap.v)),center),radius=Math.hypot(...u);
+ if(Math.abs(u[2])>EPS||Math.abs(v[2])>EPS||Math.abs(radius-Math.hypot(...v))>EPS||Math.abs(u[0]*v[0]+u[1]*v[1])>EPS)return null;
+ return {x:center[0],y:center[1],radius,inner:radius*cap.inner};
+}
+function roundPenetration(a:ModelBody,b:ModelBody,pa:Shape,pb:Shape){
+ if(Math.min(a.z+a.dz,b.z+b.dz)-Math.max(a.z,b.z)<=EPS)return false;
+ const ac=circularPrism(a,pa),bc=circularPrism(b,pb);if(!ac||!bc)return false;
+ const distance=Math.hypot(ac.x-bc.x,ac.y-bc.y);
+ return distance<ac.radius+bc.radius-EPS&&distance+bc.radius>ac.inner+EPS&&distance+ac.radius>bc.inner+EPS;
+}
+export function modelBodiesOverlap(a:ModelBody,b:ModelBody,pa:Shape,pb:Shape,fallbackA:SolidCell[],fallbackB:SolidCell[],gap=0){if(!gap&&(!pa.solidModel||!buildSolidModel(pa.solidModel).cells.some(c=>c.padding))&&(!pb.solidModel||!buildSolidModel(pb.solidModel).cells.some(c=>c.padding))&&(a.x+a.dx<=b.x||b.x+b.dx<=a.x||a.y+a.dy<=b.y||b.y+b.dy<=a.y||a.z+a.dz<=b.z||b.z+b.dz<=a.z))return false;if(roundPenetration(a,b,pa,pb))return true;const ac=pa.solidModel?worldModelCells(a,pa):fallbackA,bc=pb.solidModel?worldModelCells(b,pb):fallbackB;return ac.some(a=>bc.some(b=>convexOverlap(a,b,gap)));}
 export function modelMassCenter(b:ModelBody,p:Shape){
  if(!p.solidModel)return [b.x+b.dx/2,b.y+b.dy/2,b.z+b.dz/2] as V3;
  const built=buildSolidModel(p.solidModel);let center=built.center;

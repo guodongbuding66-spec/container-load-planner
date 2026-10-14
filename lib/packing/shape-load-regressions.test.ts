@@ -33,6 +33,13 @@ describe.each(["practical", "maximum"] as const)("shape loading in %s", strategy
 });
 
 describe("zero-load causes", () => {
+  it.each(["practical", "maximum"] as const)("calculates full-size HQ tube capacity instead of timing out (%s)", strategy => {
+    const solidModel=parseSolidModel(defaultSolidModel("tube",[500,500,200]))!;
+    const p={...cargo("tube"),solidModel,length:500,width:500,height:200,weight:42.5,stackable:true,rotationPolicy:"any" as const,allowedOrientations:["LWH","LHW","WLH","WHL","HLW","HWL"] as ProductInput["allowedOrientations"]};
+    const hq={...container,length:12032,width:2350,height:2700,doorWidth:2340,doorHeight:2597,maxWeight:28600};
+    const result=pack({mode:"single",strategy,container:hq,clearance:10,products:[p]});
+    expect(result.validation.valid).toBe(true);expect(result.metrics.loadedCount).toBeGreaterThan(500);expect(result.metrics.grossWeight).toBeLessThanOrEqual(hq.maxWeight);
+  },60000);
   it("does not repeat an identical failed placement for a large curved-cargo order", () => {
     const p = { ...cargo("ellipsoid"), quantity: 20000 };
     const result = pack({ mode: "mixed", strategy: "practical", clearance: 0, container: { ...container, length: p.length, width: p.width, height: p.height, doorWidth: p.width, doorHeight: p.height }, products: [p] });
