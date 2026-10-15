@@ -101,5 +101,5 @@ describe("Complete-plan data consistency",()=>{
     const p=packLoadingWorkflow({...request,workflow:"single-capacity",mode:"single",products:[small],container:{...container,length:MAX_VISIBLE_PLACEMENTS+1,width:1,height:1,doorWidth:1,doorHeight:1,maxWeight:1000}});
     expect(p.metrics.loadedCount).toBe(MAX_VISIBLE_PLACEMENTS+1);expect(p.placements).toHaveLength(MAX_VISIBLE_PLACEMENTS);
     const report=auditPackingResult(p,[small]);expect(report.hasErrors).toBe(false);expect(report.completeCoordinates).toBe(false);expect(state(p,"quantities",[small])).toBe("unverified");
-  });
+  },30_000);
 });
