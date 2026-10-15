@@ -1404,3 +1404,22 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 .pallet-unit-contents>span{display:flex;align-items:center;gap:7px;padding:7px 10px;background:#f1f6f6;border-radius:6px;font-size:13px}
 .pallet-unit-contents i{width:10px;height:10px;border-radius:3px}
 @media(max-width:760px){.packaging-editor{grid-template-columns:1fr}.packaging-preview{order:-1}.packaging-preview .space-model-preview{height:200px}.packaging-fields .pallet-build-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.packaging-preview-actions small{flex-basis:100%}}
+
+
+/* Compact complete-plan bookkeeping; rendering filters do not affect these checks. */
+.result-audit{margin:12px 0;border:1px solid var(--line);border-radius:8px;font-size:12px;min-width:0}
+.result-audit.has-errors{border-color:#b84d43}
+.result-audit>summary{cursor:pointer;padding:10px 12px;overflow-wrap:anywhere}
+.result-audit>summary>strong{margin-right:12px}
+.result-audit>summary>span{color:var(--muted);font-size:11px}
+.result-audit>p{padding:0 12px;margin:0 0 10px;color:var(--muted);line-height:1.5}
+.result-audit>ul{list-style:none;margin:0;padding:0 12px 10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.result-audit li{min-width:0;border-top:1px solid var(--line);padding-top:8px;overflow-wrap:anywhere}
+.result-audit li>div{display:flex;justify-content:space-between;align-items:start;gap:8px}
+.result-audit li p{margin:4px 0;color:var(--muted);line-height:1.5}
+.result-audit li small{color:var(--muted)}
+.result-audit .audit-state{flex-shrink:0;font-size:11px}
+.result-audit .audit-state.pass{color:#22674c}
+.result-audit .audit-state.fail,.result-audit [role=alert]{color:#9d3027}
+.result-audit .audit-state.unverified{color:#855d0d}
+@media(max-width:600px){.result-audit>ul{grid-template-columns:1fr}.result-audit>summary>span{display:block;margin-top:4px}}

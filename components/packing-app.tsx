@@ -110,6 +110,8 @@ import { DEFAULT_PALLET_BUILD, parseLoadingWorkflow, parsePalletBuild } from "..
 import type { LoadingWorkflow, PalletBuildOptions } from "../lib/packing/types";
 import { PrebuiltPalletPanel } from "./prebuilt-pallet-panel";
 import { PalletManifest } from "./pallet-manifest";
+import { ResultAuditPanel } from "./result-audit-panel";
+import { auditPackingResult } from "../lib/packing/result-audit";
 import { WorkflowSteps } from "./workflow-steps";
 import { MAX_WORKSPACE_BYTES, parseWorkspaceBackup, restoreWorkspacePlans, serializeWorkspaceBackup, type WorkspaceInputs } from "../lib/packing/workspace-file";
 import { OrthographicViews } from "./orthographic-views";
@@ -661,6 +663,7 @@ export function PackingApp() {
   };
 
   const activeProducts = useMemo(() => selectProductsForMode(products, mode), [mode, products]);
+  const resultAudit = useMemo(() => result ? auditPackingResult(result, activeProducts) : null, [result, activeProducts]);
   const setInputSummaries = useMemo(() => summarizeSetInputs(activeProducts), [activeProducts]);
   const totalProductPages = Math.max(1, Math.ceil(activeProducts.length / PRODUCT_PAGE_SIZE));
   const currentProductPage = Math.min(productPage, totalProductPages - 1);
@@ -1366,7 +1369,7 @@ export function PackingApp() {
   };
 
   const printPlan = () => {
-    if (!result?.validation.valid || dirty || hasPendingDimensionChanges) return;
+    if (!result?.validation.valid || resultAudit?.hasErrors || dirty || hasPendingDimensionChanges) return;
     setIsPlaying(false);
     flushSync(() => setRenderPrintViews(true));
     window.requestAnimationFrame(() => window.print());
@@ -1444,7 +1447,7 @@ export function PackingApp() {
   };
 
   const exportJson = () => {
-    if (!result?.validation.valid || dirty || hasPendingDimensionChanges) return;
+    if (!result?.validation.valid || resultAudit?.hasErrors || dirty || hasPendingDimensionChanges) return;
     const selectedPlanOnly = { ...result, strategyPlans: undefined };
     downloadFile(
       tt`装柜方案_${result.container.id}_${result.strategy}_${new Date().toISOString().slice(0, 10)}.json`,
@@ -1454,7 +1457,7 @@ export function PackingApp() {
   };
 
   const exportCsv = () => {
-    if (!result?.validation.valid || dirty || hasPendingDimensionChanges) return;
+    if (!result?.validation.valid || resultAudit?.hasErrors || dirty || hasPendingDimensionChanges) return;
     downloadFile(tt`装柜坐标_${result.container.id}.csv`, `\uFEFF${buildPlacementCsv(result)}`, "text/csv;charset=utf-8");
   };
 
@@ -1543,7 +1546,7 @@ export function PackingApp() {
   const fleetRequest: PackingRequest = {delivery:result?.delivery,accessConfig:result?.accessConfig, floorPallets, loadingRules, mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
 
   const downloadExcelTemplate = async () => { setMessage(tr("正在生成 Excel 模板…")); try { const { createSpreadsheetTemplate } = await import("../lib/packing/spreadsheet"); const bytes=await createSpreadsheetTemplate(); const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));const a=document.createElement("a");a.href=url;a.download="CargoFit_products_template.xlsx";document.body.appendChild(a);a.click();a.remove();setMessage(tr("Excel 模板已生成。"));setTimeout(()=>URL.revokeObjectURL(url),10000); } catch(e) {setMessage(e instanceof Error?e.message:"Excel export failed");} };
-  const downloadPdf = async () => { if(!result?.validation.valid)return;setExportingPdf(true);try{const {downloadPdfGuide}=await import("../lib/packing/pdf-guide");await downloadPdfGuide(result,getAppLanguage());}catch(e){setMessage(e instanceof Error?e.message:"PDF export failed");}finally{setExportingPdf(false);} };
+  const downloadPdf = async () => { if(!result?.validation.valid||resultAudit?.hasErrors||dirty||hasPendingDimensionChanges)return;setExportingPdf(true);try{const {downloadPdfGuide}=await import("../lib/packing/pdf-guide");await downloadPdfGuide(result,getAppLanguage());}catch(e){setMessage(e instanceof Error?e.message:"PDF export failed");}finally{setExportingPdf(false);} };
   const loadIndustryCase = (example: IndustryCase) => {setWorkflowStep(1);palletDraftRef.current=null;rulesDraftRef.current=null;clearNumericDraftErrors();setMode("mixed");setLoadingWorkflow("direct");setContainer({...example.container});setProducts(example.products.map(p=>({...p})));setFloorPallets(undefined);setLoadingRules({...DEFAULT_LOADING_RULES});setClearance(10);setProductPage(0);setAutoCalculate(false);setPracticalTargetPercent(recommendedPracticalTarget(example.container)*100);markDirty();scrollTo("workspace");};
   const tutorialAction = (step: string) => {if(step==="cargo"){setActiveCargo(activeProducts[0]?.id??null);return;}if(step==="rules"){setShowRules(true);return;}if(step==="calculate"){goToStep(2);return;}if(step==="viewer"){if(result)setShowViewer(true);else setMessage(tr("请先计算有效方案。","Calculate a valid plan first."));return;}if(step==="pdf"){void downloadPdf();return;}if(step==="cloud"){const el=document.getElementById("cloud-workspace");if(el instanceof HTMLDetailsElement)el.open=true;scrollTo("cloud-workspace");return;}goToStep(1);};
 
@@ -1591,7 +1594,7 @@ export function PackingApp() {
     setWorkflowStep(3);setAutoCalculate(false);setManualRun(v=>v+1);
     window.requestAnimationFrame(()=>document.querySelector('.wizard-steps')?.scrollIntoView({behavior:"smooth",block:"start"}));
   };
-  const canExport = Boolean(result?.validation.valid && result.metrics.loadedCount > 0 && !dirty && !hasPendingDimensionChanges);
+  const canExport = Boolean(result?.validation.valid && result.metrics.loadedCount > 0 && !resultAudit?.hasErrors && !dirty && !hasPendingDimensionChanges);
 
   return (
     <main className={`app-shell compact-workspace ${navCollapsed ? "nav-collapsed" : "nav-expanded"}`}>
@@ -2239,6 +2242,7 @@ export function PackingApp() {
                   {result.metrics.loadedCount === 0 ? <AlertTriangle size={20} /> : result.validation.valid ? <CheckCircle2 size={20} /> : <X size={20} />}
                   <div><strong>{result.metrics.loadedCount === 0 ? tr("未生成可执行装载方案", "No executable load plan was generated") : result.validation.valid ? tr("方案数据合法") : tr("方案校验未通过")}</strong><span>{result.metrics.loadedCount === 0 ? tr("空坐标通过数据检查不代表货物可以装入，请查看零装载原因。", "Valid empty coordinates do not establish loadability; review the zero-load diagnosis.") : result.validation.valid ? tr("所有箱体均在有效边界内，无重叠且未超载。") : trText(result.validation.errors[0])}</span></div>
                 </div>
+                {resultAudit && <ResultAuditPanel report={resultAudit}/>}
                 <ul className="warning-list">
                   {(result.warnings.length ? result.warnings : [tr("未发现门洞、载重或订单缺口告警。")]).map((warning) => <li key={trText(warning)}><CircleAlert size={15} />{trText(warning)}</li>)}
                 </ul>
