@@ -1,5 +1,6 @@
-import { packagingReservedVolume, packagingHeight, packagingMassCenter } from "./packaging";
-import { parseLoadingWorkflow, parsePalletBuild, palletInspectionContainer } from "./loading-workflow";
+import { packagingReservedVolume, packagingMassCenter } from "./packaging";
+import { parseLoadingWorkflow, parsePalletBuild } from "./loading-workflow";
+import { palletSpecifications, mixedInspectionContainer, independentPalletVolume, specificationForPallet } from "./pallet-specifications";
 import { parseShapeFields, shapeDetails, cargoShapeOf, isRectilinearShape, withShapeSupport } from "./cargo-shape";
 import { cargoBodyParts, bodyBottomPatches, bodyContactArea, bodyTopLevels, bodyVolumeRatio, bodiesOverlap, surfaceArea, validOrientationSigns, orientationAxes, intersectSurface, surfacePolygon, bodyTopPatches } from "./cargo-body";
 import { parsePalletization, validatePalletizedCargo } from "./prebuilt-pallets";
@@ -37,7 +38,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.27.1";
+export const ENGINE_VERSION = "0.28.0";
 
 type Orientation = {
   dx: number;
@@ -2458,7 +2459,7 @@ export function packWithComparison(request: PackingRequest): PackingResult {
 /** Revalidate a manual edit and rebuild every geometry-dependent metric. */
 export function revisePackingResult(original: PackingResult, placements: PlacedBox[], products: ProductInput[], pallets:PlacedPallet[]=original.pallets??[]): PackingResult {
   if(original.metrics.loadedCount!==original.placements.length)throw new Error("A complete coordinate plan is required for editing.");
-  if(pallets.length!==(original.pallets??[]).length||pallets.some(p=>{const old=original.pallets?.find(q=>q.id===p.id);return !old||p.weight!==old.weight||p.maxLoad!==old.maxLoad||p.presetId!==old.presetId||p.dz!==old.dz;}))throw new Error("Pallet identity or specification cannot change during editing.");
+  if(pallets.length!==(original.pallets??[]).length||pallets.some(p=>{const old=original.pallets?.find(q=>q.id===p.id);return !old||p.weight!==old.weight||p.maxLoad!==old.maxLoad||p.presetId!==old.presetId||p.dz!==old.dz||p.specificationId!==old.specificationId;}))throw new Error("Pallet identity or specification cannot change during editing.");
   if(!original.palletization&&JSON.stringify(pallets)!==JSON.stringify(original.pallets??[]))throw new Error("Floor pallet layout is fixed; edit its configuration instead.");
   products = applyTypeSupport(products, original.loadingRules);
   if (placements.length !== original.placements.length || new Set(placements.map(b => b.id)).size !== placements.length) throw new Error("手动调整不能增删箱体或重复追踪 ID。");
@@ -2479,7 +2480,7 @@ export function revisePackingResult(original: PackingResult, placements: PlacedB
   const ordered = assignPalletReferences(orderForLoading([...palletAnchors(pallets),...relayered],[...products,...palletSupportProducts(pallets)]).filter(b=>!b.supportOnly), pallets, products);
   const validation = validatePacking(ordered, original.container, original.clearance, products, original.strategy, original.mode, pallets, original.floorPallets, original.palletization);
   if (!validation.valid) throw new Error(validation.errors.slice(0,3).join("\n"));
-  if(original.palletization){const errors=validatePalletizedCargo(ordered,pallets,original.container,original.clearance,original.palletization);if(errors.length)throw new Error(errors.slice(0,3).join("\n"));}
+  if(original.palletization){const errors=validatePalletizedCargo(ordered,pallets,original.container,original.clearance,original.palletization,products);if(errors.length)throw new Error(errors.slice(0,3).join("\n"));}
   const effective = effectiveContainer(original.container, original.clearance);
   return { ...original, id: `manual-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, placements: ordered,pallets,
     strategyPlans: undefined, strategyComparison: undefined, quoteEstimate: undefined, validation,
@@ -2542,9 +2543,16 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   const palletization=parsePalletization(raw.palletization);
   if(palletization&&request.floorPallets)throw new Error("Prebuilt and floor pallet modes cannot be combined");
   if(palletization&&!Array.isArray(raw.pallets))throw new Error("Prebuilt pallet coordinates are missing");
+  if(palletization&&((raw.pallets as unknown[]).length>200||(raw.pallets as unknown[]).some(p=>!p||typeof p!=="object")))throw new Error("Invalid prebuilt pallet coordinates");
+  if(palletization?.specifications){
+    const source=request.palletBuild??raw.palletBuild;
+    if(source!==undefined){const expected=parsePalletBuild(source);if(JSON.stringify(palletSpecifications(expected))!==JSON.stringify(palletization.specifications)||(palletization.preparedCount??0)>expected.maxPallets)throw new Error("Packaging specifications do not match workspace inputs");}
+    const ids=new Set(request.products.map(p=>p.id));
+    if(palletization.specifications.some(s=>s.productIds?.some(id=>!ids.has(id))))throw new Error("Packaging rule refers to an unknown SKU");
+  }else if(palletization&&request.palletBuild&&(request.palletBuild.primaryRule||request.palletBuild.additionalSpecs?.length))throw new Error("Multiple packaging definitions are missing");
   if (palletization?.only) {
-    if (!palletization.config.maxCargoHeight || !(raw.pallets as unknown[]).length) throw new Error("Invalid pallet-only envelope");
-    request = {...request, container:palletInspectionContainer(palletization.config,(raw.pallets as unknown[]).length), clearance:0};
+    if (!(raw.pallets as unknown[]).length) throw new Error("Invalid pallet-only envelope");
+    request = {...request, container:mixedInspectionContainer((raw.pallets as PlacedPallet[]).map(p=>specificationForPallet(palletization,p).config)), clearance:0};
   }
   const pallets=palletization?raw.pallets as PlacedPallet[]:request.floorPallets?arrangeFloorPallets(request.container,request.clearance,request.floorPallets):[];
   if (!palletization && pallets.length) {
@@ -2569,7 +2577,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   const ordered=assignPalletReferences(orderForLoading([...palletAnchors(pallets),...placements],[...products,...palletSupportProducts(pallets)]).filter(b=>!b.supportOnly),pallets,products);
   const validation=validatePacking(ordered,request.container,request.clearance,products,raw.strategy,request.mode,pallets,request.floorPallets,palletization);
   if(!validation.valid)throw new Error(`归档坐标未通过当前校验：${validation.errors.slice(0,3).join("；")}`);
-  if(palletization){const errors=validatePalletizedCargo(ordered,pallets,request.container,request.clearance,palletization);if(errors.length)throw new Error(errors.join("; "));}
+  if(palletization){const errors=validatePalletizedCargo(ordered,pallets,request.container,request.clearance,palletization,products);if(errors.length)throw new Error(errors.join("; "));}
   if(request.mode==="single"&&limit!==undefined&&ordered.length>Number(limit))throw new Error("归档箱数超过计划上限。");
   const normalized: PackingRequest={...request,products,strategy:raw.strategy,singleCartonLimit:limit as number|undefined};
   const summaries=buildSummaries(normalized,ordered);
@@ -2577,7 +2585,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   const effective=effectiveContainer(request.container,request.clearance);
   const loadedVolume=summaries.reduce((n,s)=>n+s.loadedVolume,0)+pallets.reduce((n,p)=>n+packagingReservedVolume(p),0);
   const grossWeight=summaries.reduce((n,s)=>n+s.loadedWeight,0)+pallets.reduce((n,p)=>n+p.weight,0);
-  const effectiveVolume=palletization?.only ? pallets.length*palletization.config.length*palletization.config.width*packagingHeight(palletization.config) : effective.length*effective.width*effective.height;
+  const effectiveVolume=palletization?.only ? independentPalletVolume(palletization,pallets) : effective.length*effective.width*effective.height;
   const workflow=raw.workflow===undefined ? palletization?.only ? "pallet-only" : palletization ? "palletized" : request.workflow : parseLoadingWorkflow(raw.workflow,request.mode);
   const palletBuild=raw.palletBuild===undefined ? request.palletBuild : parsePalletBuild(raw.palletBuild);
   return {workflow,palletBuild,id:`restored-${Date.now()}`,mode:request.mode,strategy:raw.strategy,practicalTargetUtilization:practicalTarget(normalized),engineVersion:ENGINE_VERSION,

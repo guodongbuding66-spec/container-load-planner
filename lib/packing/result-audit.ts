@@ -4,8 +4,9 @@ import { ORIENTATION_CODES } from "./loading-rules";
 import { collectSetGroups, normalizedSetCode, normalizedUnitsPerSet } from "./set-utils";
 import { cargoShapeOf, shapeDetails } from "./cargo-shape";
 import { getOrientations, MAX_VISIBLE_PLACEMENTS } from "./engine";
-import { packagingHeight, packagingReservedVolume, parsePackaging, placedPackagingParts } from "./packaging";
+import { packagingReservedVolume, parsePackaging, placedPackagingParts } from "./packaging";
 import { validatePalletizedCargo } from "./prebuilt-pallets";
+import { independentPalletVolume } from "./pallet-specifications";
 import type { PackingResult, ProductInput } from "./types";
 
 export type AuditState = "pass" | "fail" | "unverified";
@@ -86,13 +87,14 @@ export function auditPackingResult(plan: PackingResult, products?: readonly Prod
   const volume=volumeValid&&near(totals.loadedVolume,cargoVolume+reserved)&&plan.summaries.every(s=>!products||near(s.loadedVolume,s.loaded*(volumes.get(s.productId)??NaN)));
   add("volume",volume?products?completeState:"unverified":"fail",volume?"占用体积与 SKU 体积、底座及围护预留体积一致。":"货物体积、包装预留或占用体积不一致。",volume?"Occupied volume agrees with SKU volume and reserved base/enclosure volume.":"Cargo volume, reserved packaging or total occupied volume disagree.");
 
-  const expectedVolume=plan.palletization?.only?pallets.length*plan.palletization.config.length*plan.palletization.config.width*packagingHeight(plan.palletization.config):l*w*h;
+  let expectedVolume=NaN;
+  try{expectedVolume=plan.palletization?.only?independentPalletVolume(plan.palletization,pallets):l*w*h;}catch{}
   const capacity=expectedVolume>0&&plan.container.maxWeight>0&&near(totals.effectiveVolume,expectedVolume)&&near(totals.volumeUtilization,totals.loadedVolume/expectedVolume)&&near(totals.weightUtilization,totals.grossWeight/plan.container.maxWeight)&&totals.loadedVolume<=expectedVolume+.00001+expectedVolume*1e-9&&totals.grossWeight<=plan.container.maxWeight+.00001;
   add("capacity",capacity?"pass":"fail",capacity?"利用率、剩余容量与当前模式的统计基准一致。":"利用率或容量基准不一致，或已经超出容量。",capacity?"Utilization and capacity use the correct denominator for this workflow.":"Utilization or capacity denominators disagree, or capacity is exceeded.");
 
   const packageErrors:string[]=[];
   try{
-    if(plan.palletization)packageErrors.push(...validatePalletizedCargo(boxes,pallets,plan.container,plan.clearance,plan.palletization));
+    if(plan.palletization)packageErrors.push(...validatePalletizedCargo(boxes,pallets,plan.container,plan.clearance,plan.palletization,products));
     for(const p of pallets){
       if(p.packaging)parsePackaging(p.packaging);
       for(const b of placedPackagingParts(p))if(![b.x,b.y,b.z,b.dx,b.dy,b.dz].every(Number.isFinite)||b.dx<=0||b.dy<=0||b.dz<=0||b.x<p.x-EPS||b.y<p.y-EPS||b.z<p.z-EPS||b.x+b.dx>p.x+p.dx+EPS||b.y+b.dy>p.y+p.dy+EPS||b.z+b.dz>p.z+(p.enclosureHeight??p.dz)+EPS){packageErrors.push(p.id);break;}

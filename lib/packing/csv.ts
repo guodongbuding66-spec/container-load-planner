@@ -1,6 +1,6 @@
 import { parseShapeFields, withShapeSupport } from "./cargo-shape";
 import { CARGO_TYPES, parseOrientations } from "./loading-rules";
-import type { PackingResult, ProductInput, RotationPolicy } from "./types";
+import type { PackingResult, ProductInput, RotationPolicy, PlacedPallet } from "./types";
 import { isLengthUnit, isWeightUnit, toKilograms, toMillimeters } from "./units";
 import { roundedCartonVolumeCbm } from "./volume";
 
@@ -62,8 +62,16 @@ export function buildPlacementCsv(result: PackingResult) {
   ].map(toCsvCell).join(","));
 
   const palletRows=(result.pallets??[]).map(p=>[0,p.id,p.name,"","","",p.x,p.y,p.z,p.dx,p.dy,p.dz,p.orientation,0,p.weight,"pallet",p.id,"","","","box","","","","","","",""].concat(["","",workflow,frame]).map(toCsvCell).join(","));
-  if(result.pallets?.some(p=>p.packaging))return [PLACEMENT_CSV_HEADER+",包装结构JSON,包装总高(mm)",...palletRows.map((row,i)=>row+","+toCsvCell(JSON.stringify(result.pallets![i].packaging??null))+","+toCsvCell(result.pallets![i].enclosureHeight??result.pallets![i].dz)),...rows.map(row=>row+",,")].join("\r\n");
-  return [PLACEMENT_CSV_HEADER, ...palletRows, ...rows].join("\r\n");
+  const structure=result.pallets?.some(p=>p.packaging);
+  const header=PLACEMENT_CSV_HEADER+(structure?",包装结构JSON,包装总高(mm)":"");
+  const packagingRows=palletRows.map((row,i)=>row+(structure?","+toCsvCell(JSON.stringify(result.pallets![i].packaging??null))+","+toCsvCell(result.pallets![i].enclosureHeight??result.pallets![i].dz):""));
+  const cargoRows=rows.map(row=>row+(structure?",,":""));
+  if(result.palletization?.specifications){
+    const byId=new Map((result.pallets??[]).map(p=>[p.id,p]));
+    const suffix=(p:PlacedPallet|undefined)=>","+toCsvCell(p?.specificationId??"")+","+toCsvCell(p?.name??"");
+    return [header+",包装规格ID,包装规格名称",...packagingRows.map((row,i)=>row+suffix(result.pallets![i])),...cargoRows.map((row,i)=>row+suffix(byId.get(result.placements[i].palletIds?.[0]??"")))].join("\r\n");
+  }
+  return [header,...packagingRows,...cargoRows].join("\r\n");
 }
 
 export function parseCsvRecords(source: string) {

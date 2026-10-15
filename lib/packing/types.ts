@@ -1,7 +1,20 @@
 export type PackingMode = "single" | "mixed";
 export type LoadingWorkflow = "direct" | "pallet-only" | "palletized" | "single-capacity";
+export type PalletBuildSpecification = {
+  id: string;
+  config: FloorPalletConfig;
+  /** Available packaging units; zero disables this specification. */
+  maxPallets: number;
+  /** Omit for all products. Whole kits must be eligible together. */
+  productIds?: string[];
+  stackLayers: number;
+  maxTopLoadKg: number;
+};
 export type PalletBuildOptions = {
   config: FloorPalletConfig;
+  primaryRule?: { maxPallets: number; productIds?: string[] };
+  /** Tried in this order after the primary specification. */
+  additionalSpecs?: PalletBuildSpecification[];
   mix: "single" | "mixed";
   maxPallets: number;
   stackLayers: number;
@@ -33,6 +46,7 @@ export type FloorPalletConfig = {
   maxCargoHeight?: number;
 };
 export type PlacedPallet = {
+  specificationId?: string;
   packaging?: import("./packaging").PackagingSpec;
   /** Fixed exterior height of an enclosing crate, including deck and lid. */
   enclosureHeight?: number;

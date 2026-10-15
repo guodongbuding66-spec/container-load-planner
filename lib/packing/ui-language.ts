@@ -1,4 +1,6 @@
 export const ENGLISH: Record<string, string> = {
+  "多种包装按列表顺序和适用 SKU 尝试；每种可用数量独立限制，不推定全局最少包装数。":"Packaging specifications are tried in list order with SKU eligibility and separate availability limits; this is not a proof of the fewest packaging units.",
+  "仍有货物待打包，请核对各规格适用 SKU、可用数量、净空与完整套装要求。":"Some cargo remains unpacked. Check eligible SKUs, available packaging counts, clearances and whole-kit requirements.",
   "装载方式无效": "Invalid loading workflow",
   "打托配置无效": "Invalid pallet-building settings",
   "托盘数量、堆叠层数或承重无效": "Invalid pallet count, stack layers or top load",

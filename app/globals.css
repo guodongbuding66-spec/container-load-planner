@@ -1423,3 +1423,24 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 .result-audit .audit-state.fail,.result-audit [role=alert]{color:#9d3027}
 .result-audit .audit-state.unverified{color:#855d0d}
 @media(max-width:600px){.result-audit>ul{grid-template-columns:1fr}.result-audit>summary>span{display:block;margin-top:4px}}
+
+/* Edit one packaging specification at a time, keeping the workspace compact. */
+.packaging-specifications{margin:0 0 14px;padding:10px;border:1px solid var(--line);border-radius:9px;background:#f7fafb;min-width:0}
+.packaging-specification-tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:stretch}
+.packaging-specification-tabs>button:not(.button){display:flex;flex-direction:column;gap:3px;min-width:130px;max-width:230px;text-align:left;padding:7px 10px;border:1px solid #d4e0e2;background:white;border-radius:6px;cursor:pointer;overflow-wrap:anywhere}
+.packaging-specification-tabs>button.selected{border-color:#287c87;background:#eaf5f5;color:#185963}
+.packaging-specification-tabs small{color:var(--muted);font-size:11px}
+.packaging-specification-rule{display:grid;grid-template-columns:minmax(120px,1fr) minmax(140px,1fr) auto;gap:10px;align-items:end;margin:10px 0}
+.packaging-specification-rule label{display:flex;flex-direction:column;gap:5px;font-size:12px;min-width:0}
+.packaging-specification-rule input{width:100%;min-width:0}
+.packaging-specification-actions{display:flex;flex-wrap:wrap;gap:5px}
+.packaging-product-selection{font-size:12px;min-width:0}
+.packaging-product-selection summary{cursor:pointer;padding:5px 0}
+.packaging-product-selection label{display:flex;gap:7px;align-items:center;margin:5px 0;overflow-wrap:anywhere}
+.packaging-product-selection input{width:auto!important;flex-shrink:0}
+.packaging-product-selection>div{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:2px 12px;max-height:180px;overflow:auto}
+.packaging-product-selection>small{display:block;color:var(--muted);margin-top:6px}
+.packaging-order-rules{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+@media(max-width:700px){.packaging-specification-rule{grid-template-columns:repeat(2,minmax(0,1fr))}.packaging-specification-actions{grid-column:1/-1}.packaging-specification-tabs>button:not(.button){flex:1 1 120px;max-width:none}}
+
+.pallet-specification-totals{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 12px}.pallet-specification-totals>span{font-size:12px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:#f6fafb;overflow-wrap:anywhere}
