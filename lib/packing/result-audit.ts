@@ -1,5 +1,6 @@
 import { bodyVolumeRatio, validOrientationSigns } from "./cargo-body";
 import { bearingLimit } from "./bearing";
+import { ORIENTATION_CODES } from "./loading-rules";
 import { collectSetGroups, normalizedSetCode, normalizedUnitsPerSet } from "./set-utils";
 import { cargoShapeOf, shapeDetails } from "./cargo-shape";
 import { getOrientations, MAX_VISIBLE_PLACEMENTS } from "./engine";
@@ -57,7 +58,7 @@ export function auditPackingResult(plan: PackingResult, products?: readonly Prod
   const outside:string[]=[];
   for(const b of boxes){
     const finite=[b.x,b.y,b.z,b.dx,b.dy,b.dz,b.weight].every(Number.isFinite);
-    let valid=finite&&b.dx>0&&b.dy>0&&b.dz>0&&b.weight>=0&&b.x>=-EPS&&b.y>=-EPS&&b.z>=-EPS&&b.x+b.dx<=l+EPS&&b.y+b.dy<=w+EPS&&b.z+b.dz<=h+EPS&&validOrientationSigns(b.orientation,b.orientationSigns);
+    let valid=finite&&b.dx>0&&b.dy>0&&b.dz>0&&b.weight>=0&&b.x>=-EPS&&b.y>=-EPS&&b.z>=-EPS&&b.x+b.dx<=l+EPS&&b.y+b.dy<=w+EPS&&b.z+b.dz<=h+EPS&&ORIENTATION_CODES.some(code=>code===b.orientation)&&validOrientationSigns(b.orientation,b.orientationSigns);
     if(products){const p=productMap.get(b.productId);valid=valid&&!!p&&(orientations.get(p!.id)??[]).some(o=>near(o.dx,b.dx)&&near(o.dy,b.dy)&&near(o.dz,b.dz)&&((!p!.allowedOrientations&&cargoShapeOf(p!)==="box")||o.label===b.orientation));}
     if(!valid)outside.push(b.id);
   }

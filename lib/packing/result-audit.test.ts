@@ -55,6 +55,7 @@ describe("Complete-plan data consistency",()=>{
     const demand=clone(p);demand.summaries[0].requested--;demand.summaries[0].unloaded=0;expect(state(demand,"quantities")).toBe("fail");
     const bounds=clone(p);bounds.placements[0].x=container.length;expect(state(bounds,"dimensions")).toBe("fail");
     const size=clone(p);size.placements[0].dx++;expect(state(size,"dimensions")).toBe("fail");
+    const orientation=clone(p);orientation.placements[0].orientation="INVALID";expect(state(orientation,"dimensions")).toBe("fail");
     const mass=clone(p);mass.summaries[0].loadedWeight++;expect(state(mass,"weight")).toBe("fail");
     const volume=clone(p);volume.metrics.loadedVolume+=1_000_000;expect(state(volume,"volume")).toBe("fail");
     const ratio=clone(p);ratio.metrics.volumeUtilization=.99;expect(state(ratio,"capacity")).toBe("fail");
@@ -96,7 +97,7 @@ describe("Complete-plan data consistency",()=>{
     const stale=clone(p);stale.cargoDetails![solid.id].solidModel=undefined;expect(state(stale,"products",[solid])).toBe("fail");
   });
   it("marks a coordinate-limited theoretical capacity as unverified rather than inventing missing boxes",()=>{
-    const small={...product,length:1,width:1,height:1,weight:0,rotationPolicy:"fixed" as const};
+    const small={...product,length:1,width:1,height:1,weight:0,maxTopLoadKg:undefined,rotationPolicy:"fixed" as const};
     const p=packLoadingWorkflow({...request,workflow:"single-capacity",mode:"single",products:[small],container:{...container,length:MAX_VISIBLE_PLACEMENTS+1,width:1,height:1,doorWidth:1,doorHeight:1,maxWeight:1000}});
     expect(p.metrics.loadedCount).toBe(MAX_VISIBLE_PLACEMENTS+1);expect(p.placements).toHaveLength(MAX_VISIBLE_PLACEMENTS);
     const report=auditPackingResult(p,[small]);expect(report.hasErrors).toBe(false);expect(report.completeCoordinates).toBe(false);expect(state(p,"quantities",[small])).toBe("unverified");

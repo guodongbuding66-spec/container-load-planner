@@ -1652,7 +1652,7 @@ export function PackingApp() {
         {showFloorPallets && <FloorPalletSettings config={floorPallets} container={container} clearance={clearance} customSpaces={customContainers} onClose={()=>setShowFloorPallets(false)} onSave={next=>{persistDraft({floorPallets:next});setFloorPallets(next);markDirty();}}/>}
         {showRules && <LoadingRuleSettings rules={loadingRules} products={products} onSave={(rules,next)=>{persistDraft({loadingRules:rules,products:next});setLoadingRules(rules);setProducts(next);markDirty();}} onClose={()=>setShowRules(false)}/>}
         {activeCargo && products.find(p=>p.id===activeCargo) && <CargoSettings product={products.find(p=>p.id===activeCargo)!} mode={mode} lengthUnit={lengthUnit} weightUnit={weightUnit} container={container} clearance={clearance} strategy={strategy} onSave={product=>{if(product.cargoType !== products.find(p=>p.id===product.id)?.cargoType) product = {...product,minimumSupportRatio:loadingRules.supportByType?.[product.cargoType ?? "carton"]};persistDraft({products:products.map(p=>p.id===product.id?product:p)});clearNumericDraftErrors();setProducts(current=>current.map(p=>p.id===product.id?product:p));markDirty();}} onClose={()=>setActiveCargo(null)}/>}
-        {showViewer && result && <PlanViewer plans={[result]} onClose={()=>setShowViewer(false)}/>}
+        {showViewer && result && <PlanViewer plans={[result]} exportsBlocked={!canExport} onClose={()=>setShowViewer(false)}/>}
 
         <WorkflowSteps palletOnly={workflow === "pallet-only"} current={workflowStep} resultAvailable={Boolean(result)||status==="working"} onSelect={goToStep}/>
 
@@ -2285,8 +2285,8 @@ export function PackingApp() {
             </> : <p className="tool-empty">{tr("计算方案后，可诊断余货并手动调整箱位。")}</p>}
           </>}
           delivery={result && !hasPendingDimensionChanges ? <>
-            {result.validation.valid ? <FieldGuide key={`field-${result.id}`} result={result}/> : null}
-            <CustomerReportPanel plan={result} products={activeProducts}/>
+            {canExport ? <FieldGuide key={`field-${result.id}`} result={result}/> : null}
+            <CustomerReportPanel plan={result} products={activeProducts} disabled={!canExport}/>
           </> : <p className="tool-empty">{tr("先完成一次装柜计算，再生成客户报告和现场指导书。")}</p>}
         />
 
