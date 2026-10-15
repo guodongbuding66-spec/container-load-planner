@@ -16,6 +16,7 @@ import { bearingErrors, hasBearingRules, bearingStatus, contactArea } from "./be
 import type {
   ContainerSpec,
   PackingMode,
+  LoadingRules,
   OrientationCode,
   PackingRequest,
   PackingResult,
@@ -38,7 +39,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.28.1";
+export const ENGINE_VERSION = "0.29.0";
 
 type Orientation = {
   dx: number;
@@ -1791,7 +1792,7 @@ export function validatePacking(
   if (cargo.some(b=>b?.supportOnly)) return {valid:false,errors:["货物记录不能伪装为托盘支撑。"]};
   if (floorConfig) {try {parseFloorPalletConfig(floorConfig);}catch(e){return {valid:false,errors:[e instanceof Error?e.message:"托盘配置无效。"]};}}
   if (pallets.length) {
-    if (pallets.length > 200 || new Set(pallets.map(p => p.id)).size !== pallets.length || pallets.some(p => !p || typeof p.id !== "string" || !p.id.trim() || typeof p.name!=="string" || typeof p.presetId!=="string" || !["LWH","WLH"].includes(p.orientation) || (palletization ? p.z < 0 : p.z !== 0) || ![p.x,p.y,p.z,p.dx,p.dy,p.dz,p.weight,p.maxLoad].every(Number.isFinite) || p.dx <= 0 || p.dy <= 0 || p.dz <= 0 || p.weight < 0 || p.maxLoad <= 0 || cargo.some(b => b.id === p.id || b.productId === p.id))) return {valid:false,errors:["底层托盘坐标、承重或标识无效。"]};
+    if (pallets.length > 200 || new Set(pallets.map(p => p.id)).size !== pallets.length || pallets.some(p => !p || typeof p.id !== "string" || !p.id.trim() || typeof p.name!=="string" || typeof p.presetId!=="string" || p.locked!==undefined&&typeof p.locked!=="boolean" || !["LWH","WLH"].includes(p.orientation) || (palletization ? p.z < 0 : p.z !== 0) || ![p.x,p.y,p.z,p.dx,p.dy,p.dz,p.weight,p.maxLoad].every(Number.isFinite) || p.dx <= 0 || p.dy <= 0 || p.dz <= 0 || p.weight < 0 || p.maxLoad <= 0 || cargo.some(b => b.id === p.id || b.productId === p.id))) return {valid:false,errors:["底层托盘坐标、承重或标识无效。"]};
     placements = orderForLoading([...palletAnchors(pallets), ...cargo],products);
     products = [...products, ...palletSupportProducts(pallets)];
   }
@@ -1951,7 +1952,7 @@ export function validatePacking(
       const expectedSetCount = Number.isInteger(first) ? Math.max(0, first) : 0;
       const actualNumbers = [...bySetNumber.keys()].sort((a, b) => a - b);
       const expectedNumbers = Array.from({ length: expectedSetCount }, (_, index) => index + 1);
-      if (actualNumbers.length !== expectedNumbers.length || actualNumbers.some((number, index) => number !== expectedNumbers[index])) {
+      if (actualNumbers.length !== expectedNumbers.length || (!palletization?.editRevision && actualNumbers.some((number, index) => number !== expectedNumbers[index]))) {
         errors.push(`套装 ${code} 的套号不连续，必须从 1 连续编号到 ${expectedSetCount}。`);
       }
       for (const [number, boxes] of bySetNumber) {
@@ -2456,10 +2457,25 @@ export function packWithComparison(request: PackingRequest): PackingResult {
   return combineStrategyResults(practical, maximumCapacity, packingStrategy(request));
 }
 
+/** Shared support-layer rebuild for movement and order-conserving pallet-content edits. */
+export function rebuildPlacementLayers(placements:PlacedBox[],pallets:PlacedPallet[],products:ProductInput[],loadingRules?:LoadingRules){
+  products=applyTypeSupport(products,loadingRules);
+  const productMap = new Map(products.map(p => [p.id, p]));
+  const levels = new Map<number, PlacedBox[]>();
+  for (const b of palletAnchors(pallets)) indexSupport(levels,b,productMap);
+  return [...placements].sort((a,b) => a.z-b.z).map(b => {
+    const box = { ...b, layer: supportDetails(b, levels, productMap).layer };
+    indexSupport(levels,box,productMap);
+    return box;
+  });
+
+}
+
 /** Revalidate a manual edit and rebuild every geometry-dependent metric. */
 export function revisePackingResult(original: PackingResult, placements: PlacedBox[], products: ProductInput[], pallets:PlacedPallet[]=original.pallets??[]): PackingResult {
   if(original.metrics.loadedCount!==original.placements.length)throw new Error("A complete coordinate plan is required for editing.");
   if(pallets.length!==(original.pallets??[]).length||pallets.some(p=>{const old=original.pallets?.find(q=>q.id===p.id);return !old||p.weight!==old.weight||p.maxLoad!==old.maxLoad||p.presetId!==old.presetId||p.dz!==old.dz||p.specificationId!==old.specificationId;}))throw new Error("Pallet identity or specification cannot change during editing.");
+  for(const old of original.pallets??[])if(old.locked){const next=pallets.find(p=>p.id===old.id);if(!next||["x","y","z","dx","dy","dz","orientation"].some(k=>old[k as keyof PlacedPallet]!==next[k as keyof PlacedPallet]))throw new Error("请先解除整托锁定 / Unlock the complete pallet first");}
   if(!original.palletization&&JSON.stringify(pallets)!==JSON.stringify(original.pallets??[]))throw new Error("Floor pallet layout is fixed; edit its configuration instead.");
   products = applyTypeSupport(products, original.loadingRules);
   if (placements.length !== original.placements.length || new Set(placements.map(b => b.id)).size !== placements.length) throw new Error("手动调整不能增删箱体或重复追踪 ID。");
@@ -2467,16 +2483,9 @@ export function revisePackingResult(original: PackingResult, placements: PlacedB
   for (const b of placements) {
     const old = before.get(b.id);
     if (!old || old.productId !== b.productId || old.weight !== b.weight || old.setCode !== b.setCode || old.setNumber !== b.setNumber || old.setItemNumber !== b.setItemNumber) throw new Error("箱体身份和成套关系不能改变。");
-    if (old.locked && (["x", "y", "z", "dx", "dy", "dz", "orientation"].some(k => old[k as keyof PlacedBox] !== b[k as keyof PlacedBox])||JSON.stringify(old.orientationSigns)!==JSON.stringify(b.orientationSigns))) throw new Error("请先解除箱位锁定。");
+    if ((old.locked || original.pallets?.some(p=>p.locked&&old.palletIds?.includes(p.id))) && (["x", "y", "z", "dx", "dy", "dz", "orientation"].some(k => old[k as keyof PlacedBox] !== b[k as keyof PlacedBox])||JSON.stringify(old.orientationSigns)!==JSON.stringify(b.orientationSigns))) throw new Error("请先解除箱位锁定。");
   }
-  const productMap = new Map(products.map(p => [p.id, p]));
-  const levels = new Map<number, PlacedBox[]>();
-  for (const b of palletAnchors(pallets)) indexSupport(levels,b,productMap);
-  const relayered = [...placements].sort((a,b) => a.z-b.z).map(b => {
-    const box = { ...b, layer: supportDetails(b, levels, productMap).layer };
-    indexSupport(levels,box,productMap);
-    return box;
-  });
+  const relayered = rebuildPlacementLayers(placements,pallets,products,original.loadingRules);
   const ordered = assignPalletReferences(orderForLoading([...palletAnchors(pallets),...relayered],[...products,...palletSupportProducts(pallets)]).filter(b=>!b.supportOnly), pallets, products);
   const validation = validatePacking(ordered, original.container, original.clearance, products, original.strategy, original.mode, pallets, original.floorPallets, original.palletization);
   if (!validation.valid) throw new Error(validation.errors.slice(0,3).join("\n"));

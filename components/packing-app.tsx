@@ -2252,7 +2252,7 @@ export function PackingApp() {
               </article>
             </div>
 
-            <PalletManifest result={result}/>
+            <PalletManifest result={result} products={activeProducts} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors} onAdopt={adoptManualPlan}/>
             <article id="coordinates" className="panel coordinate-panel">
               <div className="panel-head">
                 <div><span className="section-kicker">PLACEMENT DATA</span><h2>{tr("三维坐标与装载清单")}</h2><p>{tr("预览前 80 条；导出包含全部 ")}{formatNumber(result.placements.length)}{tr(" 条可视化摆放记录。")}</p></div>

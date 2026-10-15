@@ -46,6 +46,8 @@ export type FloorPalletConfig = {
   maxCargoHeight?: number;
 };
 export type PlacedPallet = {
+  /** Prevent movement and contents edits until explicitly unlocked. */
+  locked?: boolean;
   specificationId?: string;
   packaging?: import("./packaging").PackagingSpec;
   /** Fixed exterior height of an enclosing crate, including deck and lid. */

@@ -111,7 +111,7 @@ export function auditPackingResult(plan: PackingResult, products?: readonly Prod
     if(products&&(p?normalizedSetCode(p):"")!==(b.setCode??""))kitIssues.push(b.id);
     if(!b.setCode)continue;
     const summary=kitSummaries.get(b.setCode);
-    if(!summary||!Number.isInteger(b.setNumber)||(b.setNumber??0)<1||(b.setNumber??0)>summary.loadedSets||!Number.isInteger(b.setItemNumber)||(b.setItemNumber??0)<1||(b.setItemNumber??0)>summary.cartonsPerSet){kitIssues.push(b.id);continue;}
+    if(!summary||!Number.isInteger(b.setNumber)||(b.setNumber??0)<1||(!plan.palletization?.editRevision&&(b.setNumber??0)>summary.loadedSets)||!Number.isInteger(b.setItemNumber)||(b.setItemNumber??0)<1||(b.setItemNumber??0)>summary.cartonsPerSet){kitIssues.push(b.id);continue;}
     const sets=kits.get(b.setCode)??new Map<number,{counts:Map<string,number>;positions:Set<number>}>(),group=sets.get(b.setNumber!)??{counts:new Map<string,number>(),positions:new Set<number>()};
     if(group.positions.has(b.setItemNumber!))kitIssues.push(b.id);
     group.positions.add(b.setItemNumber!);group.counts.set(b.productId,(group.counts.get(b.productId)??0)+1);sets.set(b.setNumber!,group);kits.set(b.setCode,sets);

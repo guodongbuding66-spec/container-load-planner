@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { editPlan, expandSelection, type Delta, type EditGroup } from "../lib/packing/plan-edit";
 import { revisePackingResult } from "../lib/packing/engine";
+import { editPalletContents, type PalletEdit } from "../lib/packing/pallet-edit";
 import type { PackingResult, ProductInput } from "../lib/packing/types";
 import { tr } from "./language";
 type State={source:PackingResult|null;plan:PackingResult|null;undo:PackingResult[];redo:PackingResult[];ids:string[];enabled:boolean;rectangle:boolean;group:EditGroup;grid:number;tolerance:number;message:string};
@@ -17,6 +18,7 @@ export function usePlanEditor(source:PackingResult|null,products:ProductInput[],
     select:(id:string,add=false)=>update({ids:add?(state.ids.includes(id)?state.ids.filter(x=>x!==id):[...state.ids,id]):[id]}),
     selectMany:(ids:string[],add=false)=>update({ids:add?[...new Set([...state.ids,...ids])]:ids}),
     move:(delta:Delta,rotate=false)=>state.plan&&attempt(()=>editPlan(state.plan!,products,state.ids,state.group,delta,state.grid,state.tolerance,rotate)),
+    palletEdit:(id:string,action:PalletEdit)=>state.plan&&attempt(()=>editPalletContents(state.plan!,products,id,action)),
     lock:()=>state.plan&&attempt(()=>revisePackingResult(state.plan!,state.plan!.placements.map(b=>selected.some(s=>s.id===b.id)?{...b,locked:!selected.every(s=>s.locked)}:b),products)),
     undoEdit:()=>{if(state.undo.length)update({plan:state.undo.at(-1)!,undo:state.undo.slice(0,-1),redo:[...state.redo,state.plan!],message:""});},
     redoEdit:()=>{if(state.redo.length)update({plan:state.redo.at(-1)!,redo:state.redo.slice(0,-1),undo:[...state.undo,state.plan!],message:""});},

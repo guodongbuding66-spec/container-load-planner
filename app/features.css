@@ -96,3 +96,16 @@
 @media(max-width:480px){.scene-tools .dimension-controls{flex-basis:100%;margin-right:0;justify-content:flex-start;gap:7px}.dimension-controls>button{min-height:34px}.dimension-controls select{min-height:34px}.scene-fallback:has(.fallback-model-stage){padding:12px}.space-model-section>.dimension-controls{font-size:10px;gap:5px}}
 
 .dimension-controls .dimension-color input{width:30px;height:30px;min-width:30px;padding:3px;border:1px solid #d8e6e9;border-radius:5px;background:#fff;cursor:pointer}.dimension-controls .dimension-color input:disabled{opacity:.45;cursor:default}.dimension-controls input:focus-visible{outline:2px solid #268898;outline-offset:2px}.dimension-controls .dimension-color input::-webkit-color-swatch-wrapper{padding:0}.dimension-controls .dimension-color input::-webkit-color-swatch{border:0;border-radius:2px}.dimension-controls select[aria-label="标尺样式"],.dimension-controls select[aria-label="Ruler style"]{max-width:118px}
+
+/* Pallet contents editor shares the existing dialog and table controls. */
+.pallet-editor{display:grid;gap:12px;margin:16px 0 24px;padding:16px;border:1px solid #dce7e9;border-radius:12px;background:#f8fbfc;min-width:0}
+.pallet-editor p{font-size:13px;line-height:1.6;margin:0;color:#466c7c}
+.pallet-editor label{display:grid;gap:6px;font-size:13px;color:#345865;min-width:0}
+.pallet-editor .upgrade-actions>label{display:flex;align-items:center;gap:8px}
+.pallet-editor input:not([type=checkbox]),.pallet-editor select{min-width:0;width:100%;box-sizing:border-box;padding:9px;border:1px solid #b9ced3;border-radius:7px;background:#fff;font:inherit;min-height:40px}
+.pallet-editor input[type=checkbox]{width:17px;height:17px;accent-color:#207e8c}
+.pallet-editor fieldset{border:1px solid #dce7e9;border-radius:9px;padding:12px;display:grid;gap:10px;min-width:0}
+.pallet-editor legend{font-size:14px;font-weight:650;padding:0 6px;color:#234653}
+.pallet-editor fieldset:disabled{opacity:.65}.pallet-editor .button{min-height:40px}.pallet-editor td small{display:block;overflow-wrap:anywhere;white-space:normal;font-size:12px}
+.pallet-editor .tool-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.pallet-editor [role=status]:not(:empty){padding:10px;background:#e9f3f4;border-radius:7px;font-weight:600}
+@media(max-width:640px){.pallet-editor{padding:10px}.pallet-editor .tool-form-grid{grid-template-columns:1fr}.pallet-editor .upgrade-actions{gap:8px}}

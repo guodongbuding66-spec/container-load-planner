@@ -8,13 +8,14 @@ import type { ContainerSpec, FloorPalletConfig, PackingResult, PlacedBox, Placed
 export function visiblePlanPallets(plan: PackingResult, visibleCount: number): PlacedPallet[] {
   if (!plan.palletization) return plan.pallets ?? [];
   const ids = new Set(plan.placements.slice(0, Math.max(0, Math.floor(visibleCount))).flatMap(b=>b.palletIds ?? []));
-  return (plan.pallets ?? []).filter(p=>ids.has(p.id));
+  return (plan.pallets ?? []).filter(p=>ids.has(p.id)||!!plan.palletization?.editRevision&&visibleCount>=plan.placements.length&&!plan.placements.some(b=>b.palletIds?.includes(p.id)));
 }
-export type Palletization = { config: FloorPalletConfig; mix: "single" | "mixed"; stackLayers?: number; maxTopLoadKg?: number; preparedCount?: number; bounded?: boolean; only?: boolean; specifications?:PalletBuildSpecification[]; preparedBySpecification?:Record<string,number> };
+export type Palletization = { editRevision?:number; config: FloorPalletConfig; mix: "single" | "mixed"; stackLayers?: number; maxTopLoadKg?: number; preparedCount?: number; bounded?: boolean; only?: boolean; specifications?:PalletBuildSpecification[]; preparedBySpecification?:Record<string,number> };
 export function parsePalletization(value: unknown): Palletization | undefined {
   if (value === undefined) return undefined;
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid prebuilt pallets");
   const p = value as Palletization;
+  if(p.editRevision!==undefined&&(!Number.isSafeInteger(p.editRevision)||p.editRevision<1))throw new Error("Invalid pallet edit revision");
   if (!["single", "mixed"].includes(p.mix)) throw new Error("Invalid pallet mix");
   if (p.stackLayers !== undefined && (!Number.isInteger(p.stackLayers) || p.stackLayers < 1 || p.stackLayers > 20)) throw new Error("Invalid pallet stack layers");
   if (p.maxTopLoadKg !== undefined && (!Number.isFinite(p.maxTopLoadKg) || p.maxTopLoadKg < 0 || p.maxTopLoadKg > 100000)) throw new Error("Invalid pallet top load");
@@ -30,7 +31,7 @@ export function parsePalletization(value: unknown): Palletization | undefined {
     if(entries.length!==specifications.length||entries.some(([id,n])=>!ids.has(id)||!Number.isInteger(n)||n<0||n>ids.get(id)!.maxPallets)||entries.reduce((n,[,v])=>n+v,0)!==p.preparedCount)throw new Error("Prepared packaging counts disagree with availability");
     preparedBySpecification=Object.fromEntries(entries);
   }else if(p.preparedBySpecification!==undefined)throw new Error("Prepared packaging definitions are missing");
-  return { config, mix: p.mix, ...(p.stackLayers === undefined ? {} : { stackLayers: p.stackLayers }), ...(p.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: p.maxTopLoadKg }), ...(p.preparedCount === undefined ? {} : { preparedCount: p.preparedCount }), ...(p.bounded === undefined ? {} : { bounded: p.bounded }), ...(p.only === undefined ? {} : { only: p.only }),...(specifications?{specifications,preparedBySpecification}:{}) };
+  return { config, mix: p.mix, ...(p.editRevision===undefined?{}:{editRevision:p.editRevision}), ...(p.stackLayers === undefined ? {} : { stackLayers: p.stackLayers }), ...(p.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: p.maxTopLoadKg }), ...(p.preparedCount === undefined ? {} : { preparedCount: p.preparedCount }), ...(p.bounded === undefined ? {} : { bounded: p.bounded }), ...(p.only === undefined ? {} : { only: p.only }),...(specifications?{specifications,preparedBySpecification}:{}) };
 }
 export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPallet[], container: ContainerSpec, clearance: number, value: Palletization, products:readonly ProductInput[] = []) {
   value=parsePalletization(value)!;
@@ -55,9 +56,9 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
     if(JSON.stringify(p.packaging)!==JSON.stringify(config.packaging)||p.enclosureHeight!==(interior.crate?packagingHeight(config):undefined))errors.push("Packaging structure does not match its specification");
     if(interior.crate&&p.z>EPS)errors.push("Crate frame stacking has not been verified");
     const cargo = cargoByPallet.get(p.id)!;
-    if (!cargo.length) { errors.push("Loaded pallet has no cargo"); continue; }
+    if(!cargo.length&&!value.editRevision)errors.push("Loaded pallet has no cargo");
     if(allowedProducts.get(specification.id)&&cargo.some(b=>!allowedProducts.get(specification.id)!.has(b.productId)))errors.push("Cargo is not eligible for this packaging specification");
-    const cargoTop=Math.max(...cargo.map(b=>b.z+b.dz));
+    const cargoTop=Math.max(p.z+p.dz,...cargo.map(b=>b.z+b.dz));
     if(interior.crate&&cargoTop>p.z+config.height+config.maxCargoHeight!+EPS)errors.push("Cargo exceeds crate interior height");
     const top = Math.max(cargoTop,p.z+(p.enclosureHeight??0)), height = top - p.z;
     if (config.maxCargoHeight && height > packagingHeight(config) + EPS || !value.only && height > Math.min(container.height, container.loadingAccess === "open" ? container.height : container.doorHeight) - clearance + EPS) errors.push("Loaded pallet exceeds door or cargo height limit");
