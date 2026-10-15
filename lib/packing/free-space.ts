@@ -2,7 +2,7 @@ import { certifiedModelGaps } from "./solid-space";
 import { cargoBodyParts, bodyContactArea } from "./cargo-body";
 import { applyTypeSupport } from "./loading-rules";
 import { getOrientations, validatePacking } from "./engine";
-import { palletAnchors } from "./floor-pallets";
+import { packagingReservations } from "./packaging";
 import { validatePalletizedCargo } from "./prebuilt-pallets";
 import type { BoundsBox } from "./inspection";
 import type { PackingResult, PlacedBox, ProductInput } from "./types";
@@ -31,7 +31,8 @@ export function analyzeEmptySpaces(plan:PackingResult,limit=600){
   if(plan.metrics.loadedCount!==plan.placements.length)return {spaces:[] as EmptySpace[],truncated:true,incomplete:true,coveredVolume:0};
   let spaces:BoundsBox[]=[{x:0,y:0,z:0,dx:plan.container.length-2*plan.clearance,dy:plan.container.width-2*plan.clearance,dz:plan.container.height-plan.clearance}],truncated=false;
   let approximate=false;
-  for(const b of [...palletAnchors(plan.pallets??[]),...plan.placements]){
+  for(const p of plan.pallets??[])for(const b of packagingReservations(p))spaces=spaces.flatMap(s=>subtractSpace(s,b));
+  for(const b of plan.placements){
     const p=plan.cargoDetails?.[b.productId];
     if(p?.solidModel){
       spaces=spaces.flatMap(s=>{if(!intersects(s,b))return [s];const x=Math.max(s.x,b.x),y=Math.max(s.y,b.y),z=Math.max(s.z,b.z),inside={x,y,z,dx:Math.min(s.x+s.dx,b.x+b.dx)-x,dy:Math.min(s.y+s.dy,b.y+b.dy)-y,dz:Math.min(s.z+s.dz,b.z+b.dz)-z};const gaps=certifiedModelGaps(inside,b,p,Math.max(200,Math.floor(2400/Math.max(1,spaces.length))));approximate||=gaps.approximate;return [...subtractSpace(s,b),...gaps.spaces];});

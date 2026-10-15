@@ -1431,5 +1431,9 @@ export const ENGLISH: Record<string, string> = {
   "磅 (lb)": "Pounds (lb)",
   "装载进度": "Loading progress",
   "第 {0} 层": "Layer {0}",
-  "坐标 {0} / {1} / {2} mm · 第 {3} 层": "Position {0} / {1} / {2} mm · Layer {3}"
+  "坐标 {0} / {1} / {2} mm · 第 {3} 层": "Position {0} / {1} / {2} mm · Layer {3}",
+  "木箱壁厚或内高无效 / Invalid crate wall thickness or inner height": "Invalid crate wall thickness or interior height.",
+  "木箱整体高度超过柜内或门洞净高 / Crate exterior exceeds vehicle or door height": "The complete crate, including deck and lid, exceeds the vehicle or door height.",
+  "木箱按实际内尺寸装货、完整外形装柜；自重请填写包含底座与围板的实测总重。木箱按单层布置，未推定框架承重 / Crates use measured interior, exterior and complete tare; frame strength is not inferred and crate units remain on the floor": "Crates use measured interior dimensions, complete exterior envelopes and total tare. Crates remain on the floor; frame strength has not been verified.",
+  "木箱请使用先打托后装柜模式 / Use the pallet-building workflow for crates": "Use the pallet-building workflow for crates."
 };

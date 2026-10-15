@@ -2,7 +2,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useModelViewport } from "./use-model-viewport";
 import { RotateCcw } from "lucide-react";
-import { palletParts } from "../lib/packing/floor-pallets";
+import { packagingParts, packagingHeight, packagingInterior } from "../lib/packing/packaging";
 import { createTransportParts, transportOpacity, transportSceneBounds, type TransportDisplayMode, type TransportPart } from "../lib/packing/transport-model";
 import { projectModelPreview } from "../lib/packing/model-preview";
 import { projectDimensions } from "../lib/packing/scene-dimensions";
@@ -18,15 +18,15 @@ export function ModelPreviewFallback({ space, pallet, mode, transparency }: {spa
   const [orbit,setOrbit]=useState({yaw:.72,pitch:.42}),[zoom,setZoom]=useState(1);
   const {host,viewport}=useModelViewport();
   const pointer=useRef<{x:number;y:number}|null>(null);
-  const length=pallet?.length??space?.length??1200,width=pallet?.width??space?.width??800,height=pallet?.height??space?.height??144;
+  const length=pallet?.length??space?.length??1200,width=pallet?.width??space?.width??800,height=pallet?(packagingInterior(pallet).crate?packagingHeight(pallet):pallet.height):space?.height??144;
   const target=useMemo(()=>space??{id:"preview",name:"",length,width,height,doorWidth:width,doorHeight:height,maxWeight:1},[space,length,width,height]);
-  const parts=useMemo<TransportPart[]>(()=>pallet?palletParts(length,width,height).map((p)=>({name:`pallet-${p.kind}`,shape:"box",role:"floor",position:[p.x+p.dx/2-length/2,p.z+p.dz/2,p.y+p.dy/2-width/2],size:[p.dx,p.dz,p.dy]})):mode==="model"?createTransportParts(target):[],[pallet,target,length,width,height,mode]);
+  const parts=useMemo<TransportPart[]>(()=>pallet?packagingParts(length,width,pallet.height,pallet.packaging,pallet.maxCargoHeight).map((p)=>({name:`pallet-${p.kind}`,color:pallet.packaging?.color,shape:"box",role:"floor",position:[p.x+p.dx/2-length/2,p.z+p.dz/2,p.y+p.dy/2-width/2],size:[p.dx,p.dz,p.dy]})):mode==="model"?createTransportParts(target):[],[pallet,target,length,width,mode]);
   const bounds=useMemo(()=>pallet?{size:[length,height,width] as SceneSize,origin:[0,0,0] as SceneSize}:transportSceneBounds(target,1,mode,0),[pallet,target,length,width,height,mode]);
   const {faces,project}=useMemo(()=>projectModelPreview(parts,{...bounds,size:bounds.size.map(n=>n/zoom) as SceneSize,origin:[bounds.origin[0],bounds.origin[1]+bounds.size[1]*(1-1/zoom)/2,bounds.origin[2]]},[Math.sin(orbit.yaw)*Math.cos(orbit.pitch),Math.sin(orbit.pitch),Math.cos(orbit.yaw)*Math.cos(orbit.pitch)],viewport.width,viewport.height),[parts,bounds,orbit,zoom,viewport]);
   const corners:SceneSize[]=[[-length/2,0,-width/2],[length/2,0,-width/2],[length/2,height,-width/2],[-length/2,height,-width/2],[-length/2,0,width/2],[length/2,0,width/2],[length/2,height,width/2],[-length/2,height,width/2]];
   // The note and reset button share the top strip; labels must avoid both.
   const dimensions=appearance.dimensions?projectDimensions({min:[-length/2,0,-width/2],max:[length/2,height,width/2]},{L:length,W:width,H:height},project,viewport,{unit:appearance.dimensionUnit,fontSize:appearance.dimensionFontSize,style:appearance.dimensionStyle,bottomInset:25,occupied:[{x:0,y:0,width:viewport.width,height:40}]}):[];
-  const opacity=pallet?1:transportOpacity(transparency);
+  const opacity=pallet?(pallet.packaging?.opacity??1):transportOpacity(transparency);
   return <div ref={host} className="model-fallback-preview">
     <svg viewBox={`0 0 ${viewport.width} ${viewport.height}`} role="img" aria-label={tr("简化模型预览", "Simplified model preview")} tabIndex={0}
       onPointerDown={e=>{pointer.current={x:e.clientX,y:e.clientY};e.currentTarget.setPointerCapture(e.pointerId);}}

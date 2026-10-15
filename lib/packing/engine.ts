@@ -1,3 +1,4 @@
+import { packagingReservedVolume, packagingHeight, packagingMassCenter } from "./packaging";
 import { parseLoadingWorkflow, parsePalletBuild, palletInspectionContainer } from "./loading-workflow";
 import { parseShapeFields, shapeDetails, cargoShapeOf, isRectilinearShape, withShapeSupport } from "./cargo-shape";
 import { cargoBodyParts, bodyBottomPatches, bodyContactArea, bodyTopLevels, bodyVolumeRatio, bodiesOverlap, surfaceArea, validOrientationSigns, orientationAxes, intersectSurface, surfacePolygon, bodyTopPatches } from "./cargo-body";
@@ -36,7 +37,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.26.0";
+export const ENGINE_VERSION = "0.27.0";
 
 type Orientation = {
   dx: number;
@@ -236,7 +237,7 @@ export function calculateReverseCounts(
   const effectiveVolume = effective.length * effective.width * effective.height;
   let floorSupports:PlacedPallet[]=[];
   if(request.floorPallets){try{floorSupports=arrangeFloorPallets(request.container,request.clearance,request.floorPallets);}catch{/* Geometry validation reports invalid layouts when packing; this is only an arithmetic bound. */}}
-  const floorVolume=floorSupports.reduce((n,p)=>n+p.dx*p.dy*p.dz,0),floorWeight=floorSupports.reduce((n,p)=>n+p.weight,0);
+  const floorVolume=floorSupports.reduce((n,p)=>n+packagingReservedVolume(p),0),floorWeight=floorSupports.reduce((n,p)=>n+p.weight,0);
   const mixVolume = activeProducts.reduce(
     (sum, product, index) => sum + Math.max(0, product.length || 0) * Math.max(0, product.width || 0) * Math.max(0, product.height || 0) * sourceQuantities[index],
     0,
@@ -1752,7 +1753,7 @@ function calculateCenterOfGravity(placements: PlacedBox[], container: EffectiveC
   for (const box of placements) {
     const mass = box.weight > 0 ? box.weight : (box.dx * box.dy * box.dz) / 1_000_000_000;
     totalMass += mass;
-    const center=modelMassCenter(box,rules.get(box.productId)??{});
+    const center=box.supportOnly&&"packaging" in box ? packagingMassCenter(box as unknown as PlacedPallet) : modelMassCenter(box,rules.get(box.productId)??{});
     weightedX += center[0] * mass;weightedY += center[1] * mass;weightedZ += center[2] * mass;
   }
   const x = totalMass > 0 ? weightedX / totalMass : 0;
@@ -2120,7 +2121,7 @@ export function pack(request: PackingRequest): PackingResult {
   const palletUnitVolume = normalized.products.reduce((n,p)=>n+p.length*p.width*p.height*bodyVolumeRatio(p)*(setCode(p)?unitsPerSet(p):1),0);
   const palletUnitWeight = normalized.products.reduce((n,p)=>n+p.weight*(setCode(p)?unitsPerSet(p):1),0);
   const palletUnitCount = normalized.products.reduce((n,p)=>n+(setCode(p)?unitsPerSet(p):1),0);
-  const palletUnitLimit = Math.max(0, Math.floor(Math.min((effectiveVolume-pallets.reduce((n,p)=>n+p.dx*p.dy*p.dz,0))/palletUnitVolume, (MAX_VISIBLE_PLACEMENTS-pallets.length)/palletUnitCount, (normalized.singleCartonLimit??MAX_VISIBLE_PLACEMENTS)/palletUnitCount, palletUnitWeight>0?(normalized.container.maxWeight-palletWeight)/palletUnitWeight:Infinity)));
+  const palletUnitLimit = Math.max(0, Math.floor(Math.min((effectiveVolume-pallets.reduce((n,p)=>n+packagingReservedVolume(p),0))/palletUnitVolume, (MAX_VISIBLE_PLACEMENTS-pallets.length)/palletUnitCount, (normalized.singleCartonLimit??MAX_VISIBLE_PLACEMENTS)/palletUnitCount, palletUnitWeight>0?(normalized.container.maxWeight-palletWeight)/palletUnitWeight:Infinity)));
   const palletRequest: PackingRequest = {...normalized, products: [...normalized.products.map(p=>normalized.mode==="single"?{...p,quantity:palletUnitLimit*(setCode(p)?unitsPerSet(p):1)}:p), ...palletSupportProducts(pallets).map(p=>({...p,quantity:0}))]};
   let certifiedGrid:{placements:PlacedBox[];warnings:string[]}|undefined;
   if(!pallets.length&&normalized.mode==='single'&&normalized.products.length===1&&normalized.products[0].solidModel&&!setCode(normalized.products[0])){
@@ -2151,7 +2152,7 @@ export function pack(request: PackingRequest): PackingResult {
     "theoreticalCount" in output && typeof output.theoreticalCount === "number" ? output.theoreticalCount : undefined;
   const summaries = buildSummaries(normalized, orderedPlacements, theoreticalCount);
   const setSummaries = buildSetSummaries(normalized, summaries);
-  const loadedVolume = summaries.reduce((sum, item) => sum + item.loadedVolume, 0) + pallets.reduce((n,p)=>n+p.dx*p.dy*p.dz,0);
+  const loadedVolume = summaries.reduce((sum, item) => sum + item.loadedVolume, 0) + pallets.reduce((n,p)=>n+packagingReservedVolume(p),0);
   const grossWeight = summaries.reduce((sum, item) => sum + item.loadedWeight, 0) + palletWeight;
   const requestedCount = summaries.reduce((sum, item) => sum + item.requested, 0);
   const loadedCount = summaries.reduce((sum, item) => sum + item.loaded, 0);
@@ -2257,7 +2258,7 @@ export function pack(request: PackingRequest): PackingResult {
     setSummaries,
     quoteEstimate,
     metrics: {
-      ...envelopeMetrics(orderedPlacements,normalized.products,effectiveVolume),
+      ...envelopeMetrics(orderedPlacements,normalized.products,effectiveVolume,pallets),
       loadedCount,
       requestedCount,
       grossWeight,
@@ -2547,7 +2548,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   }
   const pallets=palletization?raw.pallets as PlacedPallet[]:request.floorPallets?arrangeFloorPallets(request.container,request.clearance,request.floorPallets):[];
   if (!palletization && pallets.length) {
-    if (!Array.isArray(raw.pallets) || raw.pallets.length!==pallets.length || raw.pallets.some((p,i)=>!p||typeof p!=="object"||Object.entries(pallets[i]).some(([k,v])=>(p as Record<string,unknown>)[k]!==v))) throw new Error("归档托盘记录与底层托盘设置不一致。");
+    if (!Array.isArray(raw.pallets) || raw.pallets.length!==pallets.length || raw.pallets.some((p,i)=>!p||typeof p!=="object"||Object.entries(pallets[i]).some(([k,v])=>JSON.stringify((p as Record<string,unknown>)[k])!==JSON.stringify(v)))) throw new Error("归档托盘记录与底层托盘设置不一致。");
   } else if (!palletization && raw.pallets!==undefined && (!Array.isArray(raw.pallets)||raw.pallets.length)) throw new Error("归档含有未配置的底层托盘。");
   const products=selectProductsForMode(applyTypeSupport(request.products, request.loadingRules),request.mode);
   const byId=new Map(products.map(p=>[p.id,p]));
@@ -2574,14 +2575,14 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   const summaries=buildSummaries(normalized,ordered);
   const setSummaries=buildSetSummaries(normalized,summaries);
   const effective=effectiveContainer(request.container,request.clearance);
-  const loadedVolume=summaries.reduce((n,s)=>n+s.loadedVolume,0)+pallets.reduce((n,p)=>n+p.dx*p.dy*p.dz,0);
+  const loadedVolume=summaries.reduce((n,s)=>n+s.loadedVolume,0)+pallets.reduce((n,p)=>n+packagingReservedVolume(p),0);
   const grossWeight=summaries.reduce((n,s)=>n+s.loadedWeight,0)+pallets.reduce((n,p)=>n+p.weight,0);
-  const effectiveVolume=palletization?.only ? pallets.length*palletization.config.length*palletization.config.width*(palletization.config.height+palletization.config.maxCargoHeight!) : effective.length*effective.width*effective.height;
+  const effectiveVolume=palletization?.only ? pallets.length*palletization.config.length*palletization.config.width*packagingHeight(palletization.config) : effective.length*effective.width*effective.height;
   const workflow=raw.workflow===undefined ? palletization?.only ? "pallet-only" : palletization ? "palletized" : request.workflow : parseLoadingWorkflow(raw.workflow,request.mode);
   const palletBuild=raw.palletBuild===undefined ? request.palletBuild : parsePalletBuild(raw.palletBuild);
   return {workflow,palletBuild,id:`restored-${Date.now()}`,mode:request.mode,strategy:raw.strategy,practicalTargetUtilization:practicalTarget(normalized),engineVersion:ENGINE_VERSION,
     accessConfig:parseAccessConfig(raw.accessConfig),palletization,delivery:parseDelivery(raw.delivery,new Set(products.map(p=>p.id))),floorPallets:request.floorPallets,pallets,container:request.container,clearance:request.clearance,singleCartonLimit:normalized.singleCartonLimit,placements:ordered,summaries,setSummaries,validation,
-    metrics:{...envelopeMetrics(ordered,products,effectiveVolume),loadedCount:ordered.length,requestedCount:summaries.reduce((n,s)=>n+s.requested,0),loadedVolume,grossWeight,effectiveVolume,
+    metrics:{...envelopeMetrics(ordered,products,effectiveVolume,pallets),loadedCount:ordered.length,requestedCount:summaries.reduce((n,s)=>n+s.requested,0),loadedVolume,grossWeight,effectiveVolume,
       volumeUtilization:loadedVolume/effectiveVolume,weightUtilization:grossWeight/request.container.maxWeight,
       centerOfGravity:calculateCenterOfGravity([...palletAnchors(pallets),...ordered],effective,products),executionComplexity:calculateExecutionComplexity(ordered,products,pallets),solveTimeMs:0},
     loadingRules: request.loadingRules, cargoDetails: Object.fromEntries(products.map(p=>[p.id,shapeDetails(p)])),

@@ -1,4 +1,5 @@
 import { parseFloorPalletConfig } from "./floor-pallets";
+import { packagingInterior, packagingHeight } from "./packaging";
 import { bearingLoads } from "./bearing";
 import type { ContainerSpec, FloorPalletConfig, PackingResult, PlacedBox, PlacedPallet } from "./types";
 /** A prebuilt deck appears when its unit begins; floor-laid decks are present from the start. */
@@ -20,21 +21,25 @@ export function parsePalletization(value: unknown): Palletization | undefined {
   return { config: parseFloorPalletConfig(p.config), mix: p.mix, ...(p.stackLayers === undefined ? {} : { stackLayers: p.stackLayers }), ...(p.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: p.maxTopLoadKg }), ...(p.preparedCount === undefined ? {} : { preparedCount: p.preparedCount }), ...(p.bounded === undefined ? {} : { bounded: p.bounded }), ...(p.only === undefined ? {} : { only: p.only }) };
 }
 export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPallet[], container: ContainerSpec, clearance: number, value: Palletization) {
-  const config = parseFloorPalletConfig(value.config), errors: string[] = [], EPS = .0001;
+  const config = parseFloorPalletConfig(value.config), interior=packagingInterior(config), errors: string[] = [], EPS = .0001;
   if (!pallets.length && boxes.length) errors.push("Prebuilt cargo has no pallets");
   const cargoByPallet = new Map(pallets.map(p => [p.id, boxes.filter(b => b.palletIds?.length === 1 && b.palletIds[0] === p.id)]));
   for (const b of boxes) {
     const p = b.palletIds?.length === 1 ? pallets.find(p => p.id === b.palletIds![0]) : undefined;
-    if (!p || b.x < p.x - EPS || b.y < p.y - EPS || b.x + b.dx > p.x + p.dx + EPS || b.y + b.dy > p.y + p.dy + EPS || b.z < p.z + p.dz - EPS) errors.push(`${b.sku}: cargo must remain within one complete pallet`);
+    if (!p || b.x < p.x + interior.inset - EPS || b.y < p.y + interior.inset - EPS || b.x + b.dx > p.x + p.dx - interior.inset + EPS || b.y + b.dy > p.y + p.dy - interior.inset + EPS || b.z < p.z + p.dz - EPS) errors.push(`${b.sku}: cargo must remain within one complete pallet`);
   }
   const envelopes: PlacedBox[] = [];
   for (const p of pallets) {
     const expected = p.orientation === "LWH" ? [config.length, config.width] : [config.width, config.length];
     if (Math.abs(p.dx - expected[0]) > EPS || Math.abs(p.dy - expected[1]) > EPS || Math.abs(p.dz - config.height) > EPS || p.weight !== config.weight || p.maxLoad !== config.maxLoad || !value.only && config.layout === "long" && p.orientation !== "LWH" || !value.only && config.layout === "cross" && p.orientation !== "WLH") errors.push("Prebuilt pallet specification mismatch");
+    if(JSON.stringify(p.packaging)!==JSON.stringify(config.packaging)||p.enclosureHeight!==(interior.crate?packagingHeight(config):undefined))errors.push("Packaging structure does not match its specification");
+    if(interior.crate&&p.z>EPS)errors.push("Crate frame stacking has not been verified");
     const cargo = cargoByPallet.get(p.id)!;
     if (!cargo.length) { errors.push("Loaded pallet has no cargo"); continue; }
-    const top = Math.max(...cargo.map(b => b.z + b.dz)), height = top - p.z;
-    if (config.maxCargoHeight && height > config.height + config.maxCargoHeight + EPS || !value.only && height > Math.min(container.height, container.loadingAccess === "open" ? container.height : container.doorHeight) - clearance + EPS) errors.push("Loaded pallet exceeds door or cargo height limit");
+    const cargoTop=Math.max(...cargo.map(b=>b.z+b.dz));
+    if(interior.crate&&cargoTop>p.z+config.height+config.maxCargoHeight!+EPS)errors.push("Cargo exceeds crate interior height");
+    const top = Math.max(cargoTop,p.z+(p.enclosureHeight??0)), height = top - p.z;
+    if (config.maxCargoHeight && height > packagingHeight(config) + EPS || !value.only && height > Math.min(container.height, container.loadingAccess === "open" ? container.height : container.doorHeight) - clearance + EPS) errors.push("Loaded pallet exceeds door or cargo height limit");
     if (value.mix === "single" && new Set(cargo.map(b => b.setCode ? `set:${b.setCode}` : `sku:${b.productId}`)).size > 1) errors.push("Single-product pallet contains mixed cargo");
     envelopes.push({ ...p, dz: height, weight: p.weight + cargo.reduce((n, b) => n + b.weight, 0), productId: p.id, sku: p.id, color: "#997947", layer: 1, orientation: p.orientation });
   }

@@ -104,6 +104,7 @@ import { ArchiveLibrary, BearingRules, UnloadedReasons, ManualPlan, FieldGuide, 
 import { RemainingCapacity } from "./remaining-capacity";
 import { SpaceModelPreview } from "./space-model-preview";
 import { usePlanEditor } from "./use-plan-editor";
+import { PalletBuildPreview } from "./pallet-build-preview";
 import { PalletBuildSettings } from "./pallet-build-settings";
 import { DEFAULT_PALLET_BUILD, parseLoadingWorkflow, parsePalletBuild } from "../lib/packing/loading-workflow";
 import type { LoadingWorkflow, PalletBuildOptions } from "../lib/packing/types";
@@ -1882,7 +1883,7 @@ export function PackingApp() {
             </article>
 
 </div>}
-            {isPalletWorkflow ? <PalletBuildSettings value={palletBuild} only={workflow === "pallet-only"} onChange={value=>{setPalletBuild(value);markDirty();}} onValidityChange={setNumericFieldValidity}/> : <FloorPalletSettings inline config={floorPallets} container={container} clearance={clearance} customSpaces={customContainers} onDraftChange={receivePalletDraft} onSave={()=>{}} onClose={()=>{}}/>}
+            {isPalletWorkflow ? <><PalletBuildSettings value={palletBuild} only={workflow === "pallet-only"} onChange={value=>{setPalletBuild(value);markDirty();}} onValidityChange={setNumericFieldValidity}/><PalletBuildPreview key={JSON.stringify([palletBuild,activeProducts,strategy,loadingRules])} request={fleetRequest} value={palletBuild} disabled={invalidNumericFields.size>0||!activeProducts.length}/></> : <FloorPalletSettings inline config={floorPallets} container={container} clearance={clearance} customSpaces={customContainers} onDraftChange={receivePalletDraft} onSave={()=>{}} onClose={()=>{}}/>}
           </div>
           <LoadingRuleSettings inline rules={loadingRules} products={products} onDraftChange={receiveRulesDraft} onSave={()=>{}} onClose={()=>{}}/>
           {workflow !== "pallet-only" && <details className="wizard-advanced"><summary>{tr("计算偏好与计划目标")}</summary><div className="wizard-preference-grid">            <article className="panel mode-panel">

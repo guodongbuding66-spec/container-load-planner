@@ -1,5 +1,6 @@
 import { pack, restorePackingSnapshot, getOrientations, MAX_VISIBLE_PLACEMENTS } from "./engine";
 import { quarterTurnOrientation, bodyContactArea } from "./cargo-body";
+import { packagingInterior, packagingHeight } from "./packaging";
 import { bearingLoads, bearingLimit } from "./bearing";
 import { parseFloorPalletConfig, palletCargoCeiling } from "./floor-pallets";
 import { DEFAULT_PALLET_BUILD, parsePalletBuild, palletInspectionContainer } from "./loading-workflow";
@@ -9,7 +10,7 @@ export type PreparedUnit = { id: string; cargo: PlacedBox[]; height: number; wei
 
 /** A flat, complete top and the tightest known residual load limit are required. */
 function topCapacity(cargo: PlacedBox[], request: PackingRequest, config: FloorPalletConfig, options: PalletBuildOptions) {
-  if (options.stackLayers === 1 || options.maxTopLoadKg <= 0) return 0;
+  if (packagingInterior(config).crate || options.stackLayers === 1 || options.maxTopLoadKg <= 0) return 0;
   const top = Math.max(...cargo.map(b => b.z + b.dz));
   const deck: PlacedBox = { id: "__test-top__", productId: "__test-top__", sku: "__loaded-pallet__", name: "Pallet", color: "#997947", x: 0, y: 0, z: top, dx: config.length, dy: config.width, dz: config.height, weight: 1, layer: 1, orientation: "LWH" };
   const rules = new Map(request.products.map(p => [p.id, p]));
@@ -33,7 +34,9 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
   const only = request.workflow === "pallet-only", strategy = request.strategy ?? "practical";
   if (request.mode !== "mixed") throw new Error("打托需要明确订单数量");
   if (only && !config.maxCargoHeight) throw new Error("只打托模式请设置货物限高");
-  const cargoHeight = only ? config.maxCargoHeight! : palletCargoCeiling(request.container, request.clearance, config) - config.height;
+  const interior=packagingInterior(config);
+  if(interior.crate&&!only&&packagingHeight(config)>palletCargoCeiling(request.container,request.clearance,{...config,maxCargoHeight:0})+.0001)throw new Error("木箱整体高度超过柜内或门洞净高 / Crate exterior exceeds vehicle or door height");
+  const cargoHeight = only || interior.crate ? config.maxCargoHeight! : palletCargoCeiling(request.container, request.clearance, config) - config.height;
   if (cargoHeight <= 0) throw new Error("托盘上方没有可用净高");
   const remaining = request.products.map(p => ({ ...p })).sort((a,b)=>Number(b.mustLoad!==false)-Number(a.mustLoad!==false)||b.priority-a.priority), prepared: PreparedUnit[] = [], failed = new Set<string>();
   let cartonCount = 0;
@@ -42,12 +45,12 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
     if (!first) break;
     const products = remaining.filter(p => p.quantity > 0 && (mix === "mixed" || (first.setCode?.trim() ? p.setCode === first.setCode : p.id === first.id)));
     const local = pack({ ...request, palletBuildStage:true, workflow: undefined, palletBuild: undefined, floorPallets: undefined, mode: "mixed", strategy, practicalTargetUtilization: .95,
-      container: { id: "build-pallet", name: config.name, category: "pallet", loadingAccess: "open", length: config.length, width: config.width, height: cargoHeight, doorWidth: config.width, doorHeight: cargoHeight, maxWeight: config.maxLoad }, clearance: 0, products });
+      container: { id: "build-pallet", name: config.name, category: "pallet", loadingAccess: "open", length: interior.length, width: interior.width, height: cargoHeight, doorWidth: interior.width, doorHeight: cargoHeight, maxWeight: config.maxLoad }, clearance: 0, products });
     if (!local.validation.valid) throw new Error(local.validation.errors.join("; "));
     if (!local.placements.length) { products.forEach(p => failed.add(p.id)); if (mix === "mixed") break; continue; }
     if (cartonCount + local.placements.length > MAX_VISIBLE_PLACEMENTS) break;
     const height = Math.max(...local.placements.map(b => b.z + b.dz));
-    prepared.push({ id: `unit-${prepared.length + 1}`, cargo: local.placements, height: height + config.height, weight: local.metrics.grossWeight + config.weight,
+    prepared.push({ id: `unit-${prepared.length + 1}`, cargo: local.placements, height: interior.crate ? packagingHeight(config) : height + config.height, weight: local.metrics.grossWeight + config.weight,
       tail: local.summaries.every(s => s.unloaded === 0), topCapacity: only ? 0 : topCapacity(local.placements, request, config, options) });
     cartonCount += local.placements.length;
     const counts = new Map<string, number>(); for (const b of local.placements) counts.set(b.productId, (counts.get(b.productId) ?? 0) + 1);
@@ -71,11 +74,11 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
   const placements: PlacedBox[] = [], pallets: PlacedPallet[] = [], setCounters = new Map<string, number>();
   for (const b of outerBoxes) {
     const unit = prepared.find(p => p.id === b.productId)!, cross = b.orientation === "WLH", palletId = `floor-pallet-${pallets.length + 1}`, setMap = new Map<string, number>();
-    pallets.push({ id: palletId, presetId: config.presetId, name: config.name, x: b.x, y: b.y, z: b.z, dx: b.dx, dy: b.dy, dz: config.height, weight: config.weight, maxLoad: config.maxLoad, orientation: cross ? "WLH" : "LWH" });
+    pallets.push({ id: palletId, presetId: config.presetId, name: config.name, x: b.x, y: b.y, z: b.z, dx: b.dx, dy: b.dy, dz: config.height, weight: config.weight, maxLoad: config.maxLoad, orientation: cross ? "WLH" : "LWH", ...(config.packaging?{packaging:config.packaging}:{}), ...(interior.crate?{enclosureHeight:unit.height}:{}) });
     for (const c of unit.cargo) {
       let setNumber = c.setNumber;
       if (c.setCode) { const key = `${c.setCode}/${c.setNumber}`; if (!setMap.has(key)) { const next = (setCounters.get(c.setCode) ?? 0) + 1; setCounters.set(c.setCode, next); setMap.set(key, next); } setNumber = setMap.get(key); }
-      placements.push({ ...c, id: `prebuilt-${placements.length + 1}`, x: b.x + (cross ? c.y : c.x), y: b.y + (cross ? config.length - c.x - c.dx : c.y), z: b.z + c.z + config.height,
+      placements.push({ ...c, id: `prebuilt-${placements.length + 1}`, x: b.x + (cross ? c.y + interior.inset : c.x + interior.inset), y: b.y + (cross ? config.length - interior.inset - c.x - c.dx : c.y + interior.inset), z: b.z + c.z + config.height,
         dx: cross ? c.dy : c.dx, dy: cross ? c.dx : c.dy, ...(cross ? quarterTurnOrientation(c) : {}), setNumber, palletIds: [palletId] });
     }
   }
@@ -86,11 +89,12 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
   if (!pallets.length) plan.warnings.push("完整托盘无法在当前柜型、门洞、净空或载重条件下装入；请调整打托规格或柜型");
   plan.workflow = only ? "pallet-only" : "palletized"; plan.palletBuild = options;
   if (only) {
-    plan.metrics.effectiveVolume = prepared.length * config.length * config.width * (config.height + cargoHeight);
+    plan.metrics.effectiveVolume = prepared.length * config.length * config.width * (config.height + cargoHeight + interior.lid);
     plan.metrics.volumeUtilization = plan.metrics.loadedVolume / plan.metrics.effectiveVolume;
     if (plan.metrics.envelopeVolume !== undefined) plan.metrics.envelopeUtilization = plan.metrics.envelopeVolume / plan.metrics.effectiveVolume;
     plan.warnings.unshift("仅生成独立托盘；三维编组位置用于查看，不代表柜内箱位。利用率按每托限高包络统计");
   }
+  if (interior.crate) plan.warnings.unshift("木箱按实际内尺寸装货、完整外形装柜；自重请填写包含底座与围板的实测总重。木箱按单层布置，未推定框架承重 / Crates use measured interior, exterior and complete tare; frame strength is not inferred and crate units remain on the floor");
   if (!only && options.stackLayers > 1) plan.warnings.unshift("整托堆叠按声明的整托上压和已提供的箱体承重核验；缺少箱体承重资料时不能视为逐箱承重已核验");
   plan.metrics.solveTimeMs = performance.now() - started;
   return { plan, prepared, loadedPallets: pallets.length, unloadedPallets: prepared.length - pallets.length, remaining: plan.summaries.filter(s => s.unloaded > 0), bounded: (prepared.length === options.maxPallets || cartonCount >= MAX_VISIBLE_PLACEMENTS) && remaining.some(p => p.quantity > 0) };

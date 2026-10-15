@@ -83,7 +83,7 @@ describe("First-class loading workflows", () => {
     const blocked=packLoadingWorkflow({...request,palletBuild:{...build,config:{...build.config,layout:"cross"}},products:[{...product,allowedOrientations:["LWH"]}]});expect(blocked.placements).toHaveLength(0);expect(blocked.warnings.some(w=>w.includes("无法"))).toBe(true);
   });
   it("exports aligned pallet and cargo rows with explicit inspection or vehicle coordinate use",()=>{
-    for(const workflow of ["palletized","pallet-only"] as const){const plan=packLoadingWorkflow({...request,workflow}),rows=parseCsvRecords(buildPlacementCsv(plan));expect(rows.every(r=>r.length===rows[0].length)).toBe(true);expect(rows.slice(1).every(r=>r.at(-2)===workflow&&r.at(-1)===(workflow==="pallet-only"?"pallet-inspection":"vehicle-loading"))).toBe(true);}
+    for(const workflow of ["palletized","pallet-only"] as const){const plan=packLoadingWorkflow({...request,workflow}),rows=parseCsvRecords(buildPlacementCsv(plan));expect(rows.every(r=>r.length===rows[0].length)).toBe(true);expect(rows.slice(1).every(r=>r[30]===workflow&&r[31]===(workflow==="pallet-only"?"pallet-inspection":"vehicle-loading"))).toBe(true);}
   });
   it("retains the direct mixed-order and single-product capacity algorithms", () => {
     const direct=packLoadingWorkflow({...request,workflow:"direct",palletBuild:undefined});expect(direct.validation.valid).toBe(true);expect(direct.pallets).toHaveLength(0);expect(direct.placements).toHaveLength(12);

@@ -15,6 +15,8 @@ export type OrientationSigns = [1 | -1, 1 | -1, 1 | -1];
 export type CargoType = "carton" | "pallet" | "crate" | "drum" | "roll" | "loose";
 export type CargoShape = "box" | "cylinder" | "wedge" | "trapezoid" | "frustum" | "l-profile" | "u-profile" | "t-profile" | "step" | "irregular" | "polygon" | "tube" | "reel" | "bend" | "ellipsoid" | "capsule" | "custom-prism" | "compound" | "mesh";
 export type FloorPalletConfig = {
+  /** Physical packaging recipe. Dimensions below are exterior dimensions. */
+  packaging?: import("./packaging").PackagingSpec;
   presetId: string;
   name: string;
   length: number;
@@ -31,6 +33,9 @@ export type FloorPalletConfig = {
   maxCargoHeight?: number;
 };
 export type PlacedPallet = {
+  packaging?: import("./packaging").PackagingSpec;
+  /** Fixed exterior height of an enclosing crate, including deck and lid. */
+  enclosureHeight?: number;
   id: string;
   presetId: string;
   name: string;

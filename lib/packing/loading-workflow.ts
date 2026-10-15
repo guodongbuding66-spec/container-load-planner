@@ -1,8 +1,9 @@
 import { parseFloorPalletConfig } from "./floor-pallets";
+import { DEFAULT_PACKAGING, packagingHeight } from "./packaging";
 import type { ContainerSpec, FloorPalletConfig, LoadingWorkflow, PalletBuildOptions, PackingMode } from "./types";
 
 export const DEFAULT_PALLET_BUILD: PalletBuildOptions = {
-  config: { presetId: "eur-1200-800", name: "EUR", length: 1200, width: 800, height: 144, weight: 25, maxLoad: 1000, count: 0, gap: 0, layout: "auto", allowFloorCargo: false, maxCargoHeight: 1000 },
+  config: { packaging: {...DEFAULT_PACKAGING}, presetId: "eur-1200-800", name: "EUR", length: 1200, width: 800, height: 144, weight: 25, maxLoad: 1000, count: 0, gap: 0, layout: "auto", allowFloorCargo: false, maxCargoHeight: 1000 },
   mix: "single", maxPallets: 50, stackLayers: 1, maxTopLoadKg: 0,
 };
 export function parseLoadingWorkflow(value: unknown, mode: PackingMode = "mixed"): LoadingWorkflow {
@@ -20,6 +21,6 @@ export function palletInspectionContainer(config: FloorPalletConfig, count: numb
   const columns = Math.min(5, Math.ceil(Math.sqrt(count))), rows = Math.ceil(count / columns), spacing = 200;
   return { id: "pallet-inspection", name: "托盘编组区", category: "other", loadingAccess: "open",
     length: columns * config.length + (columns - 1) * spacing, width: rows * config.width + (rows - 1) * spacing,
-    height: config.height + config.maxCargoHeight!, doorWidth: rows * config.width + (rows - 1) * spacing,
-    doorHeight: config.height + config.maxCargoHeight!, maxWeight: count * (config.maxLoad + config.weight) };
+    height: packagingHeight(config), doorWidth: rows * config.width + (rows - 1) * spacing,
+    doorHeight: packagingHeight(config), maxWeight: count * (config.maxLoad + config.weight) };
 }

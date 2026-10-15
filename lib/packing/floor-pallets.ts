@@ -1,5 +1,6 @@
 import type { ContainerSpec, FloorPalletConfig, PlacedBox, PlacedPallet, ProductInput } from "./types";
 
+import { parsePackaging, packagingInterior, packagingReservedVolume } from "./packaging";
 import { bodyContactArea, bodyTopLevels } from "./cargo-body";
 
 export const PALLET_PRODUCT_ID = "__floor-pallet__";
@@ -13,7 +14,9 @@ export function parseFloorPalletConfig(value: unknown): FloorPalletConfig {
   if (!Number.isInteger(v.count) || Number(v.count) < 0 || Number(v.count) > 200) throw new Error("底层托盘数量必须为 0–200 的整数。");
   if (!["auto", "long", "cross"].includes(String(v.layout)) || typeof v.allowFloorCargo !== "boolean") throw new Error("托盘布局规则无效。");
   if (v.maxCargoHeight !== undefined && (typeof v.maxCargoHeight !== "number" || !Number.isFinite(v.maxCargoHeight) || v.maxCargoHeight < 0 || v.maxCargoHeight > 100000)) throw new Error("托盘货物限高必须为 0–100000 mm；0 表示按柜高及门洞自动限制。");
-  return { presetId: v.presetId as string, name: v.name as string, length: v.length as number, width: v.width as number, height: v.height as number, weight: v.weight as number, maxLoad: v.maxLoad as number, count: v.count as number, gap: v.gap as number, layout: v.layout as FloorPalletConfig["layout"], allowFloorCargo: v.allowFloorCargo, ...(v.maxCargoHeight === undefined ? {} : {maxCargoHeight:v.maxCargoHeight as number}) };
+  const packaging=v.packaging===undefined?undefined:parsePackaging(v.packaging);
+  if(packaging){const inner=packagingInterior({...v,packaging} as FloorPalletConfig);if(inner.length<1||inner.width<1||inner.crate&&!Number(v.maxCargoHeight))throw new Error("木箱壁厚或内高无效 / Invalid crate wall thickness or inner height");}
+  return { ...(packaging?{packaging}:{}), presetId: v.presetId as string, name: v.name as string, length: v.length as number, width: v.width as number, height: v.height as number, weight: v.weight as number, maxLoad: v.maxLoad as number, count: v.count as number, gap: v.gap as number, layout: v.layout as FloorPalletConfig["layout"], allowFloorCargo: v.allowFloorCargo, ...(v.maxCargoHeight === undefined ? {} : {maxCargoHeight:v.maxCargoHeight as number}) };
 }
 
 /** Loaded pallets must clear the door as a unit; heights are measured from the vehicle floor. */
@@ -34,7 +37,7 @@ export function supportingPalletIds(box: Pick<PlacedBox,"x"|"y"|"dx"|"dy">, supp
 /** Pallets reserve their full envelopes, including fork openings; subtract exactly once. */
 export function palletSpaceSummary(container: ContainerSpec, clearance: number, pallets: PlacedPallet[], cargoVolume = 0, cargoWeight = 0) {
   const effectiveVolume = Math.max(0,container.length-clearance*2)*Math.max(0,container.width-clearance*2)*Math.max(0,container.height-clearance);
-  const reservedVolume = pallets.reduce((n,p)=>n+p.dx*p.dy*p.dz,0);
+  const reservedVolume = pallets.reduce((n,p)=>n+packagingReservedVolume(p),0);
   const tareWeight = pallets.reduce((n,p)=>n+p.weight,0);
   return {effectiveVolume,reservedVolume,tareWeight,cargoVolume,cargoCapacity:Math.max(0,effectiveVolume-reservedVolume),remainingVolume:Math.max(0,effectiveVolume-reservedVolume-cargoVolume),cargoPayload:Math.max(0,container.maxWeight-tareWeight),remainingWeight:Math.max(0,container.maxWeight-tareWeight-cargoWeight)};
 }
@@ -42,6 +45,7 @@ export function palletSpaceSummary(container: ContainerSpec, clearance: number, 
 /** Rows can use either horizontal orientation; no pallet may overlap or overhang. */
 export function arrangeFloorPallets(container: ContainerSpec, clearance: number, input: FloorPalletConfig): PlacedPallet[] {
   const p = parseFloorPalletConfig(input);
+  if(packagingInterior(p).crate)throw new Error("木箱请使用先打托后装柜模式 / Use the pallet-building workflow for crates");
   const length = container.length - clearance * 2, width = container.width - clearance * 2;
   const doorWidth = (container.loadingAccess === "open" ? container.width : container.doorWidth) - clearance * 2;
   const height = Math.min(container.height, container.loadingAccess === "open" ? container.height : container.doorHeight) - clearance;
@@ -62,7 +66,7 @@ export function arrangeFloorPallets(container: ContainerSpec, clearance: number,
   if (!bestCount || p.count > bestCount) throw new Error(`当前净空最多放置 ${bestCount} 个底层托盘，请调整尺寸、数量或方向。`);
   const pallets: PlacedPallet[] = [];
   let y = 0;
-  for (const row of best) { for (let i = 0; i < Math.min(row.columns, limit); i++) pallets.push({ id: `floor-pallet-${pallets.length + 1}`, presetId: p.presetId, name: p.name, x: i * (row.dx + p.gap), y, z: 0, dx: row.dx, dy: row.dy, dz: p.height, weight: p.weight, maxLoad: p.maxLoad, orientation: row.orientation }); y += row.dy + p.gap; }
+  for (const row of best) { for (let i = 0; i < Math.min(row.columns, limit); i++) pallets.push({ id: `floor-pallet-${pallets.length + 1}`, presetId: p.presetId, name: p.name, x: i * (row.dx + p.gap), y, z: 0, dx: row.dx, dy: row.dy, dz: p.height, weight: p.weight, maxLoad: p.maxLoad, orientation: row.orientation, ...(p.packaging?{packaging:p.packaging}:{}) }); y += row.dy + p.gap; }
   return pallets.sort((a, b) => a.x - b.x || a.y - b.y).slice(0, limit).map((p,i)=>({...p,id:`floor-pallet-${i+1}`}));
 }
 

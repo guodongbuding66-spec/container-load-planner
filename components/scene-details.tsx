@@ -4,7 +4,7 @@ import { Edges } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { cargoSurfaceLabelGeometry, createCargoLabelMaterial } from "../lib/packing/cargo-surface-labels";
-import { palletParts } from "../lib/packing/floor-pallets";
+import { placedPackagingParts, DEFAULT_PACKAGING, type PackagingPart } from "../lib/packing/packaging";
 import type { PlacedPallet } from "../lib/packing/types";
 import { createSceneLabelMaterial, LABEL_RENDER_ORDER, layoutSceneLabel, sceneLabelFrame, sceneLabelPose } from "../lib/packing/scene-labels";
 
@@ -35,12 +35,19 @@ export function boxFaceTexture(sku: string, color: string, width: number, height
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;return texture;
 }
 
-export function PalletStructures({ pallets, scale, offset, onSelect }: {pallets:PlacedPallet[];scale:number;offset:THREE.Vector3;onSelect?:(p:PlacedPallet)=>void}) {
-  const ref=useRef<THREE.InstancedMesh>(null);
-  const parts=useMemo(()=>pallets.flatMap(p=>palletParts(p.dx,p.dy,p.dz).map(part=>({...part,x:part.x+p.x,y:part.y+p.y,z:part.z+p.z,flat:p.dz<50,pallet:p}))),[pallets]);
-  useLayoutEffect(()=>{if(!ref.current)return;const dummy=new THREE.Object3D();parts.forEach((p,i)=>{dummy.position.set((p.x+p.dx/2)*scale+offset.x,(p.z+p.dz/2)*scale+offset.y,(p.y+p.dy/2)*scale+offset.z);dummy.scale.set(p.dx*scale*.997,p.dz*scale*.995,p.dy*scale*.997);dummy.updateMatrix();ref.current!.setMatrixAt(i,dummy.matrix);ref.current!.setColorAt(i,new THREE.Color(p.flat?"#98a4ae":p.kind==="block"?"#ac8151":"#d4af7b"));});ref.current.instanceMatrix.needsUpdate=true;if(ref.current.instanceColor)ref.current.instanceColor.needsUpdate=true;ref.current.computeBoundingSphere();},[parts,scale,offset]);
-  if(!parts.length)return null;
-  return <instancedMesh ref={ref} args={[undefined,undefined,parts.length]} onClick={e=>{if(e.delta>3)return;if(onSelect&&e.instanceId!==undefined){e.stopPropagation();onSelect(parts[e.instanceId].pallet);}}}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>;
+type StructurePart=PackagingPart&{pallet:PlacedPallet};
+function PackagingInstances({parts,scale,offset,onSelect}:{parts:StructurePart[];scale:number;offset:THREE.Vector3;onSelect?:(p:PlacedPallet)=>void}) {
+  const ref=useRef<THREE.InstancedMesh>(null),spec=parts[0].pallet.packaging??DEFAULT_PACKAGING;
+  const grain=useMemo(()=>{if(spec.material!=="wood"&&spec.material!=="plywood")return null;const data=new Uint8Array(128*32*4);for(let y=0;y<32;y++)for(let x=0;x<128;x++){const c=220+Math.round(20*Math.sin(y*2.8+Math.sin(x*.13)*.3)+12*Math.sin(x*12.9+y*7.7));const i=(y*128+x)*4;data[i]=data[i+1]=data[i+2]=c;data[i+3]=255;}const t=new THREE.DataTexture(data,128,32);t.colorSpace=THREE.SRGBColorSpace;t.needsUpdate=true;return t;},[spec.material]);
+  useEffect(()=>()=>grain?.dispose(),[grain]);
+  useLayoutEffect(()=>{if(!ref.current)return;const dummy=new THREE.Object3D();parts.forEach((p,i)=>{dummy.position.set((p.x+p.dx/2)*scale+offset.x,(p.z+p.dz/2)*scale+offset.y,(p.y+p.dy/2)*scale+offset.z);dummy.scale.set(p.dx*scale,p.dz*scale,p.dy*scale);dummy.updateMatrix();ref.current!.setMatrixAt(i,dummy.matrix);const color=new THREE.Color(p.pallet.packaging?.color??(p.pallet.dz<50?"#98a4ae":p.kind==="block"?"#ac8151":"#d4af7b"));if(p.kind==="block")color.multiplyScalar(.88);ref.current!.setColorAt(i,color);});ref.current.instanceMatrix.needsUpdate=true;if(ref.current.instanceColor)ref.current.instanceColor.needsUpdate=true;ref.current.computeBoundingSphere();},[parts,scale,offset]);
+  // Historic decks remain opaque; custom shells use the explicitly saved opacity.
+  const opacity=parts[0].pallet.packaging?spec.opacity:1;
+  return <instancedMesh name="packaging-structure" ref={ref} args={[undefined,undefined,parts.length]} onClick={e=>{if(e.delta>3)return;if(onSelect&&e.instanceId!==undefined){e.stopPropagation();onSelect(parts[e.instanceId].pallet);}}}><boxGeometry/><meshStandardMaterial map={grain} roughness={spec.material==="steel"?.4:spec.material==="plastic"?.65:.92} metalness={spec.material==="steel"?.75:0} transparent={opacity<1} opacity={opacity} depthWrite={opacity===1}/></instancedMesh>;
+}
+export function PalletStructures({pallets,scale,offset,onSelect}:{pallets:PlacedPallet[];scale:number;offset:THREE.Vector3;onSelect?:(p:PlacedPallet)=>void}) {
+  const groups=useMemo(()=>{const map=new Map<string,StructurePart[]>();for(const p of pallets){const spec=p.packaging,key=spec?JSON.stringify([spec.material,spec.opacity]):"legacy";const parts=map.get(key)??[];parts.push(...placedPackagingParts(p).map(part=>({...part,pallet:p})));map.set(key,parts);}return [...map.entries()];},[pallets]);
+  return <>{groups.map(([key,parts])=><PackagingInstances key={key} parts={parts} scale={scale} offset={offset} onSelect={onSelect}/>)}</>;
 }
 
 export function MetricLabel({text,position,size=.09,color="#376272",screenOffset=[0,0]}:{text:string;position:[number,number,number];size?:number;color?:string;screenOffset?:[number,number]}){

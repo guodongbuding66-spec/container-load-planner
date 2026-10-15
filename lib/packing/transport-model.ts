@@ -4,6 +4,7 @@ import type { SceneSize } from "./camera-fit";
 
 export type TransportDisplayMode = "model" | "wireframe";
 export type TransportPart = {
+  color?: string;
   name: string;
   shape: "box" | "wheel";
   role: "body" | "frame" | "floor" | "tire" | "glass" | "cab";

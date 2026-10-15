@@ -29,7 +29,7 @@ export function projectModelPreview(parts: TransportPart[], bounds: { size: Scen
       if (normal.dot(camera.position.clone().sub(center)) <= 0) return;
       const projected = points.map(p=>project(p.toArray() as SceneSize));
       const light = .68 + .3*Math.max(0,normal.dot(new THREE.Vector3(.3,.8,.5).normalize()));
-      const color = new THREE.Color(TRANSPORT_COLORS[part.role]).multiplyScalar(light);
+      const color = new THREE.Color(part.color??TRANSPORT_COLORS[part.role]).multiplyScalar(light);
       faces.push({id:`${index}-${faceIndex}`,name:part.name,points:projected.map(p=>`${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" "),color:`#${color.getHexString()}`,depth:project(center.toArray() as SceneSize).depth});
     });
   });
