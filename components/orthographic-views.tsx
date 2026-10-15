@@ -1,16 +1,13 @@
 "use client";
 
-import { placedPackagingParts } from "../lib/packing/packaging";
+import { projectBox, shapePolygons, projectionBoxes } from "../lib/packing/plan-projection";
 import { visiblePlanPallets } from "../lib/packing/prebuilt-pallets";
 import {tr, tt, useLanguage} from "./language";
-import { palletAnchors } from "../lib/packing/floor-pallets";
 import { Check, Rotate3D } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import type { CameraView } from "../lib/packing/camera-fit";
 import type { PackingResult, PlacedBox } from "../lib/packing/types";
-import { cargoShapeProjections } from "../lib/packing/cargo-shape-geometry";
 import {cargoShapeOf} from '../lib/packing/cargo-shape';
-import type { OrientationCode } from "../lib/packing/types";
 
 type ViewKind = "top" | "side" | "door";
 
@@ -30,17 +27,6 @@ const VIEW_COPY: Record<ViewKind, { title: string; axes: string; description: st
   side: { title: "侧视图", axes: "长 × 高", description: "查看沿柜长方向的堆叠高度" },
   door: { title: "箱门视图", axes: "宽 × 高", description: "从箱门方向检查横向和层高" },
 };
-
-function projectBox(box: PlacedBox, kind: ViewKind) {
-  if (kind === "top") return { x: box.x, y: box.y, width: box.dx, height: box.dy, depth: box.z };
-  if (kind === "side") return { x: box.x, y: box.z, width: box.dx, height: box.dz, depth: box.y };
-  return { x: box.y, y: box.z, width: box.dy, height: box.dz, depth: box.x };
-}
-
-function shapePolygons(box:PlacedBox,kind:ViewKind,details:PackingResult['cargoDetails']){
-  const projection=projectBox(box,kind);
-  return cargoShapeProjections(details?.[box.productId]??{},box.orientation as OrientationCode,kind,box.orientationSigns).map(poly=>poly.map(([x,y])=>[projection.x+(x+.5)*projection.width,projection.y+(y+.5)*projection.height] as [number,number]));
-}
 
 function ProjectionPrintSvg({
   kind,
@@ -307,7 +293,7 @@ export function OrthographicViews({
 }: Props) {
   useLanguage();
   const boxes = useMemo(
-    () => [...palletAnchors(visiblePlanPallets(result,visibleCount)), ...visiblePlanPallets(result,visibleCount).flatMap(p=>placedPackagingParts(p).filter(b=>b.kind==="wall"||b.kind==="lid").map((b,i):PlacedBox=>({...b,id:p.id+":shell:"+i,productId:p.id,sku:p.name,name:p.name,color:p.packaging?.color??"#b49b79",orientation:"LWH",weight:0,layer:1,supportOnly:true,palletIds:[p.id]}))), ...result.placements.slice(0, Math.max(0, visibleCount)).filter((box) => visibleProducts.has(box.productId))],
+    () => projectionBoxes(visiblePlanPallets(result,visibleCount), result.placements.slice(0, Math.max(0, visibleCount)).filter(box => visibleProducts.has(box.productId))),
     [result, visibleCount, visibleProducts],
   );
   const effective = {

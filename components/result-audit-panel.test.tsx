@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { ResultAuditPanel } from "./result-audit-panel";
+import { PlanReviewPanel, ResultAuditPanel } from "./result-audit-panel";
+import { reviewPlan } from "../lib/packing/plan-review";
 import { CustomerReportPanel } from "./product-catalog";
 import { packLoadingWorkflow } from "../lib/packing/pack-loading";
 import { setAppLanguage } from "./language";
@@ -12,6 +13,14 @@ it("keeps consistent reports collapsed, with visible pending-data counts and no 
   const html=renderToStaticMarkup(<ResultAuditPanel report={report}/>);
   expect(html).toContain("方案数据一致性");expect(html).not.toContain('open=""');
   expect(html).toContain("项待复核");expect(html).toContain('data-audit-state="unverified"');expect(html).toContain("SKU-A");expect(html).not.toContain('role="alert"');
+});
+
+it("shows five scoped review states in both languages without claiming all checks passed",()=>{
+  const plan=packLoadingWorkflow({workflow:"direct",mode:"mixed",strategy:"maximum",clearance:0,container:{id:"t",name:"Test",length:100,width:100,height:100,doorWidth:100,doorHeight:100,maxWeight:10},products:[{id:"c",sku:"C",name:"C",length:100,width:100,height:100,weight:1,quantity:1,priority:50,rotationPolicy:"fixed",stackable:true,maxStackLayers:0,color:"#338877"}]});
+  const review=reviewPlan(plan);
+  const zh=renderToStaticMarkup(<PlanReviewPanel report={review}/>);expect(zh).toContain("项未核验");expect(zh).not.toContain("全部通过");
+  expect(zh.match(/data-review-check=/g)).toHaveLength(5);expect(zh).toContain('data-review-check="securing" data-review-state="unverified"');
+  setAppLanguage("en");const en=renderToStaticMarkup(<PlanReviewPanel report={review}/>);expect(en).toContain("Transport securing");expect(en).toContain("Unverified");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
 });
 it("opens failed reports and explains the paused page exports in English without Chinese residue",()=>{
   setAppLanguage("en");

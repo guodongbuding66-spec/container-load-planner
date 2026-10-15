@@ -1,6 +1,6 @@
-import { auditAccess } from "./access";
-import { palletAnchors } from "./floor-pallets";
-import type { PackingResult } from "./types";
+import { planProjection } from "./plan-projection";
+import { reviewPlan, REVIEW_STATES, REVIEW_TITLES } from "./plan-review";
+import type { PackingResult, ProductInput } from "./types";
 type RasterPage = { jpeg: Uint8Array; width: number; height: number };
 /** Raster PDF with byte-accurate xref offsets; embeds browser-rendered Unicode text. */
 export function buildRasterPdf(pages: RasterPage[]) {
@@ -18,7 +18,7 @@ export function buildRasterPdf(pages: RasterPage[]) {
   add(`trailer\n<< /Size ${offsets.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
   const output = new Uint8Array(size); let at = 0; parts.forEach(part => { output.set(part, at); at += part.length; }); return output;
 }
-export async function downloadPdfGuide(result: PackingResult, language: "zh" | "en" = "zh") {
+export async function downloadPdfGuide(result: PackingResult, language: "zh" | "en" = "zh", products?:readonly ProductInput[]) {
   if (!result.validation.valid) throw new Error("方案未通过校验，不能导出指导书。");
   await document.fonts.ready;
   const en = language === "en", t = (zh: string, english: string) => en ? english : zh; const width = 1800, height = 2546; const pages: RasterPage[] = [];
@@ -32,16 +32,24 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
   [[t("装入数量", "Loaded items"), String(m.loadedCount)], [t("体积利用率", "Volume utilization"), `${(m.volumeUtilization * 100).toFixed(1)}%`], [t("剩余容积", "Remaining volume"), `${remaining.toFixed(2)} m³`], [t("已装重量", "Loaded weight"), `${m.grossWeight.toLocaleString()} kg`]].forEach(([label, value], i) => { const x = 100 + i * 410; ctx.fillStyle = "#f0f7f8"; ctx.fillRect(x, 295, 380, 165); text(label, x + 24, 343, 26); text(value, x + 24, 410, 40, true); });
   const projections = [ ["top", t("俯视图", "Top view")], ["side", t("侧视图", "Side view")], ["door", t("箱门图", "Door view")] ] as const;
   projections.forEach(([view, label], i) => { const y = 535 + i * 520; text(label, 100, y, 32, true); const l = result.container.length - result.clearance * 2, w = result.container.width - result.clearance * 2, h = result.container.height - result.clearance; const extentX = view === "door" ? w : l, extentY = view === "top" ? w : h; const scale = Math.min(1580 / extentX, 405 / extentY); const x0 = 100, y0 = y + 35; ctx.strokeStyle = "#6a919b"; ctx.strokeRect(x0, y0, extentX * scale, extentY * scale);
-    const boxes = [...palletAnchors(result.pallets??[]), ...result.placements].sort((a, b) => view === "top" ? a.z - b.z : view === "side" ? a.y - b.y : a.x - b.x);
-    boxes.forEach(b => { const x = view === "door" ? b.y : b.x, dy = view === "top" ? b.y : extentY - b.z - b.dz, dx = view === "door" ? b.dy : b.dx, dz = view === "top" ? b.dy : b.dz; ctx.fillStyle = b.color; ctx.fillRect(x0 + x * scale, y0 + dy * scale, dx * scale, dz * scale); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1; ctx.strokeRect(x0 + x * scale, y0 + dy * scale, dx * scale, dz * scale); });
+    for(const {box,polygons} of planProjection(result,view).shapes){
+      ctx.beginPath();
+      for(const poly of polygons){poly.forEach(([px,py],index)=>{const x=x0+px*scale,y=y0+(view==="top"?py:extentY-py)*scale;if(index)ctx.lineTo(x,y);else ctx.moveTo(x,y);});ctx.closePath();}
+      ctx.fillStyle=box.color;ctx.fill("nonzero");
+    }
   });
   text(result.workflow==="pallet-only"?t("仅打托，不装柜；XYZ 是三维查看坐标。","Pallets only; XYZ coordinates are for inspection, not vehicle loading."):result.palletization?t("先在柜外打托，再按完整托盘入柜；逐箱表用于核对托内清单。","Build loads outside, then load complete pallets. Carton tables check pallet contents."):t("先装柜内，再向柜门推进；下层支撑先于上层箱。", "Load the nose first, then advance toward the door. Load supports before upper cargo."), 100, 2210, 26);
   text(t("尺寸、门洞、包装承重与现场操作请按当前输入核对。", "Confirm dimensions, door clearance, packaging strength and handling against entered rules."), 100, 2260, 26);
   await finish();
+  start(t("方案复核", "Plan review"));
+  const review=reviewPlan(result,products);
+  text(`${review.passed} ${t("项通过","passed")} · ${review.failed} ${t("项不通过","failed")} · ${review.unverified} ${t("项未核验","unverified")}`,100,315,32,true);
+  review.checks.forEach((c,i)=>{const y=420+i*345;text(`${t(...REVIEW_TITLES[c.id])} · ${t(...REVIEW_STATES[c.state])}`,100,y,32,true);let line="",row=0;ctx.font="25px Arial,sans-serif";for(const char of t(...c.scope)){if(ctx.measureText(line+char).width>1500){text(line,100,y+55+row++*40,25);line="";}line+=char;}text(line,100,y+55+row*40,25);if(c.items.length)text(ellipsis(c.items.slice(0,3).join(" · "),1500),100,y+245,24);});
+  await finish();
   for (let startAt = 0; startAt < result.summaries.length; startAt += 28) { start(t("货物清单", "Cargo manifest")); const columns = [100, 630, 990, 1260]; ["SKU", t("需求 / 已装", "Requested / loaded"), t("重量 kg", "Weight kg"), t("体积 m³", "Volume m³")].forEach((v, i) => text(v, columns[i], 310, 27, true)); result.summaries.slice(startAt, startAt + 28).forEach((s, i) => { const y = 375 + i * 64; text(ellipsis(s.sku, 495), columns[0], y, 26); text(`${s.requested} / ${s.loaded}`, columns[1], y, 26); text(s.loadedWeight.toFixed(1), columns[2], y, 26); text((s.loadedVolume / 1e9).toFixed(3), columns[3], y, 26); }); await finish(); }
   for(let startAt=0;startAt<(result.pallets?.length??0);startAt+=28){start(result.workflow==="pallet-only"?t("独立托盘清单与自重","Independent pallet manifest and tare"):result.palletization?t("整托入柜与自重","Complete pallet placement and tare"):t("底层托盘铺设与自重","Floor pallet layout and tare"));text(result.workflow==="pallet-only"?t("按关联清单独立打托，货物限高不含底座，总重含托盘自重。","Build each listed pallet independently. Cargo height excludes decks; gross weight includes tare."):result.palletization?t("按托盘关联清单在柜外打托，再整托入柜；货物 Z 已包含底座。","Build associated cargo on each pallet outside, then load complete pallets; Z includes decks."):t("先铺设托盘；货物 Z 已包含底座高度，勿再次加高。","Place pallets first. Cargo Z already includes the base height."),100,310,27,true);result.pallets!.slice(startAt,startAt+28).forEach((p,i)=>{const y=390+i*64;text(`${p.id} · ${p.name}`,100,y,25);text(`${p.x} / ${p.y} / ${p.z}`,700,y,25);text(`${p.dx} × ${p.dy} × ${p.enclosureHeight??p.dz}`,1100,y,25);text(`${p.weight} kg`,1530,y,25);});await finish();}
   for (let startAt = 0; startAt < result.placements.length; startAt += 32) { start(t("逐箱装载顺序与坐标", "Loading sequence and coordinates")); text("#     SKU                         X / Y / Z                        L × W × H                  ↑    Layer", 100, 310, 25, true); result.placements.slice(startAt, startAt + 32).forEach((b, i) => { const y = 375 + i * 58; text(String(startAt + i + 1), 100, y, 24); text(ellipsis(b.sku, 380), 200, y, 24); text(`${b.x.toFixed(0)} / ${b.y.toFixed(0)} / ${b.z.toFixed(0)}`, 600, y, 24); text(`${b.dx} × ${b.dy} × ${b.dz}`, 1100, y, 24); text(`${b.orientation}  ${b.layer}`, 1520, y, 24); }); await finish(); }
-  if(result.delivery){const rows=Object.entries(result.delivery),audit=auditAccess(result);for(let startAt=0;startAt<rows.length;startAt+=24){start(t("装卸站次与路径复核","Delivery stops and access review"));text(t("保持最终 Y/Z 直线通过居中门洞；未模拟抬升、转向、人员与叉车。","Straight travel at final Y/Z through a centered door; lifting, turning and machinery are not modeled."),100,305,24);text(`${t("待复核路径问题","Access issues requiring review")}: ${audit.issues.filter(i=>i.reason!=="unassigned").length}`,100,350,28,true);rows.slice(startAt,startAt+24).forEach(([id,d],i)=>{const y=430+i*70;text(ellipsis(result.summaries.find(s=>s.productId===id)?.sku??id,350),100,y,25);text(String(d.stop),490,y,25);text(ellipsis(d.customer,480),650,y,25);text(ellipsis(d.destination,480),1180,y,25);});await finish();}}
+  if(result.delivery){const rows=Object.entries(result.delivery),pathReview=review.checks.find(c=>c.id==="path")!;for(let startAt=0;startAt<rows.length;startAt+=24){start(t("装卸站次与路径复核","Delivery stops and access review"));text(t("路径模型和未核验范围见方案复核页。","See the plan review page for the access model and unverified scope."),100,305,24);text(`${t("路径复核状态","Access review status")}: ${t(...REVIEW_STATES[pathReview.state])} · ${pathReview.items.length} ${t("项提示","issues")}`,100,350,28,true);rows.slice(startAt,startAt+24).forEach(([id,d],i)=>{const y=430+i*70;text(ellipsis(result.summaries.find(s=>s.productId===id)?.sku??id,350),100,y,25);text(String(d.stop),490,y,25);text(ellipsis(d.customer,480),650,y,25);text(ellipsis(d.destination,480),1180,y,25);});await finish();}}
   if (result.warnings.length) { start(t("装载规则与复核提示", "Rules and review notes")); let y = 320; ctx.font = "28px 'Noto Sans SC','Microsoft YaHei',Arial,sans-serif"; for (const warning of result.warnings) { const chars = [...warning]; let line = ""; for (const char of chars) { if (ctx.measureText(line + char).width > 1520) { text(line, 120, y, 28); y += 45; line = ""; } if (y > 2350) { await finish(); start(t("复核提示（续）", "Review notes (continued)")); y = 320; } line += char; } text(`• ${line}`, 100, y, 28); y += 80; } await finish(); }
   const bytes = buildRasterPdf(pages); const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" })); const a = document.createElement("a"); a.href = url; a.download = `CargoFit_${result.container.id}_guide.pdf`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
