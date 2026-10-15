@@ -1,5 +1,6 @@
 "use client";
 
+import { placedPackagingParts } from "../lib/packing/packaging";
 import { visiblePlanPallets } from "../lib/packing/prebuilt-pallets";
 import {tr, tt, useLanguage} from "./language";
 import { palletAnchors } from "../lib/packing/floor-pallets";
@@ -104,7 +105,7 @@ function ProjectionPrintSvg({
             d={path}
             fillRule="nonzero"
             fill={box.color}
-            fillOpacity="0.82"
+            fillOpacity={box.supportOnly&&box.palletIds?.length?.25:.82}
             stroke={!details?.[box.productId]?.solidModel && cargoShapeOf(details?.[box.productId]??{})==='box' ? '#ffffff' : 'none'}
             strokeOpacity="0.82"
             strokeWidth="1.2"
@@ -166,8 +167,8 @@ function ProjectionCanvas({
   useLanguage();
   const language = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const palletCount = boxes.filter((box) => box.supportOnly).length;
-  const cargoCount = boxes.length - palletCount;
+  const palletCount = new Set(boxes.filter(box=>box.supportOnly).map(box=>box.palletIds?.[0]??box.id)).size;
+  const cargoCount = boxes.filter(box=>!box.supportOnly).length;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -219,7 +220,7 @@ function ProjectionCanvas({
       const projected = boxes.map((box) => ({ box, projection: projectBox(box, kind) })).sort((a, b) => a.projection.depth - b.projection.depth);
       for (const { box, projection } of projected) {
         const boxWidth = Math.max(1, projection.width * scale);
-        context.globalAlpha = 0.82;
+        context.globalAlpha = box.supportOnly&&box.palletIds?.length?.25:.82;
         context.fillStyle = box.color;
         context.beginPath();
         for(const polygon of shapePolygons(box,kind,details)){
@@ -306,7 +307,7 @@ export function OrthographicViews({
 }: Props) {
   useLanguage();
   const boxes = useMemo(
-    () => [...palletAnchors(visiblePlanPallets(result,visibleCount)), ...result.placements.slice(0, Math.max(0, visibleCount)).filter((box) => visibleProducts.has(box.productId))],
+    () => [...palletAnchors(visiblePlanPallets(result,visibleCount)), ...visiblePlanPallets(result,visibleCount).flatMap(p=>placedPackagingParts(p).filter(b=>b.kind==="wall"||b.kind==="lid").map((b,i):PlacedBox=>({...b,id:p.id+":shell:"+i,productId:p.id,sku:p.name,name:p.name,color:p.packaging?.color??"#b49b79",orientation:"LWH",weight:0,layer:1,supportOnly:true,palletIds:[p.id]}))), ...result.placements.slice(0, Math.max(0, visibleCount)).filter((box) => visibleProducts.has(box.productId))],
     [result, visibleCount, visibleProducts],
   );
   const effective = {

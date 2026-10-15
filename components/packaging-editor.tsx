@@ -15,7 +15,7 @@ function subscribeTemplates(callback:()=>void){window.addEventListener("storage"
 
 export function PackagingEditor({value,onChange,onValidityChange}:{value:FloorPalletConfig;onChange:(v:FloorPalletConfig)=>void;onValidityChange:(key:string,valid:boolean)=>void}) {
   useLanguage();
-  const spec=value.packaging??DEFAULT_PACKAGING,inner=packagingInterior(value);
+  const spec=value.packaging??{...DEFAULT_PACKAGING,opacity:1},inner=packagingInterior(value);
   const [sessionTemplates,setTemplates]=useState<Template[]|null>(null),[name,setName]=useState(""),[notice,setNotice]=useState("");
   const raw=useSyncExternalStore(subscribeTemplates,readTemplates,()=>"[]");
   const templates=useMemo(()=>{if(sessionTemplates)return sessionTemplates;try{const values=JSON.parse(raw);return Array.isArray(values)?values.slice(0,30).flatMap(v=>{try{return typeof v.name==="string"&&v.name.length<=80?[{name:v.name,config:parseFloorPalletConfig(v.config)}]:[];}catch{return [];}}):[];}catch{return [];}},[raw,sessionTemplates]);

@@ -13,9 +13,9 @@ export function PalletManifest({ result }: { result: PackingResult }) {
   const only = result.workflow === "pallet-only", prepared = result.palletization?.preparedCount ?? result.pallets.length;
   const rows = result.pallets.map(p => {
     const cargo = result.placements.filter(b => b.palletIds?.includes(p.id));
-    const top = Math.max(p.z + (p.enclosureHeight??p.dz), ...cargo.map(b => b.z + b.dz));
+    const top = Math.max(p.z + p.dz, ...cargo.map(b => b.z + b.dz));
     const contents = new Map<string, number>(); for (const b of cargo) contents.set(b.sku, (contents.get(b.sku) ?? 0) + 1);
-    return { p, cargo, top, height: top - p.z, gross: p.weight + cargo.reduce((n,b)=>n+b.weight,0), contents: [...contents].map(([sku,n])=>`${sku} × ${n}`).join(" · ") };
+    return { p, cargo, top, height: Math.max(top,p.z+(p.enclosureHeight??p.dz)) - p.z, gross: p.weight + cargo.reduce((n,b)=>n+b.weight,0), contents: [...contents].map(([sku,n])=>`${sku} × ${n}`).join(" · ") };
   });
   return <article className="panel pallet-manifest">
     <div className="panel-head"><div><span className="section-kicker">PALLET PLACEMENT</span><h2>{only ? tr("打托清单与托内货物", "Pallet manifest and contents") : tr(result.palletization ? "整托入柜与货物基准" : "托盘铺设与货物基准", result.palletization ? "Loaded pallets and cargo coordinates" : "Floor pallets and cargo coordinates")}</h2>
