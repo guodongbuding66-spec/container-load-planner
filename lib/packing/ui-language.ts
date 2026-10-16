@@ -1,4 +1,14 @@
 export const ENGLISH: Record<string, string> = {
+  "柜内障碍与禁占区已用于当前包络求解和独立校验；区域不提供承托、不计作货物或新增自重 / Site regions constrain packing and validation; they provide no support, cargo count or added tare": "Site regions constrain packing and validation; they provide no support, cargo count or added tare.",
+  "Use at most 16 site regions / 柜内区域最多 16 个": "Use at most 16 site regions.",
+  "Invalid site region / 柜内区域格式无效": "Invalid site region.",
+  "Invalid site region identity / 柜内区域名称、类型或标识无效": "Invalid site region name, type or identifier.",
+  "Site region must stay inside the physical interior / 区域必须位于实际柜内，尺寸为有效正数": "Site regions must stay inside the physical interior and have positive dimensions.",
+  "柜内区域已占满有效装载空间 / Site regions occupy the entire usable space": "Site regions occupy the entire usable space.",
+  "柜内区域暂不支持自动铺底层托盘；请关闭底层托盘，或使用先打托后装柜 / Site regions currently require floor pallets off, or prebuilt pallet loading": "Site regions currently require floor pallets off, or prebuilt pallet loading.",
+  "Site regions cannot be combined with floor-laid pallets / 柜内区域暂不支持铺底层托盘": "Site regions cannot be combined with floor-laid pallets.",
+  "Reserved site region identifier / 产品 ID 使用了柜内区域保留前缀": "Product IDs cannot use the reserved site-region prefix.",
+
   "多种包装按列表顺序和适用 SKU 尝试；每种可用数量独立限制，不推定全局最少包装数。":"Packaging specifications are tried in list order with SKU eligibility and separate availability limits; this is not a proof of the fewest packaging units.",
   "仍有货物待打包，请核对各规格适用 SKU、可用数量、净空与完整套装要求。":"Some cargo remains unpacked. Check eligible SKUs, available packaging counts, clearances and whole-kit requirements.",
   "装载方式无效": "Invalid loading workflow",

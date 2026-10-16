@@ -2,8 +2,9 @@ import {afterEach,expect,it,vi} from "vitest";
 import {defaultModelPart,defaultSolidModel} from "./solid-model";
 import {DEFAULT_PACKAGING} from "./packaging";
 import {downloadPdfGuide} from "./pdf-guide";
+import {translateDiagnostic} from "./translate-ui";
 import {reviewPlan} from "./plan-review";
-import {pack,validatePacking,restorePackingSnapshot} from "./engine";
+import {pack,validatePacking,restorePackingSnapshot,calculateReverseCounts} from "./engine";
 import {packLoadingWorkflow} from "./pack-loading";
 import {availablePackingVolume,parseSiteExclusions,siteExcludedVolume,siteExclusionBoxes,type SiteExclusion} from "./site-exclusions";
 import {auditPackingResult} from "./result-audit";
@@ -108,4 +109,19 @@ it("renders site coordinates and limits on a separate PDF page without adding ca
  const plan=pack(req),texts:string[]=[],ctx={fillText:(v:string)=>texts.push(v),measureText:(v:string)=>({width:v.length*13}),fillRect:vi.fn(),strokeRect:vi.fn(),beginPath:vi.fn(),moveTo:vi.fn(),lineTo:vi.fn(),closePath:vi.fn(),stroke:vi.fn(),fill:vi.fn()};
  vi.stubGlobal("document",{fonts:{ready:Promise.resolve()},createElement:(tag:string)=>tag==="canvas"?{getContext:()=>ctx,toBlob:(cb:(b:Blob)=>void)=>cb(new Blob([new Uint8Array([255,216,255,217])]))}:{click:vi.fn()}});vi.stubGlobal("URL",{createObjectURL:()=>"blob:test",revokeObjectURL:vi.fn()});vi.stubGlobal("setTimeout",vi.fn());
  await downloadPdfGuide(plan,"en",[p]);expect(texts).toContain("Obstacles and keep-clear regions");expect(texts).toContain("0 / 0 / 0");expect(texts).toContain("500 × 500 × 500");expect(texts.some(t=>t.includes("Equipment, threshold traversal"))).toBe(true);expect(plan.metrics.grossWeight).toBe(60);
+});
+
+it.each(["mixed","single"] as const)("keeps invalid region arithmetic editable and rejects solving (%s)",mode=>{
+ for(const bad of [{...zone,x:900},{...zone,name:""}]){
+  const invalid={...req,mode,container:{...c,exclusions:[bad]}};
+  const bound=calculateReverseCounts(invalid,1,1);expect(bound.effectiveVolume).toBe(0);expect(bound.recommendedTotal).toBe(0);expect(()=>pack(invalid)).toThrow();
+ }
+ expect(calculateReverseCounts({...req,mode},1,1).recommendedTotal).toBeGreaterThan(0);
+});
+
+it("localizes site-region solver warnings and bounds failures without altering user data",()=>{
+ const plan=pack(req),warning=plan.warnings.find(v=>v.includes("Site regions constrain"))!;
+ expect(warning).toBeTruthy();expect(translateDiagnostic(warning,"en")).not.toMatch(/[\u3400-\u9fff]/u);
+ let error="";try{parseSiteExclusions([{...zone,x:900}],c);}catch(e){error=(e as Error).message;}
+ expect(translateDiagnostic(error,"en")).toContain("physical interior");expect(translateDiagnostic(error,"en")).not.toMatch(/[\u3400-\u9fff]/u);
 });

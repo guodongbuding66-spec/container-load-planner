@@ -154,7 +154,7 @@ function ProjectionCanvas({
   useLanguage();
   const language = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const palletCount = new Set(boxes.filter(box=>box.supportOnly).map(box=>box.palletIds?.[0]??box.id)).size;
+  const palletCount = new Set(boxes.filter(box=>box.supportOnly&&!box.id.startsWith(SITE_EXCLUSION_PREFIX)).map(box=>box.palletIds?.[0]??box.id)).size;
   const cargoCount = boxes.filter(box=>!box.supportOnly).length;
 
   useEffect(() => {

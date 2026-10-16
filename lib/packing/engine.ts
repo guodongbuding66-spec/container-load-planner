@@ -40,7 +40,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.34.0";
+export const ENGINE_VERSION = "0.34.1";
 
 type Orientation = {
   dx: number;
@@ -239,7 +239,11 @@ export function calculateReverseCounts(
   const sourceTotal = sourceQuantities.reduce((sum, quantity) => sum + quantity, 0);
   const targetVolume = Math.min(1, Math.max(0, targetVolumeUtilization));
   const targetWeight = Math.min(1, Math.max(0, targetWeightUtilization));
-  const effectiveVolume = availablePackingVolume(request.container,request.clearance);
+  // This bound is rendered while editing. Invalid regions have no known capacity;
+  // strict validation still rejects the draft before any packing or adoption.
+  let effectiveVolume = 0;
+  try { effectiveVolume = availablePackingVolume(request.container,request.clearance); }
+  catch { /* Keep the form editable and the arithmetic recommendation at zero. */ }
   let floorSupports:PlacedPallet[]=[];
   if(request.floorPallets){try{floorSupports=arrangeFloorPallets(request.container,request.clearance,request.floorPallets);}catch{/* Geometry validation reports invalid layouts when packing; this is only an arithmetic bound. */}}
   const floorVolume=floorSupports.reduce((n,p)=>n+packagingReservedVolume(p),0),floorWeight=floorSupports.reduce((n,p)=>n+p.weight,0);

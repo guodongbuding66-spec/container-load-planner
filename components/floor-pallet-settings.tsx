@@ -20,13 +20,19 @@ export function FloorPalletSettings({config,container,clearance,customSpaces,onS
   const [values,setValues]=useState(()=>strings(config??initial(spaces[0])));
   const [error,setError]=useState("");
   const preview=useMemo(()=>{
+    let emptySummary;
+    try { emptySummary=palletSpaceSummary(container,clearance,[]); }
+    catch(e) {
+      const unknown={...palletSpaceSummary({...container,exclusions:undefined},clearance,[]),effectiveVolume:0,cargoCapacity:0,remainingVolume:0};
+      return {p:draft,pallets:[],summary:unknown,error:e instanceof Error?e.message:"Invalid input"};
+    }
     try {
       const p=parseFloorPalletConfig({...draft,...Object.fromEntries(Object.entries(values).map(([k,v])=>[k,v.trim()?Number(v):NaN]))});
       const pallets=enabled?arrangeFloorPallets(container,clearance,p):[];
       const summary=palletSpaceSummary(container,clearance,pallets);
       if(enabled&&summary.tareWeight>container.maxWeight)throw new Error(tr("托盘总自重超过柜型最大载重。"));
       return {p,pallets,summary,error:""};
-    }catch(e){return {p:draft,pallets:[],summary:palletSpaceSummary(container,clearance,[]),error:e instanceof Error?e.message:"Invalid input"};}
+    }catch(e){return {p:draft,pallets:[],summary:emptySummary,error:e instanceof Error?e.message:"Invalid input"};}
   },[draft,values,enabled,container,clearance]);
   useEffect(()=>{onDraftChange?.(enabled?preview.p:undefined,enabled&&Boolean(preview.error));},[enabled,preview,onDraftChange]);
   const choose=(id:string)=>{const space=spaces.find(s=>s.id===id);if(!space)return;const next={...initial(space),count:Number(values.count)||0,gap:Number(values.gap)||0,maxCargoHeight:Number(values.maxCargoHeight)||0,layout:draft.layout,allowFloorCargo:draft.allowFloorCargo};setDraft(next);setValues(strings(next));};
