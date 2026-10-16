@@ -16,3 +16,8 @@ it("renders the new specification controls in English and localizes validation m
   const html=renderToStaticMarkup(<TransportAppearanceProvider><PalletBuildSettings value={{...options,primaryRule:{maxPallets:-1}}} only onChange={()=>{}} onValidityChange={()=>{}}/></TransportAppearanceProvider>);
   expect(html).toContain("Add packaging specification");expect(html).toContain("Check each packaging name");expect(html).not.toMatch(/[\u3400-\u9fff]/u);
 });
+it("keeps compact selection explicit and describes priority and heuristic limits in English",()=>{
+  setAppLanguage("en");
+  const html=renderToStaticMarkup(<TransportAppearanceProvider><PalletBuildSettings value={{...options,selection:"compact"}} only onChange={()=>{}} onValidityChange={()=>{}}/></TransportAppearanceProvider>);
+  expect(html).toContain('aria-label="Packaging selection mode"');expect(html).toContain('value="compact" selected=""');expect(html).toContain("minimum units or cost");expect(html).not.toMatch(/[\u3400-\u9fff]/u);
+});

@@ -1,3 +1,4 @@
+import { choosePackaging, packagingGroupKey, packagingPriorityGroups, packagingLoads, parsePackagingChoices, type PackagingChoice, type PackagingSelection } from "./packaging-choice";
 import { parseFloorPalletConfig } from "./floor-pallets";
 import { packagingInterior, packagingHeight } from "./packaging";
 import { bearingLoads } from "./bearing";
@@ -10,7 +11,7 @@ export function visiblePlanPallets(plan: PackingResult, visibleCount: number): P
   const ids = new Set(plan.placements.slice(0, Math.max(0, Math.floor(visibleCount))).flatMap(b=>b.palletIds ?? []));
   return (plan.pallets ?? []).filter(p=>ids.has(p.id)||!!plan.palletization?.editRevision&&visibleCount>=plan.placements.length&&!plan.placements.some(b=>b.palletIds?.includes(p.id)));
 }
-export type Palletization = { editRevision?:number; config: FloorPalletConfig; mix: "single" | "mixed"; stackLayers?: number; maxTopLoadKg?: number; preparedCount?: number; bounded?: boolean; only?: boolean; specifications?:PalletBuildSpecification[]; preparedBySpecification?:Record<string,number> };
+export type Palletization = { selection?:PackagingSelection;selectionChoices?:PackagingChoice[]; editRevision?:number; config: FloorPalletConfig; mix: "single" | "mixed"; stackLayers?: number; maxTopLoadKg?: number; preparedCount?: number; bounded?: boolean; only?: boolean; specifications?:PalletBuildSpecification[]; preparedBySpecification?:Record<string,number> };
 export function parsePalletization(value: unknown): Palletization | undefined {
   if (value === undefined) return undefined;
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid prebuilt pallets");
@@ -21,6 +22,7 @@ export function parsePalletization(value: unknown): Palletization | undefined {
   if (p.maxTopLoadKg !== undefined && (!Number.isFinite(p.maxTopLoadKg) || p.maxTopLoadKg < 0 || p.maxTopLoadKg > 100000)) throw new Error("Invalid pallet top load");
   if (p.preparedCount !== undefined && (!Number.isInteger(p.preparedCount) || p.preparedCount < 0 || p.preparedCount > 200)) throw new Error("Invalid prepared pallet count");
   for (const k of ["bounded", "only"] as const) if (p[k] !== undefined && typeof p[k] !== "boolean") throw new Error("Invalid pallet metadata");
+  if(p.selection!==undefined&&p.selection!=="ordered"&&p.selection!=="compact")throw new Error("Invalid packaging selection mode");
   const config=parseFloorPalletConfig(p.config),specifications=p.specifications===undefined?undefined:parsePackagingSpecifications(p.specifications);
   let preparedBySpecification:Record<string,number>|undefined;
   if(specifications){
@@ -31,7 +33,9 @@ export function parsePalletization(value: unknown): Palletization | undefined {
     if(entries.length!==specifications.length||entries.some(([id,n])=>!ids.has(id)||!Number.isInteger(n)||n<0||n>ids.get(id)!.maxPallets)||entries.reduce((n,[,v])=>n+v,0)!==p.preparedCount)throw new Error("Prepared packaging counts disagree with availability");
     preparedBySpecification=Object.fromEntries(entries);
   }else if(p.preparedBySpecification!==undefined)throw new Error("Prepared packaging definitions are missing");
-  return { config, mix: p.mix, ...(p.editRevision===undefined?{}:{editRevision:p.editRevision}), ...(p.stackLayers === undefined ? {} : { stackLayers: p.stackLayers }), ...(p.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: p.maxTopLoadKg }), ...(p.preparedCount === undefined ? {} : { preparedCount: p.preparedCount }), ...(p.bounded === undefined ? {} : { bounded: p.bounded }), ...(p.only === undefined ? {} : { only: p.only }),...(specifications?{specifications,preparedBySpecification}:{}) };
+  const selectionChoices=parsePackagingChoices(p.selectionChoices,new Set(specifications?.map(s=>s.id)??["primary"]));
+  if(selectionChoices&&p.selection!=="compact")throw new Error("Packaging choice records require compact selection");
+  return { ...(p.selection===undefined?{}:{selection:p.selection}),...(selectionChoices?{selectionChoices}:{}), config, mix: p.mix, ...(p.editRevision===undefined?{}:{editRevision:p.editRevision}), ...(p.stackLayers === undefined ? {} : { stackLayers: p.stackLayers }), ...(p.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: p.maxTopLoadKg }), ...(p.preparedCount === undefined ? {} : { preparedCount: p.preparedCount }), ...(p.bounded === undefined ? {} : { bounded: p.bounded }), ...(p.only === undefined ? {} : { only: p.only }),...(specifications?{specifications,preparedBySpecification}:{}) };
 }
 export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPallet[], container: ContainerSpec, clearance: number, value: Palletization, products:readonly ProductInput[] = []) {
   value=parsePalletization(value)!;
@@ -64,6 +68,17 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
     if (config.maxCargoHeight && height > packagingHeight(config) + EPS || !value.only && height > Math.min(container.height, container.loadingAccess === "open" ? container.height : container.doorHeight) - clearance + EPS) errors.push("Loaded pallet exceeds door or cargo height limit");
     if (value.mix === "single" && new Set(cargo.map(b => b.setCode ? `set:${b.setCode}` : `sku:${b.productId}`)).size > 1) errors.push("Single-product pallet contains mixed cargo");
     envelopes.push({ ...p, dz: height, weight: p.weight + cargo.reduce((n, b) => n + b.weight, 0), productId: p.id, sku: p.id, color: "#997947", layer: 1, orientation: p.orientation });
+  }
+  if(value.selectionChoices){const groups=packagingPriorityGroups(products),groupKeys=groups.map(g=>packagingGroupKey(g[0]));
+    for(const choice of value.selectionChoices){
+      const p=pallets.find(p=>p.id===choice.palletId),candidate=choice.candidates.find(c=>c.specificationId===choice.chosenSpecificationId),cargo=p?cargoByPallet.get(p.id)!:[];
+      if(!p||choice.chosenSpecificationId!==(p.specificationId??"primary")||!candidate||candidate.cartons!==cargo.length||candidate.tareKg!==p.weight){errors.push("Packaging choice record does not match its loaded unit");continue;}
+      const config=specifications.get(p.id)!.config,actualHeight=Math.max(p.z+p.dz,p.z+(p.enclosureHeight??0),...cargo.map(b=>b.z+b.dz))-p.z;
+      if(candidate.exterior[0]!==config.length||candidate.exterior[1]!==config.width||Math.abs(candidate.exterior[2]-actualHeight)>EPS)errors.push("Chosen packaging envelope disagrees with its loaded unit");
+      if(products.length&&JSON.stringify(Object.entries(packagingLoads(cargo,groups)).sort())!==JSON.stringify(Object.entries(candidate.loads).sort()))errors.push("Chosen packaging quantities disagree with its cargo");
+      for(const item of choice.candidates){const definition=value.specifications?.find(s=>s.id===item.specificationId)?.config??(item.specificationId==="primary"?value.config:undefined);if(!definition||item.exterior[0]!==definition.length||item.exterior[1]!==definition.width||item.tareKg!==definition.weight)errors.push("Packaging candidate disagrees with its source specification");}
+      if(products.length){const winner=choosePackaging(choice.candidates,groupKeys);if(winner.candidate.specificationId!==choice.chosenSpecificationId||winner.reason!==choice.reason)errors.push("Packaging choice does not follow its recorded comparison");}
+    }
   }
   const sets = new Map<string, Set<string>>();
   for (const b of boxes) if (b.setCode) { const key = `${b.setCode}/${b.setNumber}`, ids = sets.get(key) ?? new Set<string>(); for (const id of b.palletIds ?? []) ids.add(id); sets.set(key, ids); }

@@ -30,6 +30,10 @@ export function toCsvCell(value: string | number | null | undefined) {
 
 export function buildPlacementCsv(result: PackingResult): string {
   if(result.dimensionScenario){const base={...result};delete base.dimensionScenario;return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(i===0?["尺寸方案ID","尺寸口径"]:[result.dimensionScenario!.id,result.dimensionScenario!.kind])].map(toCsvCell).join(",")).join("\r\n");}
+  if(result.palletization?.selection==="compact"){
+    const value=result.palletization,base={...result,palletization:{...value,selection:undefined,selectionChoices:undefined}},choices=new Map(value.selectionChoices?.map(c=>[c.palletId,c]));
+    return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(!i?["包装比选模式","生成时比选记录JSON"]:["compact",choices.has(row[15]==="pallet"?row[1]:row[16])?JSON.stringify(choices.get(row[15]==="pallet"?row[1]:row[16])):""])].map(toCsvCell).join(",")).join("\r\n");
+  }
   const crateUnits=planCrateUnits(result);
   if(crateUnits.some(u=>u.config.crateBearing)){
     const strip=(c:NonNullable<PackingResult["palletization"]>["config"])=>{const copy={...c};delete copy.crateBearing;return copy;};

@@ -11,9 +11,10 @@ export type PalletBuildSpecification = {
   maxTopLoadKg: number;
 };
 export type PalletBuildOptions = {
+  selection?: import("./packaging-choice").PackagingSelection;
   config: FloorPalletConfig;
   primaryRule?: { maxPallets: number; productIds?: string[] };
-  /** Tried in this order after the primary specification. */
+  /** Source order after primary; compact mode retains this order for ties. */
   additionalSpecs?: PalletBuildSpecification[];
   mix: "single" | "mixed";
   maxPallets: number;

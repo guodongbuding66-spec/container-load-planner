@@ -1,3 +1,4 @@
+import { packagingSelectionNotes } from "./packaging-choice";
 import { crateEvidenceGroups, crateEvidence, CRATE_CORNERS } from "./crate-bearing";
 import { planProjection } from "./plan-projection";
 import { reviewPlan, REVIEW_STATES, REVIEW_TITLES } from "./plan-review";
@@ -42,6 +43,7 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
   });
   text(result.workflow==="pallet-only"?t("仅打托，不装柜；XYZ 是三维查看坐标。","Pallets only; XYZ coordinates are for inspection, not vehicle loading."):result.palletization?t("先在柜外打托，再按完整托盘入柜；逐箱表用于核对托内清单。","Build loads outside, then load complete pallets. Carton tables check pallet contents."):t("先装柜内，再向柜门推进；下层支撑先于上层箱。", "Load the nose first, then advance toward the door. Load supports before upper cargo."), 100, 2210, 26);
   text(t("尺寸、门洞、包装承重与现场操作请按当前输入核对。", "Confirm dimensions, door clearance, packaging strength and handling against entered rules."), 100, 2260, 26);
+  packagingSelectionNotes(result,en).forEach((note,i)=>text(note,100,2310+i*40,22));
   await finish();
   start(t("方案复核", "Plan review"));
   const review=reviewPlan(result,products);

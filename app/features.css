@@ -148,3 +148,5 @@
 .crate-preview-stage>svg{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
 .crate-preview-stage>svg:focus-visible{outline:2px solid #268898;outline-offset:-3px}
 @media(max-width:600px){.crate-stack-preview{padding:12px}.crate-preview-stage{height:320px}}
+
+.packaging-selection-mode{display:grid;gap:7px;margin:14px 0;max-width:520px}.packaging-selection-mode select{min-height:40px;padding:8px;border:1px solid #b8ced3;border-radius:6px;background:#fff;font:inherit;color:#365e6b;min-width:0;width:100%}.packaging-choice-report{margin:16px 0;padding:12px;border:1px solid #c8dce1;border-radius:8px}.packaging-choice-report summary{cursor:pointer;font-weight:650;min-height:40px}.packaging-choice-report section{margin:14px 0}.packaging-choice-report th,.packaging-choice-report td{padding:9px;text-align:left}

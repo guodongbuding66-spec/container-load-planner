@@ -6,7 +6,7 @@ import { parseFloorPalletConfig, palletCargoCeiling } from "./floor-pallets";
 import { DEFAULT_PALLET_BUILD, parsePalletBuild } from "./loading-workflow";
 import { palletSpecifications, mixedInspectionContainer, independentPalletVolume } from "./pallet-specifications";
 import { cargoShapeOf } from "./cargo-shape";
-import { normalizedSetCode } from "./set-utils";
+import { packagingGroupKey, packagingLoads, choosePackaging, type PackagingCandidate, type PackagingChoice } from "./packaging-choice";
 import type { PackingRequest, PackingResult, PlacedBox, PlacedPallet, ProductInput, FloorPalletConfig, PalletBuildOptions } from "./types";
 
 export type PreparedUnit = { specificationId: string; id: string; cargo: PlacedBox[]; height: number; weight: number; tail: boolean; topCapacity: number };
@@ -29,7 +29,7 @@ function topCapacity(cargo: PlacedBox[], request: PackingRequest, config: FloorP
   return Math.max(0, capacity);
 }
 
-/** Pack cargo with ordered, stock-limited specifications, then load rigid units. */
+/** Pack cargo with stock-limited specifications, then load rigid units. */
 export function palletizeThenPack(request: PackingRequest, input: FloorPalletConfig, mix: "single" | "mixed", maxPallets = 20, build?: PalletBuildOptions) {
   const started = performance.now();
   const config = parseFloorPalletConfig(input);
@@ -42,10 +42,11 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
   const productIds = new Set(sourceProducts.keys());
   for(const s of specifications)if(s.productIds?.some(id=>!productIds.has(id)))throw new Error("Packaging rule refers to an unknown SKU");
   const remaining = request.products.map(p=>({...p})).sort((a,b)=>Number(b.mustLoad!==false)-Number(a.mustLoad!==false)||b.priority-a.priority);
-  const groupKey = (p:ProductInput)=>normalizedSetCode(p)?`kit:${normalizedSetCode(p)}`:`sku:${p.id}`;
+  const groupKey = packagingGroupKey;
   const groups = new Map<string,ProductInput[]>();
   for(const p of remaining){const key=groupKey(p);groups.set(key,[...groups.get(key)??[],p]);}
   const eligible = new Map(specifications.map(s=>{const allowed=s.productIds?new Set(s.productIds):undefined;return [s.id,new Set([...groups].filter(([,items])=>!allowed||items.every(p=>allowed.has(p.id))).map(([key])=>key))];}));
+  const choiceByUnit=new Map<string,Omit<PackagingChoice,"palletId">>();
   const prepared:PreparedUnit[] = [], failed = new Set<string>(), used = new Map(specifications.map(s=>[s.id,0]));
   let cartonCount=0, coordinateLimit=false, lastReason="";
   const canTurn=(cargo:PlacedBox[])=>cargo.every(b=>{
@@ -61,6 +62,7 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
     if(!first)break;
     const firstKey=groupKey(first);
     let chosen:PreparedUnit|undefined;
+    const candidates:{unit:PreparedUnit;summary:PackagingCandidate}[]=[];
     for(const spec of specifications){
       if(used.get(spec.id)!>=spec.maxPallets||!eligible.get(spec.id)!.has(firstKey))continue;
       const c=spec.config,interior=packagingInterior(c);
@@ -73,16 +75,19 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
         container:{id:"build-pallet",name:c.name,category:"pallet",loadingAccess:"open",length:interior.length,width:interior.width,height:cargoHeight,doorWidth:interior.width,doorHeight:cargoHeight,maxWeight:c.maxLoad},clearance:0,products});
       if(!local.validation.valid)throw new Error(local.validation.errors.join("; "));
       if(!local.placements.some(b=>groupKey(sourceProducts.get(b.productId)!)===firstKey))continue;
-      if(cartonCount+local.placements.length>MAX_VISIBLE_PLACEMENTS){coordinateLimit=true;break;}
+      if(cartonCount+local.placements.length>MAX_VISIBLE_PLACEMENTS){coordinateLimit=true;if(options.selection==="compact")continue;break;}
       const height=Math.max(...local.placements.map(b=>b.z+b.dz));
       const unit:PreparedUnit={id:`unit-${prepared.length+1}`,specificationId:spec.id,cargo:local.placements,height:interior.crate?packagingHeight(c):height+c.height,weight:local.metrics.grossWeight+c.weight,
         tail:local.summaries.every(s=>s.unloaded===0),topCapacity:only?0:topCapacity(local.placements,request,c,{...options,config:c,stackLayers:spec.stackLayers,maxTopLoadKg:spec.maxTopLoadKg})};
-      if(!only&&multiple){const directions=unitDirections(unit),v=request.container,g=request.clearance;
+      if(!only&&(multiple||options.selection==="compact")){const directions=unitDirections(unit),v=request.container,g=request.clearance;
         if(!directions.some(code=>{const dx=code==="LWH"?c.length:c.width,dy=code==="LWH"?c.width:c.length;return dx<=v.length-2*g+.0001&&dy<=Math.min(v.width,v.loadingAccess==="open"?v.width:v.doorWidth)-2*g+.0001&&unit.height<=Math.min(v.height,v.loadingAccess==="open"?v.height:v.doorHeight)-g+.0001;}))continue;
       }
-      chosen=unit;break;
+      if(!only&&options.selection==="compact"&&unit.weight>request.container.maxWeight+.0001)continue;
+      if(options.selection!=="compact"){chosen=unit;break;}
+      candidates.push({unit,summary:{specificationId:spec.id,cartons:unit.cargo.length,loads:packagingLoads(unit.cargo,[...groups.values()]),exterior:[c.length,c.width,unit.height],tareKg:c.weight}});
     }
-    if(coordinateLimit)break;
+    if(candidates.length){const choice=choosePackaging(candidates.map(c=>c.summary),[...groups.keys()]);chosen=candidates.find(c=>c.summary===choice.candidate)!.unit;choiceByUnit.set(chosen.id,{chosenSpecificationId:chosen.specificationId,reason:choice.reason,candidates:candidates.map(c=>c.summary)});}
+    if(coordinateLimit&&!chosen)break;
     if(!chosen){failed.add(firstKey);continue;}
     prepared.push(chosen);used.set(chosen.specificationId,used.get(chosen.specificationId)!+1);cartonCount+=chosen.cargo.length;
     const counts=new Map<string,number>();for(const b of chosen.cargo)counts.set(b.productId,(counts.get(b.productId)??0)+1);
@@ -99,20 +104,23 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
   const outer=only?null:pack({...request,workflow:undefined,palletBuild:undefined,floorPallets:undefined,products:loadable.length?loadable:units.map(p=>({...p,quantity:0,allowedOrientations:["LWH"]})),loadingRules:request.loadingRules?{...request.loadingRules,supportByType:undefined}:undefined,mode:"mixed",strategy});
   if(outer&&!outer.validation.valid)throw new Error(outer.validation.errors.join("; "));
   const outerBoxes:PlacedBox[]=outer?.placements??prepared.map((u,i)=>{const c=bySpecification.get(u.specificationId)!.config;return {id:u.id,productId:u.id,sku:u.id,name:c.name,color:"#997947",x:i%columns*(cellLength+200),y:Math.floor(i/columns)*(cellWidth+200),z:0,dx:c.length,dy:c.width,dz:u.height,weight:u.weight,layer:1,orientation:"LWH"};});
+  const selectionChoices:PackagingChoice[]=[];
   const placements:PlacedBox[]=[],pallets:PlacedPallet[]=[],setCounters=new Map<string,number>();
   for(const b of outerBoxes){
     const unit=prepared.find(p=>p.id===b.productId)!,c=bySpecification.get(unit.specificationId)!.config,interior=packagingInterior(c),cross=b.orientation==="WLH",palletId=`floor-pallet-${pallets.length+1}`,setMap=new Map<string,number>();
     pallets.push({id:palletId,presetId:c.presetId,name:c.name,x:b.x,y:b.y,z:b.z,dx:b.dx,dy:b.dy,dz:c.height,weight:c.weight,maxLoad:c.maxLoad,orientation:cross?"WLH":"LWH",...(multiple?{specificationId:unit.specificationId}:{}),...(c.packaging?{packaging:c.packaging}:{}),...(interior.crate?{enclosureHeight:unit.height}:{})});
+    const choice=choiceByUnit.get(unit.id);if(choice)selectionChoices.push({...choice,palletId});
     for(const cargo of unit.cargo){let setNumber=cargo.setNumber;if(cargo.setCode){const key=`${cargo.setCode}/${cargo.setNumber}`;if(!setMap.has(key)){const next=(setCounters.get(cargo.setCode)??0)+1;setCounters.set(cargo.setCode,next);setMap.set(key,next);}setNumber=setMap.get(key);}
       placements.push({...cargo,id:`prebuilt-${placements.length+1}`,x:b.x+(cross?cargo.y+interior.inset:cargo.x+interior.inset),y:b.y+(cross?c.length-interior.inset-cargo.x-cargo.dx:cargo.y+interior.inset),z:b.z+cargo.z+c.height,dx:cross?cargo.dy:cargo.dx,dy:cross?cargo.dx:cargo.dy,...(cross?quarterTurnOrientation(cargo):{}),setNumber,palletIds:[palletId]});
     }
   }
   const bounded=(prepared.length===options.maxPallets||coordinateLimit||cartonCount>=MAX_VISIBLE_PLACEMENTS)&&remaining.some(p=>p.quantity>0);
-  const palletization={config:options.config,mix:options.mix,...(build?{stackLayers:options.stackLayers,maxTopLoadKg:options.maxTopLoadKg,preparedCount:prepared.length,bounded,only}:{}),...(multiple?{specifications,preparedBySpecification:Object.fromEntries(used)}:{})};
+  const palletization={...(options.selection===undefined?{}:{selection:options.selection}),...(options.selection==="compact"?{selectionChoices}:{}),config:options.config,mix:options.mix,...(build?{stackLayers:options.stackLayers,maxTopLoadKg:options.maxTopLoadKg,preparedCount:prepared.length,bounded,only}:{}),...(multiple?{specifications,preparedBySpecification:Object.fromEntries(used)}:{})};
   const plan:PackingResult=restorePackingSnapshot({...request,floorPallets:undefined,container,clearance:only?0:request.clearance,strategy},{strategy,placements,pallets,palletization});
   plan.warnings=["货物打托与整托坐标已通过独立校验"];
   if(bounded)plan.warnings.push("已达到托盘或箱位搜索上限，未完成订单仍保留");
-  if(multiple)plan.warnings.push("多种包装按列表顺序和适用 SKU 尝试；每种可用数量独立限制，不推定全局最少包装数。");
+  if(options.selection==="compact")plan.warnings.push("多规格逐托比较：优先满足必装与高优先级货量，同货量依次选更小外包络、更小占地和更轻包装；局部启发式不保证全局最少托数或费用。");
+  else if(multiple)plan.warnings.push("多种包装按列表顺序和适用 SKU 尝试；每种可用数量独立限制，不推定全局最少包装数。");
   if(!pallets.length)plan.warnings.push("完整托盘无法在当前柜型、门洞、净空或载重条件下装入；请调整打托规格或柜型");
   if(remaining.some(p=>p.quantity>0)&&multiple)plan.warnings.push("仍有货物待打包，请核对各规格适用 SKU、可用数量、净空与完整套装要求。");
   plan.workflow=only?"pallet-only":"palletized";plan.palletBuild=options;
