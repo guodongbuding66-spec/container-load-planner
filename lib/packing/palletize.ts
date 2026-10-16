@@ -1,3 +1,4 @@
+import {containerAccessoryWeight} from "./container-accessories";
 import { pack, restorePackingSnapshot, getOrientations, MAX_VISIBLE_PLACEMENTS } from "./engine";
 import { quarterTurnOrientation, bodyContactArea } from "./cargo-body";
 import { packagingInterior, packagingHeight } from "./packaging";
@@ -83,7 +84,7 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
       if(!only&&(multiple||options.selection==="compact")){const directions=unitDirections(unit),v=request.container,g=request.clearance;
         if(!directions.some(code=>{const dx=code==="LWH"?c.length:c.width,dy=code==="LWH"?c.width:c.length;return dx<=v.length-2*g+.0001&&dy<=Math.min(v.width,v.loadingAccess==="open"?v.width:v.doorWidth)-2*g+.0001&&unit.height<=Math.min(v.height,v.loadingAccess==="open"?v.height:v.doorHeight)-g+.0001;}))continue;
       }
-      if(!only&&options.selection==="compact"&&unit.weight>request.container.maxWeight+.0001)continue;
+      if(!only&&options.selection==="compact"&&unit.weight>request.container.maxWeight-containerAccessoryWeight(request.container)+.0001)continue;
       if(options.selection!=="compact"){chosen=unit;break;}
       candidates.push({unit,summary:{specificationId:spec.id,cartons:unit.cargo.length,loads:packagingLoads(unit.cargo,[...groups.values()]),exterior:[c.length,c.width,unit.height],tareKg:c.weight}});
     }
@@ -102,7 +103,7 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
   const columns=Math.min(5,Math.ceil(Math.sqrt(prepared.length))),cellLength=Math.max(...prepared.map(u=>bySpecification.get(u.specificationId)!.config.length)),cellWidth=Math.max(...prepared.map(u=>bySpecification.get(u.specificationId)!.config.width));
   const container=only?mixedInspectionContainer(prepared.map(p=>bySpecification.get(p.specificationId)!.config)):request.container;
   const loadable=units.filter(p=>p.allowedOrientations!.length);
-  const outer=only?null:pack({...request,workflow:undefined,palletBuild:undefined,floorPallets:undefined,products:loadable.length?loadable:units.map(p=>({...p,quantity:0,allowedOrientations:["LWH"]})),loadingRules:request.loadingRules?{...request.loadingRules,supportByType:undefined}:undefined,mode:"mixed",strategy});
+  const outer=only?null:pack({...request,container:{...request.container,exclusions:request.container.exclusions?.map(z=>z.accessory?{...z,accessory:{...z.accessory,relatedProductIds:[]}}:z)},workflow:undefined,palletBuild:undefined,floorPallets:undefined,products:loadable.length?loadable:units.map(p=>({...p,quantity:0,allowedOrientations:["LWH"]})),loadingRules:request.loadingRules?{...request.loadingRules,supportByType:undefined}:undefined,mode:"mixed",strategy});
   if(outer&&!outer.validation.valid)throw new Error(outer.validation.errors.join("; "));
   const outerBoxes:PlacedBox[]=outer?.placements??prepared.map((u,i)=>{const c=bySpecification.get(u.specificationId)!.config;return {id:u.id,productId:u.id,sku:u.id,name:c.name,color:"#997947",x:i%columns*(cellLength+200),y:Math.floor(i/columns)*(cellWidth+200),z:0,dx:c.length,dy:c.width,dz:u.height,weight:u.weight,layer:1,orientation:"LWH"};});
   const selectionChoices:PackagingChoice[]=[];

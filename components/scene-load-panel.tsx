@@ -13,7 +13,7 @@ export function SceneLoadPanel({report,mode,onMode,selected}:{report:LoadAnalysi
       {mode==="crate"&&<><p>{tr("颜色只表示额定资料状态，不表示木箱承托已通过；主方案仍底置。","Colors show rating evidence only, not verified crate support; the main plan remains floor-only.")}</p>{report.crates.map(c=><p key={c.id}>{c.id} · {c.grossKg.toFixed(1)} kg · {c.evidence.state==="ready"?tr("资料已核对","Evidence reviewed"):c.evidence.state==="prohibited"?tr("禁止叠放","Stacking prohibited"):tr("未核验","Unverified")}</p>)}{currentCrate&&<p>{tr("版本／来源","Revision / source")}: {currentCrate.profile?.revision||"—"} / {currentCrate.profile?.source||"—"}</p>}</>}
       {mode==="pallet"&&report.pallets.map(p=><p key={p.id}>{p.id.replace("floor-pallet-","P")} · {p.load.toFixed(1)} / {p.limit} kg · {statuses[p.status]}</p>)}
       {mode==="zone"&&report.zones.map((z,i)=><p key={z.id}>{tr("分区","Zone")} {i+1} · {z.weight.toFixed(2)} kg</p>)}
-      <p>{tr(mode==="zone"?"分区重量按箱体跨区体积分配，包含托盘自重；颜色为相对重量，不是车辆轴荷。":"静态竖向载荷按接触面积向下累计；未填写承重参数不会显示为已核验。",mode==="zone"?"Zone weight is apportioned by the box volume crossing each zone, including pallet tare. Colors compare weights; they are not axle loads.":"Static vertical load accumulates by contact area. Missing ratings are never marked verified.")}</p>
+      <p>{tr(mode==="zone"?"分区重量按箱体跨区体积分配，包含托盘自重与整柜附件计划重量；颜色为相对重量，不是车辆轴荷。":"静态竖向载荷按接触面积向下累计；未填写承重参数不会显示为已核验。",mode==="zone"?"Zone weight is apportioned by the box volume crossing each zone, including pallet tare and container accessory planned mass. Colors compare weights; they are not axle loads.":"Static vertical load accumulates by contact area. Missing ratings are never marked verified.")}</p>
     </>}
   </div></details>;
 }

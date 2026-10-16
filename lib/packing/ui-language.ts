@@ -1459,5 +1459,11 @@ export const ENGLISH: Record<string, string> = {
   "木箱壁厚或内高无效 / Invalid crate wall thickness or inner height": "Invalid crate wall thickness or interior height.",
   "木箱整体高度超过柜内或门洞净高 / Crate exterior exceeds vehicle or door height": "The complete crate, including deck and lid, exceeds the vehicle or door height.",
   "木箱按实际内尺寸装货、完整外形装柜；自重请填写包含底座与围板的实测总重。木箱按单层布置，未推定框架承重 / Crates use measured interior, exterior and complete tare; frame strength is not inferred and crate units remain on the floor": "Crates use measured interior dimensions, complete exterior envelopes and total tare. Crates remain on the floor; frame strength has not been verified.",
-  "木箱请使用先打托后装柜模式 / Use the pallet-building workflow for crates": "Use the pallet-building workflow for crates."
+  "木箱请使用先打托后装柜模式 / Use the pallet-building workflow for crates": "Use the pallet-building workflow for crates.",
+  "Invalid container accessory / 整柜附件的类型、数量、计划重量或安装资料无效": "Invalid container accessory type, quantity, planned mass or installation data.",
+  "Accessory installation dependency cycle / 附件安装依赖存在循环": "Accessory installation dependencies contain a cycle.",
+  "Invalid accessory installation dependency / 附件依赖不存在或安装阶段冲突": "An accessory dependency is missing or conflicts with its installation phase.",
+  "Accessory planned mass exceeds payload / 附件计划重量超过装载上限": "Accessory planned mass exceeds the loading-space payload limit.",
+  "Unknown accessory cargo reference / 附件关联了不存在的货物": "An accessory refers to an unknown cargo product.",
+  "柜内障碍与禁占区已用于当前包络求解和独立校验；区域不提供承托、不计作货物；附件计划重量单独计入 / Site regions constrain packing and validation; accessory planned mass is recorded separately, with no added cargo count or support": "Site exclusions constrain packing and independent validation. They provide no support or cargo count; accessory planned mass is counted separately.",
 };

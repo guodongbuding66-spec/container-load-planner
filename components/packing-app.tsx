@@ -1,4 +1,6 @@
 "use client";
+import {ContainerAccessorySettings} from "./container-accessory-settings";
+import {ContainerAccessoryManifest} from "./container-accessory-manifest";
 
 import {
   Box,
@@ -1896,6 +1898,7 @@ export function PackingApp() {
             {isPalletWorkflow ? <><PalletBuildSettings products={activeProducts} resetToken={numericResetVersion} onReset={clearNumericDraftErrors} invalid={invalidNumericFields.size>0} value={palletBuild} only={workflow === "pallet-only"} onChange={value=>{setPalletBuild(value);markDirty();}} onValidityChange={setNumericFieldValidity}/><PalletBuildPreview key={JSON.stringify([palletBuild,activeProducts,strategy,loadingRules])} request={fleetRequest} value={palletBuild} disabled={invalidNumericFields.size>0||!activeProducts.length}/></> : <FloorPalletSettings inline config={floorPallets} container={container} clearance={clearance} customSpaces={customContainers} onDraftChange={receivePalletDraft} onSave={()=>{}} onClose={()=>{}}/>}
           </div>
           {(workflow!=="pallet-only"||!!container.exclusions?.length)&&<SiteExclusionSettings container={container} clearance={clearance} only={workflow==="pallet-only"} floor={!isPalletWorkflow&&!!floorPallets} invalid={invalidNumericFields.size>0} resetToken={numericResetVersion} onValidityChange={setNumericFieldValidity} onChange={next=>{setContainer(next);markDirty();}}/>}
+          {(workflow!=="pallet-only"||!!container.exclusions?.some(z=>z.accessory))&&<ContainerAccessorySettings container={container} products={activeProducts} only={workflow==="pallet-only"} floor={!isPalletWorkflow&&!!floorPallets} invalid={invalidNumericFields.size>0} resetToken={numericResetVersion} onValidityChange={setNumericFieldValidity} onChange={next=>{setContainer(next);markDirty();}}/>}
           <LoadingRuleSettings inline rules={loadingRules} products={products} onDraftChange={receiveRulesDraft} onSave={()=>{}} onClose={()=>{}}/>
           {workflow !== "pallet-only" && <details className="wizard-advanced"><summary>{tr("计算偏好与计划目标")}</summary><div className="wizard-preference-grid">            <article className="panel mode-panel">
               <div className="panel-head compact"><div><span className="section-kicker">01</span><h2>{tr("计算偏好","Solver preferences")}</h2></div></div>
@@ -2258,6 +2261,7 @@ export function PackingApp() {
               </article>
             </div>
 
+            <ContainerAccessoryManifest result={result} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors}/>
             <PalletManifest result={result} products={activeProducts} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors} onAdopt={adoptManualPlan}/>
             <article id="coordinates" className="panel coordinate-panel">
               <div className="panel-head">

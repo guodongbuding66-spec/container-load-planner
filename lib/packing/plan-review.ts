@@ -1,3 +1,4 @@
+import {accessoryInstallationPlan} from "./container-accessories";
 import { auditAccess } from "./access";
 import { bearingErrors, bearingStatus } from "./bearing";
 import { auditPackingResult, type ResultAudit } from "./result-audit";
@@ -71,6 +72,11 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
     if(plan.container.loadingAccess==="open"&&plan.workflow!=="pallet-only"){
       const path=checks.find(c=>c.id==="path")!;if(path.state!=="fail")path.state="unverified";path.scope=["开放装载的区域绕行、吊具和搬运设备尚未核验。","Routing around site regions during open loading, lifting gear and handling equipment remain unverified."];
     }
+  }
+  if(plan.container.exclusions?.some(z=>z.accessory)){
+    const securing=checks.find(c=>c.id==="securing")!;
+    securing.scope=["已记录附件包络、计划重量与安装依赖；所有预留始终参与几何和路径检查。固定强度、安装可达、拆除动作和现场施工未核验。","Accessory envelopes, planned mass and installation dependencies are recorded. All reservations always constrain geometry and access. Securing strength, installation reach, removal and field work remain unverified."];
+    try{securing.items=accessoryInstallationPlan(plan).map(row=>`${row.region.id}: ${row.missingProductIds.length?"关联货物未全部装入 / Associated cargo not fully loaded":"安装动作未核验 / Installation actions unverified"}`);}catch{securing.state="fail";securing.items=["附件安装依赖无效 / Invalid installation dependencies"];}
   }
   const passed = checks.filter(c => c.state === "pass").length, failed = checks.filter(c => c.state === "fail").length, unverified = checks.filter(c => c.state === "unverified").length;
   return { checks, state: failed ? "fail" : unverified ? "unverified" : "pass", passed, failed, unverified };

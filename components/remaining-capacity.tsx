@@ -1,4 +1,5 @@
 "use client";
+import {containerAccessoryWeight} from "../lib/packing/container-accessories";
 import { visiblePlanPallets } from "../lib/packing/prebuilt-pallets";
 import {tr, useLanguage} from "./language";
 import type { PackingResult } from "../lib/packing/types";
@@ -24,11 +25,11 @@ export function RemainingCapacity({result,pending=false,visibleCount=result.plac
     <div className="remaining-capacity-grid">
       <article><span>{tr("剩余有效容积")}</span><strong>{remaining.toFixed(2)} <small>m³ / CBM</small></strong><small>{tr("占有效容积 ")}{(remainingRatio*100).toFixed(1)}%</small></article>
       <article><span>{tr("已用 / 有效总容积")}</span><strong>{used.toFixed(2)} / {total.toFixed(2)} <small>m³</small></strong><small>{result.container.exclusions?.length?tr("有效容积已扣安全间隙与柜内禁占区域","Usable volume excludes safety margins and site regions"):result.pallets?.length?tr("已用包含货物与托盘；净空已扣安全间隙"):tr("有效总容积已扣除安全间隙")}</small></article>
-      <article><span>{tr("剩余可用载重")}</span><strong>{number(space.remainingWeight)} <small>kg</small></strong><small>{result.pallets?.length?tr("已扣已装货物毛重与托盘总自重"):tr("柜型上限减去已装货物毛重")}</small></article>
+      <article><span>{tr("剩余可用载重")}</span><strong>{number(space.remainingWeight)} <small>kg</small></strong><small>{containerAccessoryWeight(result.container)>0?tr("已扣货物、托盘与全部整柜附件计划重量","Deducts cargo, pallet tare and all container accessory planned mass"):result.pallets?.length?tr("已扣已装货物毛重与托盘总自重"):tr("柜型上限减去已装货物毛重")}</small></article>
     </div>
     <details className="capacity-details"><summary>{tr("容量计算明细", "Capacity breakdown")}</summary>
     {!!result.pallets?.length&&<div className="pallet-capacity-equation" aria-label={tr("托盘空间扣除明细")}><span>{tr("有效净空 ")}<b>{total.toFixed(3)} m³</b></span><i>−</i><span>{tr("托盘占用 ")}<b>{(space.reservedVolume/1e9).toFixed(3)} m³</b></span><i>=</i><span>{tr("货物可用 ")}<b>{(space.cargoCapacity/1e9).toFixed(3)} m³</b></span><i>−</i><span>{tr("实际货物 ")}<b>{(cargoVolume/1e9).toFixed(3)} m³</b></span><i>=</i><span>{tr("剩余 ")}<b>{remaining.toFixed(3)} m³</b></span><small>{currentPallets.length}{tr(" 个托盘 · 总自重 ")}{number(space.tareWeight)}{tr(" kg · 货物可用载重 ")}{number(space.cargoPayload)} kg</small></div>}
-    <p>{result.palletization ? tr("容量随装载进度更新，整托底座在该托开始装载时计入占用和自重；隐藏或剖切不改变已装数量。", "Capacity follows progress. A loaded-pallet deck counts toward space and tare when its unit starts loading; hiding or sectioning does not change loaded quantities.") : tr("容量随装载进度实时更新；铺设的托盘始终计入占用和自重。隐藏或剖切不改变装载数量。剩余容积是各处空隙的合计；补货仍须通过尺寸、方向、承托和成套校验。", "Capacity follows loading progress; placed pallets always count toward space and tare. Hiding or sectioning does not change the load. Remaining volume is the sum of separate gaps; extra cargo still needs dimension, orientation, support and kit checks.")}</p>
+    <p>{result.container.exclusions?.some(z=>z.accessory)&&tr("附件及安装空间始终预留，全部附件计划重量从进度起点计入；不表示材料已实装或已实称。","Accessory and installation envelopes remain reserved. All accessory planned mass is counted from the first progress step; this does not confirm installation or weighing.")}</p><p>{result.palletization ? tr("容量随装载进度更新，整托底座在该托开始装载时计入占用和自重；隐藏或剖切不改变已装数量。", "Capacity follows progress. A loaded-pallet deck counts toward space and tare when its unit starts loading; hiding or sectioning does not change loaded quantities.") : tr("容量随装载进度实时更新；铺设的托盘始终计入占用和自重。隐藏或剖切不改变装载数量。剩余容积是各处空隙的合计；补货仍须通过尺寸、方向、承托和成套校验。", "Capacity follows loading progress; placed pallets always count toward space and tare. Hiding or sectioning does not change the load. Remaining volume is the sum of separate gaps; extra cargo still needs dimension, orientation, support and kit checks.")}</p>
     </details>
   </section>;
 }

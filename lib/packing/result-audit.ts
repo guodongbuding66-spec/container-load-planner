@@ -1,3 +1,4 @@
+import {containerAccessoryWeight,accessoryProductErrors} from "./container-accessories";
 import {bodiesOverlap} from "./cargo-body";
 import {availablePackingVolume,siteExclusionBoxes} from "./site-exclusions";
 import { planCrateUnits, crateEvidence } from "./crate-bearing";
@@ -54,6 +55,7 @@ export function auditPackingResult(plan: PackingResult, products?: readonly Prod
     }
     for(const b of boxes){const p=productMap.get(b.productId);if(!p||p.sku!==b.sku||!near(p.weight,b.weight))stale.push(b.sku);}
     for(const s of plan.summaries){const p=productMap.get(s.productId);if(!p||p.sku!==s.sku)stale.push(s.sku);}
+    stale.push(...accessoryProductErrors(plan.container,new Set(productMap.keys())));
     sourceValid=stale.length===0&&plan.summaries.length===products.length;
   }
   add("products",products?(sourceValid?"pass":"fail"):"unverified",products?(sourceValid?"箱位与当前 SKU、单箱重量和外形资料一致。":"箱位或外形资料与当前产品不一致。"):"缺少原始产品资料，未核对 SKU 与外形来源。",products?(sourceValid?"Placements match the current SKUs, unit weights and shape definitions.":"Placements or shape metadata differ from the current products."):"Original product inputs were not provided; SKU and shape provenance are unverified.",stale);
@@ -84,8 +86,8 @@ export function auditPackingResult(plan: PackingResult, products?: readonly Prod
   let cargoWeight=0,cargoVolume=0;
   for(const s of plan.summaries){const p=productMap.get(s.productId);cargoWeight+=products&&p?s.loaded*p.weight:s.loadedWeight;cargoVolume+=products&&p?s.loaded*(volumes.get(p.id)??NaN):s.loadedVolume;}
   const tare=pallets.reduce((n,p)=>n+p.weight,0), recordedWeight=boxes.reduce((n,b)=>n+b.weight,0);
-  const weight=near(totals.grossWeight,cargoWeight+tare)&&(!full||near(cargoWeight,recordedWeight))&&plan.summaries.every(s=>!products||near(s.loadedWeight,s.loaded*(productMap.get(s.productId)?.weight??NaN)));
-  add("weight",weight?completeState:"fail",weight?"货物重量与包装总自重分别核对，自重只计入一次。":"货物重量、包装自重或总毛重不一致。",weight?"Cargo mass and complete packaging tare agree; tare is counted once.":"Cargo mass, packaging tare or total gross weight disagree.");
+  const weight=near(totals.grossWeight,cargoWeight+tare+containerAccessoryWeight(plan.container))&&(!full||near(cargoWeight,recordedWeight))&&plan.summaries.every(s=>!products||near(s.loadedWeight,s.loaded*(productMap.get(s.productId)?.weight??NaN)));
+  add("weight",weight?completeState:"fail",weight?"货物、包装自重与整柜附件计划重量分别核对，各计一次。":"货物重量、包装自重或总毛重不一致。",weight?"Cargo, packaging tare and container accessory planned mass agree; each is counted once.":"Cargo mass, packaging tare or total gross weight disagree.");
 
   let reserved=NaN;
   try{reserved=pallets.reduce((n,p)=>n+packagingReservedVolume(p),0);}catch{}

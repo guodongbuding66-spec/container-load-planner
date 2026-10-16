@@ -1,3 +1,4 @@
+import {accessoryInstallationPlan,ACCESSORY_TYPE_TEXT} from "./container-accessories";
 import {forkEvidenceGroups} from "./fork-interface";
 import { planCrateUnits, crateEvidence } from "./crate-bearing";
 import { parseDimensionAllowance } from "./dimension-allowance";
@@ -40,7 +41,7 @@ export function buildPlacementCsv(result: PackingResult): string {
   }
   if(result.container.exclusions?.length){
     const base={...result,container:{...result.container,exclusions:undefined}},rows=parseCsvRecords(buildPlacementCsv(base)),header=[...rows[0],"柜内区域类型","柜内区域JSON"];
-    const records=result.container.exclusions.map(z=>{const row:Array<string|number>=Array(header.length).fill("");row[0]=0;row[1]=`site-exclusion/${z.id}`;row[2]=z.name;[z.x,z.y,z.z,z.dx,z.dy,z.dz].forEach((n,i)=>row[6+i]=n);row[14]=0;row[15]="site-exclusion";row[30]=result.workflow??"direct";row[31]="physical-inner";row[header.length-2]=z.kind;row[header.length-1]=JSON.stringify(z);return row;});
+    const records=result.container.exclusions.map(z=>{const row:Array<string|number>=Array(header.length).fill("");row[0]=0;row[1]=`site-exclusion/${z.id}`;row[2]=z.name;[z.x,z.y,z.z,z.dx,z.dy,z.dz].forEach((n,i)=>row[6+i]=n);row[14]=z.accessory&&z.kind==="obstacle"?z.accessory.quantity*(z.accessory.unitWeightKg??NaN):0;row[15]="site-exclusion";row[30]=result.workflow??"direct";row[31]="physical-inner";row[header.length-2]=z.kind;row[header.length-1]=JSON.stringify(z);return row;});
     return [header,...rows.slice(1).map(row=>[...row,"",""]),...records].map(row=>row.map(toCsvCell).join(",")).join("\r\n");
   }
   if(result.palletization?.selection==="compact"){
@@ -264,4 +265,12 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
 
   if (!products.length) throw new Error("CSV 中没有可导入的数据行。");
   return products;
+}
+
+/** Separate material / installation list. Carton counts and packaging tare stay untouched. */
+export function buildContainerAccessoryCsv(plan:PackingResult,en=false){
+ const t=(zh:string,english:string)=>en?english:zh;
+ const header=[t("方案ID","Plan ID"),t("算法版本","Engine"),"ID",t("名称","Name"),t("用途","Purpose"),t("材料","Material"),t("数量","Quantity"),t("单件计划kg","Planned unit kg"),t("合计计划kg","Planned row kg"),"X(mm)","Y(mm)","Z(mm)","L(mm)","W(mm)","H(mm)",t("安装阶段","Phase"),t("前置附件","Prior accessories"),t("关联货物ID","Related product IDs"),t("最早装箱步骤后","Earliest after carton step"),t("未全部装入货物","Cargo not fully loaded"),t("来源","Source"),t("版本","Revision"),t("备注","Notes"),t("核验范围","Scope")];
+ const rows=accessoryInstallationPlan(plan).map(({region:z,afterCargoStep,missingProductIds,weightKg})=>{const a=z.accessory;return [plan.id,plan.engineVersion,z.id,z.name,z.kind,t(...ACCESSORY_TYPE_TEXT[a.type]),a.quantity,a.unitWeightKg,weightKg,z.x,z.y,z.z,z.dx,z.dy,z.dz,a.phase,a.afterAccessoryIds.join(" / "),a.relatedProductIds.join(" / "),afterCargoStep,missingProductIds.join(" / "),a.source,a.revision,a.note,t("计划重量；固定强度、安装动作和实称未核验","Planned mass; securing strength, installation actions and weighing unverified")];});
+ return [header,...rows].map(row=>row.map(toCsvCell).join(",")).join("\r\n");
 }

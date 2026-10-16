@@ -1,3 +1,4 @@
+import {accessoryInstallationPlan,containerAccessoryWeight,ACCESSORY_TYPE_TEXT} from "./container-accessories";
 import {forkEvidenceGroups,forkEvidenceReady,inspectForkInterface,FORK_NUMBERS,FORK_NUMBER_TEXT,FORK_DIRECTION_TEXT} from "./fork-interface";
 import {siteExcludedVolume} from "./site-exclusions";
 import { packagingSelectionNotes } from "./packaging-choice";
@@ -29,7 +30,7 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
   const en = language === "en", t = (zh: string, english: string) => en ? english : zh; const width = 1800, height = 2546; const pages: RasterPage[] = [];
   const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height; const ctx = canvas.getContext("2d"); if (!ctx) throw new Error("浏览器无法生成 PDF。");
   const text = (value: string, x: number, y: number, size = 30, bold = false, color = "#234653") => { ctx.font = `${bold ? 700 : 400} ${size}px 'Noto Sans SC','Microsoft YaHei',Arial,sans-serif`; ctx.fillStyle = color; ctx.fillText(value, x, y); };
-  const ellipsis = (value: string, max: number) => { let s = value; while (ctx.measureText(s).width > max && s.length > 1) s = s.slice(0, -1); return s === value ? s : `${s}…`; };
+  const ellipsis = (value: string, max: number) => { if(ctx.measureText(value).width<=max)return value;let s=value;while(s.length&&ctx.measureText(s+"…").width>max)s=s.slice(0,-1);return s+"…"; };
   const start = (title: string) => { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, width, height); text("CARGOFIT · LOADING GUIDE", 100, 95, 26, true, "#2c8390"); text(title, 100, 164, 46, true); text(ellipsis(`${result.dimensionScenario?`${result.dimensionScenario.kind==="nominal"?t("标称方案","Nominal plan"):t("保守方案","Conservative plan")} ${result.dimensionScenario.id} · `:""}${result.container.name} · ${result.engineVersion} · ${new Date(result.createdAt).toLocaleDateString()}`,1600), 100, 216, 25); ctx.strokeStyle = "#d9e7ea"; ctx.beginPath(); ctx.moveTo(100, 247); ctx.lineTo(1700, 247); ctx.stroke(); };
   const finish = async () => { text(`${t("页", "Page")} ${pages.length + 1} · X/Y/Z: mm · kg`, 100, height - 60, 24); const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error("PDF 图像生成失败。")), "image/jpeg", 0.95)); pages.push({ jpeg: new Uint8Array(await blob.arrayBuffer()), width, height }); };
   start(t("装柜方案与执行概览", "Load plan and execution overview"));
@@ -56,11 +57,26 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
   for(let startAt=0;startAt<(result.pallets?.length??0);startAt+=28){start(result.workflow==="pallet-only"?t("独立托盘清单与自重","Independent pallet manifest and tare"):result.palletization?t("整托入柜与自重","Complete pallet placement and tare"):t("底层托盘铺设与自重","Floor pallet layout and tare"));text(result.workflow==="pallet-only"?t("按关联清单独立打托，货物限高不含底座，总重含托盘自重。","Build each listed pallet independently. Cargo height excludes decks; gross weight includes tare."):result.palletization?t("按托盘关联清单在柜外打托，再整托入柜；货物 Z 已包含底座。","Build associated cargo on each pallet outside, then load complete pallets; Z includes decks."):t("先铺设托盘；货物 Z 已包含底座高度，勿再次加高。","Place pallets first. Cargo Z already includes the base height."),100,310,27,true);result.pallets!.slice(startAt,startAt+28).forEach((p,i)=>{const y=390+i*64;text(`${p.id} · ${p.name}`,100,y,25);text(`${p.x} / ${p.y} / ${p.z}`,700,y,25);text(`${p.dx} × ${p.dy} × ${p.enclosureHeight??p.dz}`,1100,y,25);text(`${p.weight} kg`,1530,y,25);});await finish();}
   if(result.container.exclusions?.length){
     start(t("柜内障碍与禁占区","Obstacles and keep-clear regions"));
-    text(t("坐标 mm 从实际柜内柜头、左壁、地板起算；区域不承托、不计货物或重量。","Physical inner nose/left/floor coordinates in mm; regions provide no support, cargo or tare."),100,310,25);
+    text(t("坐标 mm 从实际柜内柜头、左壁、地板起算；区域不承托、不计货物；附件计划重量单列。","Physical inner nose/left/floor coordinates in mm; regions provide no support or cargo; accessory planned mass is separate."),100,310,25);
     text(`${t("有效区域占用","Excluded usable volume")}: ${(siteExcludedVolume(result.container,result.clearance)/1e9).toFixed(4)} m³`,100,365,27,true);
     result.container.exclusions.forEach((z,i)=>{const y=450+i*100;text(ellipsis(`${z.id} · ${z.name}`,520),100,y,25,true);text(`${z.x} / ${z.y} / ${z.z}`,660,y,25);text(`${z.dx} × ${z.dy} × ${z.dz}`,1100,y,25);text(z.kind==="obstacle"?t("障碍","Obstacle"):t("预留","Reservation"),1500,y,24);});
     text(t("重叠容积只扣一次。设备、门槛通过与运输固定强度未核验。","Overlap is deducted once. Equipment, threshold traversal and securing strength remain unverified."),100,2260,25);
     await finish();
+  }
+  const accessoryRows=accessoryInstallationPlan(result);
+  for(let from=0;from<accessoryRows.length;from+=6){
+    start(t("整柜附件与安装依赖（计划）","Container accessories and installation dependencies (planned)"));
+    text(`${t("全部附件计划重量","All accessory planned mass")}: ${containerAccessoryWeight(result.container)} kg`,100,310,28,true);
+    text(ellipsis(t("包络涵盖整行数量；预留无重量。固定强度、安装可达、拆除和实称未核验。","Row envelopes; massless reservations. Strength, reach, removal and weighing unverified."),1500),100,365,23);
+    accessoryRows.slice(from,from+6).forEach(({region:z,index,afterCargoStep,missingProductIds,weightKg},i)=>{const a=z.accessory,y=460+i*285;
+      text(ellipsis(`${index}. ${z.id} · ${z.name}`,1500),100,y,27,true);
+      text(ellipsis(`${t(...ACCESSORY_TYPE_TEXT[a.type])} · ${z.kind} · ${a.quantity} × ${a.unitWeightKg} kg = ${weightKg} kg · ${a.phase} / ${afterCargoStep}`,1500),100,y+48,24);
+      text(`${z.x} / ${z.y} / ${z.z} mm · ${z.dx} × ${z.dy} × ${z.dz} mm`,100,y+88,24);
+      text(ellipsis(`${t("货物 / 前置附件","Cargo / prior accessories")}: ${a.relatedProductIds.join(" / ")||"—"} / ${a.afterAccessoryIds.join(" / ")||"—"}`,1500),100,y+128,23);
+      text(ellipsis(`${a.source||"—"} / ${a.revision||"—"} · ${a.note}`,1500),100,y+168,23);
+      if(missingProductIds.length)text(ellipsis(`${t("关联货物未全部装入","Associated cargo not fully loaded")}: ${missingProductIds.join(" / ")}`,1500),100,y+208,23);
+    });
+    text(t("完整长文本与资料见工作区或附件 CSV；安装步骤不证明实际施工可行。","Full text is preserved in workspace / accessory CSV; ordering does not prove field feasibility."),100,2260,24);await finish();
   }
   for(const group of forkEvidenceGroups(result)){
     start(t("底座与叉具资料（独立预检）","Base and fork data (independent preflight)"));

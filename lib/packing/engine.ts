@@ -1,3 +1,4 @@
+import {containerAccessoryWeight,accessoryMassBoxes,accessoryProductErrors} from "./container-accessories";
 import {parseSiteExclusions,siteExclusionBoxes,availablePackingVolume,SITE_EXCLUSION_PREFIX} from "./site-exclusions";
 import { packagingReservedVolume, packagingMassCenter } from "./packaging";
 import { parseLoadingWorkflow, parsePalletBuild } from "./loading-workflow";
@@ -40,7 +41,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.35.0";
+export const ENGINE_VERSION = "0.36.0";
 
 type Orientation = {
   dx: number;
@@ -112,7 +113,7 @@ export function validateContainerInput(container: ContainerSpec, clearance: numb
   ) {
     return "安全间隙过大，已占满柜内空间或门洞。";
   }
-  try{parseSiteExclusions(container.exclusions,container);if(container.exclusions?.length&&availablePackingVolume(container,clearance)<=EPS)return "柜内区域已占满有效装载空间 / Site regions occupy the entire usable space";}catch(e){return e instanceof Error?e.message:"Invalid site regions";}
+  try{parseSiteExclusions(container.exclusions,container);if(containerAccessoryWeight(container)>container.maxWeight+EPS)return "Accessory planned mass exceeds payload / 附件计划重量超过装载上限";if(container.exclusions?.length&&availablePackingVolume(container,clearance)<=EPS)return "柜内区域已占满有效装载空间 / Site regions occupy the entire usable space";}catch(e){return e instanceof Error?e.message:"Invalid site regions";}
   return null;
 }
 
@@ -136,6 +137,7 @@ function assertValidRequest(request: PackingRequest) {
   ) {
     throw new Error("单品计划箱数上限必须是大于 0 的整数。");
   }
+  if(accessoryProductErrors(request.container,new Set(selectProductsForMode(request.products,request.mode).map(p=>p.id))).length)throw Error("Unknown accessory cargo reference / 附件关联了不存在的货物");
   if(request.products.some(p=>p.id.startsWith(SITE_EXCLUSION_PREFIX)))throw Error("Reserved site region identifier / 产品 ID 使用了柜内区域保留前缀");
   if(request.container.exclusions?.length&&request.floorPallets)throw Error("柜内区域暂不支持自动铺底层托盘；请关闭底层托盘，或使用先打托后装柜 / Site regions currently require floor pallets off, or prebuilt pallet loading");
   if (request.floorPallets !== undefined) { parseFloorPalletConfig(request.floorPallets); if (request.products.some(p => p.id.startsWith("floor-pallet-"))) throw new Error("产品 ID 与底层托盘标识冲突。"); }
@@ -246,6 +248,7 @@ export function calculateReverseCounts(
   catch { /* Keep the form editable and the arithmetic recommendation at zero. */ }
   let floorSupports:PlacedPallet[]=[];
   if(request.floorPallets){try{floorSupports=arrangeFloorPallets(request.container,request.clearance,request.floorPallets);}catch{/* Geometry validation reports invalid layouts when packing; this is only an arithmetic bound. */}}
+  let accessoryWeight=0;try{accessoryWeight=containerAccessoryWeight(request.container);if(!Number.isFinite(accessoryWeight)){effectiveVolume=0;accessoryWeight=0;}}catch{effectiveVolume=0;}
   const floorVolume=floorSupports.reduce((n,p)=>n+packagingReservedVolume(p),0),floorWeight=floorSupports.reduce((n,p)=>n+p.weight,0);
   const mixVolume = activeProducts.reduce(
     (sum, product, index) => sum + Math.max(0, product.length || 0) * Math.max(0, product.width || 0) * Math.max(0, product.height || 0) * sourceQuantities[index],
@@ -259,7 +262,7 @@ export function calculateReverseCounts(
   const averageUnitWeight = sourceTotal > 0 ? mixWeight / sourceTotal : 0;
   const volumeLimitedTotal = averageUnitVolume > 0 ? Math.max(0, Math.floor(Math.max(0,effectiveVolume * targetVolume-floorVolume) / averageUnitVolume)) : 0;
   const weightLimitedTotal = averageUnitWeight > EPS
-    ? Math.max(0, Math.floor(Math.max(0,Math.max(0, request.container.maxWeight || 0) * targetWeight-floorWeight) / averageUnitWeight))
+    ? Math.max(0, Math.floor(Math.max(0,Math.max(0, request.container.maxWeight || 0) * targetWeight-floorWeight-accessoryWeight) / averageUnitWeight))
     : null;
   const unconstrainedRecommendedTotal = weightLimitedTotal === null
     ? volumeLimitedTotal
@@ -1545,7 +1548,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
   const orientationCache = new Map<string, Orientation[]>();
   const exclusions=siteExclusionBoxes(request.container,request.clearance);
   let points: Point[] = [{ x: 0, y: 0, z: 0, envelope: true }];
-  let totalWeight = placements.reduce((n,b)=>n+b.weight,0);
+  let totalWeight = placements.reduce((n,b)=>n+b.weight,0)+containerAccessoryWeight(request.container);
   let totalVolume = placements.reduce((n,b)=>n+b.dx*b.dy*b.dz*bodyVolumeRatio(productMap.get(b.productId)??{}),0);
   let placementIndex = anchors.length ? 1 + Math.max(0,...placements.map(b=>Number(b.id.split("-").at(-1))||0)) : 0;
   const blockedSetCodes = new Set<string>();
@@ -1819,7 +1822,7 @@ export function validatePacking(
   if (productMap.size !== products.length) errors.push("产品资料存在重复 ID，无法独立核对箱体归属。");
   const placementIds = new Set<string>();
   const orientationsByProduct = new Map<string, Set<string>>();
-  let totalWeight = 0;
+  let totalWeight = containerAccessoryWeight(container);
   for (let index = 0; index < placements.length; index += 1) {
     const box = placements[index];
     const product = productMap.get(box.productId);
@@ -2134,7 +2137,7 @@ export function pack(request: PackingRequest): PackingResult {
   const palletUnitVolume = normalized.products.reduce((n,p)=>n+p.length*p.width*p.height*bodyVolumeRatio(p)*(setCode(p)?unitsPerSet(p):1),0);
   const palletUnitWeight = normalized.products.reduce((n,p)=>n+p.weight*(setCode(p)?unitsPerSet(p):1),0);
   const palletUnitCount = normalized.products.reduce((n,p)=>n+(setCode(p)?unitsPerSet(p):1),0);
-  const palletUnitLimit = Math.max(0, Math.floor(Math.min((effectiveVolume-pallets.reduce((n,p)=>n+packagingReservedVolume(p),0))/palletUnitVolume, (MAX_VISIBLE_PLACEMENTS-pallets.length)/palletUnitCount, (normalized.singleCartonLimit??MAX_VISIBLE_PLACEMENTS)/palletUnitCount, palletUnitWeight>0?(normalized.container.maxWeight-palletWeight)/palletUnitWeight:Infinity)));
+  const palletUnitLimit = Math.max(0, Math.floor(Math.min((effectiveVolume-pallets.reduce((n,p)=>n+packagingReservedVolume(p),0))/palletUnitVolume, (MAX_VISIBLE_PLACEMENTS-pallets.length)/palletUnitCount, (normalized.singleCartonLimit??MAX_VISIBLE_PLACEMENTS)/palletUnitCount, palletUnitWeight>0?(normalized.container.maxWeight-palletWeight-containerAccessoryWeight(normalized.container))/palletUnitWeight:Infinity)));
   const palletRequest: PackingRequest = {...normalized, products: [...normalized.products.map(p=>normalized.mode==="single"?{...p,quantity:palletUnitLimit*(setCode(p)?unitsPerSet(p):1)}:p), ...palletSupportProducts(pallets).map(p=>({...p,quantity:0}))]};
   let certifiedGrid:{placements:PlacedBox[];warnings:string[]}|undefined;
   if(!normalized.container.exclusions?.length&&!pallets.length&&normalized.mode==='single'&&normalized.products.length===1&&normalized.products[0].solidModel&&!setCode(normalized.products[0])){
@@ -2166,17 +2169,17 @@ export function pack(request: PackingRequest): PackingResult {
   const summaries = buildSummaries(normalized, orderedPlacements, theoreticalCount);
   const setSummaries = buildSetSummaries(normalized, summaries);
   const loadedVolume = summaries.reduce((sum, item) => sum + item.loadedVolume, 0) + pallets.reduce((n,p)=>n+packagingReservedVolume(p),0);
-  const grossWeight = summaries.reduce((sum, item) => sum + item.loadedWeight, 0) + palletWeight;
+  const grossWeight = summaries.reduce((sum, item) => sum + item.loadedWeight, 0) + palletWeight + containerAccessoryWeight(normalized.container);
   const requestedCount = summaries.reduce((sum, item) => sum + item.requested, 0);
   const loadedCount = summaries.reduce((sum, item) => sum + item.loaded, 0);
-  const centerOfGravity = calculateCenterOfGravity([...supports, ...orderedPlacements], effective, normalized.products);
+  const centerOfGravity = calculateCenterOfGravity([...supports, ...orderedPlacements,...accessoryMassBoxes(normalized.container,normalized.clearance)], effective, normalized.products);
   const executionComplexity = calculateExecutionComplexity(orderedPlacements, normalized.products, pallets);
   const physicalLoadedSets = normalized.mode === "single"
     ? setSummaries[0]?.loadedSets ?? loadedCount
     : 0;
   const quoteEstimate = pallets.length||normalized.container.exclusions?.length ? undefined : estimateQuoteLoading(normalized, effectiveVolume, physicalLoadedSets);
   const warnings = [...output.warnings];
-  if(normalized.container.exclusions?.length)warnings.unshift("柜内障碍与禁占区已用于当前包络求解和独立校验；区域不提供承托、不计作货物或新增自重 / Site regions constrain packing and validation; they provide no support, cargo count or added tare");
+  if(normalized.container.exclusions?.length)warnings.unshift("柜内障碍与禁占区已用于当前包络求解和独立校验；区域不提供承托、不计作货物；附件计划重量单独计入 / Site regions constrain packing and validation; accessory planned mass is recorded separately, with no added cargo count or support");
   if (pallets.length) warnings.unshift(`底层托盘 ${pallets.length} 个，自重 ${palletWeight} kg；货物 Z 坐标已包含托盘高度 ${normalized.floorPallets!.height} mm，托盘单独记录，不计入货物箱数。`);
   const bearingCheck = bearingStatus(orderedPlacements, normalized.products);
   if (!bearingCheck.verified) warnings.push(`承重未核验：${bearingCheck.unknownIds.length} 个受压箱体尚未填写该朝向的承重参数；几何通过不代表承重已确认。`);
@@ -2506,7 +2509,7 @@ export function revisePackingResult(original: PackingResult, placements: PlacedB
   return { ...original, id: `manual-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, placements: ordered,pallets,
     strategyPlans: undefined, strategyComparison: undefined, quoteEstimate: undefined, validation,
     warnings: ["手动调整已重新校验；继续优化会保留锁定箱位及其支撑；重新计算整个订单将创建新方案。"],
-    metrics: { ...original.metrics, centerOfGravity: calculateCenterOfGravity([...palletAnchors(pallets),...ordered],effective,products), executionComplexity: calculateExecutionComplexity(ordered,products,pallets) }, createdAt: new Date().toISOString() };
+    metrics: { ...original.metrics, centerOfGravity: calculateCenterOfGravity([...palletAnchors(pallets),...ordered,...accessoryMassBoxes(original.container,original.clearance)],effective,products), executionComplexity: calculateExecutionComplexity(ordered,products,pallets) }, createdAt: new Date().toISOString() };
 }
 
 export function explainUnloaded(result: PackingResult, products: ProductInput[]) {
@@ -2586,6 +2589,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   } else if (!palletization && raw.pallets!==undefined && (!Array.isArray(raw.pallets)||raw.pallets.length)) throw new Error("归档含有未配置的底层托盘。");
   const products=selectProductsForMode(applyTypeSupport(request.products, request.loadingRules),request.mode);
   const byId=new Map(products.map(p=>[p.id,p]));
+  if(accessoryProductErrors(request.container,new Set(byId.keys())).length)throw Error("Unknown accessory cargo reference / 附件关联了不存在的货物");
   const placements:PlacedBox[]=raw.placements.map((value:unknown)=>{
     if(!value||typeof value!=="object")throw new Error("归档箱体格式无效。");
     const b=value as Record<string,unknown>;
@@ -2610,7 +2614,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   const setSummaries=buildSetSummaries(normalized,summaries);
   const effective=effectiveContainer(request.container,request.clearance);
   const loadedVolume=summaries.reduce((n,s)=>n+s.loadedVolume,0)+pallets.reduce((n,p)=>n+packagingReservedVolume(p),0);
-  const grossWeight=summaries.reduce((n,s)=>n+s.loadedWeight,0)+pallets.reduce((n,p)=>n+p.weight,0);
+  const grossWeight=summaries.reduce((n,s)=>n+s.loadedWeight,0)+pallets.reduce((n,p)=>n+p.weight,0)+containerAccessoryWeight(request.container);
   const effectiveVolume=palletization?.only ? independentPalletVolume(palletization,pallets) : availablePackingVolume(request.container,request.clearance);
   const workflow=raw.workflow===undefined ? palletization?.only ? "pallet-only" : palletization ? "palletized" : request.workflow : parseLoadingWorkflow(raw.workflow,request.mode);
   const palletBuild=raw.palletBuild===undefined ? request.palletBuild : parsePalletBuild(raw.palletBuild);
@@ -2618,7 +2622,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
     accessConfig:parseAccessConfig(raw.accessConfig),palletization,delivery:parseDelivery(raw.delivery,new Set(products.map(p=>p.id))),floorPallets:request.floorPallets,pallets,container:request.container,clearance:request.clearance,singleCartonLimit:normalized.singleCartonLimit,placements:ordered,summaries,setSummaries,validation,
     metrics:{...envelopeMetrics(ordered,products,effectiveVolume,pallets),loadedCount:ordered.length,requestedCount:summaries.reduce((n,s)=>n+s.requested,0),loadedVolume,grossWeight,effectiveVolume,
       volumeUtilization:loadedVolume/effectiveVolume,weightUtilization:grossWeight/request.container.maxWeight,
-      centerOfGravity:calculateCenterOfGravity([...palletAnchors(pallets),...ordered],effective,products),executionComplexity:calculateExecutionComplexity(ordered,products,pallets),solveTimeMs:0},
+      centerOfGravity:calculateCenterOfGravity([...palletAnchors(pallets),...ordered,...accessoryMassBoxes(request.container,request.clearance)],effective,products),executionComplexity:calculateExecutionComplexity(ordered,products,pallets),solveTimeMs:0},
     loadingRules: request.loadingRules, cargoDetails: Object.fromEntries(products.map(p=>[p.id,shapeDetails(p)])),
     warnings:["历史箱位已按当前箱规与引擎重新校验。自动重算已暂停，可继续手动调整或生成新方案。"],createdAt:new Date().toISOString()};
 }

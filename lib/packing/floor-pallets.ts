@@ -1,3 +1,4 @@
+import {containerAccessoryWeight} from "./container-accessories";
 import {parseForkInterface} from "./fork-interface";
 import {availablePackingVolume} from "./site-exclusions";
 import { parseCrateBearing } from "./crate-bearing";
@@ -43,7 +44,7 @@ export function palletSpaceSummary(container: ContainerSpec, clearance: number, 
   const effectiveVolume = availablePackingVolume(container,clearance);
   const reservedVolume = pallets.reduce((n,p)=>n+packagingReservedVolume(p),0);
   const tareWeight = pallets.reduce((n,p)=>n+p.weight,0);
-  return {effectiveVolume,reservedVolume,tareWeight,cargoVolume,cargoCapacity:Math.max(0,effectiveVolume-reservedVolume),remainingVolume:Math.max(0,effectiveVolume-reservedVolume-cargoVolume),cargoPayload:Math.max(0,container.maxWeight-tareWeight),remainingWeight:Math.max(0,container.maxWeight-tareWeight-cargoWeight)};
+  return {effectiveVolume,reservedVolume,tareWeight,cargoVolume,cargoCapacity:Math.max(0,effectiveVolume-reservedVolume),remainingVolume:Math.max(0,effectiveVolume-reservedVolume-cargoVolume),cargoPayload:Math.max(0,container.maxWeight-tareWeight-containerAccessoryWeight(container)),remainingWeight:Math.max(0,container.maxWeight-tareWeight-containerAccessoryWeight(container)-cargoWeight)};
 }
 
 /** Rows can use either horizontal orientation; no pallet may overlap or overhang. */

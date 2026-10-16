@@ -1,3 +1,4 @@
+import {accessoryMassBoxes} from "./container-accessories";
 import { planCrateUnits, crateEvidence } from "./crate-bearing";
 import { bearingLimit, bearingLoads } from "./bearing";
 import { palletAnchors } from "./floor-pallets";
@@ -13,7 +14,12 @@ export function analyzeLoads(plan:PackingResult,products:ProductInput[]){
   const pallets=(plan.pallets??[]).map(p=>cell(p.id,p.maxLoad));
   const length=plan.container.length-plan.clearance*2;
   const zones=Array.from({length:4},(_,i)=>({id:`zone-${i+1}`,x:i*length/4,dx:length/4,weight:0,color:"#2b8d83"}));
-  for(const b of [...plan.placements,...palletAnchors(plan.pallets??[])])for(const zone of zones)zone.weight+=b.weight*Math.max(0,Math.min(b.x+b.dx,zone.x+zone.dx)-Math.max(b.x,zone.x))/b.dx;
+  for(const b of [...plan.placements,...palletAnchors(plan.pallets??[]),...accessoryMassBoxes(plan.container,plan.clearance)]){
+    // Conserve total mass when a physical accessory lies partly inside a safety margin.
+    const overlaps=zones.map(zone=>Math.max(0,Math.min(b.x+b.dx,zone.x+zone.dx)-Math.max(b.x,zone.x))),covered=overlaps.reduce((n,v)=>n+v,0);
+    if(covered>0)zones.forEach((zone,i)=>zone.weight+=b.weight*overlaps[i]/covered);
+    else zones[Math.max(0,Math.min(3,Math.floor((b.x+b.dx/2)/length*4)))].weight+=b.weight;
+  }
   const max=Math.max(1,...zones.map(z=>z.weight));zones.forEach(z=>z.color=loadColor(z.weight/max));
   const crates=planCrateUnits(plan).map(u=>{const evidence=crateEvidence(u.config);return {id:u.pallet.id,grossKg:u.pallet.weight+u.cargoKg,evidence,profile:u.config.crateBearing,color:evidence.state==="ready"?"#2b8d83":evidence.state==="prohibited"?"#c23832":"#7d8393"};});
   return {boxes,pallets,zones,crates,unknown:boxes.filter(b=>b.status==="unknown").length};
