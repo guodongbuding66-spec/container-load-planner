@@ -29,15 +29,15 @@ export function packagingReservedVolume(p: PlacedPallet) {
   const innerHeight=p.enclosureHeight? p.enclosureHeight-p.dz-(p.packaging?.lid?t:0):0;
   return p.dx*p.dy*p.dz+(t? p.dx*p.dy*(p.enclosureHeight!-p.dz)-(p.dx-2*t)*(p.dy-2*t)*innerHeight:0);
 }
-export type PackagingPart={x:number;y:number;z:number;dx:number;dy:number;dz:number;kind:"board"|"block"|"wall"|"lid"};
+export type PackagingPart={x:number;y:number;z:number;dx:number;dy:number;dz:number;kind:"board"|"block"|"wall"|"lid";bearingRole?:"foot"|"deck"|"post"|"cap";corner?:"L0W0"|"L0W1"|"L1W0"|"L1W1"};
 /** Both renderers use this bounded recipe; fork openings and wall margins remain reserved. */
 export function packagingParts(length:number,width:number,height:number,spec:PackagingSpec=DEFAULT_PACKAGING,cargoHeight=0):PackagingPart[] {
-  const parts:PackagingPart[]=[], add=(x:number,y:number,z:number,dx:number,dy:number,dz:number,kind:PackagingPart["kind"]="board")=>parts.push({x,y,z,dx,dy,dz,kind});
+  const parts:PackagingPart[]=[], add=(x:number,y:number,z:number,dx:number,dy:number,dz:number,kind:PackagingPart["kind"]="board",tag:Pick<PackagingPart,"bearingRole"|"corner">={})=>parts.push({x,y,z,dx,dy,dz,kind,...tag});
   const t=height*22/144, n=spec.runners, rw=width*.42/n;
   if(spec.base==="corner-feet"){
     const foot=Math.min(spec.wallThickness,length/2,width/2),deck=Math.min(t,height/3);
-    for(const x of [0,length-foot])for(const y of [0,width-foot])add(x,y,0,foot,foot,height-deck,"block");
-    add(0,0,height-deck,length,width,deck);
+    for(const [i,x] of [0,length-foot].entries())for(const [j,y] of [0,width-foot].entries())add(x,y,0,foot,foot,height-deck,"block",{bearingRole:"foot",corner:`L${i}W${j}` as PackagingPart["corner"]});
+    add(0,0,height-deck,length,width,deck,"board",{bearingRole:"deck"});
   }else if(spec.base==="solid"||height<50)add(0,0,0,length,width,height);
   else {
     for(let j=0;j<n;j++){const y=j*(width-rw)/(n-1);add(0,y,0,length,rw,t);
@@ -55,14 +55,14 @@ export function packagingParts(length:number,width:number,height:number,spec:Pac
       for(const y of [0,width-w])add(0,y,height,length,w,h,"wall");
       for(const x of [0,length-w])add(x,w,height,w,width-2*w,h,"wall");
     }else{
-      for(const x of [0,length-w])for(const y of [0,width-w])add(x,y,height,w,w,h,"wall");
+      for(const [i,x] of [0,length-w].entries())for(const [j,y] of [0,width-w].entries())add(x,y,height,w,w,h,"wall",{bearingRole:"post",corner:`L${i}W${j}` as PackagingPart["corner"]});
       const count=spec.enclosure==="frame"?2:5, bh=Math.min(w,h/count*.65);
       for(let i=0;i<count;i++){const z=height+i*(h-bh)/(count-1);
         for(const y of [0,width-w])add(w,y,z,length-2*w,w,bh,"wall");
         for(const x of [0,length-w])add(x,w,z,w,width-2*w,bh,"wall");
       }
     }
-    if(spec.lid)add(0,0,height+h,length,width,w,"lid");
+    if(spec.lid)add(0,0,height+h,length,width,w,"lid",{bearingRole:"cap"});
   }
   return parts;
 }

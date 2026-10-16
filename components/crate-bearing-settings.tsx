@@ -1,6 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import { CRATE_CORNERS, CRATE_REASON_TEXT, crateEvidence, crateEvidenceKey, crateSupportRegions, emptyCrateBearing, type CrateBearingProfile } from "../lib/packing/crate-bearing";
+import { crateStructure } from "../lib/packing/crate-structure";
 import type { FloorPalletConfig } from "../lib/packing/types";
 import { NumericInput } from "./numeric-input";
 import { tr, useLanguage } from "./language";
@@ -24,6 +25,7 @@ export function CrateBearingSettings({value,onChange,onValidityChange,resetToken
     <div className="upgrade-actions">{(["LWH","WLH"] as const).map(code=><label key={code}><input type="checkbox" checked={p.allowedOrientations.includes(code)} onChange={e=>patch({allowedOrientations:e.target.checked?[...p.allowedOrientations,code]:p.allowedOrientations.filter(c=>c!==code)})}/>{tr("额定允许朝向","Rated orientation")} {code}</label>)}</div>
     <p className="helper-text">{tr("四角脚→同位置立柱→箱盖角部是唯一支持的传力关联。每条路径均按本箱毛重与全部上层毛重的总和核对，不假设四角均分。该上界较保守，不能代替结构试验。","Only corner foot → coaxial post → lid corner paths are supported. EACH path is checked against the full gross mass of this crate and all units above, without assuming equal quarter shares. This conservative bound does not replace structural testing.")}</p>
     <div className="upgrade-table-wrap"><table><caption>{tr("许可接触区与对应传力路径（局部 mm）","Permitted contacts and linked paths (local mm)")}</caption><thead><tr><th>{tr("角部／路径","Corner / path")}</th><th>X / Y / L / W</th><th>{tr("单路径额定值 kg","Per-path rating kg")}</th></tr></thead><tbody>{regions.map(r=><tr key={r.id}><th>{r.id}</th><td>{r.x} / {r.y} / {r.dx} / {r.dy}</td><td><NumericInput resetToken={resetToken} ariaLabel={`${tr("木箱路径额定值","Crate path rating")} ${r.id}`} value={p.columnCapacityKg[r.id]} max={100000} onValueChange={n=>patch({columnCapacityKg:{...p.columnCapacityKg,[r.id]:n}})} onValidityChange={v=>onValidityChange(`pallet-build:crate-${r.id}`,v)}/></td></tr>)}</tbody></table></div>
+    <p className="helper-text">{crateStructure(value).complete?tr("四条实体路径几何连续：底脚、底板接触片、立柱、箱盖角部。几何连续不等于连接件或材料强度已核验。","Four physical paths are geometrically continuous: feet, deck contact patches, posts and lid corners. This does not verify joints or material strength."):tr("当前结构没有四条完整的实体路径，不能标记资料已核对。","This structure has no four complete physical paths and cannot be marked reviewed.")}</p>
     <svg className="crate-support-map" viewBox={`0 0 ${value.length} ${value.width}`} role="img" aria-label={tr("木箱四角许可支承区","Four permitted crate corner zones")}><rect width={value.length} height={value.width} fill="#edf4f5" stroke="#9bbcc5"/>{regions.map(r=><rect key={r.id} x={r.x} y={r.y} width={r.dx} height={r.dy} fill="#247d89"><title>{r.id}</title></rect>)}</svg>
     <label className="packaging-check"><input type="checkbox" checked={evidence.state==="ready"} disabled={!canReview&&evidence.state!=="ready"} onChange={e=>onChange({...value,crateBearing:{...p,reviewed:e.target.checked,reviewedFor:e.target.checked?crateEvidenceKey(value,p):""}})}/>{tr("已人工核对本结构版本、额定来源与实际适用条件","I reviewed this structural revision, rating source and actual applicability")}</label>
     </>}

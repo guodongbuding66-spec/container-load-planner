@@ -1,7 +1,8 @@
 import type { FloorPalletConfig, PackingResult, PlacedPallet } from "./types";
 
-export const CRATE_CORNERS = ["L0W0","L0W1","L1W0","L1W1"] as const;
-export type CrateCorner = typeof CRATE_CORNERS[number];
+import { CRATE_CORNERS, crateStructure, type CrateCorner, type CrateRegion, type CrateStructure } from "./crate-structure";
+export { CRATE_CORNERS } from "./crate-structure";
+export type { CrateCorner, CrateRegion } from "./crate-structure";
 export type CrateBearingProfile = {
   policy:"unverified"|"prohibited"|"rated";
   revision:string; source:string; conditions:string; validUntil:string;
@@ -26,7 +27,7 @@ export function parseCrateBearing(value:unknown):CrateBearingProfile {
 }
 /** Exact geometry/version binding, not a security signature. Appearance and display name do not change it. */
 export function crateStructureKey(c:FloorPalletConfig){const s=c.packaging;return JSON.stringify({length:c.length,width:c.width,height:c.height,weight:c.weight,maxLoad:c.maxLoad,maxCargoHeight:c.maxCargoHeight??0,base:s?.base,enclosure:s?.enclosure,material:s?.material,deckBoards:s?.deckBoards,runners:s?.runners,wallThickness:s?.wallThickness,lid:s?.lid});}
-export function crateEvidenceKey(c:FloorPalletConfig,p=c.crateBearing??emptyCrateBearing()) {return JSON.stringify({structure:crateStructureKey(c),policy:p.policy,revision:p.revision.trim(),source:p.source.trim(),conditions:p.conditions.trim(),validUntil:p.validUntil,allowedOrientations:[...p.allowedOrientations].sort(),maxTopLoadKg:p.maxTopLoadKg,maxLayers:p.maxLayers,columnCapacityKg:CRATE_CORNERS.map(id=>p.columnCapacityKg[id])});}
+export function crateEvidenceKey(c:FloorPalletConfig,p=c.crateBearing??emptyCrateBearing()) {return JSON.stringify({model:"four-corner-paths-v1",structure:crateStructureKey(c),policy:p.policy,revision:p.revision.trim(),source:p.source.trim(),conditions:p.conditions.trim(),validUntil:p.validUntil,allowedOrientations:[...p.allowedOrientations].sort(),maxTopLoadKg:p.maxTopLoadKg,maxLayers:p.maxLayers,columnCapacityKg:CRATE_CORNERS.map(id=>p.columnCapacityKg[id])});}
 export type CrateEvidenceState="unverified"|"prohibited"|"ready";
 export type CrateReason="selection"|"missing"|"prohibited"|"unsupported"|"source"|"expired"|"stale"|"ratings"|"orientation"|"contact"|"top-load"|"column-load"|"layers"|"payload"|"geometry";
 export const CRATE_REASON_TEXT:Record<CrateReason,[string,string]>={
@@ -44,22 +45,20 @@ export function crateEvidence(c:FloorPalletConfig,today=new Date().toISOString()
   if(p.policy==="prohibited"||p.policy==="rated"&&p.maxTopLoadKg===0)return {state:"prohibited",reasons:["prohibited"]};
   const reasons:CrateReason[]=[];
   if(p.policy!=="rated"||!p.reviewed)reasons.push("missing");
-  if(c.packaging?.base!=="corner-feet"||!["frame","slatted"].includes(c.packaging?.enclosure??"")||!c.packaging?.lid||!c.maxCargoHeight)reasons.push("unsupported");
+  if(!crateStructure(c).complete)reasons.push("unsupported");
   if(!p.revision||!p.source||!p.conditions)reasons.push("source");
   if(p.validUntil&&p.validUntil<today)reasons.push("expired");
   if(p.reviewedFor!==crateEvidenceKey(c,p))reasons.push("stale");
   if(CRATE_CORNERS.some(id=>p.columnCapacityKg[id]<=0)||!p.allowedOrientations.length)reasons.push("ratings");
   return {state:reasons.length?"unverified":"ready",reasons};
 }
-export type CrateRegion={id:CrateCorner;x:number;y:number;dx:number;dy:number};
-/** Fixed physical foot/post/lid-corner paths; no arbitrary contact on a central panel is certified. */
+/** Bottom contact zones are extracted from physical feet, never a second rectangle recipe. */
 export function crateSupportRegions(c:FloorPalletConfig,p:Pick<PlacedPallet,"x"|"y"|"orientation">={x:0,y:0,orientation:"LWH"}):CrateRegion[]{
-  const t=c.packaging?.wallThickness??0;
-  return CRATE_CORNERS.map(id=>{const x=id[1]==="0"?0:c.length-t,y=id[3]==="0"?0:c.width-t;return p.orientation==="WLH"?{id,x:p.x+y,y:p.y+c.length-x-t,dx:t,dy:t}:{id,x:p.x+x,y:p.y+y,dx:t,dy:t};});
+  return crateStructure(c,{...p,z:0}).paths.flatMap(path=>path.bottom?[path.bottom]:[]);
 }
 export type CrateReviewUnit={pallet:PlacedPallet;config:FloorPalletConfig;cargoKg:number};
 export type CrateStackIssue={unitId:string;code:CrateReason;corner?:CrateCorner};
-export type CrateStackReview={kind:"crate-stack-preflight";state:"passed"|"failed"|"unverified"|"prohibited";issues:CrateStackIssue[];units:{id:string;grossKg:number;topLoadKg:number;throughLoadBoundKg:number;topRatingKg:number;columns:{id:CrateCorner;boundKg:number;ratingKg:number}[];evidence:CrateEvidenceState}[];contacts:{upperId:string;lowerId:string;foot:CrateRegion;zone?:CrateRegion;covered:boolean}[];};
+export type CrateStackReview={kind:"crate-stack-preflight";state:"passed"|"failed"|"unverified"|"prohibited";issues:CrateStackIssue[];units:{id:string;grossKg:number;topLoadKg:number;throughLoadBoundKg:number;topRatingKg:number;columns:{id:CrateCorner;boundKg:number;ratingKg:number}[];evidence:CrateEvidenceState;structure:CrateStructure}[];contacts:{upperId:string;lowerId:string;foot:CrateRegion;zone?:CrateRegion;covered:boolean;footZ?:number;zoneZ?:number;lowerCorner?:CrateCorner;referenceZone?:CrateRegion;referenceZoneZ?:number}[];};
 /** Independent, single-column preflight. It neither moves a plan nor certifies transport dynamics. */
 export function reviewCrateStack(units:readonly CrateReviewUnit[],today=new Date().toISOString().slice(0,10)):CrateStackReview{
   const issues:CrateStackIssue[]=[],contacts:CrateStackReview["contacts"]=[],rows:CrateStackReview["units"]=[],EPS=.0001;
@@ -77,14 +76,17 @@ export function reviewCrateStack(units:readonly CrateReviewUnit[],today=new Date
     if(e.state==="ready"&&units.length-i>profile.maxLayers)issues.push({unitId:p.id,code:"layers"});
     const through=gross+above,columns=CRATE_CORNERS.map(id=>({id,boundKg:through,ratingKg:profile.columnCapacityKg[id]}));
     if(units.length>1&&e.state==="ready")for(const col of columns)if(col.boundKg>col.ratingKg+EPS)issues.push({unitId:p.id,code:"column-load",corner:col.id});
-    rows.unshift({id:p.id,grossKg:gross,topLoadKg:above,throughLoadBoundKg:through,topRatingKg:profile.maxTopLoadKg,columns,evidence:e.state});above+=gross;
+    rows.unshift({id:p.id,grossKg:gross,topLoadKg:above,throughLoadBoundKg:through,topRatingKg:profile.maxTopLoadKg,columns,evidence:e.state,structure:crateStructure(c,p)});above+=gross;
     if(i){
-      const lower=units[i-1],lp=lower.pallet,zones=crateSupportRegions(lower.config,lp),used=new Set<string>();
+      const lower=units[i-1],lp=lower.pallet,lowerStructure=crateStructure(lower.config,lp),zones=lowerStructure.paths.filter(path=>path.continuous&&path.top).map(path=>({...path.top!,z:path.topZ!})),used=new Set<string>();
       const atTop=Math.abs(p.z-lp.z-(lp.enclosureHeight??0))<EPS,contained=p.x>=lp.x-EPS&&p.y>=lp.y-EPS&&p.x+p.dx<=lp.x+lp.dx+EPS&&p.y+p.dy<=lp.y+lp.dy+EPS;
-      for(const foot of crateSupportRegions(c,p)){
-        const candidates=zones.filter(z=>foot.dx>0&&foot.dy>0&&foot.x>=z.x-EPS&&foot.y>=z.y-EPS&&foot.x+foot.dx<=z.x+z.dx+EPS&&foot.y+foot.dy<=z.y+z.dy+EPS);
+      for(const path of crateStructure(c,p).paths){
+        if(!path.bottom)continue;
+        const foot=path.bottom;
+        const candidates=zones.filter(z=>path.continuous&&Math.abs(path.bottomZ!-z.z)<EPS&&foot.dx>0&&foot.dy>0&&foot.x>=z.x-EPS&&foot.y>=z.y-EPS&&foot.x+foot.dx<=z.x+z.dx+EPS&&foot.y+foot.dy<=z.y+z.dy+EPS);
         const zone=candidates.length===1?candidates[0]:undefined,covered=!!zone&&!used.has(zone.id)&&atTop&&contained;
-        if(zone)used.add(zone.id);contacts.push({upperId:p.id,lowerId:lp.id,foot,zone,covered});if(!covered)issues.push({unitId:p.id,code:"contact",corner:foot.id});
+        const reference=[...zones].sort((a,b)=>Math.hypot(a.x+a.dx/2-foot.x-foot.dx/2,a.y+a.dy/2-foot.y-foot.dy/2)-Math.hypot(b.x+b.dx/2-foot.x-foot.dx/2,b.y+b.dy/2-foot.y-foot.dy/2))[0];
+        if(zone)used.add(zone.id);contacts.push({upperId:p.id,lowerId:lp.id,foot,zone,covered,footZ:path.bottomZ,...(reference?{referenceZone:reference,referenceZoneZ:reference.z}:{}),...(zone?{zoneZ:zone.z,lowerCorner:zone.id}:{})});if(!covered)issues.push({unitId:p.id,code:"contact",corner:foot.id});
       }
     }
   }
@@ -104,4 +106,15 @@ export function crateEvidenceGroups(plan:PackingResult){
   const groups=new Map<string,{config:FloorPalletConfig;ids:string[]}>();
   for(const u of planCrateUnits(plan)){const key=JSON.stringify({structure:crateStructureKey(u.config),profile:u.config.crateBearing??null});const existing=groups.get(key);if(existing)existing.ids.push(u.pallet.id);else groups.set(key,{config:u.config,ids:[u.pallet.id]});}
   return [...groups.values()];
+}
+
+/** Independent evidence format, deliberately unrelated to restorable workspace snapshots. */
+export function crateStackEvidence(plan:PackingResult,units:readonly CrateReviewUnit[],createdAt=new Date().toISOString()) {
+  const source=new Map(planCrateUnits(plan).map(u=>[u.pallet.id,u]));
+  for(const u of units){
+    const original=source.get(u.pallet.id);
+    if(!original||u.cargoKg!==original.cargoKg||JSON.stringify(u.config)!==JSON.stringify(original.config)||JSON.stringify({...original.pallet,x:u.pallet.x,y:u.pallet.y,z:u.pallet.z})!==JSON.stringify(u.pallet))throw new Error("Preflight units must come from unchanged complete source crates");
+  }
+  if(Number.isNaN(Date.parse(createdAt))||new Date(createdAt).toISOString()!==createdAt)throw new Error("Invalid preflight evidence date");
+  return {format:"cargo-fit-crate-stack-preflight",version:2,geometryModel:"four-corner-paths-v1",createdAt,sourcePlanId:plan.id,engineVersion:plan.engineVersion,scope:"independent-preflight-only",units,report:reviewCrateStack(units,createdAt.slice(0,10))};
 }

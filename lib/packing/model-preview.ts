@@ -4,9 +4,12 @@ import { TRANSPORT_COLORS, type TransportPart } from "./transport-model";
 
 /** CPU projection of the same exterior parts, used only when WebGL is unavailable. */
 export function projectModelPreview(parts: TransportPart[], bounds: { size: SceneSize; origin: SceneSize }, direction: SceneSize, width = 520, height = 260) {
-  const fit = calculateCameraDirectionFit(bounds.size, { width, height }, direction, [0, 1, 0]);
+  const unit = new THREE.Vector3(...direction).normalize();
+  const up: SceneSize = Math.abs(unit.y) > .9999 ? [0, 0, -1] : [0, 1, 0];
+  const fit = calculateCameraDirectionFit(bounds.size, { width, height }, direction, up);
   const camera = new THREE.OrthographicCamera(-fit.orthographicHalfWidth, fit.orthographicHalfWidth, fit.orthographicHalfHeight, -fit.orthographicHalfHeight, fit.near, fit.far);
   camera.position.fromArray(fit.position).add(new THREE.Vector3(...bounds.origin));
+  camera.up.fromArray(up);
   camera.lookAt(new THREE.Vector3(...fit.target).add(new THREE.Vector3(...bounds.origin)));
   camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
   const project = (point: SceneSize) => { const p = new THREE.Vector3(...point).project(camera); return { x: (p.x + 1) * width / 2, y: (1 - p.y) * height / 2, depth: p.z }; };
