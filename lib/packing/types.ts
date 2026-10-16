@@ -85,6 +85,8 @@ export type ContainerSpec = {
 };
 
 export type ProductInput = {
+  /** Only used by the independent conservative scenario, never applied to nominal packing. */
+  dimensionAllowance?: import("./dimension-allowance").DimensionAllowance;
   /** Validated physical model, shared by rendering, collision and flat-face support. */
   solidModel?: import("./solid-model").SolidModel;
   /** Required separation from other cargo, in canonical mm. */
@@ -331,6 +333,7 @@ export type QuoteEstimate = {
 };
 
 export type PackingResult = {
+  dimensionScenario?: import("./dimension-scenarios").DimensionScenarioTag;
   workflow?: LoadingWorkflow;
   palletBuild?: PalletBuildOptions;
   palletization?: import("./prebuilt-pallets").Palletization;

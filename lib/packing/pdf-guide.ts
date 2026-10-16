@@ -20,12 +20,13 @@ export function buildRasterPdf(pages: RasterPage[]) {
 }
 export async function downloadPdfGuide(result: PackingResult, language: "zh" | "en" = "zh", products?:readonly ProductInput[]) {
   if (!result.validation.valid) throw new Error("方案未通过校验，不能导出指导书。");
+  if(result.dimensionScenario?.proxyProductIds.length)throw new Error("Irregular tolerance proxy is not a field instruction / 异型公差包络不能作为现场指导书");
   await document.fonts.ready;
   const en = language === "en", t = (zh: string, english: string) => en ? english : zh; const width = 1800, height = 2546; const pages: RasterPage[] = [];
   const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height; const ctx = canvas.getContext("2d"); if (!ctx) throw new Error("浏览器无法生成 PDF。");
   const text = (value: string, x: number, y: number, size = 30, bold = false, color = "#234653") => { ctx.font = `${bold ? 700 : 400} ${size}px 'Noto Sans SC','Microsoft YaHei',Arial,sans-serif`; ctx.fillStyle = color; ctx.fillText(value, x, y); };
   const ellipsis = (value: string, max: number) => { let s = value; while (ctx.measureText(s).width > max && s.length > 1) s = s.slice(0, -1); return s === value ? s : `${s}…`; };
-  const start = (title: string) => { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, width, height); text("CARGOFIT · LOADING GUIDE", 100, 95, 26, true, "#2c8390"); text(title, 100, 164, 46, true); text(`${result.container.name} · ${result.engineVersion} · ${new Date(result.createdAt).toLocaleDateString()}`, 100, 216, 25); ctx.strokeStyle = "#d9e7ea"; ctx.beginPath(); ctx.moveTo(100, 247); ctx.lineTo(1700, 247); ctx.stroke(); };
+  const start = (title: string) => { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, width, height); text("CARGOFIT · LOADING GUIDE", 100, 95, 26, true, "#2c8390"); text(title, 100, 164, 46, true); text(ellipsis(`${result.dimensionScenario?`${result.dimensionScenario.kind==="nominal"?t("标称方案","Nominal plan"):t("保守方案","Conservative plan")} ${result.dimensionScenario.id} · `:""}${result.container.name} · ${result.engineVersion} · ${new Date(result.createdAt).toLocaleDateString()}`,1600), 100, 216, 25); ctx.strokeStyle = "#d9e7ea"; ctx.beginPath(); ctx.moveTo(100, 247); ctx.lineTo(1700, 247); ctx.stroke(); };
   const finish = async () => { text(`${t("页", "Page")} ${pages.length + 1} · X/Y/Z: mm · kg`, 100, height - 60, 24); const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error("PDF 图像生成失败。")), "image/jpeg", 0.95)); pages.push({ jpeg: new Uint8Array(await blob.arrayBuffer()), width, height }); };
   start(t("装柜方案与执行概览", "Load plan and execution overview"));
   const m = result.metrics; const remaining = Math.max(0, m.effectiveVolume - m.loadedVolume) / 1e9;

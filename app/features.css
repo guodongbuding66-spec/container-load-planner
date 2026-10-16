@@ -109,3 +109,16 @@
 .pallet-editor fieldset:disabled{opacity:.65}.pallet-editor .button{min-height:40px}.pallet-editor td small{display:block;overflow-wrap:anywhere;white-space:normal;font-size:12px}
 .pallet-editor .tool-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.pallet-editor [role=status]:not(:empty){padding:10px;background:#e9f3f4;border-radius:7px;font-weight:600}
 @media(max-width:640px){.pallet-editor{padding:10px}.pallet-editor .tool-form-grid{grid-template-columns:1fr}.pallet-editor .upgrade-actions{gap:8px}}
+
+/* Independent nominal/conservative planning workspace. */
+.dimension-scenarios fieldset{min-width:0;border:1px solid var(--line,#d4e2e5);border-radius:10px;padding:16px;margin:12px 0}
+.dimension-scenarios legend{padding:0 6px;font-weight:650}
+.dimension-size-inputs,.dimension-source-inputs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}
+.dimension-scenarios label{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.dimension-size-inputs label,.dimension-source-inputs label{display:grid;align-content:start;gap:6px}
+.dimension-scenarios input:not([type=checkbox]),.dimension-scenarios select{min-width:0;width:100%;min-height:40px;padding:9px;border:1px solid #b8ced3;border-radius:6px;background:#fff;color:#173b46;font:inherit}
+.dimension-scenarios input[type=checkbox]{width:18px;height:18px}
+.dimension-comparison-results{margin-top:20px;padding-top:16px;border-top:1px solid #d4e2e5}
+.dimension-comparison-results caption{text-align:left;font-weight:650;padding:12px 0}
+.dimension-comparison-results p{overflow-wrap:anywhere}
+@media(max-width:700px){.dimension-size-inputs,.dimension-source-inputs{grid-template-columns:1fr}.dimension-scenarios fieldset{padding:12px}}

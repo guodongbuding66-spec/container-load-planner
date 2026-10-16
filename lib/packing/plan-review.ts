@@ -56,6 +56,12 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
       model: access.model, items: access.issues.map(i => `${i.phase}/${i.id}: ${i.reason}${i.obstacles.length ? " (" + i.obstacles.join(", ") + ")" : ""}`) });
   }
   add({ id: "securing", state: empty ? "not-applicable" : "unverified", scope: ["尚未建立绑扎、挡木、气袋和制动工况模型，需现场确认固定方案。", "Lashings, blocking, airbags and braking conditions are not modeled; confirm a securing plan on site."], model: "not-modeled", items: [] });
+  if(plan.dimensionScenario?.proxyProductIds.length){
+    const bearing=checks.find(c=>c.id==="bearing")!;
+    if(bearing.state!=="fail")bearing.state="unverified";
+    bearing.items=[...bearing.items,...plan.dimensionScenario.proxyProductIds];
+    bearing.scope=["公差包络仅用于保守占位；真实接触面、防滚和承托未核验。","Tolerance proxies only reserve conservative space; actual contact faces, anti-roll and support remain unverified."];
+  }
   const passed = checks.filter(c => c.state === "pass").length, failed = checks.filter(c => c.state === "fail").length, unverified = checks.filter(c => c.state === "unverified").length;
   return { checks, state: failed ? "fail" : unverified ? "unverified" : "pass", passed, failed, unverified };
 }

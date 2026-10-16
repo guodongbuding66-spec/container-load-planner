@@ -1,3 +1,4 @@
+import { parseDimensionAllowance } from "./dimension-allowance";
 import { parseShapeFields, withShapeSupport } from "./cargo-shape";
 import { CARGO_TYPES, parseOrientations } from "./loading-rules";
 import type { PackingResult, ProductInput, RotationPolicy, PlacedPallet } from "./types";
@@ -26,7 +27,8 @@ export function toCsvCell(value: string | number | null | undefined) {
     : protectedValue;
 }
 
-export function buildPlacementCsv(result: PackingResult) {
+export function buildPlacementCsv(result: PackingResult): string {
+  if(result.dimensionScenario){const base={...result};delete base.dimensionScenario;return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(i===0?["尺寸方案ID","尺寸口径"]:[result.dimensionScenario!.id,result.dimensionScenario!.kind])].map(toCsvCell).join(",")).join("\r\n");}
   const workflow = result.workflow ?? (result.palletization ? "palletized" : result.mode === "single" ? "single-capacity" : "direct");
   const frame = workflow === "pallet-only" ? "pallet-inspection" : "vehicle-loading";
   const rows = result.placements.map((box, index) => [
@@ -203,6 +205,7 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
       shapeStepHeightRatio:get("shapeStepHeightRatio").trim()?number("shapeStepHeightRatio",.000001,.999999):undefined,solidModel:get("solidModel").trim()?JSON.parse(get("solidModel")):undefined,protectionGap:get("protectionGap").trim()?toMillimeters(number("protectionGap",0),lengthUnit):undefined});
     return withShapeSupport({
       ...shape,
+      ...(get("dimensionAllowance").trim()?{dimensionAllowance:parseDimensionAllowance(JSON.parse(get("dimensionAllowance")))}:{}),
       ...(rawCargo ? { cargoType: rawCargo as ProductInput["cargoType"] } : {}),
       ...(allowedOrientations ? { allowedOrientations } : {}),
       ...(minimumSupportRatio === undefined ? {} : { minimumSupportRatio }),
