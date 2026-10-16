@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { parseDimensionComparisonReport } from "../lib/packing/dimension-report";
 import { DIMENSION_AXES, emptyDimensionAllowance, parseDimensionAllowance, type DimensionAllowance, type DimensionSize } from "../lib/packing/dimension-allowance";
 import { conservativeProduct, dimensionComparisonRows, scenarioMargins, type DimensionComparison } from "../lib/packing/dimension-scenarios";
+import type { CameraView } from "../lib/packing/camera-fit";
 import type { PackingRequest, PackingResult, ProductInput } from "../lib/packing/types";
 import { fromMillimeters, toMillimeters, type LengthUnit } from "../lib/packing/units";
 import { buildPlacementCsv } from "../lib/packing/csv";
@@ -39,7 +40,7 @@ export function DimensionAllowanceFields({value,onChange,unit,invalid,onValidity
 }
 
 export function DimensionComparisonResults({comparison,disabled=false}:{comparison:DimensionComparison;disabled?:boolean}){
-  useLanguage();const [kind,setKind]=useState<"nominal"|"conservative">("conservative"),[viewer,setViewer]=useState(false);
+  useLanguage();const [view,setView]=useState<CameraView>("perspective");const [kind,setKind]=useState<"nominal"|"conservative">("conservative"),[viewer,setViewer]=useState(false);
   const selected=comparison[kind],plan=selected.plan,rows=dimensionComparisonRows(comparison),margins=scenarioMargins(plan);
   const label=(k:typeof kind)=>k==="nominal"?tr("标称方案","Nominal plan"):tr("保守方案","Conservative plan");
   return <div className="dimension-comparison-results">
@@ -54,9 +55,9 @@ export function DimensionComparisonResults({comparison,disabled=false}:{comparis
     {margins&&plan.workflow!=="pallet-only"&&<p>{tr("远端余量（长／宽／高）","Far-wall margins (L/W/H)")}: {DIMENSION_AXES.map(a=>margins.farWall[a].toFixed(1)).join(" / ")} mm · {tr("门洞尺寸余量（宽／高）","Door size margins (W/H)")}: {margins.door?`${margins.door.width.toFixed(1)} / ${margins.door.height.toFixed(1)} mm`:tr("不适用","Not applicable")}<br/><small>{tr("余量仅比较尺寸，不代表转向、抬升或搬运设备可以通过。","Size margins do not verify turning, lifting or handling-equipment passage.")}</small></p>}
     <PlanReviewPanel report={reviewPlan(plan,selected.request.products)}/>
     <ResultAuditPanel report={auditPackingResult(plan,selected.request.products)}/>
-    <OrthographicViews key={plan.id} result={plan} visibleProducts={new Set(plan.summaries.map(s=>s.productId))} visibleCount={plan.placements.length} primaryCountLabel={`${plan.placements.length}`} activeView="perspective" onViewSelect={()=>{}} renderPrintSvg/>
-    <div className="upgrade-actions"><button className="button" disabled={disabled} onClick={()=>setViewer(true)}>{tr("查看当前方案三维","View selected plan in 3D")}</button><button className="button" disabled={disabled} onClick={()=>saveFile(`${plan.dimensionScenario!.id}.csv`,buildPlacementCsv(plan),"text/csv;charset=utf-8")}>{tr("导出当前方案坐标 CSV","Export selected coordinates CSV")}</button><button className="button" disabled={disabled} onClick={()=>saveFile("dimension-comparison.json",JSON.stringify(comparison,null,2))}>{tr("导出双方案与来源 JSON","Export both plans and sources JSON")}</button></div>
-    {viewer&&<PlanViewer plans={[plan]} exportsBlocked={disabled||!!plan.dimensionScenario?.proxyProductIds.length} onClose={()=>setViewer(false)}/>}
+    <OrthographicViews key={plan.id} result={plan} visibleProducts={new Set(plan.summaries.map(s=>s.productId))} visibleCount={plan.placements.length} primaryCountLabel={`${plan.placements.length}`} activeView={view} onViewSelect={next=>{setView(next);setViewer(true);}} renderPrintSvg/>
+    <div className="upgrade-actions"><button className="button" disabled={disabled} onClick={()=>{setView("perspective");setViewer(true);}}>{tr("查看当前方案三维","View selected plan in 3D")}</button><button className="button" disabled={disabled} onClick={()=>saveFile(`${plan.dimensionScenario!.id}.csv`,buildPlacementCsv(plan),"text/csv;charset=utf-8")}>{tr("导出当前方案坐标 CSV","Export selected coordinates CSV")}</button><button className="button" disabled={disabled} onClick={()=>saveFile("dimension-comparison.json",JSON.stringify(comparison,null,2))}>{tr("导出双方案与来源 JSON","Export both plans and sources JSON")}</button></div>
+    {viewer&&<PlanViewer plans={[plan]} initialView={view} exportsBlocked={disabled||!!plan.dimensionScenario?.proxyProductIds.length} onClose={()=>setViewer(false)}/>}
   </div>;
 }
 
