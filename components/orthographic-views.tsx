@@ -1,4 +1,5 @@
 "use client";
+import {siteExclusionBoxes,SITE_EXCLUSION_PREFIX} from "../lib/packing/site-exclusions";
 
 import { projectBox, shapePolygons, projectionBoxes } from "../lib/packing/plan-projection";
 import { visiblePlanPallets } from "../lib/packing/prebuilt-pallets";
@@ -293,7 +294,7 @@ export function OrthographicViews({
 }: Props) {
   useLanguage();
   const boxes = useMemo(
-    () => projectionBoxes(visiblePlanPallets(result,visibleCount), result.placements.slice(0, Math.max(0, visibleCount)).filter(box => visibleProducts.has(box.productId))),
+    () => [...siteExclusionBoxes(result.container,result.clearance),...projectionBoxes(visiblePlanPallets(result,visibleCount), result.placements.slice(0, Math.max(0, visibleCount)).filter(box => visibleProducts.has(box.productId)))],
     [result, visibleCount, visibleProducts],
   );
   const effective = {
@@ -311,7 +312,7 @@ export function OrthographicViews({
     <div className="projection-grid">
       {views.map((view) => {
         const copy = VIEW_COPY[view.kind];
-        const occupied = occupiedExtent(boxes, view.kind);
+        const occupied = occupiedExtent(boxes.filter(b=>!b.id.startsWith(SITE_EXCLUSION_PREFIX)), view.kind);
         return (
           <button
             type="button"

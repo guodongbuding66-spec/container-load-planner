@@ -1,3 +1,4 @@
+import {siteExclusionBoxes} from "./site-exclusions";
 import { choosePackaging, packagingGroupKey, packagingPriorityGroups, packagingLoads, parsePackagingChoices, type PackagingChoice, type PackagingSelection } from "./packaging-choice";
 import { parseFloorPalletConfig } from "./floor-pallets";
 import { packagingInterior, packagingHeight } from "./packaging";
@@ -101,6 +102,7 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
     const xGap=Math.max(a.x-b.x-b.dx,b.x-a.x-a.dx),yGap=Math.max(a.y-b.y-b.dy,b.y-a.y-a.dy);
     if(zOverlap>EPS&&Math.max(xGap,yGap)<gap-EPS)errors.push("Loaded pallets violate the protection gap");
   }
+  for(const e of envelopes)for(const b of siteExclusionBoxes(container,clearance))if(Math.min(e.x+e.dx,b.x+b.dx)-Math.max(e.x,b.x)>EPS&&Math.min(e.y+e.dy,b.y+b.dy)-Math.max(e.y,b.y)>EPS&&Math.min(e.z+e.dz,b.z+b.dz)-Math.max(e.z,b.z)>EPS)errors.push(`Complete pallet intersects site region: ${b.name}`);
   const loads = bearingLoads(envelopes);
   for (const e of envelopes) if ((loads.get(e.id) ?? 0) > specifications.get(e.id)!.maxTopLoadKg + EPS) errors.push("Loaded pallet exceeds declared top-load limit");
   return errors;

@@ -1,3 +1,4 @@
+import {siteExclusionBoxes} from "./site-exclusions";
 import { certifiedModelGaps } from "./solid-space";
 import { cargoBodyParts, bodyContactArea } from "./cargo-body";
 import { applyTypeSupport } from "./loading-rules";
@@ -30,6 +31,7 @@ function mergeSpaces(input:BoundsBox[]){
 export function analyzeEmptySpaces(plan:PackingResult,limit=600){
   if(plan.metrics.loadedCount!==plan.placements.length)return {spaces:[] as EmptySpace[],truncated:true,incomplete:true,coveredVolume:0};
   let spaces:BoundsBox[]=[{x:0,y:0,z:0,dx:plan.container.length-2*plan.clearance,dy:plan.container.width-2*plan.clearance,dz:plan.container.height-plan.clearance}],truncated=false;
+  for(const b of siteExclusionBoxes(plan.container,plan.clearance))spaces=spaces.flatMap(s=>subtractSpace(s,b));
   let approximate=false;
   for(const p of plan.pallets??[])for(const b of packagingReservations(p))spaces=spaces.flatMap(s=>subtractSpace(s,b));
   for(const b of plan.placements){

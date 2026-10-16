@@ -1,3 +1,4 @@
+import {availablePackingVolume} from "./site-exclusions";
 import { parseCrateBearing } from "./crate-bearing";
 import type { ContainerSpec, FloorPalletConfig, PlacedBox, PlacedPallet, ProductInput } from "./types";
 
@@ -37,7 +38,7 @@ export function supportingPalletIds(box: Pick<PlacedBox,"x"|"y"|"dx"|"dy">, supp
 
 /** Pallets reserve their full envelopes, including fork openings; subtract exactly once. */
 export function palletSpaceSummary(container: ContainerSpec, clearance: number, pallets: PlacedPallet[], cargoVolume = 0, cargoWeight = 0) {
-  const effectiveVolume = Math.max(0,container.length-clearance*2)*Math.max(0,container.width-clearance*2)*Math.max(0,container.height-clearance);
+  const effectiveVolume = availablePackingVolume(container,clearance);
   const reservedVolume = pallets.reduce((n,p)=>n+packagingReservedVolume(p),0);
   const tareWeight = pallets.reduce((n,p)=>n+p.weight,0);
   return {effectiveVolume,reservedVolume,tareWeight,cargoVolume,cargoCapacity:Math.max(0,effectiveVolume-reservedVolume),remainingVolume:Math.max(0,effectiveVolume-reservedVolume-cargoVolume),cargoPayload:Math.max(0,container.maxWeight-tareWeight),remainingWeight:Math.max(0,container.maxWeight-tareWeight-cargoWeight)};

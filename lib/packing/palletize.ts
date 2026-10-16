@@ -37,6 +37,7 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
   const specifications = palletSpecifications(options), bySpecification = new Map(specifications.map(s=>[s.id,s]));
   const multiple = !!options.primaryRule || !!options.additionalSpecs?.length;
   const only = request.workflow === "pallet-only", strategy = request.strategy ?? "practical";
+  if(only&&request.container.exclusions?.length)throw Error("Pallet-only mode has no vehicle site regions / 只打托请清除柜内区域");
   if (request.mode !== "mixed") throw new Error("打托需要明确订单数量");
   const sourceProducts=new Map(request.products.map(p=>[p.id,p]));
   const productIds = new Set(sourceProducts.keys());

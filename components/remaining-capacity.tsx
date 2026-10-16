@@ -23,7 +23,7 @@ export function RemainingCapacity({result,pending=false,visibleCount=result.plac
     <div className="remaining-capacity-heading"><strong>{tr(result.workflow === "pallet-only" ? "托盘剩余容量" : "集装箱剩余容量", result.workflow === "pallet-only" ? "Pallet capacity remaining" : "Remaining container capacity")}</strong><span>{tr("当前装载", "Current load")} {count} / {result.placements.length} {tr("箱")}</span></div>
     <div className="remaining-capacity-grid">
       <article><span>{tr("剩余有效容积")}</span><strong>{remaining.toFixed(2)} <small>m³ / CBM</small></strong><small>{tr("占有效容积 ")}{(remainingRatio*100).toFixed(1)}%</small></article>
-      <article><span>{tr("已用 / 有效总容积")}</span><strong>{used.toFixed(2)} / {total.toFixed(2)} <small>m³</small></strong><small>{result.pallets?.length?tr("已用包含货物与托盘；净空已扣安全间隙"):tr("有效总容积已扣除安全间隙")}</small></article>
+      <article><span>{tr("已用 / 有效总容积")}</span><strong>{used.toFixed(2)} / {total.toFixed(2)} <small>m³</small></strong><small>{result.container.exclusions?.length?tr("有效容积已扣安全间隙与柜内禁占区域","Usable volume excludes safety margins and site regions"):result.pallets?.length?tr("已用包含货物与托盘；净空已扣安全间隙"):tr("有效总容积已扣除安全间隙")}</small></article>
       <article><span>{tr("剩余可用载重")}</span><strong>{number(space.remainingWeight)} <small>kg</small></strong><small>{result.pallets?.length?tr("已扣已装货物毛重与托盘总自重"):tr("柜型上限减去已装货物毛重")}</small></article>
     </div>
     <details className="capacity-details"><summary>{tr("容量计算明细", "Capacity breakdown")}</summary>

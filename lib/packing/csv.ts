@@ -30,6 +30,11 @@ export function toCsvCell(value: string | number | null | undefined) {
 
 export function buildPlacementCsv(result: PackingResult): string {
   if(result.dimensionScenario){const base={...result};delete base.dimensionScenario;return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(i===0?["尺寸方案ID","尺寸口径"]:[result.dimensionScenario!.id,result.dimensionScenario!.kind])].map(toCsvCell).join(",")).join("\r\n");}
+  if(result.container.exclusions?.length){
+    const base={...result,container:{...result.container,exclusions:undefined}},rows=parseCsvRecords(buildPlacementCsv(base)),header=[...rows[0],"柜内区域类型","柜内区域JSON"];
+    const records=result.container.exclusions.map(z=>{const row:Array<string|number>=Array(header.length).fill("");row[0]=0;row[1]=`site-exclusion/${z.id}`;row[2]=z.name;[z.x,z.y,z.z,z.dx,z.dy,z.dz].forEach((n,i)=>row[6+i]=n);row[14]=0;row[15]="site-exclusion";row[30]=result.workflow??"direct";row[31]="physical-inner";row[header.length-2]=z.kind;row[header.length-1]=JSON.stringify(z);return row;});
+    return [header,...rows.slice(1).map(row=>[...row,"",""]),...records].map(row=>row.map(toCsvCell).join(",")).join("\r\n");
+  }
   if(result.palletization?.selection==="compact"){
     const value=result.palletization,base={...result,palletization:{...value,selection:undefined,selectionChoices:undefined}},choices=new Map(value.selectionChoices?.map(c=>[c.palletId,c]));
     return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(!i?["包装比选模式","生成时比选记录JSON"]:["compact",choices.has(row[15]==="pallet"?row[1]:row[16])?JSON.stringify(choices.get(row[15]==="pallet"?row[1]:row[16])):""])].map(toCsvCell).join(",")).join("\r\n");

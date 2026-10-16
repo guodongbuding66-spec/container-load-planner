@@ -72,6 +72,8 @@ export type LoadingRules = {
 };
 
 export type ContainerSpec = {
+  /** Non-supporting fixed obstacles or keep-clear regions, physical inner-origin mm. */
+  exclusions?: import("./site-exclusions").SiteExclusion[];
   category?: "container" | "truck" | "pallet" | "other";
   loadingAccess?: "rear" | "open";
   /** Physical base below the cargo envelope; excluded from cargo capacity. */

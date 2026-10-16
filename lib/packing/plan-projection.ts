@@ -1,3 +1,4 @@
+import {siteExclusionBoxes} from "./site-exclusions";
 import { cargoShapeProjections, type CargoProjectionView } from "./cargo-shape-geometry";
 import { placedPackagingParts } from "./packaging";
 import type { OrientationCode, PackingResult, PlacedBox, PlacedPallet } from "./types";
@@ -26,7 +27,7 @@ export function projectionBoxes(pallets: PlacedPallet[], cargo: PlacedBox[]): Pl
 export function planProjection(plan: PackingResult, view: CargoProjectionView) {
   const width = Math.max(1, view === "door" ? plan.container.width - plan.clearance * 2 : plan.container.length - plan.clearance * 2);
   const height = Math.max(1, view === "top" ? plan.container.width - plan.clearance * 2 : plan.container.height - plan.clearance);
-  const shapes = projectionBoxes(plan.pallets ?? [], plan.placements)
+  const shapes = [...siteExclusionBoxes(plan.container,plan.clearance),...projectionBoxes(plan.pallets ?? [], plan.placements)]
     .map(box => ({ box, polygons: shapePolygons(box, view, plan.cargoDetails), depth: projectBox(box, view).depth }))
     .sort((a, b) => a.depth - b.depth);
   return { width, height, shapes };

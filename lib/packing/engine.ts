@@ -1,3 +1,4 @@
+import {parseSiteExclusions,siteExclusionBoxes,availablePackingVolume,SITE_EXCLUSION_PREFIX} from "./site-exclusions";
 import { packagingReservedVolume, packagingMassCenter } from "./packaging";
 import { parseLoadingWorkflow, parsePalletBuild } from "./loading-workflow";
 import { palletSpecifications, mixedInspectionContainer, independentPalletVolume, specificationForPallet } from "./pallet-specifications";
@@ -39,7 +40,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.33.0";
+export const ENGINE_VERSION = "0.34.0";
 
 type Orientation = {
   dx: number;
@@ -111,6 +112,7 @@ export function validateContainerInput(container: ContainerSpec, clearance: numb
   ) {
     return "安全间隙过大，已占满柜内空间或门洞。";
   }
+  try{parseSiteExclusions(container.exclusions,container);if(container.exclusions?.length&&availablePackingVolume(container,clearance)<=EPS)return "柜内区域已占满有效装载空间 / Site regions occupy the entire usable space";}catch(e){return e instanceof Error?e.message:"Invalid site regions";}
   return null;
 }
 
@@ -134,6 +136,8 @@ function assertValidRequest(request: PackingRequest) {
   ) {
     throw new Error("单品计划箱数上限必须是大于 0 的整数。");
   }
+  if(request.products.some(p=>p.id.startsWith(SITE_EXCLUSION_PREFIX)))throw Error("Reserved site region identifier / 产品 ID 使用了柜内区域保留前缀");
+  if(request.container.exclusions?.length&&request.floorPallets)throw Error("柜内区域暂不支持自动铺底层托盘；请关闭底层托盘，或使用先打托后装柜 / Site regions currently require floor pallets off, or prebuilt pallet loading");
   if (request.floorPallets !== undefined) { parseFloorPalletConfig(request.floorPallets); if (request.products.some(p => p.id.startsWith("floor-pallet-"))) throw new Error("产品 ID 与底层托盘标识冲突。"); }
   if (request.loadingRules !== undefined) parseLoadingRules(request.loadingRules);
   const containerError = validateContainerInput(request.container, request.clearance);
@@ -235,8 +239,7 @@ export function calculateReverseCounts(
   const sourceTotal = sourceQuantities.reduce((sum, quantity) => sum + quantity, 0);
   const targetVolume = Math.min(1, Math.max(0, targetVolumeUtilization));
   const targetWeight = Math.min(1, Math.max(0, targetWeightUtilization));
-  const effective = effectiveContainer(request.container, request.clearance);
-  const effectiveVolume = effective.length * effective.width * effective.height;
+  const effectiveVolume = availablePackingVolume(request.container,request.clearance);
   let floorSupports:PlacedPallet[]=[];
   if(request.floorPallets){try{floorSupports=arrangeFloorPallets(request.container,request.clearance,request.floorPallets);}catch{/* Geometry validation reports invalid layouts when packing; this is only an arithmetic bound. */}}
   const floorVolume=floorSupports.reduce((n,p)=>n+packagingReservedVolume(p),0),floorWeight=floorSupports.reduce((n,p)=>n+p.weight,0);
@@ -1536,6 +1539,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
   let topLevels = new Map<number, PlacedBox[]>();
   const productMap = new Map(request.products.map((product) => [product.id, product]));
   const orientationCache = new Map<string, Orientation[]>();
+  const exclusions=siteExclusionBoxes(request.container,request.clearance);
   let points: Point[] = [{ x: 0, y: 0, z: 0, envelope: true }];
   let totalWeight = placements.reduce((n,b)=>n+b.weight,0);
   let totalVolume = placements.reduce((n,b)=>n+b.dx*b.dy*b.dz*bodyVolumeRatio(productMap.get(b.productId)??{}),0);
@@ -1550,7 +1554,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
     const sorted=[...list].sort(pointOrder),essential=sorted.filter(p=>p.envelope).slice(0,Math.floor(budget/2)),keys=new Set(essential.map(pointKey));
     return [...essential,...sorted.filter(p=>!keys.has(pointKey(p))).slice(0,budget-essential.length)].sort(pointOrder);
   };
-  const volumeLimit = container.length * container.width * container.height * practicalTarget(request);
+  const volumeLimit = availablePackingVolume(request.container,request.clearance) * practicalTarget(request);
 
   const rebuildIndexes = () => {
     spatial = new SpatialIndex(container,Math.max(0,...request.products.map(p=>p.protectionGap??0)));
@@ -1562,8 +1566,8 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
   };
 
   rebuildIndexes();
-  if (anchors.length) {
-    for(const b of anchors){
+  if (anchors.length||exclusions.length) {
+    for(const b of [...anchors,...exclusions]){
       const product=productMap.get(b.productId),gap=product?.protectionGap??0;
       const additions:Point[]=[
         {x:b.x+b.dx+gap,y:b.y,z:b.z,envelope:true},{x:b.x,y:b.y+b.dy+gap,z:b.z,envelope:true},{x:b.x,y:b.y,z:b.z+b.dz,envelope:true},
@@ -1621,7 +1625,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
             break;
           }
         }
-        if (collides) continue;
+        if (collides||exclusions.some(b=>bodiesOverlap(candidate,b,product,undefined))) continue;
         const support = supportDetails(candidate, topLevels, productMap);
         const palletIds = supportingPalletIds(candidate, topLevels.get(supportLevelKey(candidate.z)) ?? []);
         if (request.floorPallets && palletIds.length && candidate.z + candidate.dz > palletCargoCeiling(request.container, request.clearance, request.floorPallets) + EPS) continue;
@@ -1789,10 +1793,11 @@ export function validatePacking(
   if (!Array.isArray(placements) || !Array.isArray(pallets)) return {valid:false,errors:["货物和托盘坐标必须是数组。"]};
   for(const p of products){try{parseShapeFields(p as unknown as Record<string,unknown>);}catch(e){return {valid:false,errors:[e instanceof Error?e.message:"Invalid cargo shape"]};}}
   const cargo = placements;
-  if (cargo.some(b=>b?.supportOnly)) return {valid:false,errors:["货物记录不能伪装为托盘支撑。"]};
+  if (cargo.some(b=>b?.supportOnly||typeof b?.id==="string"&&b.id.startsWith(SITE_EXCLUSION_PREFIX))) return {valid:false,errors:["货物记录不能伪装为托盘支撑。"]};
+  if(floorConfig&&container.exclusions?.length)return {valid:false,errors:["Site regions cannot be combined with floor-laid pallets / 柜内区域暂不支持铺底层托盘"]};
   if (floorConfig) {try {parseFloorPalletConfig(floorConfig);}catch(e){return {valid:false,errors:[e instanceof Error?e.message:"托盘配置无效。"]};}}
   if (pallets.length) {
-    if (pallets.length > 200 || new Set(pallets.map(p => p.id)).size !== pallets.length || pallets.some(p => !p || typeof p.id !== "string" || !p.id.trim() || typeof p.name!=="string" || typeof p.presetId!=="string" || p.locked!==undefined&&typeof p.locked!=="boolean" || !["LWH","WLH"].includes(p.orientation) || (palletization ? p.z < 0 : p.z !== 0) || ![p.x,p.y,p.z,p.dx,p.dy,p.dz,p.weight,p.maxLoad].every(Number.isFinite) || p.dx <= 0 || p.dy <= 0 || p.dz <= 0 || p.weight < 0 || p.maxLoad <= 0 || cargo.some(b => b.id === p.id || b.productId === p.id))) return {valid:false,errors:["底层托盘坐标、承重或标识无效。"]};
+    if (pallets.length > 200 || new Set(pallets.map(p => p.id)).size !== pallets.length || pallets.some(p => !p || typeof p.id !== "string" || !p.id.trim() || p.id.startsWith(SITE_EXCLUSION_PREFIX) || typeof p.name!=="string" || typeof p.presetId!=="string" || p.locked!==undefined&&typeof p.locked!=="boolean" || !["LWH","WLH"].includes(p.orientation) || (palletization ? p.z < 0 : p.z !== 0) || ![p.x,p.y,p.z,p.dx,p.dy,p.dz,p.weight,p.maxLoad].every(Number.isFinite) || p.dx <= 0 || p.dy <= 0 || p.dz <= 0 || p.weight < 0 || p.maxLoad <= 0 || cargo.some(b => b.id === p.id || b.productId === p.id))) return {valid:false,errors:["底层托盘坐标、承重或标识无效。"]};
     placements = orderForLoading([...palletAnchors(pallets), ...cargo],products);
     products = [...products, ...palletSupportProducts(pallets)];
   }
@@ -1802,6 +1807,7 @@ export function validatePacking(
   if (!Array.isArray(placements)) return { valid: false, errors: ["箱体坐标必须是数组。"] };
   if (mode !== "single" && mode !== "mixed") return { valid: false, errors: ["计算模式无效。"] };
   const effective = effectiveContainer(container, clearance);
+  const exclusions=siteExclusionBoxes(container,clearance);
   const errors: string[] = [];
   const spatial = new SpatialIndex(effective,Math.max(0,...products.map(p=>p.protectionGap??0)));
   const topLevels = new Map<number, PlacedBox[]>();
@@ -1837,6 +1843,7 @@ export function validatePacking(
       // spatial cells. A boundary failure already invalidates this snapshot.
       return { valid: false, errors };
     }
+    for(const zone of exclusions)if(bodiesOverlap(box,zone,product,undefined))errors.push(`${box.sku}: 柜内障碍或禁占区 / Site exclusion: ${zone.name}`);
     for (const otherIndex of spatial.query(box)) {
       if (bodiesOverlap(box, placements[otherIndex],product,productMap.get(placements[otherIndex].productId))) {
         errors.push(`${box.sku} 的箱体 ${index + 1} 与箱体 ${otherIndex + 1} 重叠。`);
@@ -2101,12 +2108,12 @@ export function pack(request: PackingRequest): PackingResult {
     products: selectProductsForMode(normalizedProducts, request.mode),
   };
   const effective = effectiveContainer(normalized.container, normalized.clearance);
-  const effectiveVolume = effective.length * effective.width * effective.height;
+  const effectiveVolume = availablePackingVolume(normalized.container,normalized.clearance);
   const pallets = normalized.floorPallets ? arrangeFloorPallets(normalized.container, normalized.clearance, normalized.floorPallets) : [];
   const supports = palletAnchors(pallets);
   const palletWeight = supports.reduce((n,b)=>n+b.weight,0);
   if (palletWeight > normalized.container.maxWeight + EPS) throw new Error("底层托盘自重已超过柜型最大载重。");
-  const preliminaryQuoteEstimate = normalized.floorPallets ? undefined : estimateQuoteLoading(normalized, effectiveVolume, 0);
+  const preliminaryQuoteEstimate = normalized.floorPallets||normalized.container.exclusions?.length ? undefined : estimateQuoteLoading(normalized, effectiveVolume, 0);
   const defaultPracticalTarget = recommendedPracticalTarget(normalized.container);
   const challengesHistoricalBaseline = normalized.practicalTargetUtilization! >= defaultPracticalTarget + 0.01 - EPS;
   const fieldPracticalSetLimit = normalized.strategy === "practical" &&
@@ -2126,14 +2133,14 @@ export function pack(request: PackingRequest): PackingResult {
   const palletUnitLimit = Math.max(0, Math.floor(Math.min((effectiveVolume-pallets.reduce((n,p)=>n+packagingReservedVolume(p),0))/palletUnitVolume, (MAX_VISIBLE_PLACEMENTS-pallets.length)/palletUnitCount, (normalized.singleCartonLimit??MAX_VISIBLE_PLACEMENTS)/palletUnitCount, palletUnitWeight>0?(normalized.container.maxWeight-palletWeight)/palletUnitWeight:Infinity)));
   const palletRequest: PackingRequest = {...normalized, products: [...normalized.products.map(p=>normalized.mode==="single"?{...p,quantity:palletUnitLimit*(setCode(p)?unitsPerSet(p):1)}:p), ...palletSupportProducts(pallets).map(p=>({...p,quantity:0}))]};
   let certifiedGrid:{placements:PlacedBox[];warnings:string[]}|undefined;
-  if(!pallets.length&&normalized.mode==='single'&&normalized.products.length===1&&normalized.products[0].solidModel&&!setCode(normalized.products[0])){
+  if(!normalized.container.exclusions?.length&&!pallets.length&&normalized.mode==='single'&&normalized.products.length===1&&normalized.products[0].solidModel&&!setCode(normalized.products[0])){
     const seed=solidGridSeed(normalized,effective,fieldPracticalSetLimit),product=normalized.products[0];
     if(seed){
       const reachedLimit=product.weight>0&&seed.placements.length>=Math.floor(normalized.container.maxWeight/product.weight)||normalized.singleCartonLimit!==undefined&&seed.placements.length>=normalized.singleCartonLimit;
       certifiedGrid=normalized.strategy==='practical'||reachedLimit?seed:packMixed(bearingRequest,effective,seed.placements);
     }
   }
-  const output = certifiedGrid ?? (pallets.length ? packMixed(palletRequest, effective, supports) : bearingEnabled ? packMixed(bearingRequest, effective) : normalized.mode === "single"
+  const output = certifiedGrid ?? (pallets.length||normalized.container.exclusions?.length ? packMixed(palletRequest, effective, supports) : bearingEnabled ? packMixed(bearingRequest, effective) : normalized.mode === "single"
     ? packSingle(normalized, effective, fieldPracticalSetLimit)
     : packMixed(normalized, effective));
   // Solvers may discover the final geometry layer-by-layer. Playback, exports
@@ -2163,8 +2170,9 @@ export function pack(request: PackingRequest): PackingResult {
   const physicalLoadedSets = normalized.mode === "single"
     ? setSummaries[0]?.loadedSets ?? loadedCount
     : 0;
-  const quoteEstimate = pallets.length ? undefined : estimateQuoteLoading(normalized, effectiveVolume, physicalLoadedSets);
+  const quoteEstimate = pallets.length||normalized.container.exclusions?.length ? undefined : estimateQuoteLoading(normalized, effectiveVolume, physicalLoadedSets);
   const warnings = [...output.warnings];
+  if(normalized.container.exclusions?.length)warnings.unshift("柜内障碍与禁占区已用于当前包络求解和独立校验；区域不提供承托、不计作货物或新增自重 / Site regions constrain packing and validation; they provide no support, cargo count or added tare");
   if (pallets.length) warnings.unshift(`底层托盘 ${pallets.length} 个，自重 ${palletWeight} kg；货物 Z 坐标已包含托盘高度 ${normalized.floorPallets!.height} mm，托盘单独记录，不计入货物箱数。`);
   const bearingCheck = bearingStatus(orderedPlacements, normalized.products);
   if (!bearingCheck.verified) warnings.push(`承重未核验：${bearingCheck.unknownIds.length} 个受压箱体尚未填写该朝向的承重参数；几何通过不代表承重已确认。`);
@@ -2599,7 +2607,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   const effective=effectiveContainer(request.container,request.clearance);
   const loadedVolume=summaries.reduce((n,s)=>n+s.loadedVolume,0)+pallets.reduce((n,p)=>n+packagingReservedVolume(p),0);
   const grossWeight=summaries.reduce((n,s)=>n+s.loadedWeight,0)+pallets.reduce((n,p)=>n+p.weight,0);
-  const effectiveVolume=palletization?.only ? independentPalletVolume(palletization,pallets) : effective.length*effective.width*effective.height;
+  const effectiveVolume=palletization?.only ? independentPalletVolume(palletization,pallets) : availablePackingVolume(request.container,request.clearance);
   const workflow=raw.workflow===undefined ? palletization?.only ? "pallet-only" : palletization ? "palletized" : request.workflow : parseLoadingWorkflow(raw.workflow,request.mode);
   const palletBuild=raw.palletBuild===undefined ? request.palletBuild : parsePalletBuild(raw.palletBuild);
   return {workflow,palletBuild,id:`restored-${Date.now()}`,mode:request.mode,strategy:raw.strategy,practicalTargetUtilization:practicalTarget(normalized),engineVersion:ENGINE_VERSION,

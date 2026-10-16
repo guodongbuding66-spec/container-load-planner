@@ -4,6 +4,7 @@ import { parseLoadingWorkflow, parsePalletBuild } from "./loading-workflow";
 import type { PackingRequest, PackingResult } from "./types";
 
 export function packLoadingWorkflow(request: PackingRequest): PackingResult {
+  if(request.workflow==="pallet-only"&&request.container.exclusions?.length)throw Error("只打托模式没有柜内区域；请先清除区域或切换装柜 / Pallet-only mode has no vehicle site regions");
   const workflow = parseLoadingWorkflow(request.workflow, request.mode);
   if (workflow === "pallet-only" || workflow === "palletized") {
     const build = parsePalletBuild(request.palletBuild);

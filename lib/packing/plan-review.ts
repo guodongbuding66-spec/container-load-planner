@@ -66,6 +66,12 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
     bearing.items=[...bearing.items,...plan.dimensionScenario.proxyProductIds];
     bearing.scope=["公差包络仅用于保守占位；真实接触面、防滚和承托未核验。","Tolerance proxies only reserve conservative space; actual contact faces, anti-roll and support remain unverified."];
   }
+  if(plan.container.exclusions?.length){
+    const geometry=checks.find(c=>c.id==="geometry")!;geometry.scope=[geometry.scope[0]+" 柜内障碍及禁占区参与同一校验，不提供承托。",geometry.scope[1]+" Site exclusions participate in the same validation and provide no support."];
+    if(plan.container.loadingAccess==="open"&&plan.workflow!=="pallet-only"){
+      const path=checks.find(c=>c.id==="path")!;if(path.state!=="fail")path.state="unverified";path.scope=["开放装载的区域绕行、吊具和搬运设备尚未核验。","Routing around site regions during open loading, lifting gear and handling equipment remain unverified."];
+    }
+  }
   const passed = checks.filter(c => c.state === "pass").length, failed = checks.filter(c => c.state === "fail").length, unverified = checks.filter(c => c.state === "unverified").length;
   return { checks, state: failed ? "fail" : unverified ? "unverified" : "pass", passed, failed, unverified };
 }

@@ -1,4 +1,5 @@
 "use client";
+import {siteExclusionBoxes} from "../lib/packing/site-exclusions";
 
 import { visiblePlanPallets } from "../lib/packing/prebuilt-pallets";
 import { cargoShapeOf } from "../lib/packing/cargo-shape";
@@ -187,6 +188,7 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
       <SectionGeometry result={result} section={section} scale={scale} offset={offset}>
       {result.workflow !== "pallet-only" && <group position={[0,baseHeight*scale,0]}><TransportModel space={result.container} scale={scale} mode={modelMode} transparency={transparency}/></group>}
       {baseHeight > 0 && (result.container.category !== "pallet" || modelMode === "wireframe") && <PalletStructures pallets={[{id:"space-base",presetId:result.container.id,name:result.container.name,x:0,y:0,z:-baseHeight,dx:effective.length,dy:effective.width,dz:baseHeight,weight:0,maxLoad:result.container.maxWeight,orientation:"LWH"}]} scale={scale} offset={offset}/>}
+      <SceneAnalysisOverlay regions={siteExclusionBoxes(result.container,result.clearance).flatMap(b=>{const clipped=sectionBox(b,result,section);return clipped?[clipped]:[];})} scale={scale} offset={offset}/>
       <PalletStructures pallets={visiblePlanPallets(result,visibleCount).filter(p=>section.isolation!=="pallet"||section.target===p.id)} scale={scale} offset={offset} onSelect={p=>onSelect(palletAnchors([p])[0])}/>
       {groups.map((group) => (
         <InstancedBoxes key={group.productId} group={group} collisionProxy={appearance.collisionProxy} scale={scale} offset={offset} reducedRendering={reducedRendering} labels={labels} onSelect={onSelect} />
@@ -194,6 +196,7 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
       {editor?.enabled&&editor.selected.filter(b=>b.id!==selected?.id).map(b=><SelectionOutline key={b.id} box={b} scale={scale} offset={offset}/>)}
       {selected && sectionBox(selected,result,section) && <SelectionOutline box={sectionBox(selected,result,section)!} scale={scale} offset={offset}/>}
       </SectionGeometry>
+      {siteExclusionBoxes(result.container,result.clearance).flatMap(b=>{const clipped=sectionBox(b,result,section);return clipped?[<MetricLabel key={b.id} text={`${tr("禁占区","Site exclusion")} · ${b.name}`} size={.11} position={[(clipped.x+clipped.dx/2)*scale+offset.x,(clipped.z+clipped.dz)*scale+offset.y+.08,(clipped.y+clipped.dy/2)*scale+offset.z]}/>]:[];})}
       {appearance.skuSummaries && annotations.map(([id,a])=><MetricLabel key={id} text={a.sku} size={.12} position={[(a.minX+a.maxX)/2*scale+offset.x,a.maxY*scale+offset.y+.15,(a.minZ+a.maxZ)/2*scale+offset.z]}/>)}
       {appearance.dimensions&&<SceneDimensions bounds={measurement.bounds} values={measurement.values} unit={appearance.dimensionUnit} fontSize={appearance.dimensionFontSize} style={appearance.dimensionStyle} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}
       {appearance.dimensions&&manualMeasurement&&<SceneMeasurement measurement={manualMeasurement} scale={scale} offset={offset}/>}
@@ -232,7 +235,7 @@ export function ContainerScene({
   const spaces=useMemo(()=>result&&tool==="space"&&spaceOpen?analyzeEmptySpaces(result):null,[result,tool,spaceOpen]);
   const loads=useMemo(()=>result&&products.length&&(heat!=="off"||tool==="load")?analyzeLoads(result,products):null,[result,products,heat,tool]);
   const heatColors=useMemo(()=>{const map=new Map<string,string>();if(loads&&result){const cartons=new Map(loads.boxes.map(c=>[c.id,c.color])),pallets=new Map(loads.pallets.map(p=>[p.id,p.color])),crates=new Map(loads.crates.map(p=>[p.id,p.color]));for(const b of result.placements){const color=heat==="top"?cartons.get(b.id):heat==="pallet"?b.palletIds?.map(id=>pallets.get(id)).find(Boolean):heat==="crate"?b.palletIds?.map(id=>crates.get(id)).find(Boolean):heat==="zone"?loads.zones.find(z=>b.x+b.dx/2>=z.x&&b.x+b.dx/2<=z.x+z.dx)?.color:undefined;if(color)map.set(b.id,color);}}return map;},[loads,result,heat]);
-  const regions=useMemo<AnalysisRegion[]>(()=>{if(!result)return [];const gap=spaces?.spaces.find(s=>s.id===gapId);return [...(gap?[{...gap,color:"#177bbc"}]:[]),...(heat==="pallet"?(result.pallets??[]).map(p=>({...p,color:loads?.pallets.find(c=>c.id===p.id)?.color??"#7d8393"})):[]),...(heat==="zone"?(loads?.zones??[]).map(z=>({id:z.id,x:z.x,y:0,z:0,dx:z.dx,dy:result.container.width-2*result.clearance,dz:12,color:z.color})):[]),...[...result.placements,...palletAnchors(result.pallets??[])].filter(b=>highlight.includes(b.id)).map(b=>({...b,color:"#c23832"}))];},[result,spaces,gapId,heat,loads,highlight]);
+  const regions=useMemo<AnalysisRegion[]>(()=>{if(!result)return [];const gap=spaces?.spaces.find(s=>s.id===gapId);return [...(gap?[{...gap,color:"#177bbc"}]:[]),...(heat==="pallet"?(result.pallets??[]).map(p=>({...p,color:loads?.pallets.find(c=>c.id===p.id)?.color??"#7d8393"})):[]),...(heat==="zone"?(loads?.zones??[]).map(z=>({id:z.id,x:z.x,y:0,z:0,dx:z.dx,dy:result.container.width-2*result.clearance,dz:12,color:z.color})):[]),...[...siteExclusionBoxes(result.container,result.clearance),...result.placements,...palletAnchors(result.pallets??[])].filter(b=>highlight.includes(b.id)).map(b=>({...b,color:"#c23832"}))];},[result,spaces,gapId,heat,loads,highlight]);
   const appearance = useTransportAppearance();
   const cameraController = useMemo(() => new SceneCameraController(), []);
   const captureRef=useRef<(() => Promise<Blob>) | null>(null);

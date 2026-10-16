@@ -1,3 +1,4 @@
+import {siteExcludedVolume} from "./site-exclusions";
 import { packagingSelectionNotes } from "./packaging-choice";
 import { crateEvidenceGroups, crateEvidence, CRATE_CORNERS } from "./crate-bearing";
 import { planProjection } from "./plan-projection";
@@ -52,6 +53,14 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
   await finish();
   for (let startAt = 0; startAt < result.summaries.length; startAt += 28) { start(t("货物清单", "Cargo manifest")); const columns = [100, 630, 990, 1260]; ["SKU", t("需求 / 已装", "Requested / loaded"), t("重量 kg", "Weight kg"), t("体积 m³", "Volume m³")].forEach((v, i) => text(v, columns[i], 310, 27, true)); result.summaries.slice(startAt, startAt + 28).forEach((s, i) => { const y = 375 + i * 64; text(ellipsis(s.sku, 495), columns[0], y, 26); text(`${s.requested} / ${s.loaded}`, columns[1], y, 26); text(s.loadedWeight.toFixed(1), columns[2], y, 26); text((s.loadedVolume / 1e9).toFixed(3), columns[3], y, 26); }); await finish(); }
   for(let startAt=0;startAt<(result.pallets?.length??0);startAt+=28){start(result.workflow==="pallet-only"?t("独立托盘清单与自重","Independent pallet manifest and tare"):result.palletization?t("整托入柜与自重","Complete pallet placement and tare"):t("底层托盘铺设与自重","Floor pallet layout and tare"));text(result.workflow==="pallet-only"?t("按关联清单独立打托，货物限高不含底座，总重含托盘自重。","Build each listed pallet independently. Cargo height excludes decks; gross weight includes tare."):result.palletization?t("按托盘关联清单在柜外打托，再整托入柜；货物 Z 已包含底座。","Build associated cargo on each pallet outside, then load complete pallets; Z includes decks."):t("先铺设托盘；货物 Z 已包含底座高度，勿再次加高。","Place pallets first. Cargo Z already includes the base height."),100,310,27,true);result.pallets!.slice(startAt,startAt+28).forEach((p,i)=>{const y=390+i*64;text(`${p.id} · ${p.name}`,100,y,25);text(`${p.x} / ${p.y} / ${p.z}`,700,y,25);text(`${p.dx} × ${p.dy} × ${p.enclosureHeight??p.dz}`,1100,y,25);text(`${p.weight} kg`,1530,y,25);});await finish();}
+  if(result.container.exclusions?.length){
+    start(t("柜内障碍与禁占区","Obstacles and keep-clear regions"));
+    text(t("坐标 mm 从实际柜内柜头、左壁、地板起算；区域不承托、不计货物或重量。","Physical inner nose/left/floor coordinates in mm; regions provide no support, cargo or tare."),100,310,25);
+    text(`${t("有效区域占用","Excluded usable volume")}: ${(siteExcludedVolume(result.container,result.clearance)/1e9).toFixed(4)} m³`,100,365,27,true);
+    result.container.exclusions.forEach((z,i)=>{const y=450+i*100;text(ellipsis(`${z.id} · ${z.name}`,520),100,y,25,true);text(`${z.x} / ${z.y} / ${z.z}`,660,y,25);text(`${z.dx} × ${z.dy} × ${z.dz}`,1100,y,25);text(z.kind==="obstacle"?t("障碍","Obstacle"):t("预留","Reservation"),1500,y,24);});
+    text(t("重叠容积只扣一次。设备、门槛通过与运输固定强度未核验。","Overlap is deducted once. Equipment, threshold traversal and securing strength remain unverified."),100,2260,25);
+    await finish();
+  }
   for(const group of crateEvidenceGroups(result)){
     start(t("木箱额定资料（独立预检）","Crate rating evidence (independent preflight)"));
     const p=group.config.crateBearing,e=crateEvidence(group.config);

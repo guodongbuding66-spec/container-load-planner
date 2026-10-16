@@ -1,3 +1,5 @@
+import {bodiesOverlap} from "./cargo-body";
+import {availablePackingVolume,siteExclusionBoxes} from "./site-exclusions";
 import { planCrateUnits, crateEvidence } from "./crate-bearing";
 import { bodyVolumeRatio, validOrientationSigns } from "./cargo-body";
 import { bearingLimit } from "./bearing";
@@ -58,10 +60,12 @@ export function auditPackingResult(plan: PackingResult, products?: readonly Prod
 
   const l=plan.container.length-plan.clearance*2,w=plan.container.width-plan.clearance*2,h=plan.container.height-plan.clearance;
   const outside:string[]=[];
+  let excluded:ReturnType<typeof siteExclusionBoxes>=[];try{excluded=siteExclusionBoxes(plan.container,plan.clearance);}catch{outside.push("site-exclusions");}
   for(const b of boxes){
     const finite=[b.x,b.y,b.z,b.dx,b.dy,b.dz,b.weight].every(Number.isFinite);
     let valid=finite&&b.dx>0&&b.dy>0&&b.dz>0&&b.weight>=0&&b.x>=-EPS&&b.y>=-EPS&&b.z>=-EPS&&b.x+b.dx<=l+EPS&&b.y+b.dy<=w+EPS&&b.z+b.dz<=h+EPS&&ORIENTATION_CODES.some(code=>code===b.orientation)&&validOrientationSigns(b.orientation,b.orientationSigns);
     if(products){const p=productMap.get(b.productId);valid=valid&&!!p&&(orientations.get(p!.id)??[]).some(o=>near(o.dx,b.dx)&&near(o.dy,b.dy)&&near(o.dz,b.dz)&&((!p!.allowedOrientations&&cargoShapeOf(p!)==="box")||o.label===b.orientation));}
+    if(valid&&excluded.some(z=>bodiesOverlap(b,z,productMap.get(b.productId)??plan.cargoDetails?.[b.productId],undefined)))valid=false;
     if(!valid)outside.push(b.id);
   }
   for(const p of pallets)if(![p.x,p.y,p.z,p.dx,p.dy,p.dz,p.weight].every(Number.isFinite)||p.dx<=0||p.dy<=0||p.dz<=0||p.weight<0||p.x< -EPS||p.y< -EPS||p.z< -EPS||p.x+p.dx>l+EPS||p.y+p.dy>w+EPS||p.z+(p.enclosureHeight??p.dz)>h+EPS)outside.push(p.id);
@@ -89,7 +93,7 @@ export function auditPackingResult(plan: PackingResult, products?: readonly Prod
   add("volume",volume?products?completeState:"unverified":"fail",volume?"占用体积与 SKU 体积、底座及围护预留体积一致。":"货物体积、包装预留或占用体积不一致。",volume?"Occupied volume agrees with SKU volume and reserved base/enclosure volume.":"Cargo volume, reserved packaging or total occupied volume disagree.");
 
   let expectedVolume=NaN;
-  try{expectedVolume=plan.palletization?.only?independentPalletVolume(plan.palletization,pallets):l*w*h;}catch{}
+  try{expectedVolume=plan.palletization?.only?independentPalletVolume(plan.palletization,pallets):availablePackingVolume(plan.container,plan.clearance);}catch{}
   const capacity=expectedVolume>0&&plan.container.maxWeight>0&&near(totals.effectiveVolume,expectedVolume)&&near(totals.volumeUtilization,totals.loadedVolume/expectedVolume)&&near(totals.weightUtilization,totals.grossWeight/plan.container.maxWeight)&&totals.loadedVolume<=expectedVolume+.00001+expectedVolume*1e-9&&totals.grossWeight<=plan.container.maxWeight+.00001;
   add("capacity",capacity?"pass":"fail",capacity?"利用率、剩余容量与当前模式的统计基准一致。":"利用率或容量基准不一致，或已经超出容量。",capacity?"Utilization and capacity use the correct denominator for this workflow.":"Utilization or capacity denominators disagree, or capacity is exceeded.");
 
