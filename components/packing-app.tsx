@@ -99,6 +99,7 @@ import {
 import { NumericInput } from "./numeric-input";
 import { CloudWorkspace } from "./cloud-workspace";
 import { ProductCatalog, CustomerReportPanel } from "./product-catalog";
+import { CrateStackPreflight } from "./crate-stack-preflight";
 import { DimensionScenarios } from "./dimension-scenarios";
 import { WorkflowTools } from "./workflow-tools";
 import { ArchiveLibrary, BearingRules, UnloadedReasons, ManualPlan, FieldGuide, FleetPlanner } from "./planning-upgrades";
@@ -2285,6 +2286,7 @@ export function PackingApp() {
           <BearingRules key={JSON.stringify(products.map(p=>[p.id,p.maxTopLoadKg]))} products={activeProducts} disabled={upgradesDisabled} onChange={next=>replaceProductInputs(products.map(p=>next.find(n=>n.id===p.id)??p))}/>
           {mode === "mixed" && !isPalletWorkflow ? <FleetPlanner key={JSON.stringify([fleetRequest,customContainers])} request={fleetRequest} customContainers={customContainers} disabled={upgradesDisabled}/> : null}
             {result && !hasPendingDimensionChanges ? <>
+            <CrateStackPreflight key={result.id} plan={result} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors}/>
             <UnloadedReasons result={result} products={activeProducts} onFocus={id=>{setVisibleProducts(new Set(result.summaries.map(s=>s.productId)));setCameraView("top");setPackingProgress(result.placements.length);setMessage(tt`已在原因面板突出 ${activeProducts.find(p=>p.id===id)?.sku??tr("当前 SKU")}；三维保留其他货物，避免把隐藏箱位误认为空闲空间。`);}}/>
             <ManualPlan key={result.id} editor={planEditor} result={result} products={activeProducts} disabled={upgradesDisabled||!result.validation.valid} onAdopt={next=>{clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。"));}}/>
             </> : <p className="tool-empty">{tr("计算方案后，可诊断余货并手动调整箱位。")}</p>}

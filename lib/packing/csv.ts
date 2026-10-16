@@ -1,3 +1,4 @@
+import { planCrateUnits, crateEvidence } from "./crate-bearing";
 import { parseDimensionAllowance } from "./dimension-allowance";
 import { parseShapeFields, withShapeSupport } from "./cargo-shape";
 import { CARGO_TYPES, parseOrientations } from "./loading-rules";
@@ -29,6 +30,16 @@ export function toCsvCell(value: string | number | null | undefined) {
 
 export function buildPlacementCsv(result: PackingResult): string {
   if(result.dimensionScenario){const base={...result};delete base.dimensionScenario;return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(i===0?["尺寸方案ID","尺寸口径"]:[result.dimensionScenario!.id,result.dimensionScenario!.kind])].map(toCsvCell).join(",")).join("\r\n");}
+  const crateUnits=planCrateUnits(result);
+  if(crateUnits.some(u=>u.config.crateBearing)){
+    const strip=(c:NonNullable<PackingResult["palletization"]>["config"])=>{const copy={...c};delete copy.crateBearing;return copy;};
+    const value=result.palletization!,base={...result,palletization:{...value,config:strip(value.config),specifications:value.specifications?.map(s=>({...s,config:strip(s.config)}))}},byId=new Map(crateUnits.map(u=>[u.pallet.id,u]));
+    return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>{
+      if(!i)return [...row,"木箱额定资料JSON","木箱资料状态","木箱核验范围"].map(toCsvCell).join(",");
+      const unit=byId.get(row[15]==="pallet"?row[1]:row[16]);
+      return [...row,unit?.config.crateBearing?JSON.stringify(unit.config.crateBearing):"",unit?crateEvidence(unit.config).state:"",unit?"independent-preflight-only; automatic-floor-only":""].map(toCsvCell).join(",");
+    }).join("\r\n");
+  }
   const workflow = result.workflow ?? (result.palletization ? "palletized" : result.mode === "single" ? "single-capacity" : "direct");
   const frame = workflow === "pallet-only" ? "pallet-inspection" : "vehicle-loading";
   const rows = result.placements.map((box, index) => [

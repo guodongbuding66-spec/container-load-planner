@@ -122,3 +122,17 @@
 .dimension-comparison-results caption{text-align:left;font-weight:650;padding:12px 0}
 .dimension-comparison-results p{overflow-wrap:anywhere}
 @media(max-width:700px){.dimension-size-inputs,.dimension-source-inputs{grid-template-columns:1fr}.dimension-scenarios fieldset{padding:12px}}
+
+.crate-bearing-settings{margin:16px 0;border:1px solid #c8dce1;border-radius:8px;padding:12px;grid-column:1/-1}
+.crate-bearing-settings summary{font-weight:650;cursor:pointer;min-height:40px}
+.crate-rating-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+.crate-rating-grid label{display:grid;gap:6px;align-content:start}
+.crate-bearing-settings input:not([type=checkbox]),.crate-bearing-settings textarea,.crate-bearing-settings select,.crate-stack-preflight select{width:100%;min-width:0;min-height:40px;border:1px solid #b8ced3;border-radius:6px;padding:8px;background:white;font:inherit}
+.crate-bearing-settings textarea{resize:vertical}
+.crate-support-map{display:block;width:100%;height:150px;background:#f3f7f8;margin:12px 0}
+.crate-stack-preflight fieldset{border:1px solid #d4e2e5;border-radius:8px;padding:14px;min-width:0}
+.crate-preflight-unit{border-bottom:1px solid #d4e2e5;padding:12px 0;overflow-wrap:anywhere}
+.crate-preflight-unit p{margin:8px 0}
+.crate-contact-maps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.crate-stack-report{margin-top:16px}
+@media(max-width:700px){.crate-rating-grid,.crate-contact-maps{grid-template-columns:1fr}}

@@ -1,9 +1,10 @@
+import { planCrateUnits, crateEvidence } from "./crate-bearing";
 import { bearingLimit, bearingLoads } from "./bearing";
 import { palletAnchors } from "./floor-pallets";
 import type { PackingResult, ProductInput } from "./types";
 export type LoadStatus="verified"|"unknown"|"overload"|"no-load";
 export type LoadCell={id:string;load:number;limit?:number;ratio?:number;status:LoadStatus;color:string};
-export type HeatMode="off"|"top"|"pallet"|"zone";
+export type HeatMode="off"|"top"|"pallet"|"zone"|"crate";
 export const loadColor=(ratio:number)=>ratio>1?"#c23832":ratio>.75?"#d58425":ratio>.5?"#d7ae38":"#2b8d83";
 export function analyzeLoads(plan:PackingResult,products:ProductInput[]){
   const loads=bearingLoads([...palletAnchors(plan.pallets??[]),...plan.placements],products),byId=new Map(products.map(p=>[p.id,p]));
@@ -14,6 +15,7 @@ export function analyzeLoads(plan:PackingResult,products:ProductInput[]){
   const zones=Array.from({length:4},(_,i)=>({id:`zone-${i+1}`,x:i*length/4,dx:length/4,weight:0,color:"#2b8d83"}));
   for(const b of [...plan.placements,...palletAnchors(plan.pallets??[])])for(const zone of zones)zone.weight+=b.weight*Math.max(0,Math.min(b.x+b.dx,zone.x+zone.dx)-Math.max(b.x,zone.x))/b.dx;
   const max=Math.max(1,...zones.map(z=>z.weight));zones.forEach(z=>z.color=loadColor(z.weight/max));
-  return {boxes,pallets,zones,unknown:boxes.filter(b=>b.status==="unknown").length};
+  const crates=planCrateUnits(plan).map(u=>{const evidence=crateEvidence(u.config);return {id:u.pallet.id,grossKg:u.pallet.weight+u.cargoKg,evidence,profile:u.config.crateBearing,color:evidence.state==="ready"?"#2b8d83":evidence.state==="prohibited"?"#c23832":"#7d8393"};});
+  return {boxes,pallets,zones,crates,unknown:boxes.filter(b=>b.status==="unknown").length};
 }
 export type LoadAnalysis=ReturnType<typeof analyzeLoads>;

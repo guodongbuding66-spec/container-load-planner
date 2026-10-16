@@ -28,6 +28,8 @@ export type OrientationSigns = [1 | -1, 1 | -1, 1 | -1];
 export type CargoType = "carton" | "pallet" | "crate" | "drum" | "roll" | "loose";
 export type CargoShape = "box" | "cylinder" | "wedge" | "trapezoid" | "frustum" | "l-profile" | "u-profile" | "t-profile" | "step" | "irregular" | "polygon" | "tube" | "reel" | "bend" | "ellipsoid" | "capsule" | "custom-prism" | "compound" | "mesh";
 export type FloorPalletConfig = {
+  /** Documentary ratings for independent crate-stack preflight; never unlocks automatic stacking. */
+  crateBearing?: import("./crate-bearing").CrateBearingProfile;
   /** Physical packaging recipe. Dimensions below are exterior dimensions. */
   packaging?: import("./packaging").PackagingSpec;
   presetId: string;

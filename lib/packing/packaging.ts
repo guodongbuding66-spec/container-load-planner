@@ -1,7 +1,7 @@
 import type { FloorPalletConfig, PlacedPallet } from "./types";
 
 export type PackagingSpec = {
-  base: "block" | "stringer" | "solid";
+  base: "block" | "stringer" | "solid" | "corner-feet";
   enclosure: "none" | "slatted" | "panel" | "frame";
   material: "wood" | "plywood" | "plastic" | "steel";
   color: string;
@@ -15,7 +15,7 @@ export const DEFAULT_PACKAGING: PackagingSpec = { base:"block", enclosure:"none"
 export function parsePackaging(value: unknown): PackagingSpec {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid packaging structure");
   const p=value as PackagingSpec;
-  if (!["block","stringer","solid"].includes(p.base)||!["none","slatted","panel","frame"].includes(p.enclosure)||!["wood","plywood","plastic","steel"].includes(p.material)||!/^#[0-9a-f]{6}$/i.test(p.color)||typeof p.lid!=="boolean") throw new Error("Invalid packaging appearance");
+  if (!["block","stringer","solid","corner-feet"].includes(p.base)||!["none","slatted","panel","frame"].includes(p.enclosure)||!["wood","plywood","plastic","steel"].includes(p.material)||!/^#[0-9a-f]{6}$/i.test(p.color)||typeof p.lid!=="boolean") throw new Error("Invalid packaging appearance");
   if (!Number.isFinite(p.opacity)||p.opacity<.05||p.opacity>1||!Number.isInteger(p.deckBoards)||p.deckBoards<2||p.deckBoards>12||!Number.isInteger(p.runners)||p.runners<2||p.runners>5||!Number.isFinite(p.wallThickness)||p.wallThickness<1||p.wallThickness>200) throw new Error("Invalid packaging dimensions");
   return {base:p.base,enclosure:p.enclosure,material:p.material,color:p.color.toLowerCase(),opacity:p.opacity,deckBoards:p.deckBoards,runners:p.runners,wallThickness:p.wallThickness,lid:p.lid};
 }
@@ -34,7 +34,11 @@ export type PackagingPart={x:number;y:number;z:number;dx:number;dy:number;dz:num
 export function packagingParts(length:number,width:number,height:number,spec:PackagingSpec=DEFAULT_PACKAGING,cargoHeight=0):PackagingPart[] {
   const parts:PackagingPart[]=[], add=(x:number,y:number,z:number,dx:number,dy:number,dz:number,kind:PackagingPart["kind"]="board")=>parts.push({x,y,z,dx,dy,dz,kind});
   const t=height*22/144, n=spec.runners, rw=width*.42/n;
-  if(spec.base==="solid"||height<50)add(0,0,0,length,width,height);
+  if(spec.base==="corner-feet"){
+    const foot=Math.min(spec.wallThickness,length/2,width/2),deck=Math.min(t,height/3);
+    for(const x of [0,length-foot])for(const y of [0,width-foot])add(x,y,0,foot,foot,height-deck,"block");
+    add(0,0,height-deck,length,width,deck);
+  }else if(spec.base==="solid"||height<50)add(0,0,0,length,width,height);
   else {
     for(let j=0;j<n;j++){const y=j*(width-rw)/(n-1);add(0,y,0,length,rw,t);
       if(spec.base==="stringer")add(0,y,t,length,rw,height-2*t,"block");

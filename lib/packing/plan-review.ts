@@ -56,6 +56,10 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
       model: access.model, items: access.issues.map(i => `${i.phase}/${i.id}: ${i.reason}${i.obstacles.length ? " (" + i.obstacles.join(", ") + ")" : ""}`) });
   }
   add({ id: "securing", state: empty ? "not-applicable" : "unverified", scope: ["尚未建立绑扎、挡木、气袋和制动工况模型，需现场确认固定方案。", "Lashings, blocking, airbags and braking conditions are not modeled; confirm a securing plan on site."], model: "not-modeled", items: [] });
+  if(plan.pallets?.some(p=>p.packaging&&p.packaging.enclosure!=="none")){
+    const check=checks.find(c=>c.id==="bearing")!;
+    check.scope=["箱体按录入额定值核对静态上压；木箱额定资料与独立叠放预检分开显示，主求解器仍将木箱底置。柜底局部压力与运输动态载荷未核验。","Carton static top load uses entered ratings. Crate rating evidence and independent stack preflight are separate; the main solver keeps crates floor-only. Local floor pressure and transport dynamics remain unverified."];
+  }
   if(plan.dimensionScenario?.proxyProductIds.length){
     const bearing=checks.find(c=>c.id==="bearing")!;
     if(bearing.state!=="fail")bearing.state="unverified";

@@ -39,7 +39,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.30.0";
+export const ENGINE_VERSION = "0.31.0";
 
 type Orientation = {
   dx: number;
@@ -2551,6 +2551,10 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   if (!Array.isArray(raw.placements)||raw.placements.length>MAX_VISIBLE_PLACEMENTS) throw new Error("归档箱体坐标数量无效。");
   const palletization=parsePalletization(raw.palletization);
   if(palletization&&request.floorPallets)throw new Error("Prebuilt and floor pallet modes cannot be combined");
+  if(palletization&&!palletization.specifications&&request.palletBuild&&(palletization.config.crateBearing||request.palletBuild.config.crateBearing)){
+    const expected=parsePalletBuild(request.palletBuild).config;
+    if(JSON.stringify(expected.crateBearing)!==JSON.stringify(palletization.config.crateBearing))throw new Error("Crate rating evidence does not match workspace inputs");
+  }
   if(palletization&&!Array.isArray(raw.pallets))throw new Error("Prebuilt pallet coordinates are missing");
   if(palletization&&((raw.pallets as unknown[]).length>200||(raw.pallets as unknown[]).some(p=>!p||typeof p!=="object")))throw new Error("Invalid prebuilt pallet coordinates");
   if(palletization?.specifications){

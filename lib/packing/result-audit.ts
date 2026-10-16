@@ -1,3 +1,4 @@
+import { planCrateUnits, crateEvidence } from "./crate-bearing";
 import { bodyVolumeRatio, validOrientationSigns } from "./cargo-body";
 import { bearingLimit } from "./bearing";
 import { ORIENTATION_CODES } from "./loading-rules";
@@ -128,8 +129,9 @@ export function auditPackingResult(plan: PackingResult, products?: readonly Prod
   add("kits",kitIssues.length?"fail":completeState,kitIssues.length?"套号、套内箱数与套装汇总不一致。":plan.setSummaries.length?"逐套组成箱数与套装汇总一致。":"当前方案没有多箱套装。",kitIssues.length?"Kit numbers, component counts and kit summaries disagree.":plan.setSummaries.length?"Per-kit component counts agree with the kit summaries.":"This plan contains no multi-carton kits.",kitIssues);
 
   const missing=products?[...new Set(boxes.filter(b=>{const p=productMap.get(b.productId);return p&&p.stackable&&bearingLimit(b,p)===undefined;}).map(b=>b.sku))]:[];
+  const crateUnits=planCrateUnits(plan),reviewedCrates=crateUnits.filter(u=>crateEvidence(u.config).state==="ready").length;
   const crates=pallets.some(p=>p.packaging&&p.packaging.enclosure!=="none");
-  add("strength",!products||missing.length||crates?"unverified":"pass",crates?"木箱框架堆叠承重尚未核验，当前按单层布置。":missing.length?"部分允许承托的 SKU 缺少额定上压资料。":products?"允许承托的 SKU 已填写承重资料；材料强度仍以实测为准。":"缺少原始产品承重资料。",crates?"Crate-frame stacking strength is unverified; crates currently remain on the floor.":missing.length?"Some load-bearing SKUs have no declared top-load rating.":products?"Load-bearing SKU ratings are provided; material strength still depends on measured data.":"Original bearing data was not provided.",missing);
+  add("strength",!products||missing.length||crates?"unverified":"pass",crates?`木箱额定资料已核对 ${reviewedCrates}/${crateUnits.length}；结构承托尚未接入主求解器，仍按单层布置。`:missing.length?"部分允许承托的 SKU 缺少额定上压资料。":products?"允许承托的 SKU 已填写承重资料；材料强度仍以实测为准。":"缺少原始产品承重资料。",crates?`Reviewed crate rating evidence: ${reviewedCrates}/${crateUnits.length}; structural support is not integrated into the main solver, so crates remain floor-only.`:missing.length?"Some load-bearing SKUs have no declared top-load rating.":products?"Load-bearing SKU ratings are provided; material strength still depends on measured data.":"Original bearing data was not provided.",missing);
   if(!boxes.length)for(const check of checks)if(check.state==="pass"&&check.id!=="records"&&check.id!=="products")check.state="unverified";
   const failed=checks.filter(c=>c.state==="fail").length,unverified=checks.filter(c=>c.state==="unverified").length;
   return {checks,hasErrors:failed>0,completeCoordinates:full,passed:checks.length-failed-unverified,failed,unverified};
