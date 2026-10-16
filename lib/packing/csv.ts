@@ -1,3 +1,4 @@
+import {forkEvidenceGroups} from "./fork-interface";
 import { planCrateUnits, crateEvidence } from "./crate-bearing";
 import { parseDimensionAllowance } from "./dimension-allowance";
 import { parseShapeFields, withShapeSupport } from "./cargo-shape";
@@ -30,6 +31,13 @@ export function toCsvCell(value: string | number | null | undefined) {
 
 export function buildPlacementCsv(result: PackingResult): string {
   if(result.dimensionScenario){const base={...result};delete base.dimensionScenario;return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(i===0?["尺寸方案ID","尺寸口径"]:[result.dimensionScenario!.id,result.dimensionScenario!.kind])].map(toCsvCell).join(",")).join("\r\n");}
+  const forkGroups=forkEvidenceGroups(result);
+  if(forkGroups.some(g=>g.config.forkInterface)){
+    const strip=(c:NonNullable<PackingResult["floorPallets"]>)=>{const copy={...c};delete copy.forkInterface;return copy;},value=result.palletization;
+    const base={...result,...(result.floorPallets?{floorPallets:strip(result.floorPallets)}:{}),...(value?{palletization:{...value,config:strip(value.config),specifications:value.specifications?.map(s=>({...s,config:strip(s.config)}))}}:{})};
+    const byId=new Map(forkGroups.flatMap(g=>g.ids.map(id=>[id,g.config.forkInterface] as const)));
+    return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(!i?["叉具接口JSON","叉具预检范围"]:[byId.has(row[15]==="pallet"?row[1]:row[16])?JSON.stringify(byId.get(row[15]==="pallet"?row[1]:row[16])):"",row[15]==="site-exclusion"?"":"independent-rectangular-fork-preflight; equipment-unverified"])].map(toCsvCell).join(",")).join("\r\n");
+  }
   if(result.container.exclusions?.length){
     const base={...result,container:{...result.container,exclusions:undefined}},rows=parseCsvRecords(buildPlacementCsv(base)),header=[...rows[0],"柜内区域类型","柜内区域JSON"];
     const records=result.container.exclusions.map(z=>{const row:Array<string|number>=Array(header.length).fill("");row[0]=0;row[1]=`site-exclusion/${z.id}`;row[2]=z.name;[z.x,z.y,z.z,z.dx,z.dy,z.dz].forEach((n,i)=>row[6+i]=n);row[14]=0;row[15]="site-exclusion";row[30]=result.workflow??"direct";row[31]="physical-inner";row[header.length-2]=z.kind;row[header.length-1]=JSON.stringify(z);return row;});

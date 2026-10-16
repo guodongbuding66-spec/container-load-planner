@@ -1,3 +1,4 @@
+import {forkEvidenceGroups,forkEvidenceReady,inspectForkInterface,FORK_NUMBERS,FORK_NUMBER_TEXT,FORK_DIRECTION_TEXT} from "./fork-interface";
 import {siteExcludedVolume} from "./site-exclusions";
 import { packagingSelectionNotes } from "./packaging-choice";
 import { crateEvidenceGroups, crateEvidence, CRATE_CORNERS } from "./crate-bearing";
@@ -59,6 +60,26 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
     text(`${t("有效区域占用","Excluded usable volume")}: ${(siteExcludedVolume(result.container,result.clearance)/1e9).toFixed(4)} m³`,100,365,27,true);
     result.container.exclusions.forEach((z,i)=>{const y=450+i*100;text(ellipsis(`${z.id} · ${z.name}`,520),100,y,25,true);text(`${z.x} / ${z.y} / ${z.z}`,660,y,25);text(`${z.dx} × ${z.dy} × ${z.dz}`,1100,y,25);text(z.kind==="obstacle"?t("障碍","Obstacle"):t("预留","Reservation"),1500,y,24);});
     text(t("重叠容积只扣一次。设备、门槛通过与运输固定强度未核验。","Overlap is deducted once. Equipment, threshold traversal and securing strength remain unverified."),100,2260,25);
+    await finish();
+  }
+  for(const group of forkEvidenceGroups(result)){
+    start(t("底座与叉具资料（独立预检）","Base and fork data (independent preflight)"));
+    const c=group.config,p=c.forkInterface,m=c.packaging?.measurements,check=inspectForkInterface(c);
+    text(ellipsis(c.name,1300),100,310,30,true);
+    text(`${t("资料状态","Evidence state")}: ${forkEvidenceReady(c)?t("当前版本已核对","Current revision reviewed"):t("未核验","Unverified")} · ${t("局部几何","Local geometry")}: ${check.state}`,100,370,25,true);
+    text(ellipsis(`${t("托盘","Units")}: ${group.ids.join(" / ")}`,1500),100,430,24);
+    text(ellipsis(`${t("底座来源／版本","Base source / revision")}: ${m?.source||"—"} / ${m?.revision||"—"}`,1500),100,490,24);
+    text(m?`${t("厚度／单板宽／支承长宽 mm（仅适用项）","Thicknesses / board width / support L/W mm (applicable fields)")}: ${[m.deckThickness,m.bottomThickness,m.bearerThickness,m.deckBoardWidth,m.supportLength,m.supportWidth].join(" / ")}`:t("通用比例结构，未记录底座实测。","Generic proportional structure; base measurements are missing."),100,550,24);
+    if(p){
+      text(t(...FORK_DIRECTION_TEXT[p.direction]),100,625,26,true);
+      FORK_NUMBERS.forEach((k,i)=>{text(t(...FORK_NUMBER_TEXT[k]),100,700+i*65,25);text(`${p[k]} mm`,1200,700+i*65,25);});
+      text(ellipsis(`${t("叉具来源／版本","Fork source / revision")}: ${p.source||"—"} / ${p.revision||"—"}`,1500),100,1400,24);
+      text(`${t("静载／动载／货架载荷 kg（0 为未知）","Static / dynamic / rack payload kg (0 means unknown)")}: ${p.ratings.staticKg} / ${p.ratings.dynamicKg} / ${p.ratings.rackKg}`,100,1470,24);
+      text(ellipsis(p.ratings.source||"—",1500),100,1540,24);
+    }
+    text(t("本页仅列局部几何与输入资料；逐托周边阻挡详见独立预检 JSON。","Local geometry and input data only; see unit preflight JSON for surrounding blockers."),100,1790,25);
+    text(t("不核验设备能力、叉车本体、起升、转弯、作业顺序或动态受力。","Equipment capacity, truck body, lifting, turning, handling order and dynamic forces are unverified."),100,1855,25);
+    text(t("三类载荷没有复制为求解上限，几何通过不构成作业放行。","Separate ratings do not replace the packing limit; a geometric pass does not authorize handling."),100,1920,25);
     await finish();
   }
   for(const group of crateEvidenceGroups(result)){

@@ -4,6 +4,7 @@ import { DEFAULT_PACKAGING, packagingInterior, packagingHeight, type PackagingSp
 import { parseFloorPalletConfig } from "../lib/packing/floor-pallets";
 import { TRANSPORT_PRESETS } from "../lib/packing/transport-library";
 import type { FloorPalletConfig } from "../lib/packing/types";
+import { ForkInterfaceSettings } from "./fork-interface-settings";
 import { CrateBearingSettings } from "./crate-bearing-settings";
 import { NumericInput } from "./numeric-input";
 import { SpaceModelPreview } from "./space-model-preview";
@@ -24,7 +25,7 @@ export function PackagingEditor({value,onChange,onValidityChange,resetToken=0,on
   useEffect(()=>{onValidityChange("pallet-build:structure",!error);return()=>onValidityChange("pallet-build:structure",true);},[error,onValidityChange]);
   useEffect(()=>{if(spec.base==="solid"||spec.base==="corner-feet")for(const key of ["boards","runners"])onValidityChange("pallet-build:"+key,true);if(spec.enclosure==="none")onValidityChange("pallet-build:wall",true);},[spec.base,spec.enclosure,onValidityChange]);
   useEffect(()=>()=>{for(const key of ["boards","runners","wall"])onValidityChange("pallet-build:"+key,true);},[onValidityChange]);
-  const patch=(v:Partial<PackagingSpec>)=>onChange({...value,packaging:{...spec,...v}});
+  const patch=(v:Partial<PackagingSpec>)=>onChange({...value,packaging:{...spec,...v,...(v.base==="solid"?{measurements:undefined}:{})}});
   const presets=TRANSPORT_PRESETS.filter(p=>p.category==="pallet");
   const save=()=>{const label=name.trim();if(!label||error)return;const next=[{name:label,config:parseFloorPalletConfig({...value,name:label})},...templates.filter(t=>t.name!==label)].slice(0,30);setTemplates(next);try{localStorage.setItem(STORAGE,JSON.stringify(next));setNotice(tr("模板已保存；当前规格也会随工作区备份。","Template saved; the current specification is included in workspace backups."));}catch{setNotice(tr("模板仅保留本次会话；可备份工作区保留当前规格。","Template retained for this session; back up the workspace to keep its current specification."));}};
   return <div className="packaging-editor"><section className="packaging-fields">
@@ -39,6 +40,7 @@ export function PackagingEditor({value,onChange,onValidityChange,resetToken=0,on
       <label>{tr("模型不透明度","Model opacity")} · {Math.round(spec.opacity*100)}%<input type="range" aria-label={tr("包装模型不透明度","Packaging model opacity")} min={5} max={100} value={Math.round(spec.opacity*100)} onChange={e=>patch({opacity:Number(e.target.value)/100})}/></label>
     </div>
     <div className="packaging-template-row"><input aria-label={tr("包装模板名称","Packaging template name")} value={name} maxLength={80} placeholder={tr("自定义模板名称","Custom template name")} onChange={e=>setName(e.target.value)}/><button type="button" className="button small" disabled={invalid||!name.trim()||!!error} onClick={save}>{tr("保存模板","Save template")}</button>{templates.length>0&&<select aria-label={tr("已保存包装模板","Saved packaging templates")} value="" onChange={e=>{const t=e.target.value===""?undefined:templates[Number(e.target.value)];if(t){onReset?.();onChange(structuredClone(t.config));}}}><option value="">{tr("载入模板","Load template")}</option>{templates.map((t,i)=><option key={t.name} value={i}>{t.name}</option>)}</select>}</div>
+    <ForkInterfaceSettings value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken} invalid={invalid}/>
     {inner.crate&&<CrateBearingSettings value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken} invalid={invalid}/>}
     {notice&&<small role="status">{notice}</small>}
     <p className="helper-text">{tr("输入的长宽为外尺寸；自重包含全部底座、围板和箱盖。材质用于显示，额定承重采用实测数据。","Length and width are exterior dimensions. Tare includes the entire base, enclosure and lid. Material controls appearance; use measured load ratings.")}</p>

@@ -1,4 +1,16 @@
 export const ENGLISH: Record<string, string> = {
+  "底座实测尺寸格式无效": "Invalid measured base dimensions",
+  "底座实测尺寸须为 1–100000 mm": "Measured base dimensions must be 1\u2013100000 mm",
+  "底座实测来源或版本无效": "Invalid measured base source or revision",
+  "实测底座部件超出底座外包络": "Measured base parts exceed the base envelope",
+  "实测角脚互相重叠": "Measured corner feet overlap",
+  "实测面板、底梁或支承块重叠，或没有有效叉孔高度": "Measured runners or blocks overlap or leave no fork height",
+  "双叉接口格式无效": "Invalid fork interface",
+  "进叉面无效": "Invalid fork entry direction",
+  "叉具尺寸与额定资料须为 0–100000 的有限数值": "Fork dimensions and ratings must be finite, 0\u2013100000",
+  "叉具资料来源或版本无效": "Invalid fork evidence text",
+  "搬运载荷资料格式无效": "Invalid handling ratings",
+
   "柜内障碍与禁占区已用于当前包络求解和独立校验；区域不提供承托、不计作货物或新增自重 / Site regions constrain packing and validation; they provide no support, cargo count or added tare": "Site regions constrain packing and validation; they provide no support, cargo count or added tare.",
   "Use at most 16 site regions / 柜内区域最多 16 个": "Use at most 16 site regions.",
   "Invalid site region / 柜内区域格式无效": "Invalid site region.",

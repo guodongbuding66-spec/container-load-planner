@@ -1,5 +1,10 @@
 import type { FloorPalletConfig, PlacedPallet } from "./types";
 
+export type BaseMeasurements = {
+  deckThickness:number; bottomThickness:number; bearerThickness:number; deckBoardWidth:number;
+  supportLength:number; supportWidth:number; source:string; revision:string;
+};
+
 export type PackagingSpec = {
   base: "block" | "stringer" | "solid" | "corner-feet";
   enclosure: "none" | "slatted" | "panel" | "frame";
@@ -10,14 +15,34 @@ export type PackagingSpec = {
   runners: number;
   wallThickness: number;
   lid: boolean;
+  measurements?: BaseMeasurements;
 };
+export function baseMeasurements(length:number,width:number,height:number,spec:PackagingSpec):BaseMeasurements {
+  const t=height*22/144,foot=Math.min(spec.wallThickness,length/2,width/2);
+  return {deckThickness:spec.base==="corner-feet"?Math.min(t,height/3):t,bottomThickness:t,bearerThickness:t,deckBoardWidth:width*.84/spec.deckBoards,supportLength:spec.base==="corner-feet"?foot:length*.12,supportWidth:spec.base==="corner-feet"?foot:width*.42/spec.runners,source:"",revision:""};
+}
+export function parseBaseMeasurements(value:unknown):BaseMeasurements {
+  if(!value||typeof value!=="object"||Array.isArray(value))throw Error("底座实测尺寸格式无效");
+  const v=value as BaseMeasurements;
+  for(const key of ["deckThickness","bottomThickness","bearerThickness","deckBoardWidth","supportLength","supportWidth"] as const)if(typeof v[key]!=="number"||!Number.isFinite(v[key])||v[key]<1||v[key]>100000)throw Error("底座实测尺寸须为 1–100000 mm");
+  if(typeof v.source!=="string"||v.source.length>500||typeof v.revision!=="string"||v.revision.length>120)throw Error("底座实测来源或版本无效");
+  return {deckThickness:v.deckThickness,bottomThickness:v.bottomThickness,bearerThickness:v.bearerThickness,deckBoardWidth:v.deckBoardWidth,supportLength:v.supportLength,supportWidth:v.supportWidth,source:v.source.trim(),revision:v.revision.trim()};
+}
+export function validateBaseMeasurements(length:number,width:number,height:number,spec?:PackagingSpec) {
+  const m=spec?.measurements;if(!m)return;
+  const t=parseBaseMeasurements(m);
+  if(spec.base==="solid"||t.deckThickness>=height||t.supportLength>length||t.supportWidth>width)throw Error("实测底座部件超出底座外包络");
+  if(spec.base==="corner-feet"){
+    if(2*t.supportLength>length||2*t.supportWidth>width)throw Error("实测角脚互相重叠");
+  }else if(spec.deckBoards*t.deckBoardWidth>width||spec.runners*t.supportWidth>width||t.deckThickness+t.bottomThickness+(spec.base==="block"?t.bearerThickness:0)>=height||spec.base==="block"&&3*t.supportLength>length)throw Error("实测面板、底梁或支承块重叠，或没有有效叉孔高度");
+}
 export const DEFAULT_PACKAGING: PackagingSpec = { base:"block", enclosure:"none", material:"wood", color:"#d4af7b", opacity:.65, deckBoards:5, runners:3, wallThickness:30, lid:true };
 export function parsePackaging(value: unknown): PackagingSpec {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid packaging structure");
   const p=value as PackagingSpec;
   if (!["block","stringer","solid","corner-feet"].includes(p.base)||!["none","slatted","panel","frame"].includes(p.enclosure)||!["wood","plywood","plastic","steel"].includes(p.material)||!/^#[0-9a-f]{6}$/i.test(p.color)||typeof p.lid!=="boolean") throw new Error("Invalid packaging appearance");
   if (!Number.isFinite(p.opacity)||p.opacity<.05||p.opacity>1||!Number.isInteger(p.deckBoards)||p.deckBoards<2||p.deckBoards>12||!Number.isInteger(p.runners)||p.runners<2||p.runners>5||!Number.isFinite(p.wallThickness)||p.wallThickness<1||p.wallThickness>200) throw new Error("Invalid packaging dimensions");
-  return {base:p.base,enclosure:p.enclosure,material:p.material,color:p.color.toLowerCase(),opacity:p.opacity,deckBoards:p.deckBoards,runners:p.runners,wallThickness:p.wallThickness,lid:p.lid};
+  return {base:p.base,enclosure:p.enclosure,material:p.material,color:p.color.toLowerCase(),opacity:p.opacity,deckBoards:p.deckBoards,runners:p.runners,wallThickness:p.wallThickness,lid:p.lid,...(p.measurements===undefined?{}:{measurements:parseBaseMeasurements(p.measurements)})};
 }
 export function packagingInterior(c: FloorPalletConfig) {
   const crate=!!c.packaging && c.packaging.enclosure!=="none", inset=crate?c.packaging!.wallThickness:0, lid=crate&&c.packaging!.lid?inset:0;
@@ -34,7 +59,21 @@ export type PackagingPart={x:number;y:number;z:number;dx:number;dy:number;dz:num
 export function packagingParts(length:number,width:number,height:number,spec:PackagingSpec=DEFAULT_PACKAGING,cargoHeight=0):PackagingPart[] {
   const parts:PackagingPart[]=[], add=(x:number,y:number,z:number,dx:number,dy:number,dz:number,kind:PackagingPart["kind"]="board",tag:Pick<PackagingPart,"bearingRole"|"corner">={})=>parts.push({x,y,z,dx,dy,dz,kind,...tag});
   const t=height*22/144, n=spec.runners, rw=width*.42/n;
-  if(spec.base==="corner-feet"){
+  if(spec.measurements){
+    const m=spec.measurements;
+    if(spec.base==="corner-feet"){
+      for(const [i,x] of [0,length-m.supportLength].entries())for(const [j,y] of [0,width-m.supportWidth].entries())add(x,y,0,m.supportLength,m.supportWidth,height-m.deckThickness,"block",{bearingRole:"foot",corner:`L${i}W${j}` as PackagingPart["corner"]});
+      add(0,0,height-m.deckThickness,length,width,m.deckThickness,"board",{bearingRole:"deck"});
+    }else{
+      for(let j=0;j<n;j++){const y=j*(width-m.supportWidth)/(n-1);add(0,y,0,length,m.supportWidth,m.bottomThickness);
+        if(spec.base==="stringer")add(0,y,m.bottomThickness,length,m.supportWidth,height-m.deckThickness-m.bottomThickness,"block");
+        else for(let i=0;i<3;i++)add(i*(length-m.supportLength)/2,y,m.bottomThickness,m.supportLength,m.supportWidth,height-m.deckThickness-m.bearerThickness-m.bottomThickness,"block");
+      }
+      if(spec.base==="block")for(let i=0;i<3;i++)add(i*(length-m.supportLength)/2,0,height-m.deckThickness-m.bearerThickness,m.supportLength,width,m.bearerThickness);
+      const bw=m.deckBoardWidth;
+      for(let i=0;i<spec.deckBoards;i++)add(0,i*(width-bw)/(spec.deckBoards-1),height-m.deckThickness,length,bw,m.deckThickness);
+    }
+  }else if(spec.base==="corner-feet"){
     const foot=Math.min(spec.wallThickness,length/2,width/2),deck=Math.min(t,height/3);
     for(const [i,x] of [0,length-foot].entries())for(const [j,y] of [0,width-foot].entries())add(x,y,0,foot,foot,height-deck,"block",{bearingRole:"foot",corner:`L${i}W${j}` as PackagingPart["corner"]});
     add(0,0,height-deck,length,width,deck,"board",{bearingRole:"deck"});

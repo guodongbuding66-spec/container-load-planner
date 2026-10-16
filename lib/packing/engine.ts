@@ -40,7 +40,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.34.1";
+export const ENGINE_VERSION = "0.35.0";
 
 type Orientation = {
   dx: number;
