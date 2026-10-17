@@ -1,3 +1,5 @@
+import {PlanReviewPanel} from "./result-audit-panel";
+import {reviewPlan} from "../lib/packing/plan-review";
 import {renderToStaticMarkup} from "react-dom/server";
 import {afterEach,beforeEach,expect,it,vi} from "vitest";
 import {ContainerAccessorySettings} from "./container-accessory-settings";
@@ -27,6 +29,7 @@ it("exposes unsupported workflows, invalid references and bounds without hiding 
 });
 it("shows planned mass and installation boundaries without a securing approval action",()=>{
  const plan=pack({workflow:"direct",mode:"mixed",strategy:"maximum",container:c,clearance:0,products:[p]});setAppLanguage("en");const html=renderToStaticMarkup(<ContainerAccessoryManifest result={plan}/>);expect(html).toContain("Container accessories and installation list");expect(html).toContain("10 kg");expect(html).toContain("Earliest after carton step");expect(html).toContain("Export accessory and installation CSV");expect(html).not.toContain("Adopt");expect(html).not.toMatch(/[\u3400-\u9fff]/u);
+ const securing=reviewPlan(plan,[p]).checks.find(c=>c.id==="securing")!;const reviewHtml=renderToStaticMarkup(<PlanReviewPanel report={{checks:[securing],state:"unverified",passed:0,failed:0,unverified:1}}/>);expect(reviewHtml).toContain("Transport securing");expect(reviewHtml).not.toMatch(/[\u3400-\u9fff]/u);
  expect(renderToStaticMarkup(<ContainerAccessoryManifest result={plan} disabled/>)).toContain('disabled=""');
 });
 it("reserves all accessory planned mass from playback step zero",()=>{

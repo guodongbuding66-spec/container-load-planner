@@ -76,7 +76,7 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
   if(plan.container.exclusions?.some(z=>z.accessory)){
     const securing=checks.find(c=>c.id==="securing")!;
     securing.scope=["已记录附件包络、计划重量与安装依赖；所有预留始终参与几何和路径检查。固定强度、安装可达、拆除动作和现场施工未核验。","Accessory envelopes, planned mass and installation dependencies are recorded. All reservations always constrain geometry and access. Securing strength, installation reach, removal and field work remain unverified."];
-    try{securing.items=accessoryInstallationPlan(plan).map(row=>`${row.region.id}: ${row.missingProductIds.length?"关联货物未全部装入 / Associated cargo not fully loaded":"安装动作未核验 / Installation actions unverified"}`);}catch{securing.state="fail";securing.items=["附件安装依赖无效 / Invalid installation dependencies"];}
+    try{securing.items=accessoryInstallationPlan(plan).map(row=>[row.region.id,...row.missingProductIds].join(" / "));}catch{securing.state="fail";securing.scope=["附件安装依赖无效，请重新计算。","Accessory installation dependencies are invalid; recalculate."];securing.items=[];}
   }
   const passed = checks.filter(c => c.state === "pass").length, failed = checks.filter(c => c.state === "fail").length, unverified = checks.filter(c => c.state === "unverified").length;
   return { checks, state: failed ? "fail" : unverified ? "unverified" : "pass", passed, failed, unverified };
