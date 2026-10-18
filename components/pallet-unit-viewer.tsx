@@ -1,5 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
+import {PalletLayerTemplates} from "./pallet-layer-templates";
+import type {PalletLayerTemplate} from "../lib/packing/pallet-layer";
 import { useEffect, useMemo, useState } from "react";
 import { isolatePalletPlan } from "../lib/packing/pallet-inspection";
 import type { PackingResult, ProductInput } from "../lib/packing/types";
@@ -14,7 +16,7 @@ import { specificationForPallet } from "../lib/packing/pallet-specifications";
 import { packagingInterior } from "../lib/packing/packaging";
 function palletMessage(value:string){const parts=value.split(" / ");if(parts.length===2&&/[\u3400-\u9fff]/u.test(parts[0])&&!/[\u3400-\u9fff]/u.test(parts[1]))return tr(parts[0],parts[1]);return trText(value);}
 const Scene=dynamic(()=>import("./container-scene").then(m=>m.ContainerScene),{ssr:false});
-export function PalletEditorControls({editor,products,id,onPendingChange}:{editor:PlanEditor;products:ProductInput[];id:string;onPendingChange?:(pending:boolean)=>void}){
+export function PalletEditorControls({editor,products,id,onPendingChange,layerTemplates,onLayerTemplatesChange}:{layerTemplates?:PalletLayerTemplate[];onLayerTemplatesChange?:(templates:PalletLayerTemplate[])=>void;editor:PlanEditor;products:ProductInput[];id:string;onPendingChange?:(pending:boolean)=>void}){
   useLanguage();
   const plan=editor.plan!,p=plan.pallets!.find(p=>p.id===id)!;
   const config=specificationForPallet(plan.palletization!,p).config,inside=packagingInterior(config);
@@ -23,8 +25,9 @@ export function PalletEditorControls({editor,products,id,onPendingChange}:{edito
   const layers=palletLayers(plan,id),[bottom,setBottom]=useState(0),[query,setQuery]=useState(""),[page,setPage]=useState(0);
   const pool=palletOrderPool(plan,products),cargo=plan.placements.filter(b=>b.palletIds?.includes(id)),selected=editor.selected.filter(b=>b.palletIds?.includes(id));
   const filtered=cargo.filter(b=>`${b.sku} ${b.id}`.toLowerCase().includes(query.toLowerCase())),current=Math.min(page,Math.max(0,Math.ceil(filtered.length/40)-1));
+  const [layerPending,setLayerPending]=useState(false);
   const blocked=editor.disabled||!editor.enabled||!!p.locked,bad=Object.values(invalid).some(Boolean);
-  useEffect(()=>onPendingChange?.(bad),[bad,onPendingChange]);
+  useEffect(()=>onPendingChange?.(bad||layerPending),[bad,layerPending,onPendingChange]);
   const checked=(key:string)=>(valid:boolean)=>setInvalid(s=>({...s,[key]:!valid}));
   return <section className="pallet-editor" aria-label={tr("托内编辑","Pallet contents editor")}>
     <div className="upgrade-actions"><label><input type="checkbox" checked={editor.enabled} disabled={editor.disabled} onChange={e=>editor.update({enabled:e.target.checked,rectangle:false})}/>{tr("启用托内编辑","Enable pallet editing")}</label><button className="button" disabled={editor.disabled} onClick={()=>editor.palletEdit(id,{type:"lock",locked:!p.locked})}>{p.locked?tr("解除本托锁定","Unlock this pallet"):tr("锁定本托","Lock this pallet")}</button><button className="button" disabled={editor.disabled} onClick={()=>editor.palletEdit(id,{type:"lock-others",locked:true})}>{tr("锁定其他托盘","Lock other pallets")}</button><button className="button" disabled={!editor.undo.length||editor.disabled} onClick={editor.undoEdit}>{tr("撤销","Undo")}</button><button className="button" disabled={!editor.redo.length||editor.disabled} onClick={editor.redoEdit}>{tr("重做","Redo")}</button><button className="button" disabled={!editor.changed} onClick={editor.discard}>{tr("放弃调整","Discard edits")}</button></div>
@@ -42,10 +45,11 @@ export function PalletEditorControls({editor,products,id,onPendingChange}:{edito
     <fieldset disabled={blocked}><legend>{tr("添加或转移货物","Add or transfer cargo")}</legend><p>{tr("目标坐标采用目标托盘的托内坐标。每次添加一箱或一个完整套装；仅使用订单余量。","Destination coordinates use the target pallet's local axes. Each add inserts one carton or one complete kit from the unassigned pool.")}</p><div className="tool-form-grid">{(["x","y","z"] as const).map(axis=><label key={axis}>{tr("目标","Target")} {axis.toUpperCase()} mm<NumericInput ariaLabel={`${tr("托内目标","Pallet target")} ${axis.toUpperCase()}`} value={position[axis]} min={0} max={100000} onValueChange={v=>setPosition(s=>({...s,[axis]:v}))} onValidityChange={checked(`position-${axis}`)}/></label>)}</div>
     <div className="tool-form-grid"><label>SKU<select value={sku} onChange={e=>setSku(e.target.value)}>{pool.map(row=><option key={row.productId} value={row.productId}>{row.sku} · {tr("待分配","Unassigned")} {row.remaining}</option>)}</select></label><label>{tr("目标托盘","Target pallet")}<select value={target} onChange={e=>setTarget(e.target.value)}><option value="">{tr("请选择","Select")}</option>{plan.pallets!.filter(q=>q.id!==id).map(q=><option key={q.id} value={q.id} disabled={q.locked}>{q.id} · {q.name}{q.locked?` · ${tr("已锁定","Locked")}`:""}</option>)}</select></label></div>
     <div className="upgrade-actions"><button className="button" disabled={!sku||bad} onClick={()=>editor.palletEdit(id,{type:"add",productId:sku,position})}>{tr("从余量添加一箱／整套","Add one carton / kit from pool")}</button><button className="button" disabled={!selected.length||!target||bad} onClick={()=>editor.palletEdit(id,{type:"transfer",ids:selected.map(b=>b.id),targetId:target,position})}>{tr("转移到目标托盘","Transfer to target pallet")}</button></div></fieldset>
+    <PalletLayerTemplates editor={editor} products={products} id={id} templates={layerTemplates} onChange={onLayerTemplatesChange} blocked={blocked||bad} onPendingChange={setLayerPending}/>
     <p role="status">{palletMessage(editor.message)}</p><p className="helper-text">{tr("所有操作先检查完整方案，失败时整次回退。清空某托仍保留托盘及自重。关闭或放弃调整不会改动已采用方案。","Each operation checks the complete plan and rolls back entirely on failure. Empty pallets and their tare remain. Closing or discarding does not change the adopted plan.")}</p>
   </section>;
 }
-export function PalletUnitViewer({result,id,onClose,products=[],disabled=false,onAdopt}:{result:PackingResult;id:string;onClose:()=>void;products?:ProductInput[];disabled?:boolean;onAdopt?:(plan:PackingResult)=>void}) {
+export function PalletUnitViewer({result,id,onClose,products=[],disabled=false,onAdopt,layerTemplates,onLayerTemplatesChange}:{layerTemplates?:PalletLayerTemplate[];onLayerTemplatesChange?:(templates:PalletLayerTemplate[])=>void;result:PackingResult;id:string;onClose:()=>void;products?:ProductInput[];disabled?:boolean;onAdopt?:(plan:PackingResult)=>void}) {
   useLanguage();
   const canEdit=!!onAdopt&&!!products.length&&!!result.palletization;
   const editor=usePlanEditor(result,products,disabled||!canEdit,onAdopt??(()=>{}));
@@ -63,7 +67,7 @@ export function PalletUnitViewer({result,id,onClose,products=[],disabled=false,o
   const visible=useMemo(()=>new Set(plan.summaries.map(s=>s.productId)),[plan]);
   return <FeatureDialog wide title={canEdit?tr("整托查看与托内编辑","Inspect and edit pallet contents"):tr("整托独立查看","Inspect complete pallet load")} subtitle={id} onClose={onClose}>
     <div className="pallet-unit-summary"><strong>{plan.placements.length} {tr("箱","cartons")} · {plan.metrics.grossWeight.toFixed(1)} kg</strong><span>{plan.container.length} × {plan.container.width} × {plan.container.height} mm</span></div>
-    {canEdit&&<PalletEditorControls key={formVersion} editor={{...editor,discard}} products={products} id={id} onPendingChange={setPending}/>}
+    {canEdit&&<PalletEditorControls layerTemplates={layerTemplates} onLayerTemplatesChange={onLayerTemplatesChange} key={formVersion} editor={{...editor,discard}} products={products} id={id} onPendingChange={setPending}/>}
     <Scene editor={canEdit?scoped:undefined} products={products} result={plan} visibleProducts={visible} visibleCount={plan.placements.length} cameraView={view} projectionMode={projection} onCameraViewChange={setView} onProjectionModeChange={setProjection}/>
     <div className="pallet-unit-contents">{plan.summaries.map(s=><span key={s.productId}><i style={{background:s.color}}/>{s.sku} × {s.loaded} · {s.loadedWeight.toFixed(1)} kg</span>)}</div>
     <p className="helper-text">{tr("当前只显示这一托的包装和货物，坐标已移到独立查看原点；采用前，原装柜方案保持不变。","Only this unit and its contents are shown, rebased to a local inspection origin. The vehicle plan is unchanged until edits are applied.")}</p>

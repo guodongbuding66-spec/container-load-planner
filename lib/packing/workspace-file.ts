@@ -1,3 +1,4 @@
+import {parsePalletLayerTemplates,type PalletLayerTemplate} from "./pallet-layer";
 import {parseSiteExclusions} from "./site-exclusions";
 import { parseDimensionAllowance } from "./dimension-allowance";
 import { parseLoadingWorkflow, parsePalletBuild } from "./loading-workflow";
@@ -13,6 +14,7 @@ import { MAX_CSV_ROWS } from "./csv";
 // The independent per-plan limit is enforced by restorePackingSnapshot.
 export const MAX_WORKSPACE_BYTES = 50 * 1024 * 1024;
 export type WorkspaceInputs = {
+  palletLayerTemplates?: PalletLayerTemplate[];
   workflow?: import("./types").LoadingWorkflow;
   palletBuild?: import("./types").PalletBuildOptions;
   floorPallets?: FloorPalletConfig;
@@ -91,7 +93,7 @@ export function parseWorkspaceBackup(contents: string): WorkspaceInputs {
   if (!isLengthUnit(v.lengthUnit) || !isWeightUnit(v.weightUnit)) throw new Error("录入单位无效。");
   if (!Array.isArray(v.products) || !v.products.length || v.products.length > MAX_CSV_ROWS) throw new Error("备份的箱型数量无效。");
   if (!Array.isArray(v.customContainers) || v.customContainers.length > 100) throw new Error("自定义柜型数量无效。");
-  return { ...(v.workflow===undefined?{}:{workflow:parseLoadingWorkflow(v.workflow,v.mode)}), ...(v.palletBuild===undefined?{}:{palletBuild:parsePalletBuild(v.palletBuild)}), ...(v.floorPallets === undefined ? {} : {floorPallets:parseFloorPalletConfig(v.floorPallets)}), ...(v.loadingRules === undefined ? {} : { loadingRules: parseLoadingRules(v.loadingRules) }), mode: v.mode, strategy: v.strategy, practicalTargetPercent: number(v.practicalTargetPercent, 50, 95),
+  return { ...(v.palletLayerTemplates===undefined?{}:{palletLayerTemplates:parsePalletLayerTemplates(v.palletLayerTemplates)}), ...(v.workflow===undefined?{}:{workflow:parseLoadingWorkflow(v.workflow,v.mode)}), ...(v.palletBuild===undefined?{}:{palletBuild:parsePalletBuild(v.palletBuild)}), ...(v.floorPallets === undefined ? {} : {floorPallets:parseFloorPalletConfig(v.floorPallets)}), ...(v.loadingRules === undefined ? {} : { loadingRules: parseLoadingRules(v.loadingRules) }), mode: v.mode, strategy: v.strategy, practicalTargetPercent: number(v.practicalTargetPercent, 50, 95),
     container: container(v.container), clearance: number(v.clearance, 0, 50),
     products: v.products.map(parseProductInput), customContainers: v.customContainers.map(container),
     targetVolumePercent: integer(v.targetVolumePercent, 1, 100), targetWeightPercent: integer(v.targetWeightPercent, 1, 100),

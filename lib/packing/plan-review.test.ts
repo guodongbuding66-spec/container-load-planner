@@ -19,10 +19,10 @@ it("distinguishes data discrepancies, missing sources and actual static overload
   plan.placements=[lower,upper];expect(check(plan,"bearing",[p]).state).toBe("fail");
   expect(check(plan,"data",[p]).state).toBe("fail");expect(reviewPlan(make()).checks.find(c=>c.id==="bearing")?.state).toBe("unverified");
 });
-it("separates declared straight access from unavailable handling-equipment verification",()=>{
+it("reviews declared cargo access without adding excluded equipment requirements",()=>{
   const plan=make();plan.delivery={p:{customer:"A",destination:"A",stop:1}};
   expect(check(plan,"path").state).toBe("pass");expect(check(plan,"path").model).toBe("straight-rear");
-  expect(check(plan,"path").scope[0]).toContain("叉车");
+  expect(check(plan,"path").scope[0]).toContain("具体装卸操作由现场安排");expect(check(plan,"path").scope.join(" ")).not.toMatch(/叉车|货叉|forklift|handling equipment/i);
   plan.container.doorHeight=50;expect(check(plan,"path").state).toBe("fail");
   plan.accessConfig={...DEFAULT_ACCESS,maneuver:true,budget:1};
   expect(check(plan,"path").state).toBe("unverified");expect(check(plan,"path").scope[0]).toContain("不等于绝对不可装");

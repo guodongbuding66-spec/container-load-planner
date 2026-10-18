@@ -164,3 +164,5 @@
 .equipment-template-buttons{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 .equipment-check-result{padding:16px;border:1px solid var(--line,#d5dce0);border-radius:8px;margin:16px 0}
 .handling-steps{min-width:900px}.handling-steps small{display:block}.handling-pose-input{display:flex;gap:4px}.handling-pose-input input{width:88px;min-height:36px;padding:5px;border:1px solid var(--line,#d5dce0);border-radius:5px}
+
+.pallet-layer-library{margin:16px 0;padding:14px;border:1px solid #d5e5e7;border-radius:12px;background:#f8fbfb}.pallet-layer-library>summary{cursor:pointer;font-weight:700}.pallet-layer-library fieldset{margin:14px 0}.pallet-layer-library input[type=checkbox]{margin-right:8px}

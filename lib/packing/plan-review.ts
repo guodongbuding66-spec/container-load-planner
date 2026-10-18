@@ -50,10 +50,10 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
     const access = auditAccess(plan), blocked = access.issues.filter(i => !["unassigned", "search"].includes(i.reason));
     add({ id: "path", state: blocked.length ? "fail" : !access.complete || access.issues.some(i => i.reason === "search") ? "unverified" : "pass",
       scope: access.model === "bounded-maneuver"
-        ? ["有限搜索的货物包络转向／抬升；未找到路径不等于绝对不可装。叉车、货叉和人员空间未核验。", "Bounded cargo-envelope turning/lifting search; no route found does not prove impossibility. Forklifts, forks and personnel space are unverified."]
+        ? ["有限搜索的货物包络通道；未找到路径不等于绝对不可装。具体装卸操作由现场安排。", "Bounded cargo-envelope access search; no route found does not prove impossibility. On-site teams arrange the actual loading operations."]
         : access.model === "open-access"
-          ? ["开放装载面及卸货支撑顺序；吊具与搬运设备未核验。", "Open loading access and unloading support order; lifting gear and handling equipment are unverified."]
-          : ["最终位置直线通过后门及卸货支撑顺序；转向、抬升、叉车和货叉空间未核验。", "Straight rear-door travel at the final position and unloading support order; turning, lifting, forklifts and forks are unverified."],
+          ? ["检查开放装载面及卸货支撑顺序；具体装卸操作由现场安排。", "Checks open loading access and unloading support order; on-site teams arrange actual loading operations."]
+          : ["检查货物最终位置直线通过后门及卸货支撑顺序；具体装卸操作由现场安排。", "Checks straight rear-door cargo travel at the final position and unloading support order; on-site teams arrange actual loading operations."],
       model: access.model, items: access.issues.map(i => `${i.phase}/${i.id}: ${i.reason}${i.obstacles.length ? " (" + i.obstacles.join(", ") + ")" : ""}`) });
   }
   add({ id: "securing", state: empty ? "not-applicable" : "unverified", scope: ["尚未建立绑扎、挡木、气袋和制动工况模型，需现场确认固定方案。", "Lashings, blocking, airbags and braking conditions are not modeled; confirm a securing plan on site."], model: "not-modeled", items: [] });
@@ -70,7 +70,7 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
   if(plan.container.exclusions?.length){
     const geometry=checks.find(c=>c.id==="geometry")!;geometry.scope=[geometry.scope[0]+" 柜内障碍及禁占区参与同一校验，不提供承托。",geometry.scope[1]+" Site exclusions participate in the same validation and provide no support."];
     if(plan.container.loadingAccess==="open"&&plan.workflow!=="pallet-only"){
-      const path=checks.find(c=>c.id==="path")!;if(path.state!=="fail")path.state="unverified";path.scope=["开放装载的区域绕行、吊具和搬运设备尚未核验。","Routing around site regions during open loading, lifting gear and handling equipment remain unverified."];
+      const path=checks.find(c=>c.id==="path")!;if(path.state!=="fail")path.state="unverified";path.scope=["开放装载面的区域绕行尚未核验；具体装卸操作由现场安排。","Routing around site regions during open loading remains unverified; on-site teams arrange actual loading operations."];
     }
   }
   if(plan.container.exclusions?.some(z=>z.accessory)){

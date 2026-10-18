@@ -39,5 +39,5 @@ it("renders accessible local-coordinate controls, physical layer choices and the
   const zh=renderToStaticMarkup(<PalletEditorControls editor={editor} products={[product]} id={id}/>);
   expect(zh).toContain("完整订单与待分配余量");expect(zh).toContain('aria-label="托内目标 X"');expect(zh).toContain('<fieldset disabled=""');expect(zh).toContain('0–200 mm');expect(zh).toContain('200–400 mm');expect(zh).toContain("清空某托仍保留托盘及自重");
   setAppLanguage("en");const en=renderToStaticMarkup(<PalletEditorControls editor={{...editor,enabled:true}} products={[product]} id={id}/>);
-  expect(en).toContain("Add one carton / kit from pool");expect(en).toContain("Complete order and unassigned pool");expect(en).not.toMatch(/[\u3400-\u9fff]/u);expect(en).not.toContain('<fieldset disabled=""');
+  expect(en).toContain("Add one carton / kit from pool");expect(en).toContain("Complete order and unassigned pool");expect(en).not.toMatch(/[\u3400-\u9fff]/u);expect(en).toContain('<fieldset><legend>Adjust selected cargo</legend>');
 });

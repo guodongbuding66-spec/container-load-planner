@@ -1,3 +1,5 @@
+import {palletLayerCopies,parsePalletLayerTemplates,type PalletLayerTemplate} from "./pallet-layer";
+import {cargoShapeOf} from "./cargo-shape";
 import { MAX_VISIBLE_PLACEMENTS, pack, rebuildPlacementLayers, restorePackingSnapshot } from "./engine";
 import { bearingStatus } from "./bearing";
 import { quarterTurnOrientation } from "./cargo-body";
@@ -15,6 +17,7 @@ export type PalletEdit =
   | {type:"copy-layer";bottom:number}
   | {type:"transfer";ids:string[];targetId:string;position:Delta}
   | {type:"add";productId:string;position:Delta}
+  | {type:"apply-layer";template:PalletLayerTemplate;position:Delta;turns:number;repeat:number;alternate180:boolean}
   | {type:"lock"|"lock-others";locked:boolean}
   | {type:"lock-cargo";ids:string[];locked:boolean};
 const EPS=.0001;
@@ -41,6 +44,17 @@ function wholeKits(plan:PackingResult,boxes:PlacedBox[]){
   const ids=new Set(boxes.map(b=>b.id)),kits=new Set(boxes.filter(b=>b.setCode).map(b=>`${b.setCode}/${b.setNumber}`));
   return plan.placements.filter(b=>ids.has(b.id)||!!b.setCode&&kits.has(`${b.setCode}/${b.setNumber}`));
 }
+/** Capture a physical layer, expanding any cross-layer kit as one complete reusable block. */
+export function capturePalletLayer(plan:PackingResult,products:ProductInput[],id:string,bottom:number,name:string,revision:string):PalletLayerTemplate {
+ if(!plan.validation.valid||!plan.palletization||auditPackingResult(plan,products).hasErrors||!Number.isFinite(bottom))throw Error("请使用完整有效的托内方案 / A complete valid pallet plan is required");
+ const p=plan.pallets?.find(p=>p.id===id);if(!p)throw Error("未找到托盘 / Pallet not found");
+ const layer=plan.placements.filter(b=>b.palletIds?.includes(id)&&Math.abs(palletLocalBox(b,p).z-bottom)<EPS);if(!layer.length)throw Error("未找到所选物理层 / Physical layer not found");
+ const selected=wholeKits(plan,layer);if(selected.some(b=>b.palletIds?.length!==1||b.palletIds[0]!==id))throw Error("层型套装跨托，不能拆开保存 / Layer kit spans pallets and cannot be split");
+ const local=selected.map(b=>palletLocalBox(b,p)),bounds=selectionBounds(local)!,sources=[...new Set(local.map(b=>b.productId))].map(key=>products.find(p=>p.id===key)!);
+ if(sources.some(p=>!p||cargoShapeOf(p)!=="box"||p.solidModel))throw Error("首阶段层型仅支持长方体箱规 / This layer stage supports rectangular cartons only");
+ const config=specificationForPallet(plan.palletization,p).config,kits=new Map<string,number>();
+ return parsePalletLayerTemplates([{version:1,id:`layer-${Date.now().toString(36)}-${++serial}`,name,revision,createdAt:new Date().toISOString(),sourcePallet:{length:config.length,width:config.width},products:sources.map(p=>({sourceProductId:p.id,sku:p.sku,length:p.length,width:p.width,height:p.height,setCode:normalizedSetCode(p),unitsPerSet:normalizedUnitsPerSet(p)})),items:local.map(b=>{const key=`${b.setCode}/${b.setNumber}`;if(b.setCode&&!kits.has(key))kits.set(key,kits.size+1);return {product:sources.findIndex(p=>p.id===b.productId),x:b.x-bounds.x,y:b.y-bounds.y,z:b.z-bounds.z,orientation:b.orientation,orientationSigns:b.orientationSigns,...(b.setCode?{kit:kits.get(key),item:b.setItemNumber}:{})};})}])[0];
+}
 const identity=(b:PlacedBox)=>JSON.stringify([b.id,b.productId,b.sku,b.weight,b.x,b.y,b.z,b.dx,b.dy,b.dz,b.orientation,b.orientationSigns,b.setCode,b.setNumber,b.setItemNumber,b.palletIds,b.locked]);
 function validPoint(p:Delta){if(![p.x,p.y,p.z].every(Number.isFinite))throw new Error("坐标必须是有效数字 / Coordinates must be finite");}
 
@@ -57,7 +71,7 @@ export function editPalletContents(plan:PackingResult,products:ProductInput[],id
   let selected=onPallet.filter(b=>selection.has(b.id));
   if("ids" in action&&(!ids.length||new Set(ids).size!==ids.length||selected.length!==ids.length))throw new Error("请选择当前托内的箱体 / Select cargo on the current pallet");
   if(action.type==="remove"||action.type==="transfer")selected=wholeKits(plan,selected);
-  if(!isLock&&action.type!=="add"&&action.type!=="copy-layer"&&action.type!=="lock-cargo"&&selected.some(b=>b.locked))throw new Error("请先解除箱位锁定 / Unlock selected cargo first");
+  if(!isLock&&action.type!=="add"&&action.type!=="copy-layer"&&action.type!=="apply-layer"&&action.type!=="lock-cargo"&&selected.some(b=>b.locked))throw new Error("请先解除箱位锁定 / Unlock selected cargo first");
   const selectedIds=new Set(selected.map(b=>b.id));
   const local=selected.map(b=>palletLocalBox(b,p));
   const usedIds=new Set(placements.map(b=>b.id));
@@ -89,6 +103,8 @@ export function editPalletContents(plan:PackingResult,products:ProductInput[],id
     if(!layer.length)throw new Error("未找到所选物理层 / Physical layer not found");
     const group=wholeKits(plan,layer).map(b=>palletLocalBox(b,p)),bounds=selectionBounds(group)!;
     placements.push(...cloneCargo(group).map(b=>palletWorldBox({...b,z:b.z+bounds.dz},p)));
+  }else if(action.type==="apply-layer"){
+    for(const copy of palletLayerCopies(action.template,products,action.position,action.turns,action.repeat,action.alternate180))placements.push(...cloneCargo(copy).map(b=>palletWorldBox(b,p)));
   }else if(action.type==="add"){
     validPoint(action.position);
     const product=products.find(q=>q.id===action.productId);if(!product)throw new Error("未找到 SKU / SKU not found");
