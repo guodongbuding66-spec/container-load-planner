@@ -1,0 +1,1138 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.38.0",
+  "createdAt": "2026-10-18T01:19:58.072Z",
+  "inputs": {
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "forkInterface": {
+          "forkWidth": 80,
+          "forkThickness": 50,
+          "forkLength": 1000,
+          "spacing": 344,
+          "center": 400,
+          "bottomZ": 24,
+          "insertionDepth": 800,
+          "tipClearance": 10,
+          "clearance": 2,
+          "withdrawalClearance": 100,
+          "direction": "x-max",
+          "source": "QA fork envelope only",
+          "revision": "qa-fork-38",
+          "reviewedFor": "{\"model\":\"rectangular-twin-forks-v1\",\"dimensions\":[1200,800,144,1000,25,1000],\"structure\":{\"base\":\"block\",\"enclosure\":\"none\",\"material\":\"wood\",\"deckBoards\":5,\"runners\":3,\"wallThickness\":30,\"lid\":true,\"measurements\":{\"deckThickness\":22,\"bottomThickness\":22,\"bearerThickness\":22,\"deckBoardWidth\":134.4,\"supportLength\":144,\"supportWidth\":112,\"source\":\"QA v0.38 software fixture only\",\"revision\":\"qa-base-38\"}},\"probe\":{\"forkWidth\":80,\"forkThickness\":50,\"forkLength\":1000,\"spacing\":344,\"center\":400,\"bottomZ\":24,\"insertionDepth\":800,\"tipClearance\":10,\"clearance\":2,\"withdrawalClearance\":100,\"direction\":\"x-max\",\"source\":\"QA fork envelope only\",\"revision\":\"qa-fork-38\",\"ratings\":{\"staticKg\":0,\"dynamicKg\":0,\"rackKg\":0,\"source\":\"\"}}}",
+          "ratings": {
+            "staticKg": 0,
+            "dynamicKg": 0,
+            "rackKg": 0,
+            "source": ""
+          }
+        },
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true,
+          "measurements": {
+            "deckThickness": 22,
+            "bottomThickness": 22,
+            "bearerThickness": 22,
+            "deckBoardWidth": 134.4,
+            "supportLength": 144,
+            "supportWidth": 112,
+            "source": "QA v0.38 software fixture only",
+            "revision": "qa-base-38"
+          }
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 1200,
+        "width": 800,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "long",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "maxPallets": 50,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "maximum",
+    "practicalTargetPercent": 88,
+    "container": {
+      "id": "40hq",
+      "name": "40HQ 高柜",
+      "length": 12032,
+      "width": 2350,
+      "height": 2700,
+      "doorWidth": 2340,
+      "doorHeight": 2597,
+      "maxWeight": 28600
+    },
+    "clearance": 10,
+    "products": [
+      {
+        "id": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "length": 400,
+        "width": 400,
+        "height": 200,
+        "weight": 10,
+        "quantity": 1,
+        "priority": 100,
+        "rotationPolicy": "any",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.03,
+        "color": "#2f7f89"
+      },
+      {
+        "id": "bed-205",
+        "sku": "BED-205",
+        "name": "耐候钢花圃",
+        "length": 10000,
+        "width": 680,
+        "height": 160,
+        "weight": 28,
+        "quantity": 1,
+        "priority": 80,
+        "rotationPolicy": "any",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 1.09,
+        "color": "#c66a3d"
+      },
+      {
+        "id": "parcel-310",
+        "sku": "PARCEL-310",
+        "name": "户外邮包箱",
+        "length": 10000,
+        "width": 570,
+        "height": 450,
+        "weight": 31,
+        "quantity": 1,
+        "priority": 60,
+        "rotationPolicy": "upright",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 2.57,
+        "color": "#d5a72f"
+      }
+    ],
+    "customContainers": [],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {
+    "practical": {
+      "workflow": "palletized",
+      "palletBuild": {
+        "config": {
+          "forkInterface": {
+            "forkWidth": 80,
+            "forkThickness": 50,
+            "forkLength": 1000,
+            "spacing": 344,
+            "center": 400,
+            "bottomZ": 24,
+            "insertionDepth": 800,
+            "tipClearance": 10,
+            "clearance": 2,
+            "withdrawalClearance": 100,
+            "direction": "x-max",
+            "source": "QA fork envelope only",
+            "revision": "qa-fork-38",
+            "reviewedFor": "{\"model\":\"rectangular-twin-forks-v1\",\"dimensions\":[1200,800,144,1000,25,1000],\"structure\":{\"base\":\"block\",\"enclosure\":\"none\",\"material\":\"wood\",\"deckBoards\":5,\"runners\":3,\"wallThickness\":30,\"lid\":true,\"measurements\":{\"deckThickness\":22,\"bottomThickness\":22,\"bearerThickness\":22,\"deckBoardWidth\":134.4,\"supportLength\":144,\"supportWidth\":112,\"source\":\"QA v0.38 software fixture only\",\"revision\":\"qa-base-38\"}},\"probe\":{\"forkWidth\":80,\"forkThickness\":50,\"forkLength\":1000,\"spacing\":344,\"center\":400,\"bottomZ\":24,\"insertionDepth\":800,\"tipClearance\":10,\"clearance\":2,\"withdrawalClearance\":100,\"direction\":\"x-max\",\"source\":\"QA fork envelope only\",\"revision\":\"qa-fork-38\",\"ratings\":{\"staticKg\":0,\"dynamicKg\":0,\"rackKg\":0,\"source\":\"\"}}}",
+            "ratings": {
+              "staticKg": 0,
+              "dynamicKg": 0,
+              "rackKg": 0,
+              "source": ""
+            }
+          },
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true,
+            "measurements": {
+              "deckThickness": 22,
+              "bottomThickness": 22,
+              "bearerThickness": 22,
+              "deckBoardWidth": 134.4,
+              "supportLength": 144,
+              "supportWidth": 112,
+              "source": "QA v0.38 software fixture only",
+              "revision": "qa-base-38"
+            }
+          },
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "length": 1200,
+          "width": 800,
+          "height": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "long",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 1000
+        },
+        "mix": "single",
+        "maxPallets": 50,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0
+      },
+      "strategy": "practical",
+      "placements": [
+        {
+          "id": "prebuilt-1",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 144,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        }
+      ],
+      "pallets": [
+        {
+          "id": "floor-pallet-1",
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 1200,
+          "dy": 800,
+          "dz": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true,
+            "measurements": {
+              "deckThickness": 22,
+              "bottomThickness": 22,
+              "bearerThickness": 22,
+              "deckBoardWidth": 134.4,
+              "supportLength": 144,
+              "supportWidth": 112,
+              "source": "QA v0.38 software fixture only",
+              "revision": "qa-base-38"
+            }
+          }
+        }
+      ],
+      "palletization": {
+        "config": {
+          "forkInterface": {
+            "forkWidth": 80,
+            "forkThickness": 50,
+            "forkLength": 1000,
+            "spacing": 344,
+            "center": 400,
+            "bottomZ": 24,
+            "insertionDepth": 800,
+            "tipClearance": 10,
+            "clearance": 2,
+            "withdrawalClearance": 100,
+            "direction": "x-max",
+            "source": "QA fork envelope only",
+            "revision": "qa-fork-38",
+            "reviewedFor": "{\"model\":\"rectangular-twin-forks-v1\",\"dimensions\":[1200,800,144,1000,25,1000],\"structure\":{\"base\":\"block\",\"enclosure\":\"none\",\"material\":\"wood\",\"deckBoards\":5,\"runners\":3,\"wallThickness\":30,\"lid\":true,\"measurements\":{\"deckThickness\":22,\"bottomThickness\":22,\"bearerThickness\":22,\"deckBoardWidth\":134.4,\"supportLength\":144,\"supportWidth\":112,\"source\":\"QA v0.38 software fixture only\",\"revision\":\"qa-base-38\"}},\"probe\":{\"forkWidth\":80,\"forkThickness\":50,\"forkLength\":1000,\"spacing\":344,\"center\":400,\"bottomZ\":24,\"insertionDepth\":800,\"tipClearance\":10,\"clearance\":2,\"withdrawalClearance\":100,\"direction\":\"x-max\",\"source\":\"QA fork envelope only\",\"revision\":\"qa-fork-38\",\"ratings\":{\"staticKg\":0,\"dynamicKg\":0,\"rackKg\":0,\"source\":\"\"}}}",
+            "ratings": {
+              "staticKg": 0,
+              "dynamicKg": 0,
+              "rackKg": 0,
+              "source": ""
+            }
+          },
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true,
+            "measurements": {
+              "deckThickness": 22,
+              "bottomThickness": 22,
+              "bearerThickness": 22,
+              "deckBoardWidth": 134.4,
+              "supportLength": 144,
+              "supportWidth": 112,
+              "source": "QA v0.38 software fixture only",
+              "revision": "qa-base-38"
+            }
+          },
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "length": 1200,
+          "width": 800,
+          "height": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "long",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 1000
+        },
+        "mix": "single",
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "preparedCount": 1,
+        "bounded": false,
+        "only": false
+      },
+      "handlingTasks": [
+        {
+          "version": 1,
+          "model": "fixed-rear-sequence-v1",
+          "unitId": "floor-pallet-1",
+          "revision": "qa-sequence-38-unload",
+          "direction": "unload",
+          "outsideX": 13000,
+          "basis": "v1-5832d0684c83cbac",
+          "equipment": {
+            "name": "QA sequence truck",
+            "source": "QA software geometry only",
+            "revision": "qa-e38",
+            "bodyLength": 500,
+            "bodyWidth": 600,
+            "bodyHeight": 700,
+            "mastDepth": 100,
+            "mastWidth": 600,
+            "mastHeight": 1200,
+            "maxLift": 200,
+            "clearance": 0
+          },
+          "site": {
+            "source": "QA level-floor software fixture",
+            "revision": "qa-site38",
+            "doorLeft": 5,
+            "doorBottom": 0,
+            "frameDepth": 50,
+            "outsideLength": 10000,
+            "outsideLeft": -1000,
+            "outsideWidth": 4000,
+            "outsideHeight": 3000,
+            "outsideFloor": 0
+          },
+          "steps": [
+            {
+              "id": "step-1",
+              "kind": "approach",
+              "from": {
+                "x": 1400,
+                "y": 0,
+                "lift": 0
+              },
+              "to": {
+                "x": 900,
+                "y": 0,
+                "lift": 0
+              }
+            },
+            {
+              "id": "step-2",
+              "kind": "insert",
+              "from": {
+                "x": 900,
+                "y": 0,
+                "lift": 0
+              },
+              "to": {
+                "x": 0,
+                "y": 0,
+                "lift": 0
+              }
+            },
+            {
+              "id": "step-3",
+              "kind": "lift",
+              "from": {
+                "x": 0,
+                "y": 0,
+                "lift": 0
+              },
+              "to": {
+                "x": 0,
+                "y": 0,
+                "lift": 100
+              }
+            },
+            {
+              "id": "step-4",
+              "kind": "transfer",
+              "from": {
+                "x": 0,
+                "y": 0,
+                "lift": 100
+              },
+              "to": {
+                "x": 12990,
+                "y": 0,
+                "lift": 100
+              }
+            },
+            {
+              "id": "step-5",
+              "kind": "lower",
+              "from": {
+                "x": 12990,
+                "y": 0,
+                "lift": 100
+              },
+              "to": {
+                "x": 12990,
+                "y": 0,
+                "lift": 0
+              }
+            },
+            {
+              "id": "step-6",
+              "kind": "withdraw",
+              "from": {
+                "x": 12990,
+                "y": 0,
+                "lift": 0
+              },
+              "to": {
+                "x": 13890,
+                "y": 0,
+                "lift": 0
+              }
+            },
+            {
+              "id": "step-7",
+              "kind": "exit",
+              "from": {
+                "x": 13890,
+                "y": 0,
+                "lift": 0
+              },
+              "to": {
+                "x": 14390,
+                "y": 0,
+                "lift": 0
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "maximum": {
+      "workflow": "palletized",
+      "palletBuild": {
+        "config": {
+          "forkInterface": {
+            "forkWidth": 80,
+            "forkThickness": 50,
+            "forkLength": 1000,
+            "spacing": 344,
+            "center": 400,
+            "bottomZ": 24,
+            "insertionDepth": 800,
+            "tipClearance": 10,
+            "clearance": 2,
+            "withdrawalClearance": 100,
+            "direction": "x-max",
+            "source": "QA fork envelope only",
+            "revision": "qa-fork-38",
+            "reviewedFor": "{\"model\":\"rectangular-twin-forks-v1\",\"dimensions\":[1200,800,144,1000,25,1000],\"structure\":{\"base\":\"block\",\"enclosure\":\"none\",\"material\":\"wood\",\"deckBoards\":5,\"runners\":3,\"wallThickness\":30,\"lid\":true,\"measurements\":{\"deckThickness\":22,\"bottomThickness\":22,\"bearerThickness\":22,\"deckBoardWidth\":134.4,\"supportLength\":144,\"supportWidth\":112,\"source\":\"QA v0.38 software fixture only\",\"revision\":\"qa-base-38\"}},\"probe\":{\"forkWidth\":80,\"forkThickness\":50,\"forkLength\":1000,\"spacing\":344,\"center\":400,\"bottomZ\":24,\"insertionDepth\":800,\"tipClearance\":10,\"clearance\":2,\"withdrawalClearance\":100,\"direction\":\"x-max\",\"source\":\"QA fork envelope only\",\"revision\":\"qa-fork-38\",\"ratings\":{\"staticKg\":0,\"dynamicKg\":0,\"rackKg\":0,\"source\":\"\"}}}",
+            "ratings": {
+              "staticKg": 0,
+              "dynamicKg": 0,
+              "rackKg": 0,
+              "source": ""
+            }
+          },
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true,
+            "measurements": {
+              "deckThickness": 22,
+              "bottomThickness": 22,
+              "bearerThickness": 22,
+              "deckBoardWidth": 134.4,
+              "supportLength": 144,
+              "supportWidth": 112,
+              "source": "QA v0.38 software fixture only",
+              "revision": "qa-base-38"
+            }
+          },
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "length": 1200,
+          "width": 800,
+          "height": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "long",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 1000
+        },
+        "mix": "single",
+        "maxPallets": 50,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0
+      },
+      "strategy": "maximum",
+      "placements": [
+        {
+          "id": "prebuilt-1",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 144,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        }
+      ],
+      "pallets": [
+        {
+          "id": "floor-pallet-1",
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 1200,
+          "dy": 800,
+          "dz": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true,
+            "measurements": {
+              "deckThickness": 22,
+              "bottomThickness": 22,
+              "bearerThickness": 22,
+              "deckBoardWidth": 134.4,
+              "supportLength": 144,
+              "supportWidth": 112,
+              "source": "QA v0.38 software fixture only",
+              "revision": "qa-base-38"
+            }
+          }
+        }
+      ],
+      "palletization": {
+        "config": {
+          "forkInterface": {
+            "forkWidth": 80,
+            "forkThickness": 50,
+            "forkLength": 1000,
+            "spacing": 344,
+            "center": 400,
+            "bottomZ": 24,
+            "insertionDepth": 800,
+            "tipClearance": 10,
+            "clearance": 2,
+            "withdrawalClearance": 100,
+            "direction": "x-max",
+            "source": "QA fork envelope only",
+            "revision": "qa-fork-38",
+            "reviewedFor": "{\"model\":\"rectangular-twin-forks-v1\",\"dimensions\":[1200,800,144,1000,25,1000],\"structure\":{\"base\":\"block\",\"enclosure\":\"none\",\"material\":\"wood\",\"deckBoards\":5,\"runners\":3,\"wallThickness\":30,\"lid\":true,\"measurements\":{\"deckThickness\":22,\"bottomThickness\":22,\"bearerThickness\":22,\"deckBoardWidth\":134.4,\"supportLength\":144,\"supportWidth\":112,\"source\":\"QA v0.38 software fixture only\",\"revision\":\"qa-base-38\"}},\"probe\":{\"forkWidth\":80,\"forkThickness\":50,\"forkLength\":1000,\"spacing\":344,\"center\":400,\"bottomZ\":24,\"insertionDepth\":800,\"tipClearance\":10,\"clearance\":2,\"withdrawalClearance\":100,\"direction\":\"x-max\",\"source\":\"QA fork envelope only\",\"revision\":\"qa-fork-38\",\"ratings\":{\"staticKg\":0,\"dynamicKg\":0,\"rackKg\":0,\"source\":\"\"}}}",
+            "ratings": {
+              "staticKg": 0,
+              "dynamicKg": 0,
+              "rackKg": 0,
+              "source": ""
+            }
+          },
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true,
+            "measurements": {
+              "deckThickness": 22,
+              "bottomThickness": 22,
+              "bearerThickness": 22,
+              "deckBoardWidth": 134.4,
+              "supportLength": 144,
+              "supportWidth": 112,
+              "source": "QA v0.38 software fixture only",
+              "revision": "qa-base-38"
+            }
+          },
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "length": 1200,
+          "width": 800,
+          "height": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "long",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 1000
+        },
+        "mix": "single",
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "preparedCount": 1,
+        "bounded": false,
+        "only": false
+      },
+      "handlingTasks": [
+        {
+          "version": 1,
+          "model": "fixed-rear-sequence-v1",
+          "unitId": "floor-pallet-1",
+          "revision": "qa-sequence-38-load",
+          "direction": "load",
+          "outsideX": 13000,
+          "basis": "v1-11d89a56e3b0ed8c",
+          "equipment": {
+            "name": "QA sequence truck",
+            "source": "QA software geometry only",
+            "revision": "qa-e38",
+            "bodyLength": 500,
+            "bodyWidth": 600,
+            "bodyHeight": 700,
+            "mastDepth": 100,
+            "mastWidth": 600,
+            "mastHeight": 1200,
+            "maxLift": 200,
+            "clearance": 0
+          },
+          "site": {
+            "source": "QA level-floor software fixture",
+            "revision": "qa-site38",
+            "doorLeft": 5,
+            "doorBottom": 0,
+            "frameDepth": 50,
+            "outsideLength": 10000,
+            "outsideLeft": -1000,
+            "outsideWidth": 4000,
+            "outsideHeight": 3000,
+            "outsideFloor": 0
+          },
+          "steps": [
+            {
+              "id": "step-1",
+              "kind": "approach",
+              "from": {
+                "x": 14390,
+                "y": 0,
+                "lift": 0
+              },
+              "to": {
+                "x": 13890,
+                "y": 0,
+                "lift": 0
+              }
+            },
+            {
+              "id": "step-2",
+              "kind": "insert",
+              "from": {
+                "x": 13890,
+                "y": 0,
+                "lift": 0
+              },
+              "to": {
+                "x": 12990,
+                "y": 0,
+                "lift": 0
+              }
+            },
+            {
+              "id": "step-3",
+              "kind": "lift",
+              "from": {
+                "x": 12990,
+                "y": 0,
+                "lift": 0
+              },
+              "to": {
+                "x": 12990,
+                "y": 0,
+                "lift": 100
+              }
+            },
+            {
+              "id": "step-4",
+              "kind": "transfer",
+              "from": {
+                "x": 12990,
+                "y": 0,
+                "lift": 100
+              },
+              "to": {
+                "x": 0,
+                "y": 0,
+                "lift": 100
+              }
+            },
+            {
+              "id": "step-5",
+              "kind": "lower",
+              "from": {
+                "x": 0,
+                "y": 0,
+                "lift": 100
+              },
+              "to": {
+                "x": 0,
+                "y": 0,
+                "lift": 0
+              }
+            },
+            {
+              "id": "step-6",
+              "kind": "withdraw",
+              "from": {
+                "x": 0,
+                "y": 0,
+                "lift": 0
+              },
+              "to": {
+                "x": 900,
+                "y": 0,
+                "lift": 0
+              }
+            },
+            {
+              "id": "step-7",
+              "kind": "exit",
+              "from": {
+                "x": 900,
+                "y": 0,
+                "lift": 0
+              },
+              "to": {
+                "x": 1400,
+                "y": 0,
+                "lift": 0
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "coordinatePlan": {
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "forkInterface": {
+          "forkWidth": 80,
+          "forkThickness": 50,
+          "forkLength": 1000,
+          "spacing": 344,
+          "center": 400,
+          "bottomZ": 24,
+          "insertionDepth": 800,
+          "tipClearance": 10,
+          "clearance": 2,
+          "withdrawalClearance": 100,
+          "direction": "x-max",
+          "source": "QA fork envelope only",
+          "revision": "qa-fork-38",
+          "reviewedFor": "{\"model\":\"rectangular-twin-forks-v1\",\"dimensions\":[1200,800,144,1000,25,1000],\"structure\":{\"base\":\"block\",\"enclosure\":\"none\",\"material\":\"wood\",\"deckBoards\":5,\"runners\":3,\"wallThickness\":30,\"lid\":true,\"measurements\":{\"deckThickness\":22,\"bottomThickness\":22,\"bearerThickness\":22,\"deckBoardWidth\":134.4,\"supportLength\":144,\"supportWidth\":112,\"source\":\"QA v0.38 software fixture only\",\"revision\":\"qa-base-38\"}},\"probe\":{\"forkWidth\":80,\"forkThickness\":50,\"forkLength\":1000,\"spacing\":344,\"center\":400,\"bottomZ\":24,\"insertionDepth\":800,\"tipClearance\":10,\"clearance\":2,\"withdrawalClearance\":100,\"direction\":\"x-max\",\"source\":\"QA fork envelope only\",\"revision\":\"qa-fork-38\",\"ratings\":{\"staticKg\":0,\"dynamicKg\":0,\"rackKg\":0,\"source\":\"\"}}}",
+          "ratings": {
+            "staticKg": 0,
+            "dynamicKg": 0,
+            "rackKg": 0,
+            "source": ""
+          }
+        },
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true,
+          "measurements": {
+            "deckThickness": 22,
+            "bottomThickness": 22,
+            "bearerThickness": 22,
+            "deckBoardWidth": 134.4,
+            "supportLength": 144,
+            "supportWidth": 112,
+            "source": "QA v0.38 software fixture only",
+            "revision": "qa-base-38"
+          }
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 1200,
+        "width": 800,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "long",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "maxPallets": 50,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "strategy": "maximum",
+    "placements": [
+      {
+        "id": "prebuilt-1",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 144,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      }
+    ],
+    "pallets": [
+      {
+        "id": "floor-pallet-1",
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "dx": 1200,
+        "dy": 800,
+        "dz": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "orientation": "LWH",
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true,
+          "measurements": {
+            "deckThickness": 22,
+            "bottomThickness": 22,
+            "bearerThickness": 22,
+            "deckBoardWidth": 134.4,
+            "supportLength": 144,
+            "supportWidth": 112,
+            "source": "QA v0.38 software fixture only",
+            "revision": "qa-base-38"
+          }
+        }
+      }
+    ],
+    "palletization": {
+      "config": {
+        "forkInterface": {
+          "forkWidth": 80,
+          "forkThickness": 50,
+          "forkLength": 1000,
+          "spacing": 344,
+          "center": 400,
+          "bottomZ": 24,
+          "insertionDepth": 800,
+          "tipClearance": 10,
+          "clearance": 2,
+          "withdrawalClearance": 100,
+          "direction": "x-max",
+          "source": "QA fork envelope only",
+          "revision": "qa-fork-38",
+          "reviewedFor": "{\"model\":\"rectangular-twin-forks-v1\",\"dimensions\":[1200,800,144,1000,25,1000],\"structure\":{\"base\":\"block\",\"enclosure\":\"none\",\"material\":\"wood\",\"deckBoards\":5,\"runners\":3,\"wallThickness\":30,\"lid\":true,\"measurements\":{\"deckThickness\":22,\"bottomThickness\":22,\"bearerThickness\":22,\"deckBoardWidth\":134.4,\"supportLength\":144,\"supportWidth\":112,\"source\":\"QA v0.38 software fixture only\",\"revision\":\"qa-base-38\"}},\"probe\":{\"forkWidth\":80,\"forkThickness\":50,\"forkLength\":1000,\"spacing\":344,\"center\":400,\"bottomZ\":24,\"insertionDepth\":800,\"tipClearance\":10,\"clearance\":2,\"withdrawalClearance\":100,\"direction\":\"x-max\",\"source\":\"QA fork envelope only\",\"revision\":\"qa-fork-38\",\"ratings\":{\"staticKg\":0,\"dynamicKg\":0,\"rackKg\":0,\"source\":\"\"}}}",
+          "ratings": {
+            "staticKg": 0,
+            "dynamicKg": 0,
+            "rackKg": 0,
+            "source": ""
+          }
+        },
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true,
+          "measurements": {
+            "deckThickness": 22,
+            "bottomThickness": 22,
+            "bearerThickness": 22,
+            "deckBoardWidth": 134.4,
+            "supportLength": 144,
+            "supportWidth": 112,
+            "source": "QA v0.38 software fixture only",
+            "revision": "qa-base-38"
+          }
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 1200,
+        "width": 800,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "long",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "preparedCount": 1,
+      "bounded": false,
+      "only": false
+    },
+    "handlingTasks": [
+      {
+        "version": 1,
+        "model": "fixed-rear-sequence-v1",
+        "unitId": "floor-pallet-1",
+        "revision": "qa-sequence-38-load",
+        "direction": "load",
+        "outsideX": 13000,
+        "basis": "v1-11d89a56e3b0ed8c",
+        "equipment": {
+          "name": "QA sequence truck",
+          "source": "QA software geometry only",
+          "revision": "qa-e38",
+          "bodyLength": 500,
+          "bodyWidth": 600,
+          "bodyHeight": 700,
+          "mastDepth": 100,
+          "mastWidth": 600,
+          "mastHeight": 1200,
+          "maxLift": 200,
+          "clearance": 0
+        },
+        "site": {
+          "source": "QA level-floor software fixture",
+          "revision": "qa-site38",
+          "doorLeft": 5,
+          "doorBottom": 0,
+          "frameDepth": 50,
+          "outsideLength": 10000,
+          "outsideLeft": -1000,
+          "outsideWidth": 4000,
+          "outsideHeight": 3000,
+          "outsideFloor": 0
+        },
+        "steps": [
+          {
+            "id": "step-1",
+            "kind": "approach",
+            "from": {
+              "x": 14390,
+              "y": 0,
+              "lift": 0
+            },
+            "to": {
+              "x": 13890,
+              "y": 0,
+              "lift": 0
+            }
+          },
+          {
+            "id": "step-2",
+            "kind": "insert",
+            "from": {
+              "x": 13890,
+              "y": 0,
+              "lift": 0
+            },
+            "to": {
+              "x": 12990,
+              "y": 0,
+              "lift": 0
+            }
+          },
+          {
+            "id": "step-3",
+            "kind": "lift",
+            "from": {
+              "x": 12990,
+              "y": 0,
+              "lift": 0
+            },
+            "to": {
+              "x": 12990,
+              "y": 0,
+              "lift": 100
+            }
+          },
+          {
+            "id": "step-4",
+            "kind": "transfer",
+            "from": {
+              "x": 12990,
+              "y": 0,
+              "lift": 100
+            },
+            "to": {
+              "x": 0,
+              "y": 0,
+              "lift": 100
+            }
+          },
+          {
+            "id": "step-5",
+            "kind": "lower",
+            "from": {
+              "x": 0,
+              "y": 0,
+              "lift": 100
+            },
+            "to": {
+              "x": 0,
+              "y": 0,
+              "lift": 0
+            }
+          },
+          {
+            "id": "step-6",
+            "kind": "withdraw",
+            "from": {
+              "x": 0,
+              "y": 0,
+              "lift": 0
+            },
+            "to": {
+              "x": 900,
+              "y": 0,
+              "lift": 0
+            }
+          },
+          {
+            "id": "step-7",
+            "kind": "exit",
+            "from": {
+              "x": 900,
+              "y": 0,
+              "lift": 0
+            },
+            "to": {
+              "x": 1400,
+              "y": 0,
+              "lift": 0
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
