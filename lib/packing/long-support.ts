@@ -38,7 +38,7 @@ export type SupportIssue = "invalid" | "dimensions" | "shape" | "face" | "missin
 export const SUPPORT_ISSUES: Record<SupportIssue,[string,string]> = {
   invalid:["承托资料格式无效","Invalid support profile"], dimensions:["箱规已变化，须重新录入并绑定资料","Carton dimensions changed; re-enter and bind support data"],
   shape:["首阶段仅检查长方体箱规","This stage checks rectangular cartons only"], face:["指定原始底面 H− 未朝下","The specified original H− face is not facing down"],
-  "missing-product":["缺少当前原始箱规，无法复核","Current original carton data is missing"], "no-contact":["底面没有有效接触","No effective bottom contact"],
+  "missing-product":["缺少当前原始箱规，无法复核","Current original carton data is missing"], "no-contact":["没有达到横向接触比例的有效支承区","No support interval meets the transverse contact ratio"],
   band:["指定支承带接触比例不足","A required support band has insufficient contact"], span:["中部悬跨超过输入上限","Internal unsupported span exceeds the entered limit"], overhang:["端部悬挑超过输入上限","End overhang exceeds the entered limit"],
   limits:["未填写悬跨或悬挑上限","Span or overhang limit is missing"], evidence:["缺少货物资料来源或版本","Cargo evidence source or revision is missing"],
   "base-evidence":["底座未记录完整实测来源与版本","Base measurement source and revision are incomplete"], surface:["存在尚未支持的曲面、孔洞或多边形接触","Curved, holed or polygonal contact is not checked in this stage"],
@@ -112,11 +112,11 @@ export function inspectLongSupport(plan:PackingResult, products?:readonly Produc
     const sweep=contactSlabs(row.contacts,length,width,profile.minimumContactRatio);
     row.bandRatios=profile.bands.map(band=>contactSlabs(row.contacts.map(c=>({...c,start:Math.max(band.start,c.start),end:Math.min(band.end,c.end)})).filter(c=>c.end>c.start),length,width,profile.minimumContactRatio).area/((band.end-band.start)*width));
     row.spanMm=sweep.intervals.length?sweep.intervals.reduce((n,v,i,a)=>i?Math.max(n,v[0]-a[i-1][1]):n,0):undefined;
-    row.overhangMm=sweep.intervals.length?[sweep.intervals[0][0],length-sweep.intervals.at(-1)![1]]:[length,length];
+    row.overhangMm=sweep.intervals.length?[sweep.intervals[0][0],length-sweep.intervals.at(-1)![1]]:undefined;
     if(!sweep.intervals.length)row.issues.push("no-contact");
     if(row.bandRatios.some(n=>n+EPS<profile.minimumContactRatio))row.issues.push("band");
     if(profile.maxSpanMm!==undefined&&row.spanMm!==undefined&&row.spanMm>profile.maxSpanMm+EPS)row.issues.push("span");
-    if(profile.maxOverhangMm!==undefined&&row.overhangMm.some(n=>n>profile.maxOverhangMm!+EPS))row.issues.push("overhang");
+    if(profile.maxOverhangMm!==undefined&&row.overhangMm?.some(n=>n>profile.maxOverhangMm!+EPS))row.issues.push("overhang");
     if(profile.maxSpanMm===undefined||profile.maxOverhangMm===undefined)row.issues.push("limits");
     if(!profile.source||!profile.revision)row.issues.push("evidence");
     row.issues=[...new Set(row.issues)];
