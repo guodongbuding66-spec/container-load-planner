@@ -1,3 +1,4 @@
+import {inspectHandlingSequence} from "./handling-sequence";
 import {accessoryInstallationPlan,ACCESSORY_TYPE_TEXT} from "./container-accessories";
 import {forkEvidenceGroups} from "./fork-interface";
 import { planCrateUnits, crateEvidence } from "./crate-bearing";
@@ -32,6 +33,8 @@ export function toCsvCell(value: string | number | null | undefined) {
 
 export function buildPlacementCsv(result: PackingResult): string {
   if(result.dimensionScenario){const base={...result};delete base.dimensionScenario;return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(i===0?["尺寸方案ID","尺寸口径"]:[result.dimensionScenario!.id,result.dimensionScenario!.kind])].map(toCsvCell).join(",")).join("\r\n");}
+  if(result.handlingTasks?.length){const base={...result,handlingTasks:undefined};return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(!i?["设备连贯任务JSON","设备连贯预检JSON"]:[i===1?JSON.stringify(result.handlingTasks):"",i===1?JSON.stringify(result.handlingTasks!.map(task=>({unitId:task.unitId,revision:task.revision,check:inspectHandlingSequence(result,task)}))):""])].map(toCsvCell).join(",")).join("\r\n");}
+
   const forkGroups=forkEvidenceGroups(result);
   if(forkGroups.some(g=>g.config.forkInterface)){
     const strip=(c:NonNullable<PackingResult["floorPallets"]>)=>{const copy={...c};delete copy.forkInterface;return copy;},value=result.palletization;

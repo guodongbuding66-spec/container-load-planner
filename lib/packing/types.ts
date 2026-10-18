@@ -340,6 +340,8 @@ export type QuoteEstimate = {
 };
 
 export type PackingResult = {
+  /** Independent handling tasks; never packing authorization or cached check conclusions. */
+  handlingTasks?: import("./handling-sequence").HandlingTask[];
   dimensionScenario?: import("./dimension-scenarios").DimensionScenarioTag;
   workflow?: LoadingWorkflow;
   palletBuild?: PalletBuildOptions;

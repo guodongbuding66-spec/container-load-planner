@@ -163,3 +163,4 @@
 .equipment-input-grid fieldset{margin:0;display:grid;gap:8px}
 .equipment-template-buttons{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 .equipment-check-result{padding:16px;border:1px solid var(--line,#d5dce0);border-radius:8px;margin:16px 0}
+.handling-steps{min-width:900px}.handling-steps small{display:block}.handling-pose-input{display:flex;gap:4px}.handling-pose-input input{width:88px;min-height:36px;padding:5px;border:1px solid var(--line,#d5dce0);border-radius:5px}

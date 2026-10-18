@@ -49,7 +49,7 @@ function unitEnvelope(plan:PackingResult,id:string):Box{
  const x=Math.min(p.x,...cargo.map(b=>b.x)),y=Math.min(p.y,...cargo.map(b=>b.y)),z=Math.min(p.z,...cargo.map(b=>b.z)),top=Math.max(p.z+(p.enclosureHeight??p.dz),...cargo.map(b=>b.z+b.dz));return {x,y,z,dx:Math.max(p.x+p.dx,...cargo.map(b=>b.x+b.dx))-x,dy:Math.max(p.y+p.dy,...cargo.map(b=>b.y+b.dy))-y,dz:top-z};
 }
 /** Continuous AABB sweep is exact for a rigid box translating on one axis. Rounded/concave loads use their conservative unit exterior. No path search or turn sampling. */
-export function inspectEquipmentAction(plan:PackingResult,id:string,task:EquipmentTask):EquipmentCheck{
+export function inspectEquipmentAction(plan:PackingResult,id:string,task:EquipmentTask,stationaryTarget:HandlingPose={x:0,y:0,lift:0}):EquipmentCheck{
  const out:EquipmentCheck={state:"unverified",issues:[],sweeps:[],forkEvidence:"unverified",method:EQUIPMENT_MODEL,unverified:EQUIPMENT_UNVERIFIED.map(t=>t[1])};
  const add=(code:EquipmentIssueCode,component="",ids:string[]=[])=>{if(!out.issues.some(i=>i.code===code&&i.component===component&&JSON.stringify(i.ids)===JSON.stringify(ids)))out.issues.push({code,component,ids});};
  const p=plan.pallets?.find(p=>p.id===id),config=p&&forkConfigForPallet(plan,p);
@@ -103,7 +103,7 @@ export function inspectEquipmentAction(plan:PackingResult,id:string,task:Equipme
    // With a coupled load only the equipment-to-load relative pose is checked; fork and cargo move together.
    const relative=a.mode==="loaded"?sweep(physical(part.box,plan.clearance),physical(part.box,plan.clearance),g):b;
    // Vertical lift does not lift the chassis; compare its sweep to the carried unit sweep too.
-   const targets=a.mode==="loaded"&&!part.lifts?target.map(t=>({...sweep(moved(t,{x:0,y:0,lift:a.from.lift},true),moved(t,{x:0,y:0,lift:a.to.lift},true),0),id:t.id})):target;
+   const targets=a.mode==="fork-only"?target.map(t=>({...moved(t,stationaryTarget,true),id:t.id})):!part.lifts?target.map(t=>({...sweep(moved(t,{x:0,y:0,lift:a.from.lift},true),moved(t,{x:0,y:0,lift:a.to.lift},true),0),id:t.id})):target;
    const selfHits=targets.filter(t=>overlaps(relative,t)).map(t=>t.id);if(selfHits.length)add("target",part.component,selfHits);
   }
  }

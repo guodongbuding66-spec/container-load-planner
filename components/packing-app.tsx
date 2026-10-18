@@ -115,6 +115,7 @@ import { PalletBuildSettings } from "./pallet-build-settings";
 import { DEFAULT_PALLET_BUILD, parseLoadingWorkflow, parsePalletBuild } from "../lib/packing/loading-workflow";
 import type { LoadingWorkflow, PalletBuildOptions } from "../lib/packing/types";
 import { PrebuiltPalletPanel } from "./prebuilt-pallet-panel";
+import {setHandlingTask,type HandlingTask} from "../lib/packing/handling-sequence";
 import { PalletManifest } from "./pallet-manifest";
 import { PlanReviewPanel, ResultAuditPanel } from "./result-audit-panel";
 import { reviewPlan } from "../lib/packing/plan-review";
@@ -1550,7 +1551,8 @@ export function PackingApp() {
   };
   const workspaceBackup = useMemo(() => serializeWorkspaceBackup({workflow,palletBuild,floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,result,resultBundle?.strategyPlans), [workflow,palletBuild,floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit,result,resultBundle?.strategyPlans]);
   const upgradesDisabled = hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0 || status === "working";
-  const adoptManualPlan=(next:PackingResult)=>{next={...next,delivery:next.delivery??result?.delivery,accessConfig:next.accessConfig??result?.accessConfig};clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。"));};
+  const adoptManualPlan=(next:PackingResult)=>{next={...next,delivery:next.delivery??result?.delivery,accessConfig:next.accessConfig??result?.accessConfig,handlingTasks:next.handlingTasks??result?.handlingTasks};clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。"));};
+  const saveHandlingTask=(task:HandlingTask|undefined,id:string)=>{if(!result||upgradesDisabled||dirty)return;const next=setHandlingTask(result,task,id),plans={...resultBundle?.strategyPlans,[result.strategy]:next};setAutoCalculate(false);setResultBundle({...next,strategyPlans:plans});setMessage(tr("已保存独立搬运任务；未改变箱位、库存或五项复核。请备份工作区保留任务。","Independent handling task saved; placements, stock and the five reviews are unchanged. Back up the workspace to retain tasks."));};
   const planEditor=usePlanEditor(result,activeProducts,upgradesDisabled||!result?.validation.valid||result.metrics.loadedCount!==result.placements.length,adoptManualPlan);
   const fleetRequest: PackingRequest = {delivery:result?.delivery,accessConfig:result?.accessConfig, floorPallets, loadingRules, mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
 
@@ -1681,7 +1683,7 @@ export function PackingApp() {
         {workflowStep===1 && <section className="wizard-page" aria-label={tr("第一步：货物清单")}>
           <div className="wizard-page-heading"><div><span className="section-kicker">STEP 01</span><h2>{tr("货物清单")}</h2><p>{tr("先录入完整箱规、毛重与数量，再确认装载空间。")}</p></div><div className="wizard-input-summary"><strong>{activeProducts.length}{tr(" 个箱型")}</strong><span>{inputVolume.toFixed(2)} m³ · {formatNumber(inputWeight,1)} kg{mode==="single"?tr(" / 单件或单套"):tr(" / 订单")}</span></div></div>
           <article className="panel wizard-mode"><h3>{tr("计算模式")}</h3>              <div className="loading-workflow-options" role="group" aria-label={tr("装载方式", "Loading workflow")}>
-                {([ ["direct", "直接装箱", "Direct load", "多 SKU 拼柜"], ["pallet-only", "只打托不装箱", "Palletize only", "订单 → 独立托盘"], ["palletized", "先打托后装箱", "Palletize then load", "订单 → 整托 → 装柜"], ["single-capacity", "单品单箱测算", "Single product capacity", "支持单品多箱整套测算"] ] as const).map(([value, zh, en, hint]) => <button key={value} aria-pressed={workflow === value} className={workflow === value ? "active" : ""} onClick={() => { if (workflow !== value) { clearNumericDraftErrors(); palletDraftRef.current=null; setLoadingWorkflow(value); setMode(value === "single-capacity" ? "single" : "mixed"); markDirty(); } }}><strong>{tr(zh, en)}</strong><small>{tr(hint, value === "direct" ? "Mixed-SKU order" : value === "pallet-only" ? "Order → independent pallets" : value === "palletized" ? "Order → loaded pallets → vehicle" : "Single or multi-carton product")}</small></button>)}
+                {([ ["direct", "直接装箱", "Direct load", "多 SKU 拼柜"], ["pallet-only", "只打托不装箱", "Palletize only", "订单 → 独立托盘"], ["palletized", "先打托后装箱", "Palletize then load", "订单 → 整托 → 装柜"], ["single-capacity", "单品单箱测算", "Single product capacity", "支持单品多箱整套测算"] ] as const).map(([value, zh, en, hint]) => <button key={value} aria-pressed={workflow === value} className={workflow === value ? "active" : ""} onClick={() => { if (workflow !== value) { commitPendingDimensions(); clearNumericDraftErrors(); palletDraftRef.current=null; setLoadingWorkflow(value); setMode(value === "single-capacity" ? "single" : "mixed"); markDirty(); } }}><strong>{tr(zh, en)}</strong><small>{tr(hint, value === "direct" ? "Mixed-SKU order" : value === "pallet-only" ? "Order → independent pallets" : value === "palletized" ? "Order → loaded pallets → vehicle" : "Single or multi-carton product")}</small></button>)}
               </div>
               <p className="helper-text">{mode === "single"
                 ? isSingleProductSet
@@ -2262,7 +2264,7 @@ export function PackingApp() {
             </div>
 
             <ContainerAccessoryManifest result={result} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors}/>
-            <PalletManifest result={result} products={activeProducts} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors} onAdopt={adoptManualPlan}/>
+            <PalletManifest onHandlingTask={saveHandlingTask} result={result} products={activeProducts} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors} onAdopt={adoptManualPlan}/>
             <article id="coordinates" className="panel coordinate-panel">
               <div className="panel-head">
                 <div><span className="section-kicker">PLACEMENT DATA</span><h2>{tr("三维坐标与装载清单")}</h2><p>{tr("预览前 80 条；导出包含全部 ")}{formatNumber(result.placements.length)}{tr(" 条可视化摆放记录。")}</p></div>

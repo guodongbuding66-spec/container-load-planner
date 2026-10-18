@@ -1,3 +1,4 @@
+import {inspectHandlingSequence,HANDLING_STATE_TEXT,HANDLING_KIND_TEXT} from "./handling-sequence";
 import {accessoryInstallationPlan,containerAccessoryWeight,ACCESSORY_TYPE_TEXT} from "./container-accessories";
 import {forkEvidenceGroups,forkEvidenceReady,inspectForkInterface,FORK_NUMBERS,FORK_NUMBER_TEXT,FORK_DIRECTION_TEXT} from "./fork-interface";
 import {siteExcludedVolume} from "./site-exclusions";
@@ -97,6 +98,19 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
     text(t("不核验设备能力、叉车本体、起升、转弯、作业顺序或动态受力。","Equipment capacity, truck body, lifting, turning, handling order and dynamic forces are unverified."),100,1855,25);
     text(t("三类载荷没有复制为求解上限，几何通过不构成作业放行。","Separate ratings do not replace the packing limit; a geometric pass does not authorize handling."),100,1920,25);
     await finish();
+  }
+  for(const task of result.handlingTasks??[]){
+    const check=inspectHandlingSequence(result,task);
+    for(let from=0;from<Math.max(1,check.steps.length);from+=7){start(t("连贯搬运独立预检","Independent connected handling preflight"));
+    text(ellipsis(`${task.unitId} / ${task.revision} · ${t(...HANDLING_STATE_TEXT[check.state])}`,1500),100,310,28,true);
+    text(ellipsis(`${t("设备来源／版本","Equipment source / revision")}: ${task.equipment.source} / ${task.equipment.revision}`,1500),100,375,24);
+    text(ellipsis(`${t("现场来源／版本","Site source / revision")}: ${task.site.source} / ${task.site.revision}`,1500),100,425,24);
+    check.steps.slice(from,from+7).forEach((row,i)=>{const step=task.steps[from+i],y=540+i*190;text(ellipsis(`${row.id} · ${t(...HANDLING_KIND_TEXT[row.kind])} · ${t(...HANDLING_STATE_TEXT[row.state])}`,1500),100,y,26,true);text(`X/Y/lift mm: ${step.from.x}/${step.from.y}/${step.from.lift} → ${step.to.x}/${step.to.y}/${step.to.lift}`,100,y+50,24);text(ellipsis([...row.issues,...(row.geometry?.issues.map(v=>`${v.component}: ${v.code} ${v.ids.join(" / ")}`)??[])].join("; ")||"—",1500),100,y+95,23);});
+    text(ellipsis(`${t("任务提示","Task issues")}: ${check.issues.join(" / ")||"—"}`,1500),100,1980,24);
+    text(t("转弯未执行；设备能力、动态受力、轮压与现场作业仍未核验。","Turning not executed; capacity, dynamics, wheel pressure and field handling remain unverified."),100,2070,24);
+    text(t("本页为独立任务摘要，不改变五项复核，也不构成现场放行。","This independent task summary does not change the five reviews or authorize field handling."),100,2135,24);
+    text(t("完整来源、动作及连续扫掠见工作区备份与独立任务 JSON。","See workspace backup and independent task JSON for full sources, steps and continuous sweeps."),100,2200,24);await finish();}
+
   }
   for(const group of crateEvidenceGroups(result)){
     start(t("木箱额定资料（独立预检）","Crate rating evidence (independent preflight)"));

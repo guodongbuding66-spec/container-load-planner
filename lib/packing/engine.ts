@@ -1,4 +1,5 @@
 import {containerAccessoryWeight,accessoryMassBoxes,accessoryProductErrors} from "./container-accessories";
+import {parseHandlingTasks} from "./handling-sequence";
 import {parseSiteExclusions,siteExclusionBoxes,availablePackingVolume,SITE_EXCLUSION_PREFIX} from "./site-exclusions";
 import { packagingReservedVolume, packagingMassCenter } from "./packaging";
 import { parseLoadingWorkflow, parsePalletBuild } from "./loading-workflow";
@@ -41,7 +42,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.37.0";
+export const ENGINE_VERSION = "0.38.0";
 
 type Orientation = {
   dx: number;
@@ -2618,7 +2619,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   const effectiveVolume=palletization?.only ? independentPalletVolume(palletization,pallets) : availablePackingVolume(request.container,request.clearance);
   const workflow=raw.workflow===undefined ? palletization?.only ? "pallet-only" : palletization ? "palletized" : request.workflow : parseLoadingWorkflow(raw.workflow,request.mode);
   const palletBuild=raw.palletBuild===undefined ? request.palletBuild : parsePalletBuild(raw.palletBuild);
-  return {workflow,palletBuild,id:`restored-${Date.now()}`,mode:request.mode,strategy:raw.strategy,practicalTargetUtilization:practicalTarget(normalized),engineVersion:ENGINE_VERSION,
+  return {handlingTasks:parseHandlingTasks(raw.handlingTasks),workflow,palletBuild,id:`restored-${Date.now()}`,mode:request.mode,strategy:raw.strategy,practicalTargetUtilization:practicalTarget(normalized),engineVersion:ENGINE_VERSION,
     accessConfig:parseAccessConfig(raw.accessConfig),palletization,delivery:parseDelivery(raw.delivery,new Set(products.map(p=>p.id))),floorPallets:request.floorPallets,pallets,container:request.container,clearance:request.clearance,singleCartonLimit:normalized.singleCartonLimit,placements:ordered,summaries,setSummaries,validation,
     metrics:{...envelopeMetrics(ordered,products,effectiveVolume,pallets),loadedCount:ordered.length,requestedCount:summaries.reduce((n,s)=>n+s.requested,0),loadedVolume,grossWeight,effectiveVolume,
       volumeUtilization:loadedVolume/effectiveVolume,weightUtilization:grossWeight/request.container.maxWeight,
