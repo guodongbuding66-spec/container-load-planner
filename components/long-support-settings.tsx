@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { parseLongSupport, type LongSupportProfile } from "../lib/packing/long-support";
 import type { ProductInput } from "../lib/packing/types";
+import { cargoShapeOf } from "../lib/packing/cargo-shape";
 import { tr, useLanguage } from "./language";
 
 type Draft={ enabled:boolean; dimensions:LongSupportProfile["dimensions"]; axis:"L"|"W"; bands:string; ratio:string; span:string; overhang:string; source:string; revision:string };
@@ -23,7 +24,7 @@ export function LongSupportSettings({product,onChange,onValidity}:{product:Produ
     try{const value=supportSettingsValue(next);setInvalid(false);onValidity(true);onChange(value);}catch{setInvalid(true);onValidity(false);}
   };
   const stale=(["length","width","height"] as const).some(k=>Math.abs(product[k]-draft.dimensions[k])>.0001);
-  const supported=!product.solidModel&&(product.cargoShape===undefined||product.cargoShape==="box");
+  const supported=!product.solidModel&&cargoShapeOf(product)==="box";
   return <details className="long-support-settings" open={draft.enabled||undefined}>
     <summary>{tr("长条箱承托与悬跨资料","Long-carton support and span data")}</summary>
     <p>{tr("独立几何预检，不自动重排或放行箱位。指定原始底面 H−；支承带沿原始 L 或 W，横跨整个另一方向，每条都须达到填写的接触比例。所有数值固定为 mm。","Independent geometry preflight; it neither repacks nor authorizes placements. Uses the original H− bottom face. Bands follow original L or W across the full transverse width; every band must meet the entered contact ratio. All dimensions here are always mm.")}</p>

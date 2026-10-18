@@ -1,6 +1,7 @@
 import type { PackingResult, PlacedBox, ProductInput } from "./types";
 import { bodyTopPatches, orientationAxes, validOrientationSigns } from "./cargo-body";
 import { placedPackagingParts } from "./packaging";
+import { cargoShapeOf } from "./cargo-shape";
 
 const EPS = .0001;
 export type LongSupportProfile = {
@@ -63,7 +64,7 @@ function contactSlabs(contacts:Rect[],length:number,width:number,ratio:number) {
   }
   return {area,intervals};
 }
-function rectangular(p: ProductInput | undefined) { return !!p && !p.solidModel && (p.cargoShape === undefined || p.cargoShape === "box"); }
+function rectangular(p: ProductInput | undefined) { return !!p && !p.solidModel && cargoShapeOf(p) === "box"; }
 /** Independent check only: never changes quantities, places supports, or certifies material strength. */
 export function inspectLongSupport(plan:PackingResult, products?:readonly ProductInput[]):LongSupportRow[] {
   const rules=new Map(products?.map(p=>[p.id,p])??[]);
