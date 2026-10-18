@@ -16,6 +16,7 @@ import { CargoShapeSizes } from "./cargo-shape-sizes";
 import { FeatureDialog } from "./feature-dialog";
 import { CargoModelTrial } from "./cargo-model-trial";
 import { type SolidModel } from "../lib/packing/solid-model";
+import { LongSupportSettings } from "./long-support-settings";
 import { CargoFitNotice } from "./cargo-fit-notice";
 import { tr, useLanguage } from "./language";
 
@@ -29,6 +30,7 @@ export function CargoSettings({ product, mode, lengthUnit: initialLengthUnit, we
   const [sizeOptions,setSizeOptions]=useState(()=>sizeOptionsOf(product));
   const [values,setValues]=useState(()=>({weight:String(fromKilograms(Math.max(0,product.weight-(product.solidModel?buildSolidModel(product.solidModel).fixtureWeight:0)),weightUnit)),quantity:String(product.quantity),layers:String(product.maxStackLayers),base:String(fromMillimeters(product.palletBaseHeight??144,lengthUnit))}));
   const [previewCode,setPreviewCode]=useState<OrientationCode>("LWH"),[activeDimension,setActiveDimension]=useState<string|undefined>(),[selectedPart,setSelectedPart]=useState<string|undefined>();
+  const [supportInputValid,setSupportInputValid]=useState(true);
   const [error,setError]=useState(""),[modelInputValid,setModelInputValid]=useState(true),[modelBusy,setModelBusy]=useState(false),[modelSession,setModelSession]=useState(0),[protection,setProtection]=useState(()=>String(fromMillimeters(product.protectionGap??0,lengthUnit)));
   const shape=cargoShapeOf(draft),profile=isRectilinearShape(draft),canSupport=shapeCanSupport(draft);
   const geometry=useMemo(()=>{
@@ -70,6 +72,7 @@ export function CargoSettings({ product, mode, lengthUnit: initialLengthUnit, we
   const update=(key:keyof typeof values,value:string)=>{setValues(v=>({...v,[key]:value}));setError("");};
   const save=()=>{try{
     const numeric=(key:keyof typeof values,min:number,integer=false)=>{const n=Number(values[key]);if(!values[key].trim()||!Number.isFinite(n)||n<min||(integer&&!Number.isInteger(n)))throw new Error(tr("请完成所有数字，并使用有效的尺寸、重量和数量。","Complete every numeric field with valid dimensions, weight and quantity."));return n;};
+    if(!supportInputValid)throw new Error(tr("请完成长条箱承托资料。","Complete long-carton support data."));
     if(modelBusy||!modelInputValid)throw new Error(tr("请完成模型参数后再保存。","Complete model parameters before saving."));
     if(ADVANCED_SHAPES.includes(shape)&&!draft.solidModel)throw new Error(tr("请完成模型导入或实体参数。","Complete model import or solid parameters."));
     let size:ReturnType<typeof resolveShapeSize>;
@@ -91,7 +94,7 @@ export function CargoSettings({ product, mode, lengthUnit: initialLengthUnit, we
   const trialProduct=useMemo(()=>({...draft,...geometry.size,weight:toKilograms(Number(values.weight),weightUnit)+(geometry.valid&&draft.solidModel?buildSolidModel(draft.solidModel).fixtureWeight:0),allowedOrientations:directions,protectionGap:toMillimeters(Number(protection),lengthUnit)}),[draft,geometry.size,geometry.valid,values.weight,weightUnit,directions,protection,lengthUnit]);
   const previewSize=[geometry.size.length,geometry.size.width,geometry.size.height];
   const envelope=previewSize.map(n=>Number(fromMillimeters(n,lengthUnit).toPrecision(8)).toLocaleString(undefined,{maximumFractionDigits:5})).join(" × ");
-  return <FeatureDialog wide fullscreen={modeling} title={tr("货物设置")} subtitle={product.sku} onClose={onClose} footer={<><p role="alert">{error?tr(error):tr("全部录入完成后保存；第二步确认配置后统一计算。","Save all cargo fields, then confirm loading setup.")}</p><button className="button" onClick={onClose}>{tr("取消")}</button><button className="button primary" disabled={modelBusy} onClick={save}>{tr("保存设置")}</button></>}>
+  return <FeatureDialog wide fullscreen={modeling} title={tr("货物设置")} subtitle={product.sku} onClose={onClose} footer={<><p role="alert">{error?tr(error):tr("全部录入完成后保存；第二步确认配置后统一计算。","Save all cargo fields, then confirm loading setup.")}</p><button className="button" onClick={onClose}>{tr("取消")}</button><button className="button primary" disabled={modelBusy||!supportInputValid} onClick={save}>{tr("保存设置")}</button></>}>
     <div className="feature-choice-grid cargo-type-choices cargo-types-compact">{CARGO_TYPES.map(type=><button type="button" className={`feature-choice ${draft.cargoType===type?"selected":""}`} key={type} aria-pressed={draft.cargoType===type} onClick={()=>type==="pallet"?selectShape("box",type):setDraft(v=>({...v,cargoType:type}))}><Package size={16}/><strong>{tr(CARGO_LABELS[type])}</strong></button>)}</div>
     <section className={`cargo-shape-section ${modeling?"cargo-modeling-workbench":""}`} aria-label={tr("货物外形","Cargo shape")}><h3 className="feature-section-heading">{tr("实际外形","Package shape")}</h3>
       <div className="cargo-dimension-unit"><label>{tr("尺寸录入单位","Dimension input unit")}<select aria-label={tr("货物尺寸单位","Cargo dimension unit")} value={lengthUnit} disabled={!geometry.valid||!modelInputValid||modelBusy||!protection.trim()||!Number.isFinite(Number(protection))} onChange={e=>changeLengthUnit(e.target.value as LengthUnit)}>{["mm","cm","m","in"].map(unit=><option key={unit} value={unit}>{unit}</option>)}</select></label><span>{tr("切换会换算数值，保持实际尺寸；请按所选单位输入。","Switching converts values and preserves physical size; enter dimensions in the selected unit.")}</span></div>
@@ -110,6 +113,7 @@ export function CargoSettings({ product, mode, lengthUnit: initialLengthUnit, we
       {draft.cargoType==="pallet"&&<label>{tr("托盘底座高度","Pallet base height")} ({lengthUnit})<input inputMode="decimal" value={values.base} onChange={e=>update("base",e.target.value)}/><small>{tr("已包含在外箱总高内","Included in outer height")}</small></label>}
     </div>
     <div className="feature-toggle-row"><label><input type="checkbox" checked={canSupport&&draft.stackable} disabled={!canSupport} onChange={e=>setDraft(v=>({...v,stackable:e.target.checked}))}/>{tr("可承托")}</label><label><input type="checkbox" checked={draft.bottomOnly??false} onChange={e=>setDraft(v=>({...v,bottomOnly:e.target.checked}))}/>{tr("必须底置")}</label></div>
+    <LongSupportSettings product={{...draft,...geometry.size}} onChange={longSupport=>setDraft(v=>({...v,longSupport}))} onValidity={setSupportInputValid}/>
     <h3 className="feature-section-heading"><Box size={17}/>{tr("摆放方向")}</h3><p className="feature-muted">{tr("下方为实际外形；L／W／H 对应原始长／宽／高，箭头为朝上轴。","Thumbnails show the actual shape. L/W/H are original axes; the arrow indicates the upward axis.")}</p>
     <div className="orientation-choices cargo-shape-orientations">{ORIENTATION_CODES.map(code=><button type="button" key={code} className={`orientation-choice ${directions.includes(code)?"selected":""}`} aria-pressed={directions.includes(code)} onClick={()=>setDirections(v=>v.includes(code)?v.filter(c=>c!==code):[...v,code])}><CargoShapePreview shape={shape} fields={geometry.size} dimensions={previewSize} orientation={code}/><strong>{code} · {code[2]} ↑</strong>{directions.includes(code)&&<Check size={14}/>}</button>)}</div>
   </FeatureDialog>;

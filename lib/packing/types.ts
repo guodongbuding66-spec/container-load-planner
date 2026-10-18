@@ -92,6 +92,8 @@ export type ContainerSpec = {
 };
 
 export type ProductInput = {
+  /** Independent original-H-minus face support preflight; never a strength certificate. */
+  longSupport?: import("./long-support").LongSupportProfile;
   /** Only used by the independent conservative scenario, never applied to nominal packing. */
   dimensionAllowance?: import("./dimension-allowance").DimensionAllowance;
   /** Validated physical model, shared by rendering, collision and flat-face support. */
@@ -351,7 +353,7 @@ export type PackingResult = {
   floorPallets?: FloorPalletConfig;
   pallets?: PlacedPallet[];
   loadingRules?: LoadingRules;
-  cargoDetails?: Record<string, Pick<ProductInput, "cargoType" | "palletBaseHeight" | "cargoShape" | "shapeAxis" | "shapeTopRatio" | "shapeWallRatio" | "shapeWallHeightRatio" | "shapeStepLengthRatio" | "shapeStepHeightRatio" | "solidModel" | "protectionGap">>;
+  cargoDetails?: Record<string, Pick<ProductInput, "cargoType" | "palletBaseHeight" | "cargoShape" | "shapeAxis" | "shapeTopRatio" | "shapeWallRatio" | "shapeWallHeightRatio" | "shapeStepLengthRatio" | "shapeStepHeightRatio" | "solidModel" | "protectionGap" | "longSupport">>;
   id: string;
   mode: PackingMode;
   strategy: PackingStrategy;

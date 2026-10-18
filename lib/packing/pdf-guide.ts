@@ -1,3 +1,4 @@
+import {inspectLongSupport,SUPPORT_ISSUES} from "./long-support";
 import {inspectHandlingSequence,HANDLING_STATE_TEXT,HANDLING_KIND_TEXT} from "./handling-sequence";
 import {accessoryInstallationPlan,containerAccessoryWeight,ACCESSORY_TYPE_TEXT} from "./container-accessories";
 import {forkEvidenceGroups,forkEvidenceReady,inspectForkInterface,FORK_NUMBERS,FORK_NUMBER_TEXT,FORK_DIRECTION_TEXT} from "./fork-interface";
@@ -54,6 +55,20 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
   text(`${review.passed} ${t("项通过","passed")} · ${review.failed} ${t("项不通过","failed")} · ${review.unverified} ${t("项未核验","unverified")}`,100,315,32,true);
   review.checks.forEach((c,i)=>{const y=420+i*345;text(`${t(...REVIEW_TITLES[c.id])} · ${t(...REVIEW_STATES[c.state])}`,100,y,32,true);let line="",row=0;ctx.font="25px Arial,sans-serif";for(const char of t(...c.scope)){if(ctx.measureText(line+char).width>1500){text(line,100,y+55+row++*40,25);line="";}line+=char;}text(line,100,y+55+row*40,25);if(c.items.length)text(ellipsis(c.items.slice(0,3).join(" · "),1500),100,y+245,24);});
   await finish();
+  const longSupport=inspectLongSupport(result,products);
+  for(let from=0;from<longSupport.length;from+=5){
+    start(t("长条箱承托预检（独立几何）","Long-carton support preflight (independent geometry)"));
+    text(t("所有尺寸 mm；不自动重排或放行箱位；材料强度未核验。完整资料见工作区或客户报告。","All sizes in mm; no automatic repacking or placement authorization. Material strength is unverified. Complete data: workspace or customer report."),100,305,24);
+    longSupport.slice(from,from+5).forEach((r,i)=>{const y=410+i*375;
+      text(ellipsis(`${r.sku} / ${r.id}`,1500),100,y,28,true);
+      text(r.state==="pass"?t("符合输入几何限制","Meets entered geometric limits"):r.state==="fail"?t("不符合输入几何限制","Exceeds entered geometric limits"):t("未核验","Unverified"),100,y+45,26,true);
+      text(`${t("每带接触 %","Band contact %")}: ${r.bandRatios.map(n=>(Math.min(1,n)*100).toFixed(1)).join(" / ")||"—"}`,100,y+95,24);
+      text(`${t("悬跨 / 上限","Span / limit")}: ${r.spanMm?.toFixed(1)??"—"} / ${r.profile?.maxSpanMm??"—"}; ${t("首尾悬挑 / 每端上限","End overhangs / each-end limit")}: ${r.overhangMm?.map(n=>n.toFixed(1)).join(" / ")??"—"} / ${r.profile?.maxOverhangMm??"—"}`,100,y+140,24);
+      text(ellipsis(`${t("来源 / 版本","Source / revision")}: ${r.profile?.source||"—"} / ${r.profile?.revision||"—"}`,1500),100,y+185,24);
+      text(ellipsis(r.issues.map(i=>SUPPORT_ISSUES[i][en?1:0]).join("; "),1500),100,y+230,24);
+      text(ellipsis(`${t("接触来源","Contact sources")}: ${r.supporterIds.join(" / ")||"—"}`,1500),100,y+275,23);
+    });await finish();
+  }
   for (let startAt = 0; startAt < result.summaries.length; startAt += 28) { start(t("货物清单", "Cargo manifest")); const columns = [100, 630, 990, 1260]; ["SKU", t("需求 / 已装", "Requested / loaded"), t("重量 kg", "Weight kg"), t("体积 m³", "Volume m³")].forEach((v, i) => text(v, columns[i], 310, 27, true)); result.summaries.slice(startAt, startAt + 28).forEach((s, i) => { const y = 375 + i * 64; text(ellipsis(s.sku, 495), columns[0], y, 26); text(`${s.requested} / ${s.loaded}`, columns[1], y, 26); text(s.loadedWeight.toFixed(1), columns[2], y, 26); text((s.loadedVolume / 1e9).toFixed(3), columns[3], y, 26); }); await finish(); }
   for(let startAt=0;startAt<(result.pallets?.length??0);startAt+=28){start(result.workflow==="pallet-only"?t("独立托盘清单与自重","Independent pallet manifest and tare"):result.palletization?t("整托入柜与自重","Complete pallet placement and tare"):t("底层托盘铺设与自重","Floor pallet layout and tare"));text(result.workflow==="pallet-only"?t("按关联清单独立打托，货物限高不含底座，总重含托盘自重。","Build each listed pallet independently. Cargo height excludes decks; gross weight includes tare."):result.palletization?t("按托盘关联清单在柜外打托，再整托入柜；货物 Z 已包含底座。","Build associated cargo on each pallet outside, then load complete pallets; Z includes decks."):t("先铺设托盘；货物 Z 已包含底座高度，勿再次加高。","Place pallets first. Cargo Z already includes the base height."),100,310,27,true);result.pallets!.slice(startAt,startAt+28).forEach((p,i)=>{const y=390+i*64;text(`${p.id} · ${p.name}`,100,y,25);text(`${p.x} / ${p.y} / ${p.z}`,700,y,25);text(`${p.dx} × ${p.dy} × ${p.enclosureHeight??p.dz}`,1100,y,25);text(`${p.weight} kg`,1530,y,25);});await finish();}
   if(result.container.exclusions?.length){

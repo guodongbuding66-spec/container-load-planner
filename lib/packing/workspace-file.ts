@@ -1,4 +1,5 @@
 import {parsePalletLayerTemplates,type PalletLayerTemplate} from "./pallet-layer";
+import {parseLongSupport} from "./long-support";
 import {parseSiteExclusions} from "./site-exclusions";
 import { parseDimensionAllowance } from "./dimension-allowance";
 import { parseLoadingWorkflow, parsePalletBuild } from "./loading-workflow";
@@ -80,6 +81,7 @@ export function parseProductInput(value: unknown): ProductInput {
     ...(v.topLoadByVerticalAxis === undefined ? {} : {topLoadByVerticalAxis: Object.fromEntries(Object.entries(record(v.topLoadByVerticalAxis)).map(([k,n])=>{if(!["length","width","height"].includes(k))throw new Error("承重方向无效");return [k,number(n)];}))}),
     ...(v.source === undefined ? {} : {source:(()=>{const source=record(v.source);if(source.system!=="aftos")throw new Error("来源无效");return {system:"aftos" as const,skuId:text(source.skuId,120),packageId:text(source.packageId,120),orderId:text(source.orderId,120)};})()}),
     ...(v.packaging === undefined ? {} : {packaging: (()=>{const p=record(v.packaging);return {revision:text(p.revision,100),effectiveDate:text(p.effectiveDate,10),notes:text(p.notes,2000)};})()}),
+    ...(v.longSupport === undefined ? {} : { longSupport: parseLongSupport(v.longSupport) }),
     ...(v.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: number(v.maxTopLoadKg) }), color });
 }
 export function parseWorkspaceBackup(contents: string): WorkspaceInputs {

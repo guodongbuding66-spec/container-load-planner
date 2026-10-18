@@ -1,3 +1,4 @@
+import {parseLongSupport} from "./long-support";
 import type { CargoShape, ProductInput } from "./types";
 import { parseSolidModel, buildSolidModel } from "./solid-model";
 export const LEGACY_SHAPES: readonly CargoShape[] = ["box", "cylinder", "wedge", "trapezoid", "frustum", "l-profile", "u-profile", "t-profile", "step", "irregular"];
@@ -53,5 +54,5 @@ export function withShapeSupport(p: ProductInput): ProductInput {
 export function isRectilinearShape(p: ShapeFields) { return ["l-profile", "u-profile", "t-profile", "step"].includes(cargoShapeOf(p)); }
 export function shapeCanSupport(p: ShapeFields) { try{return p.solidModel?!!p.solidModel.loadFaces.length&&(buildSolidModel(p.solidModel).flatFaces.length+buildSolidModel(p.solidModel).caps.length>0):cargoShapeOf(p) === "box" || isRectilinearShape(p);}catch{return false;} }
 export function shapeDetails(p: ProductInput) {
-  return { ...parseShapeFields(p as unknown as Record<string, unknown>), cargoType: p.cargoType, palletBaseHeight: p.palletBaseHeight };
+  return { ...parseShapeFields(p as unknown as Record<string, unknown>), cargoType: p.cargoType, palletBaseHeight: p.palletBaseHeight, ...(p.longSupport===undefined?{}:{longSupport:parseLongSupport(p.longSupport)}) };
 }

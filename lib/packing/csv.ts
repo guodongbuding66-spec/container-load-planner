@@ -1,4 +1,5 @@
 import {inspectHandlingSequence} from "./handling-sequence";
+import {parseLongSupport} from "./long-support";
 import {accessoryInstallationPlan,ACCESSORY_TYPE_TEXT} from "./container-accessories";
 import {forkEvidenceGroups} from "./fork-interface";
 import { planCrateUnits, crateEvidence } from "./crate-bearing";
@@ -32,6 +33,10 @@ export function toCsvCell(value: string | number | null | undefined) {
 }
 
 export function buildPlacementCsv(result: PackingResult): string {
+  if(Object.values(result.cargoDetails??{}).some(p=>p.longSupport)){
+    const base={...result,cargoDetails:Object.fromEntries(Object.entries(result.cargoDetails??{}).map(([id,p])=>[id,{...p,longSupport:undefined}]))};
+    return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,!i?"长条箱承托资料JSON":row[15]==="cargo"?JSON.stringify(result.cargoDetails?.[result.placements[Number(row[0])-1]?.productId]?.longSupport??null):""].map(toCsvCell).join(",")).join("\r\n");
+  }
   if(result.dimensionScenario){const base={...result};delete base.dimensionScenario;return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(i===0?["尺寸方案ID","尺寸口径"]:[result.dimensionScenario!.id,result.dimensionScenario!.kind])].map(toCsvCell).join(",")).join("\r\n");}
   if(result.handlingTasks?.length){const base={...result,handlingTasks:undefined};return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(!i?["设备连贯任务JSON","设备连贯预检JSON"]:[i===1?JSON.stringify(result.handlingTasks):"",i===1?JSON.stringify(result.handlingTasks!.map(task=>({unitId:task.unitId,revision:task.revision,check:inspectHandlingSequence(result,task)}))):""])].map(toCsvCell).join(",")).join("\r\n");}
 
@@ -237,6 +242,7 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
       shapeStepHeightRatio:get("shapeStepHeightRatio").trim()?number("shapeStepHeightRatio",.000001,.999999):undefined,solidModel:get("solidModel").trim()?JSON.parse(get("solidModel")):undefined,protectionGap:get("protectionGap").trim()?toMillimeters(number("protectionGap",0),lengthUnit):undefined});
     return withShapeSupport({
       ...shape,
+      ...(get("longSupport").trim()?{longSupport:parseLongSupport(JSON.parse(get("longSupport")))}:{}),
       ...(get("dimensionAllowance").trim()?{dimensionAllowance:parseDimensionAllowance(JSON.parse(get("dimensionAllowance")))}:{}),
       ...(rawCargo ? { cargoType: rawCargo as ProductInput["cargoType"] } : {}),
       ...(allowedOrientations ? { allowedOrientations } : {}),

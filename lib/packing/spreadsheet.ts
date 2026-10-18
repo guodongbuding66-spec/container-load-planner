@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import { MAX_CSV_BYTES, MAX_CSV_ROWS, parseProductsCsv, toCsvCell } from "./csv";
-export const SPREADSHEET_COLUMNS = ["sku", "name", "length", "width", "height", "lengthUnit", "weight", "weightUnit", "quantity", "priority", "setCode", "unitsPerSet", "rotationPolicy", "stackable", "maxStackLayers", "mustLoad", "bottomOnly", "color", "maxTopLoadKg", "topLoadLengthKg", "topLoadWidthKg", "topLoadHeightKg", "allowedAboveSkus", "cargoType", "allowedOrientations", "minimumSupportRatio", "palletBaseHeight", "cargoShape", "shapeAxis", "shapeTopRatio", "shapeWallRatio", "shapeWallHeightRatio", "shapeStepLengthRatio", "shapeStepHeightRatio","solidModel","protectionGap"];
+export const SPREADSHEET_COLUMNS = ["sku", "name", "length", "width", "height", "lengthUnit", "weight", "weightUnit", "quantity", "priority", "setCode", "unitsPerSet", "rotationPolicy", "stackable", "maxStackLayers", "mustLoad", "bottomOnly", "color", "maxTopLoadKg", "topLoadLengthKg", "topLoadWidthKg", "topLoadHeightKg", "allowedAboveSkus", "cargoType", "allowedOrientations", "minimumSupportRatio", "palletBaseHeight", "cargoShape", "shapeAxis", "shapeTopRatio", "shapeWallRatio", "shapeWallHeightRatio", "shapeStepLengthRatio", "shapeStepHeightRatio","solidModel","protectionGap","longSupport"];
 
 /** Validate ZIP directory sizes before ExcelJS inflates any entry. */
 export function validateSpreadsheetZip(buffer: ArrayBuffer) {
@@ -37,6 +37,7 @@ export async function createSpreadsheetTemplate() {
     ["Profiles use solid blocks and horizontal support faces. Curved cargo reserves bounding envelopes and cannot support top loads."],
     ["solidModel: validated model JSON (model dimensions are always mm). protectionGap uses lengthUnit; supporting contact is exempt."],
     ["Additional shapes: polygon,tube,reel,bend,ellipsoid,capsule,custom-prism,compound,mesh. Advanced shapes require solidModel."],
+    ["longSupport: versioned original-bottom support profile JSON. All profile dimensions are always mm; independent preflight only, no strength certification."],
     ["No formulas; import validates every row before replacing the current manifest."],
   ]); help.getColumn(1).width = 110;
   return new Uint8Array(await book.xlsx.writeBuffer());

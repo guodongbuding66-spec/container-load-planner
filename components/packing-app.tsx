@@ -117,6 +117,7 @@ import type { LoadingWorkflow, PalletBuildOptions } from "../lib/packing/types";
 import { PrebuiltPalletPanel } from "./prebuilt-pallet-panel";
 import {parsePalletLayerTemplates,type PalletLayerTemplate} from "../lib/packing/pallet-layer";
 import { PalletManifest } from "./pallet-manifest";
+import { LongSupportPanel } from "./long-support-panel";
 import { PlanReviewPanel, ResultAuditPanel } from "./result-audit-panel";
 import { reviewPlan } from "../lib/packing/plan-review";
 import { auditPackingResult } from "../lib/packing/result-audit";
@@ -1477,7 +1478,7 @@ export function PackingApp() {
 
   const downloadTemplate = () => {
     const lines = [
-      "sku,name,length,width,height,lengthUnit,weight,weightUnit,quantity,priority,setCode,unitsPerSet,rotationPolicy,stackable,maxStackLayers,mustLoad,bottomOnly,color,maxTopLoadKg,topLoadLengthKg,topLoadWidthKg,topLoadHeightKg,allowedAboveSkus,cargoType,allowedOrientations,minimumSupportRatio,palletBaseHeight,cargoShape,shapeAxis,shapeTopRatio,shapeWallRatio,shapeWallHeightRatio,shapeStepLengthRatio,shapeStepHeightRatio,solidModel,protectionGap",
+      "sku,name,length,width,height,lengthUnit,weight,weightUnit,quantity,priority,setCode,unitsPerSet,rotationPolicy,stackable,maxStackLayers,mustLoad,bottomOnly,color,maxTopLoadKg,topLoadLengthKg,topLoadWidthKg,topLoadHeightKg,allowedAboveSkus,cargoType,allowedOrientations,minimumSupportRatio,palletBaseHeight,cargoShape,shapeAxis,shapeTopRatio,shapeWallRatio,shapeWallHeightRatio,shapeStepLengthRatio,shapeStepHeightRatio,solidModel,protectionGap,longSupport",
       tr("SET5-A-128,五箱套装A箱,1280,540,110,mm,40,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#2f7f89"),
       tr("SET5-B-068,五箱套装B箱,680,540,110,mm,14,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#a95e78"),
       tr("SET5-C-103,五箱套装C箱,1030,620,120,mm,30,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#d5a72f"),
@@ -2260,6 +2261,7 @@ export function PackingApp() {
                   <div><strong>{result.metrics.loadedCount === 0 ? tr("未生成可执行装载方案", "No executable load plan was generated") : result.validation.valid ? tr("方案数据合法") : tr("方案校验未通过")}</strong><span>{result.metrics.loadedCount === 0 ? tr("空坐标通过数据检查不代表货物可以装入，请查看零装载原因。", "Valid empty coordinates do not establish loadability; review the zero-load diagnosis.") : result.validation.valid ? tr("所有箱体均在有效边界内，无重叠且未超载。") : trText(result.validation.errors[0])}</span></div>
                 </div>
                 {planReview && <PlanReviewPanel report={planReview}/>}
+                <LongSupportPanel plan={result} products={activeProducts}/>
                 {resultAudit && <ResultAuditPanel report={resultAudit}/>}
                 <ul className="warning-list">
                   {(result.warnings.length ? result.warnings : [tr("未发现门洞、载重或订单缺口告警。")]).map((warning) => <li key={trText(warning)}><CircleAlert size={15} />{trText(warning)}</li>)}

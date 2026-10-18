@@ -1,4 +1,5 @@
 import {accessoryInstallationPlan} from "./container-accessories";
+import {inspectLongSupport,SUPPORT_ISSUES} from "./long-support";
 import { auditAccess } from "./access";
 import { bearingErrors, bearingStatus } from "./bearing";
 import { auditPackingResult, type ResultAudit } from "./result-audit";
@@ -77,6 +78,15 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
     const securing=checks.find(c=>c.id==="securing")!;
     securing.scope=["已记录附件包络、计划重量与安装依赖；所有预留始终参与几何和路径检查。固定强度、安装可达、拆除动作和现场施工未核验。","Accessory envelopes, planned mass and installation dependencies are recorded. All reservations always constrain geometry and access. Securing strength, installation reach, removal and field work remain unverified."];
     try{securing.items=accessoryInstallationPlan(plan).map(row=>[row.region.id,...row.missingProductIds].join(" / "));}catch{securing.state="fail";securing.scope=["附件安装依赖无效，请重新计算。","Accessory installation dependencies are invalid; recalculate."];securing.items=[];}
+  }
+  const longSupport=inspectLongSupport(plan,products);
+  if(longSupport.length){
+    const bearing=checks.find(c=>c.id==="bearing")!;
+    if(longSupport.some(r=>r.state==="fail"))bearing.state="fail";
+    else if(bearing.state!=="fail")bearing.state="unverified";
+    bearing.scope=[bearing.scope[0]+" 长条箱支承带、悬跨与悬挑另作独立几何预检，不自动重排或放行箱位；材料强度未核验。",bearing.scope[1]+" Long-carton bands, spans and overhangs have an independent geometry preflight; it neither repacks nor authorizes placements. Material strength is unverified."];
+    bearing.model+=" + inspectLongSupport";
+    bearing.items.push(...longSupport.filter(r=>r.state!=="pass").map(r=>`${r.id}: ${r.issues.map(i=>SUPPORT_ISSUES[i][1]).join("; ")}`));
   }
   const passed = checks.filter(c => c.state === "pass").length, failed = checks.filter(c => c.state === "fail").length, unverified = checks.filter(c => c.state === "unverified").length;
   return { checks, state: failed ? "fail" : unverified ? "unverified" : "pass", passed, failed, unverified };

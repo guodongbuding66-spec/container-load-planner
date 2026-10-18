@@ -1,6 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import {PalletLayerTemplates} from "./pallet-layer-templates";
+import {LongSupportPanel} from "./long-support-panel";
 import type {PalletLayerTemplate} from "../lib/packing/pallet-layer";
 import { useEffect, useMemo, useState } from "react";
 import { isolatePalletPlan } from "../lib/packing/pallet-inspection";
@@ -68,6 +69,7 @@ export function PalletUnitViewer({result,id,onClose,products=[],disabled=false,o
   return <FeatureDialog wide title={canEdit?tr("整托查看与托内编辑","Inspect and edit pallet contents"):tr("整托独立查看","Inspect complete pallet load")} subtitle={id} onClose={onClose}>
     <div className="pallet-unit-summary"><strong>{plan.placements.length} {tr("箱","cartons")} · {plan.metrics.grossWeight.toFixed(1)} kg</strong><span>{plan.container.length} × {plan.container.width} × {plan.container.height} mm</span></div>
     {canEdit&&<PalletEditorControls layerTemplates={layerTemplates} onLayerTemplatesChange={onLayerTemplatesChange} key={formVersion} editor={{...editor,discard}} products={products} id={id} onPendingChange={setPending}/>}
+    <LongSupportPanel plan={draft} products={products}/>
     <Scene editor={canEdit?scoped:undefined} products={products} result={plan} visibleProducts={visible} visibleCount={plan.placements.length} cameraView={view} projectionMode={projection} onCameraViewChange={setView} onProjectionModeChange={setProjection}/>
     <div className="pallet-unit-contents">{plan.summaries.map(s=><span key={s.productId}><i style={{background:s.color}}/>{s.sku} × {s.loaded} · {s.loadedWeight.toFixed(1)} kg</span>)}</div>
     <p className="helper-text">{tr("当前只显示这一托的包装和货物，坐标已移到独立查看原点；采用前，原装柜方案保持不变。","Only this unit and its contents are shown, rebased to a local inspection origin. The vehicle plan is unchanged until edits are applied.")}</p>

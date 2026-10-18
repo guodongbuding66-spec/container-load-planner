@@ -1,4 +1,5 @@
 import {containerAccessoryWeight,accessoryMassBoxes,accessoryProductErrors} from "./container-accessories";
+import {parseLongSupport} from "./long-support";
 import {parseHandlingTasks} from "./handling-sequence";
 import {parseSiteExclusions,siteExclusionBoxes,availablePackingVolume,SITE_EXCLUSION_PREFIX} from "./site-exclusions";
 import { packagingReservedVolume, packagingMassCenter } from "./packaging";
@@ -42,7 +43,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.39.0";
+export const ENGINE_VERSION = "0.40.0";
 
 type Orientation = {
   dx: number;
@@ -162,6 +163,7 @@ function assertValidRequest(request: PackingRequest) {
     if(shape.solidModel&&shape.solidModel.parts.reduce((n,p)=>n+(p.weight??0),0)>product.weight+EPS)throw new Error("部件和支架重量之和不能超过货物毛重。");
     if (product.cargoType !== undefined && !CARGO_TYPES.includes(product.cargoType)) throw new Error("货物类型无效。");
     if (product.minimumSupportRatio !== undefined && (!Number.isFinite(product.minimumSupportRatio) || product.minimumSupportRatio <= 0 || product.minimumSupportRatio > 1)) throw new Error("承托比例必须大于 0 且不超过 100%。");
+    if (product.longSupport !== undefined) parseLongSupport(product.longSupport);
     if (product.palletBaseHeight !== undefined && (!Number.isFinite(product.palletBaseHeight) || product.palletBaseHeight < 0 || product.palletBaseHeight >= product.height)) throw new Error("货物托盘底座必须小于外箱总高。");
     if (product.maxTopLoadKg !== undefined && (!Number.isFinite(product.maxTopLoadKg) || product.maxTopLoadKg < 0)) throw new Error(`${product.sku} 的上方承重必须为非负有限数字。`);
     if (product.allowedAboveSkus !== undefined && (!Array.isArray(product.allowedAboveSkus) || product.allowedAboveSkus.some(s => typeof s !== "string" || !s.trim()))) throw new Error("叠放白名单格式无效。");
