@@ -1,0 +1,593 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.39.0",
+  "createdAt": "2026-10-18T02:00:11.382Z",
+  "inputs": {
+    "palletLayerTemplates": [
+      {
+        "version": 1,
+        "id": "layer-mvd6gfsa-1",
+        "name": "QA-4-carton-layer",
+        "revision": "qa39",
+        "createdAt": "2026-10-18T01:59:27.466Z",
+        "sourcePallet": {
+          "length": 800,
+          "width": 600
+        },
+        "products": [
+          {
+            "sourceProductId": "shed-101",
+            "sku": "SHED-101",
+            "length": 400,
+            "width": 300,
+            "height": 200,
+            "setCode": "",
+            "unitsPerSet": 1
+          }
+        ],
+        "items": [
+          {
+            "product": 0,
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "orientation": "LWH"
+          },
+          {
+            "product": 0,
+            "x": 0,
+            "y": 300,
+            "z": 0,
+            "orientation": "LWH"
+          },
+          {
+            "product": 0,
+            "x": 400,
+            "y": 0,
+            "z": 0,
+            "orientation": "LWH"
+          },
+          {
+            "product": 0,
+            "x": 400,
+            "y": 300,
+            "z": 0,
+            "orientation": "LWH"
+          }
+        ]
+      }
+    ],
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "forkInterface": {
+          "forkWidth": 0,
+          "forkThickness": 0,
+          "forkLength": 0,
+          "spacing": 0,
+          "center": 400,
+          "bottomZ": 0,
+          "insertionDepth": 0,
+          "tipClearance": 0,
+          "clearance": 0,
+          "withdrawalClearance": 0,
+          "direction": "x-min",
+          "source": "",
+          "revision": "",
+          "reviewedFor": "{\"model\":\"rectangular-twin-forks-v1\",\"dimensions\":[1200,800,144,1000,25,1000],\"structure\":{\"base\":\"block\",\"enclosure\":\"none\",\"material\":\"wood\",\"deckBoards\":5,\"runners\":3,\"wallThickness\":30,\"lid\":true,\"measurements\":{\"deckThickness\":22,\"bottomThickness\":22,\"bearerThickness\":22,\"deckBoardWidth\":134.4,\"supportLength\":144,\"supportWidth\":112,\"source\":\"QA v0.38 software fixture only\",\"revision\":\"qa-base-38\"}},\"probe\":{\"forkWidth\":80,\"forkThickness\":50,\"forkLength\":1000,\"spacing\":344,\"center\":400,\"bottomZ\":24,\"insertionDepth\":800,\"tipClearance\":10,\"clearance\":2,\"withdrawalClearance\":100,\"direction\":\"x-max\",\"source\":\"QA fork envelope only\",\"revision\":\"qa-fork-38\",\"ratings\":{\"staticKg\":0,\"dynamicKg\":0,\"rackKg\":0,\"source\":\"\"}}}",
+          "ratings": {
+            "staticKg": 0,
+            "dynamicKg": 0,
+            "rackKg": 0,
+            "source": ""
+          }
+        },
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 800,
+        "width": 600,
+        "height": 100,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "long",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 600
+      },
+      "mix": "single",
+      "maxPallets": 1,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "practical",
+    "practicalTargetPercent": 88,
+    "container": {
+      "id": "40hq",
+      "name": "40HQ 高柜",
+      "length": 12032,
+      "width": 2350,
+      "height": 2700,
+      "doorWidth": 2340,
+      "doorHeight": 2597,
+      "maxWeight": 28600
+    },
+    "clearance": 10,
+    "products": [
+      {
+        "id": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "length": 400,
+        "width": 300,
+        "height": 200,
+        "weight": 10,
+        "quantity": 24,
+        "priority": 100,
+        "rotationPolicy": "any",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.02,
+        "color": "#2f7f89"
+      },
+      {
+        "id": "bed-205",
+        "sku": "BED-205",
+        "name": "耐候钢花圃",
+        "length": 10000,
+        "width": 680,
+        "height": 160,
+        "weight": 28,
+        "quantity": 1,
+        "priority": 80,
+        "rotationPolicy": "any",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 1.09,
+        "color": "#c66a3d"
+      },
+      {
+        "id": "parcel-310",
+        "sku": "PARCEL-310",
+        "name": "户外邮包箱",
+        "length": 10000,
+        "width": 570,
+        "height": 450,
+        "weight": 31,
+        "quantity": 1,
+        "priority": 60,
+        "rotationPolicy": "upright",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 2.57,
+        "color": "#d5a72f"
+      }
+    ],
+    "customContainers": [],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {},
+  "coordinatePlan": {
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "forkInterface": {
+          "forkWidth": 0,
+          "forkThickness": 0,
+          "forkLength": 0,
+          "spacing": 0,
+          "center": 400,
+          "bottomZ": 0,
+          "insertionDepth": 0,
+          "tipClearance": 0,
+          "clearance": 0,
+          "withdrawalClearance": 0,
+          "direction": "x-min",
+          "source": "",
+          "revision": "",
+          "reviewedFor": "{\"model\":\"rectangular-twin-forks-v1\",\"dimensions\":[1200,800,144,1000,25,1000],\"structure\":{\"base\":\"block\",\"enclosure\":\"none\",\"material\":\"wood\",\"deckBoards\":5,\"runners\":3,\"wallThickness\":30,\"lid\":true,\"measurements\":{\"deckThickness\":22,\"bottomThickness\":22,\"bearerThickness\":22,\"deckBoardWidth\":134.4,\"supportLength\":144,\"supportWidth\":112,\"source\":\"QA v0.38 software fixture only\",\"revision\":\"qa-base-38\"}},\"probe\":{\"forkWidth\":80,\"forkThickness\":50,\"forkLength\":1000,\"spacing\":344,\"center\":400,\"bottomZ\":24,\"insertionDepth\":800,\"tipClearance\":10,\"clearance\":2,\"withdrawalClearance\":100,\"direction\":\"x-max\",\"source\":\"QA fork envelope only\",\"revision\":\"qa-fork-38\",\"ratings\":{\"staticKg\":0,\"dynamicKg\":0,\"rackKg\":0,\"source\":\"\"}}}",
+          "ratings": {
+            "staticKg": 0,
+            "dynamicKg": 0,
+            "rackKg": 0,
+            "source": ""
+          }
+        },
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 800,
+        "width": 600,
+        "height": 100,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "long",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 600
+      },
+      "mix": "single",
+      "maxPallets": 1,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "strategy": "practical",
+    "placements": [
+      {
+        "id": "pallet-edit-mvd6godu-3",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 100,
+        "dx": 400,
+        "dy": 300,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "pallet-edit-mvd6godu-4",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 300,
+        "z": 100,
+        "dx": 400,
+        "dy": 300,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "pallet-edit-mvd6godu-10",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 300,
+        "dx": 400,
+        "dy": 300,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "orientationSigns": [
+          -1,
+          -1,
+          1
+        ],
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "pallet-edit-mvd6godu-9",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 300,
+        "z": 300,
+        "dx": 400,
+        "dy": 300,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "orientationSigns": [
+          -1,
+          -1,
+          1
+        ],
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "pallet-edit-mvd6godu-11",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 500,
+        "dx": 400,
+        "dy": 300,
+        "dz": 200,
+        "weight": 10,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "pallet-edit-mvd6godu-12",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 300,
+        "z": 500,
+        "dx": 400,
+        "dy": 300,
+        "dz": 200,
+        "weight": 10,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "pallet-edit-mvd6godu-5",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 400,
+        "y": 0,
+        "z": 100,
+        "dx": 400,
+        "dy": 300,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "pallet-edit-mvd6godu-6",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 400,
+        "y": 300,
+        "z": 100,
+        "dx": 400,
+        "dy": 300,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "pallet-edit-mvd6godu-8",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 400,
+        "y": 0,
+        "z": 300,
+        "dx": 400,
+        "dy": 300,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "orientationSigns": [
+          -1,
+          -1,
+          1
+        ],
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "pallet-edit-mvd6godu-7",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 400,
+        "y": 300,
+        "z": 300,
+        "dx": 400,
+        "dy": 300,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "orientationSigns": [
+          -1,
+          -1,
+          1
+        ],
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "pallet-edit-mvd6godu-13",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 400,
+        "y": 0,
+        "z": 500,
+        "dx": 400,
+        "dy": 300,
+        "dz": 200,
+        "weight": 10,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "pallet-edit-mvd6godu-14",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 400,
+        "y": 300,
+        "z": 500,
+        "dx": 400,
+        "dy": 300,
+        "dz": 200,
+        "weight": 10,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      }
+    ],
+    "pallets": [
+      {
+        "id": "floor-pallet-1",
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "dx": 800,
+        "dy": 600,
+        "dz": 100,
+        "weight": 25,
+        "maxLoad": 1000,
+        "orientation": "LWH",
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        }
+      }
+    ],
+    "palletization": {
+      "config": {
+        "forkInterface": {
+          "forkWidth": 0,
+          "forkThickness": 0,
+          "forkLength": 0,
+          "spacing": 0,
+          "center": 400,
+          "bottomZ": 0,
+          "insertionDepth": 0,
+          "tipClearance": 0,
+          "clearance": 0,
+          "withdrawalClearance": 0,
+          "direction": "x-min",
+          "source": "",
+          "revision": "",
+          "reviewedFor": "{\"model\":\"rectangular-twin-forks-v1\",\"dimensions\":[1200,800,144,1000,25,1000],\"structure\":{\"base\":\"block\",\"enclosure\":\"none\",\"material\":\"wood\",\"deckBoards\":5,\"runners\":3,\"wallThickness\":30,\"lid\":true,\"measurements\":{\"deckThickness\":22,\"bottomThickness\":22,\"bearerThickness\":22,\"deckBoardWidth\":134.4,\"supportLength\":144,\"supportWidth\":112,\"source\":\"QA v0.38 software fixture only\",\"revision\":\"qa-base-38\"}},\"probe\":{\"forkWidth\":80,\"forkThickness\":50,\"forkLength\":1000,\"spacing\":344,\"center\":400,\"bottomZ\":24,\"insertionDepth\":800,\"tipClearance\":10,\"clearance\":2,\"withdrawalClearance\":100,\"direction\":\"x-max\",\"source\":\"QA fork envelope only\",\"revision\":\"qa-fork-38\",\"ratings\":{\"staticKg\":0,\"dynamicKg\":0,\"rackKg\":0,\"source\":\"\"}}}",
+          "ratings": {
+            "staticKg": 0,
+            "dynamicKg": 0,
+            "rackKg": 0,
+            "source": ""
+          }
+        },
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 800,
+        "width": 600,
+        "height": 100,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "long",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 600
+      },
+      "mix": "single",
+      "editRevision": 2,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "preparedCount": 1,
+      "bounded": true,
+      "only": false
+    }
+  }
+}
