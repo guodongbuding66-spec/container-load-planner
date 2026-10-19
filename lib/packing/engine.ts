@@ -45,7 +45,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.43.0";
+export const ENGINE_VERSION = "0.44.0";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -1567,6 +1567,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
   let spatial = new SpatialIndex(container,Math.max(0,...request.products.map(p=>p.protectionGap??0)));
   let topLevels = new Map<number, PlacedBox[]>();
   const fixed=accessorySupportGeometry(request.container,request.clearance);
+  const buildSupports=request.palletBuildStage?[...fixed.boxes,...anchors.filter(b=>b.supportOnly)]:[];
   const bearingProducts=[...request.products,...fixed.products];
   const productMap = new Map(bearingProducts.map((product) => [product.id, product]));
   const orientationCache = new Map<string, Orientation[]>();
@@ -1631,7 +1632,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
     for (const point of candidatePoints) {
       for (const orientation of orientations) {
         const candidate = makePlacement(product, placementIndex, point, orientation);
-        const palletFloor = request.floorPallets && Math.abs(candidate.z - request.floorPallets.height) < EPS || request.palletBuildStage&&fixed.boxes.some(b=>Math.abs(b.z+b.dz-candidate.z)<EPS&&contactArea(candidate,b)>EPS);
+        const palletFloor = request.floorPallets && Math.abs(candidate.z - request.floorPallets.height) < EPS || buildSupports.some(b=>Math.abs(b.z+b.dz-candidate.z)<EPS&&contactArea(candidate,b)>EPS);
         if (request.floorPallets && !request.floorPallets.allowFloorCargo && candidate.z <= EPS) continue;
         if (
           candidate.x + candidate.dx > container.length + EPS ||
@@ -2677,6 +2678,18 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
       centerOfGravity:calculateCenterOfGravity([...palletAnchors(pallets),...ordered,...accessoryMassBoxes(request.container,request.clearance)],effective,products),executionComplexity:calculateExecutionComplexity(ordered,products,pallets,fixedPlanSupportGeometry(request.container,request.clearance,pallets)),solveTimeMs:0},
     loadingRules: request.loadingRules, cargoDetails: Object.fromEntries(products.map(p=>[p.id,shapeDetails(p)])),
     warnings:["历史箱位已按当前箱规与引擎重新校验。自动重算已暂停，可继续手动调整或生成新方案。"],createdAt:new Date().toISOString()};
+}
+
+/** Internal bounded pallet search. Every returned candidate still needs full-plan validation. */
+export function searchPalletContents(request:PackingRequest,base:PlacedPallet,fixedCargo:PlacedBox[],pass:number):PlacedBox[]{
+  assertValidRequest(request);
+  if(!request.palletBuildStage||request.mode!=="mixed"||request.clearance!==0||!Number.isInteger(pass)||pass<0||pass>3)throw Error("Invalid local pallet search");
+  const fixed=palletDeckSupportGeometry([base]);
+  const products=[...applyTypeSupport(request.products,request.loadingRules),...palletSupportProducts([base]).map(p=>({...p,quantity:0})),...fixed.products];
+  const preferred:SortStrategy=(a,b)=>compareRequired(a,b)||b.priority-a.priority||(request.loadingRules?.cargoOrder==="small-first"?1:-1)*(a.length*a.width*a.height-b.length*b.width*b.height);
+  const variants:SortStrategy[]=[preferred,(a,b)=>compareRequired(a,b)||b.height-a.height,(a,b)=>compareRequired(a,b)||b.length*b.width-a.length*a.width,(a,b)=>compareRequired(a,b)||b.weight-a.weight];
+  const sort=request.loadingRules?.cargoOrder&&request.loadingRules.cargoOrder!=="auto"?preferred:variants[pass];
+  return packMixedWithStrategy({...request,products,practicalTargetUtilization:1},effectiveContainer(request.container,0),sort,[...palletAnchors([base]),...fixed.boxes,...fixedCargo]).filter(b=>!b.supportOnly);
 }
 
 /** Retain locked boxes, their support closure and complete kits; only rebuild the free remainder. */

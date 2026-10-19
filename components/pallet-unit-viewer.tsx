@@ -1,6 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import {PalletLayerTemplates} from "./pallet-layer-templates";
+import {PalletRepackControls} from "./pallet-repack-controls";
 import {LongSupportPanel} from "./long-support-panel";
 import type {PalletLayerTemplate} from "../lib/packing/pallet-layer";
 import { useEffect, useMemo, useState } from "react";
@@ -26,9 +27,9 @@ export function PalletEditorControls({editor,products,id,onPendingChange,layerTe
   const layers=palletLayers(plan,id),[bottom,setBottom]=useState(0),[query,setQuery]=useState(""),[page,setPage]=useState(0);
   const pool=palletOrderPool(plan,products),cargo=plan.placements.filter(b=>b.palletIds?.includes(id)),selected=editor.selected.filter(b=>b.palletIds?.includes(id));
   const filtered=cargo.filter(b=>`${b.sku} ${b.id}`.toLowerCase().includes(query.toLowerCase())),current=Math.min(page,Math.max(0,Math.ceil(filtered.length/40)-1));
-  const [layerPending,setLayerPending]=useState(false);
+  const [layerPending,setLayerPending]=useState(false),[repackPending,setRepackPending]=useState(false);
   const blocked=editor.disabled||!editor.enabled||!!p.locked,bad=Object.values(invalid).some(Boolean);
-  useEffect(()=>onPendingChange?.(bad||layerPending),[bad,layerPending,onPendingChange]);
+  useEffect(()=>onPendingChange?.(bad||layerPending||repackPending),[bad,layerPending,repackPending,onPendingChange]);
   const checked=(key:string)=>(valid:boolean)=>setInvalid(s=>({...s,[key]:!valid}));
   return <section className="pallet-editor" aria-label={tr("托内编辑","Pallet contents editor")}>
     <div className="upgrade-actions"><label><input type="checkbox" checked={editor.enabled} disabled={editor.disabled} onChange={e=>editor.update({enabled:e.target.checked,rectangle:false})}/>{tr("启用托内编辑","Enable pallet editing")}</label><button className="button" disabled={editor.disabled} onClick={()=>editor.palletEdit(id,{type:"lock",locked:!p.locked})}>{p.locked?tr("解除本托锁定","Unlock this pallet"):tr("锁定本托","Lock this pallet")}</button><button className="button" disabled={editor.disabled} onClick={()=>editor.palletEdit(id,{type:"lock-others",locked:true})}>{tr("锁定其他托盘","Lock other pallets")}</button><button className="button" disabled={!editor.undo.length||editor.disabled} onClick={editor.undoEdit}>{tr("撤销","Undo")}</button><button className="button" disabled={!editor.redo.length||editor.disabled} onClick={editor.redoEdit}>{tr("重做","Redo")}</button><button className="button" disabled={!editor.changed} onClick={editor.discard}>{tr("放弃调整","Discard edits")}</button></div>
@@ -36,6 +37,7 @@ export function PalletEditorControls({editor,products,id,onPendingChange,layerTe
     {editor.disabled&&<p role="status">{tr("当前输入或方案未就绪，请先完成录入并重新计算。", "Inputs or the plan are not ready. Complete input and recalculate first.")}</p>}
     <p>{tr("本托","This pallet")} {cargo.length} {tr("箱，已选","cartons; selected")} {selected.length} · {tr("编辑版本","Edit revision")} {plan.palletization?.editRevision??0}{p.locked&&` · ${tr("整托已锁定","Pallet locked")}`}</p>
     <details><summary>{tr("完整订单与待分配余量","Complete order and unassigned pool")}</summary><div className="coordinate-wrap"><table className="coordinate-table"><thead><tr><th>SKU</th><th>{tr("订单","Order")}</th><th>{tr("已分配","Assigned")}</th><th>{tr("待分配","Unassigned")}</th></tr></thead><tbody>{pool.map(row=><tr key={row.productId}><td>{row.sku}</td><td>{row.requested}</td><td>{row.loaded}</td><td>{row.remaining}</td></tr>)}</tbody></table></div></details>
+    <PalletRepackControls editor={editor} products={products} id={id} blocked={blocked||bad||layerPending} onPendingChange={setRepackPending}/>
     <label>{tr("搜索托内货物","Search pallet cargo")}<input value={query} onChange={e=>{setQuery(e.target.value);setPage(0);}}/></label>
     <div className="upgrade-actions"><button className="button" disabled={blocked} onClick={()=>editor.selectMany(cargo.map(b=>b.id))}>{tr("选择本托全部","Select all pallet cargo")}</button><button className="button" onClick={()=>editor.selectMany([])}>{tr("清除选择","Clear selection")}</button></div>
     <div className="coordinate-wrap"><table className="coordinate-table"><thead><tr><th>{tr("选择","Select")}</th><th>SKU / ID</th><th>{tr("托内坐标","Local position")} mm</th><th>{tr("尺寸","Dimensions")} mm</th><th>{tr("套号","Kit number")}</th></tr></thead><tbody>{filtered.slice(current*40,(current+1)*40).map(b=>{const local=palletLocalBox(b,p);return <tr key={b.id}><td><input type="checkbox" aria-label={`${tr("选择箱体","Select carton")} ${b.id}`} checked={selected.some(s=>s.id===b.id)} disabled={blocked} onChange={()=>editor.select(b.id,true)}/></td><td>{b.sku}<small>{b.id}{b.locked?` · ${tr("已锁定","Locked")}`:""}</small></td><td>{[local.x,local.y,local.z].map(n=>Math.round(n*1000)/1000).join(" / ")}</td><td>{local.dx} × {local.dy} × {local.dz}</td><td>{b.setCode?`${b.setCode} / ${b.setNumber}`:"—"}</td></tr>;})}</tbody></table></div>

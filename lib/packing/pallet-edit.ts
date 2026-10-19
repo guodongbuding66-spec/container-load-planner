@@ -1,9 +1,9 @@
-import {palletQuarterTurns,rotateDeckRect} from "./deck-support";
+import {deckSupportHeight,palletQuarterTurns,rotateDeckRect} from "./deck-support";
 import {palletLayerCopies,parsePalletLayerTemplates,type PalletLayerTemplate} from "./pallet-layer";
 import {cargoShapeOf} from "./cargo-shape";
 import { MAX_VISIBLE_PLACEMENTS, pack, rebuildPlacementLayers, restorePackingSnapshot } from "./engine";
 import { bearingStatus } from "./bearing";
-import { quarterTurnOrientation } from "./cargo-body";
+import { bodyContactArea,quarterTurnOrientation } from "./cargo-body";
 import { selectionBounds, type Delta } from "./plan-edit";
 import { packagingInterior } from "./packaging";
 import { specificationForPallet } from "./pallet-specifications";
@@ -19,6 +19,7 @@ export type PalletEdit =
   | {type:"transfer";ids:string[];targetId:string;position:Delta}
   | {type:"add";productId:string;position:Delta}
   | {type:"apply-layer";template:PalletLayerTemplate;position:Delta;turns:number;repeat:number;alternate180:boolean}
+  | {type:"repack";positions:PlacedBox[];sourceKey:string}
   | {type:"lock"|"lock-others";locked:boolean}
   | {type:"lock-cargo";ids:string[];locked:boolean};
 const EPS=.0001;
@@ -32,6 +33,23 @@ export function palletLocalBox(b:PlacedBox,p:PlacedPallet):PlacedBox {
 export function palletWorldBox(b:PlacedBox,p:PlacedPallet):PlacedBox {
   const times=palletQuarterTurns(p),cross=p.orientation==="WLH",r=rotateDeckRect(b,cross?p.dy:p.dx,cross?p.dx:p.dy,times),oriented=turn(b,times);
   return {...oriented,x:p.x+r.x,y:p.y+r.y,z:p.z+p.dz+b.z,palletIds:[p.id]};
+}
+export type PalletRepackMeasures={cargoTopMm:number;unitHeightMm:number;lengthMm:number;widthMm:number;footprintMm2:number};
+export function palletContentMeasures(p:PlacedPallet,cargo:PlacedBox[]):PalletRepackMeasures{
+  const boxes=cargo.map(b=>palletLocalBox(b,p)),length=Math.max(...boxes.map(b=>b.x+b.dx))-Math.min(...boxes.map(b=>b.x)),width=Math.max(...boxes.map(b=>b.y+b.dy))-Math.min(...boxes.map(b=>b.y));
+  const top=Math.max(deckSupportHeight(p),...boxes.map(b=>b.z+b.dz));
+  return {cargoTopMm:top,unitHeightMm:Math.max(p.enclosureHeight??p.dz,p.dz+top),lengthMm:length,widthMm:width,footprintMm2:length*width};
+}
+export function betterPalletContent(a:PalletRepackMeasures,b:PalletRepackMeasures){return a.cargoTopMm<b.cargoTopMm-EPS||Math.abs(a.cargoTopMm-b.cargoTopMm)<EPS&&a.footprintMm2<b.footprintMm2-EPS;}
+export const palletRepackSource=(plan:PackingResult,products:ProductInput[],id:string)=>JSON.stringify([id,plan.id,plan.createdAt,plan.workflow,plan.strategy,plan.palletization,plan.palletBuild,plan.container,plan.clearance,plan.loadingRules,plan.pallets,plan.placements,products]);
+/** Retain complete kits and recursively all actual cargo supporters of locked cargo. */
+export function palletRepackFixedIds(cargo:PlacedBox[],products:ProductInput[]){
+  const rules=new Map(products.map(p=>[p.id,p])),fixed=new Set(cargo.filter(b=>b.locked).map(b=>b.id));
+  let changed=true;
+  while(changed){changed=false;for(const b of cargo){if(!fixed.has(b.id))continue;for(const a of cargo){if(fixed.has(a.id))continue;
+    if(b.setCode&&a.setCode===b.setCode&&a.setNumber===b.setNumber||Math.abs(a.z+a.dz-b.z)<EPS&&bodyContactArea(b,a,rules.get(b.productId),rules.get(a.productId))>EPS){fixed.add(a.id);changed=true;}
+  }}}
+  return fixed;
 }
 export function palletLayers(plan:PackingResult,id:string){
   const p=plan.pallets?.find(p=>p.id===id);if(!p)return [];
@@ -88,6 +106,16 @@ export function editPalletContents(plan:PackingResult,products:ProductInput[],id
     pallets=pallets.map(q=>(action.type==="lock"?q.id===id:q.id!==id)?{...q,locked:action.locked}:q);
   }else if(action.type==="lock-cargo"){
     placements=placements.map(b=>selectedIds.has(b.id)?{...b,locked:action.locked}:b);
+  }else if(action.type==="repack"){
+    if(action.sourceKey!==palletRepackSource(plan,products,id))throw Error("局部重排预览已失效，请重新搜索 / Local repack preview is stale; search again");
+    const next=new Map(action.positions.map(b=>[b.id,b]));
+    if(next.size!==onPallet.length||next.size!==action.positions.length||onPallet.some(b=>!next.has(b.id)))throw Error("局部重排必须保留当前托内全部箱体 / Local repacking must retain every current carton");
+    const immutable=(b:PlacedBox)=>JSON.stringify([b.id,b.productId,b.sku,b.name,b.color,b.weight,b.setCode,b.setNumber,b.setItemNumber,b.palletIds,b.locked]);
+    for(const b of onPallet)if(immutable(b)!==immutable(next.get(b.id)!))throw Error("局部重排不能改变箱体身份、套号或重量 / Local repacking cannot change carton identity, kits or weight");
+    const fixed=palletRepackFixedIds(onPallet,products);
+    for(const b of onPallet)if(fixed.has(b.id)&&identity(b)!==identity(next.get(b.id)!))throw Error("固定箱位、支撑链及同套组件必须保留 / Fixed cargo, supporters and complete kits must remain unchanged");
+    if(!betterPalletContent(palletContentMeasures(p,action.positions),palletContentMeasures(p,onPallet)))throw Error("未发现更优局部方案，原箱位保留 / No better local layout found; original positions retained");
+    placements=placements.map(b=>next.get(b.id)??b);
   }else if(action.type==="remove"){
     placements=placements.filter(b=>!selectedIds.has(b.id));
   }else if(action.type==="move"||action.type==="rotate"){
@@ -136,6 +164,10 @@ export function editPalletContents(plan:PackingResult,products:ProductInput[],id
   // A local contents edit cannot silently reassign neighbouring cargo to another unit.
   for(const b of result.placements){const expected=byId.get(b.id)!;if(JSON.stringify(b.palletIds)!==JSON.stringify(expected.palletIds))throw new Error("箱位失去目标托盘支撑 / Cargo lost support from its assigned pallet");
     const source=sourceById.get(b.id);if(source&&source.palletIds?.some(id=>lockedIds.has(id))&&identity(source)!==identity(b))throw new Error("锁定托盘发生变化 / A locked pallet changed");
+  }
+  if(action.type==="repack"){
+    const resultById=new Map(result.placements.map(b=>[b.id,b])),state=(b:PlacedBox|undefined)=>b&&JSON.stringify(Object.entries(b).sort(([a],[c])=>a.localeCompare(c)));
+    for(const old of plan.placements)if(!old.palletIds?.includes(id)&&state(old)!==state(resultById.get(old.id)))throw Error("局部重排不能改变其他整托 / Local repacking cannot change other pallets");
   }
   result.id=`pallet-revision-${Date.now()}-${++serial}`;
   result.warnings=["托内编辑已按完整订单重新校验；采用后请重新导出现场指导，旧版现场进度不能用于此方案。 / Pallet contents were revalidated against the complete order; re-export field instructions after applying. Previous progress belongs to the old plan."];
