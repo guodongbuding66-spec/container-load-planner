@@ -1,0 +1,1226 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.45.0",
+  "createdAt": "2026-10-19T14:40:32.225Z",
+  "inputs": {
+    "palletLayerTemplates": [],
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "crateBearing": {
+          "policy": "rated",
+          "revision": "QA-v45-SYNTHETIC",
+          "source": "Software acceptance only; not a production rating",
+          "conditions": "Synthetic four-corner static QA. Not field evidence.",
+          "validUntil": "",
+          "allowedOrientations": [
+            "LWH"
+          ],
+          "maxTopLoadKg": 120,
+          "maxLayers": 3,
+          "columnCapacityKg": {
+            "L0W0": 180,
+            "L0W1": 180,
+            "L1W0": 180,
+            "L1W1": 180
+          },
+          "reviewed": true,
+          "reviewedFor": "{\"model\":\"four-corner-paths-v1\",\"automaticStacking\":true,\"structure\":\"{\\\"length\\\":1000,\\\"width\\\":800,\\\"height\\\":100,\\\"weight\\\":40,\\\"maxLoad\\\":500,\\\"maxCargoHeight\\\":400,\\\"base\\\":\\\"corner-feet\\\",\\\"enclosure\\\":\\\"frame\\\",\\\"material\\\":\\\"wood\\\",\\\"deckBoards\\\":5,\\\"runners\\\":3,\\\"wallThickness\\\":40,\\\"lid\\\":true}\",\"policy\":\"rated\",\"revision\":\"QA-v45-SYNTHETIC\",\"source\":\"Software acceptance only; not a production rating\",\"conditions\":\"Synthetic four-corner static QA. Not field evidence.\",\"validUntil\":\"\",\"allowedOrientations\":[\"LWH\"],\"maxTopLoadKg\":120,\"maxLayers\":3,\"columnCapacityKg\":[180,180,180,180]}",
+          "automaticStacking": true
+        },
+        "packaging": {
+          "base": "corner-feet",
+          "enclosure": "frame",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 40,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "QA 四角框架木箱",
+        "length": 1000,
+        "width": 800,
+        "height": 100,
+        "weight": 40,
+        "maxLoad": 500,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 400
+      },
+      "mix": "single",
+      "maxPallets": 3,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "primaryRule": {
+        "maxPallets": 3
+      }
+    },
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "practical",
+    "practicalTargetPercent": 88,
+    "container": {
+      "id": "custom-draft",
+      "name": "自定义柜型（未保存）",
+      "length": 1000,
+      "width": 800,
+      "height": 2000,
+      "doorWidth": 800,
+      "doorHeight": 2000,
+      "maxWeight": 28600
+    },
+    "clearance": 0,
+    "products": [
+      {
+        "id": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "length": 900,
+        "width": 700,
+        "height": 200,
+        "weight": 10,
+        "quantity": 6,
+        "priority": 100,
+        "rotationPolicy": "any",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.13,
+        "color": "#2f7f89",
+        "cargoType": "carton",
+        "cargoShape": "box",
+        "protectionGap": 0,
+        "allowedOrientations": [
+          "LWH"
+        ]
+      }
+    ],
+    "customContainers": [],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {
+    "practical": {
+      "workflow": "palletized",
+      "palletBuild": {
+        "config": {
+          "crateBearing": {
+            "automaticStacking": true,
+            "policy": "rated",
+            "revision": "QA-v45-SYNTHETIC",
+            "source": "Software acceptance only; not a production rating",
+            "conditions": "Synthetic four-corner static QA. Not field evidence.",
+            "validUntil": "",
+            "allowedOrientations": [
+              "LWH"
+            ],
+            "maxTopLoadKg": 120,
+            "maxLayers": 3,
+            "columnCapacityKg": {
+              "L0W0": 180,
+              "L0W1": 180,
+              "L1W0": 180,
+              "L1W1": 180
+            },
+            "reviewed": true,
+            "reviewedFor": "{\"model\":\"four-corner-paths-v1\",\"automaticStacking\":true,\"structure\":\"{\\\"length\\\":1000,\\\"width\\\":800,\\\"height\\\":100,\\\"weight\\\":40,\\\"maxLoad\\\":500,\\\"maxCargoHeight\\\":400,\\\"base\\\":\\\"corner-feet\\\",\\\"enclosure\\\":\\\"frame\\\",\\\"material\\\":\\\"wood\\\",\\\"deckBoards\\\":5,\\\"runners\\\":3,\\\"wallThickness\\\":40,\\\"lid\\\":true}\",\"policy\":\"rated\",\"revision\":\"QA-v45-SYNTHETIC\",\"source\":\"Software acceptance only; not a production rating\",\"conditions\":\"Synthetic four-corner static QA. Not field evidence.\",\"validUntil\":\"\",\"allowedOrientations\":[\"LWH\"],\"maxTopLoadKg\":120,\"maxLayers\":3,\"columnCapacityKg\":[180,180,180,180]}"
+          },
+          "packaging": {
+            "base": "corner-feet",
+            "enclosure": "frame",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 40,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "QA 四角框架木箱",
+          "length": 1000,
+          "width": 800,
+          "height": 100,
+          "weight": 40,
+          "maxLoad": 500,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 400
+        },
+        "mix": "single",
+        "maxPallets": 3,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "primaryRule": {
+          "maxPallets": 3
+        }
+      },
+      "strategy": "practical",
+      "placements": [
+        {
+          "id": "prebuilt-1",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 40,
+          "y": 40,
+          "z": 100,
+          "dx": 900,
+          "dy": 700,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-2",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 40,
+          "y": 40,
+          "z": 300,
+          "dx": 900,
+          "dy": 700,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-3",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 40,
+          "y": 40,
+          "z": 640,
+          "dx": 900,
+          "dy": 700,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-4",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 40,
+          "y": 40,
+          "z": 840,
+          "dx": 900,
+          "dy": 700,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-5",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 40,
+          "y": 40,
+          "z": 1180,
+          "dx": 900,
+          "dy": 700,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-3"
+          ]
+        },
+        {
+          "id": "prebuilt-6",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 40,
+          "y": 40,
+          "z": 1380,
+          "dx": 900,
+          "dy": 700,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-3"
+          ]
+        }
+      ],
+      "pallets": [
+        {
+          "id": "floor-pallet-1",
+          "presetId": "eur-1200-800",
+          "name": "QA 四角框架木箱",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 1000,
+          "dy": 800,
+          "dz": 100,
+          "weight": 40,
+          "maxLoad": 500,
+          "orientation": "LWH",
+          "specificationId": "primary",
+          "packaging": {
+            "base": "corner-feet",
+            "enclosure": "frame",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 40,
+            "lid": true
+          },
+          "enclosureHeight": 540
+        },
+        {
+          "id": "floor-pallet-2",
+          "presetId": "eur-1200-800",
+          "name": "QA 四角框架木箱",
+          "x": 0,
+          "y": 0,
+          "z": 540,
+          "dx": 1000,
+          "dy": 800,
+          "dz": 100,
+          "weight": 40,
+          "maxLoad": 500,
+          "orientation": "LWH",
+          "specificationId": "primary",
+          "packaging": {
+            "base": "corner-feet",
+            "enclosure": "frame",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 40,
+            "lid": true
+          },
+          "enclosureHeight": 540
+        },
+        {
+          "id": "floor-pallet-3",
+          "presetId": "eur-1200-800",
+          "name": "QA 四角框架木箱",
+          "x": 0,
+          "y": 0,
+          "z": 1080,
+          "dx": 1000,
+          "dy": 800,
+          "dz": 100,
+          "weight": 40,
+          "maxLoad": 500,
+          "orientation": "LWH",
+          "specificationId": "primary",
+          "packaging": {
+            "base": "corner-feet",
+            "enclosure": "frame",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 40,
+            "lid": true
+          },
+          "enclosureHeight": 540
+        }
+      ],
+      "palletization": {
+        "config": {
+          "crateBearing": {
+            "automaticStacking": true,
+            "policy": "rated",
+            "revision": "QA-v45-SYNTHETIC",
+            "source": "Software acceptance only; not a production rating",
+            "conditions": "Synthetic four-corner static QA. Not field evidence.",
+            "validUntil": "",
+            "allowedOrientations": [
+              "LWH"
+            ],
+            "maxTopLoadKg": 120,
+            "maxLayers": 3,
+            "columnCapacityKg": {
+              "L0W0": 180,
+              "L0W1": 180,
+              "L1W0": 180,
+              "L1W1": 180
+            },
+            "reviewed": true,
+            "reviewedFor": "{\"model\":\"four-corner-paths-v1\",\"automaticStacking\":true,\"structure\":\"{\\\"length\\\":1000,\\\"width\\\":800,\\\"height\\\":100,\\\"weight\\\":40,\\\"maxLoad\\\":500,\\\"maxCargoHeight\\\":400,\\\"base\\\":\\\"corner-feet\\\",\\\"enclosure\\\":\\\"frame\\\",\\\"material\\\":\\\"wood\\\",\\\"deckBoards\\\":5,\\\"runners\\\":3,\\\"wallThickness\\\":40,\\\"lid\\\":true}\",\"policy\":\"rated\",\"revision\":\"QA-v45-SYNTHETIC\",\"source\":\"Software acceptance only; not a production rating\",\"conditions\":\"Synthetic four-corner static QA. Not field evidence.\",\"validUntil\":\"\",\"allowedOrientations\":[\"LWH\"],\"maxTopLoadKg\":120,\"maxLayers\":3,\"columnCapacityKg\":[180,180,180,180]}"
+          },
+          "packaging": {
+            "base": "corner-feet",
+            "enclosure": "frame",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 40,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "QA 四角框架木箱",
+          "length": 1000,
+          "width": 800,
+          "height": 100,
+          "weight": 40,
+          "maxLoad": 500,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 400
+        },
+        "mix": "single",
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "preparedCount": 3,
+        "bounded": false,
+        "only": false,
+        "specifications": [
+          {
+            "id": "primary",
+            "config": {
+              "crateBearing": {
+                "automaticStacking": true,
+                "policy": "rated",
+                "revision": "QA-v45-SYNTHETIC",
+                "source": "Software acceptance only; not a production rating",
+                "conditions": "Synthetic four-corner static QA. Not field evidence.",
+                "validUntil": "",
+                "allowedOrientations": [
+                  "LWH"
+                ],
+                "maxTopLoadKg": 120,
+                "maxLayers": 3,
+                "columnCapacityKg": {
+                  "L0W0": 180,
+                  "L0W1": 180,
+                  "L1W0": 180,
+                  "L1W1": 180
+                },
+                "reviewed": true,
+                "reviewedFor": "{\"model\":\"four-corner-paths-v1\",\"automaticStacking\":true,\"structure\":\"{\\\"length\\\":1000,\\\"width\\\":800,\\\"height\\\":100,\\\"weight\\\":40,\\\"maxLoad\\\":500,\\\"maxCargoHeight\\\":400,\\\"base\\\":\\\"corner-feet\\\",\\\"enclosure\\\":\\\"frame\\\",\\\"material\\\":\\\"wood\\\",\\\"deckBoards\\\":5,\\\"runners\\\":3,\\\"wallThickness\\\":40,\\\"lid\\\":true}\",\"policy\":\"rated\",\"revision\":\"QA-v45-SYNTHETIC\",\"source\":\"Software acceptance only; not a production rating\",\"conditions\":\"Synthetic four-corner static QA. Not field evidence.\",\"validUntil\":\"\",\"allowedOrientations\":[\"LWH\"],\"maxTopLoadKg\":120,\"maxLayers\":3,\"columnCapacityKg\":[180,180,180,180]}"
+              },
+              "packaging": {
+                "base": "corner-feet",
+                "enclosure": "frame",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 40,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "QA 四角框架木箱",
+              "length": 1000,
+              "width": 800,
+              "height": 100,
+              "weight": 40,
+              "maxLoad": 500,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 400
+            },
+            "maxPallets": 3,
+            "stackLayers": 1,
+            "maxTopLoadKg": 0
+          }
+        ],
+        "preparedBySpecification": {
+          "primary": 3
+        }
+      }
+    },
+    "maximum": {
+      "workflow": "palletized",
+      "palletBuild": {
+        "config": {
+          "crateBearing": {
+            "automaticStacking": true,
+            "policy": "rated",
+            "revision": "QA-v45-SYNTHETIC",
+            "source": "Software acceptance only; not a production rating",
+            "conditions": "Synthetic four-corner static QA. Not field evidence.",
+            "validUntil": "",
+            "allowedOrientations": [
+              "LWH"
+            ],
+            "maxTopLoadKg": 120,
+            "maxLayers": 3,
+            "columnCapacityKg": {
+              "L0W0": 180,
+              "L0W1": 180,
+              "L1W0": 180,
+              "L1W1": 180
+            },
+            "reviewed": true,
+            "reviewedFor": "{\"model\":\"four-corner-paths-v1\",\"automaticStacking\":true,\"structure\":\"{\\\"length\\\":1000,\\\"width\\\":800,\\\"height\\\":100,\\\"weight\\\":40,\\\"maxLoad\\\":500,\\\"maxCargoHeight\\\":400,\\\"base\\\":\\\"corner-feet\\\",\\\"enclosure\\\":\\\"frame\\\",\\\"material\\\":\\\"wood\\\",\\\"deckBoards\\\":5,\\\"runners\\\":3,\\\"wallThickness\\\":40,\\\"lid\\\":true}\",\"policy\":\"rated\",\"revision\":\"QA-v45-SYNTHETIC\",\"source\":\"Software acceptance only; not a production rating\",\"conditions\":\"Synthetic four-corner static QA. Not field evidence.\",\"validUntil\":\"\",\"allowedOrientations\":[\"LWH\"],\"maxTopLoadKg\":120,\"maxLayers\":3,\"columnCapacityKg\":[180,180,180,180]}"
+          },
+          "packaging": {
+            "base": "corner-feet",
+            "enclosure": "frame",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 40,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "QA 四角框架木箱",
+          "length": 1000,
+          "width": 800,
+          "height": 100,
+          "weight": 40,
+          "maxLoad": 500,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 400
+        },
+        "mix": "single",
+        "maxPallets": 3,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "primaryRule": {
+          "maxPallets": 3
+        }
+      },
+      "strategy": "maximum",
+      "placements": [
+        {
+          "id": "prebuilt-1",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 40,
+          "y": 40,
+          "z": 100,
+          "dx": 900,
+          "dy": 700,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-2",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 40,
+          "y": 40,
+          "z": 300,
+          "dx": 900,
+          "dy": 700,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-3",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 40,
+          "y": 40,
+          "z": 640,
+          "dx": 900,
+          "dy": 700,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-4",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 40,
+          "y": 40,
+          "z": 840,
+          "dx": 900,
+          "dy": 700,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-5",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 40,
+          "y": 40,
+          "z": 1180,
+          "dx": 900,
+          "dy": 700,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-3"
+          ]
+        },
+        {
+          "id": "prebuilt-6",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 40,
+          "y": 40,
+          "z": 1380,
+          "dx": 900,
+          "dy": 700,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-3"
+          ]
+        }
+      ],
+      "pallets": [
+        {
+          "id": "floor-pallet-1",
+          "presetId": "eur-1200-800",
+          "name": "QA 四角框架木箱",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 1000,
+          "dy": 800,
+          "dz": 100,
+          "weight": 40,
+          "maxLoad": 500,
+          "orientation": "LWH",
+          "specificationId": "primary",
+          "packaging": {
+            "base": "corner-feet",
+            "enclosure": "frame",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 40,
+            "lid": true
+          },
+          "enclosureHeight": 540
+        },
+        {
+          "id": "floor-pallet-2",
+          "presetId": "eur-1200-800",
+          "name": "QA 四角框架木箱",
+          "x": 0,
+          "y": 0,
+          "z": 540,
+          "dx": 1000,
+          "dy": 800,
+          "dz": 100,
+          "weight": 40,
+          "maxLoad": 500,
+          "orientation": "LWH",
+          "specificationId": "primary",
+          "packaging": {
+            "base": "corner-feet",
+            "enclosure": "frame",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 40,
+            "lid": true
+          },
+          "enclosureHeight": 540
+        },
+        {
+          "id": "floor-pallet-3",
+          "presetId": "eur-1200-800",
+          "name": "QA 四角框架木箱",
+          "x": 0,
+          "y": 0,
+          "z": 1080,
+          "dx": 1000,
+          "dy": 800,
+          "dz": 100,
+          "weight": 40,
+          "maxLoad": 500,
+          "orientation": "LWH",
+          "specificationId": "primary",
+          "packaging": {
+            "base": "corner-feet",
+            "enclosure": "frame",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 40,
+            "lid": true
+          },
+          "enclosureHeight": 540
+        }
+      ],
+      "palletization": {
+        "config": {
+          "crateBearing": {
+            "automaticStacking": true,
+            "policy": "rated",
+            "revision": "QA-v45-SYNTHETIC",
+            "source": "Software acceptance only; not a production rating",
+            "conditions": "Synthetic four-corner static QA. Not field evidence.",
+            "validUntil": "",
+            "allowedOrientations": [
+              "LWH"
+            ],
+            "maxTopLoadKg": 120,
+            "maxLayers": 3,
+            "columnCapacityKg": {
+              "L0W0": 180,
+              "L0W1": 180,
+              "L1W0": 180,
+              "L1W1": 180
+            },
+            "reviewed": true,
+            "reviewedFor": "{\"model\":\"four-corner-paths-v1\",\"automaticStacking\":true,\"structure\":\"{\\\"length\\\":1000,\\\"width\\\":800,\\\"height\\\":100,\\\"weight\\\":40,\\\"maxLoad\\\":500,\\\"maxCargoHeight\\\":400,\\\"base\\\":\\\"corner-feet\\\",\\\"enclosure\\\":\\\"frame\\\",\\\"material\\\":\\\"wood\\\",\\\"deckBoards\\\":5,\\\"runners\\\":3,\\\"wallThickness\\\":40,\\\"lid\\\":true}\",\"policy\":\"rated\",\"revision\":\"QA-v45-SYNTHETIC\",\"source\":\"Software acceptance only; not a production rating\",\"conditions\":\"Synthetic four-corner static QA. Not field evidence.\",\"validUntil\":\"\",\"allowedOrientations\":[\"LWH\"],\"maxTopLoadKg\":120,\"maxLayers\":3,\"columnCapacityKg\":[180,180,180,180]}"
+          },
+          "packaging": {
+            "base": "corner-feet",
+            "enclosure": "frame",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 40,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "QA 四角框架木箱",
+          "length": 1000,
+          "width": 800,
+          "height": 100,
+          "weight": 40,
+          "maxLoad": 500,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 400
+        },
+        "mix": "single",
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "preparedCount": 3,
+        "bounded": false,
+        "only": false,
+        "specifications": [
+          {
+            "id": "primary",
+            "config": {
+              "crateBearing": {
+                "automaticStacking": true,
+                "policy": "rated",
+                "revision": "QA-v45-SYNTHETIC",
+                "source": "Software acceptance only; not a production rating",
+                "conditions": "Synthetic four-corner static QA. Not field evidence.",
+                "validUntil": "",
+                "allowedOrientations": [
+                  "LWH"
+                ],
+                "maxTopLoadKg": 120,
+                "maxLayers": 3,
+                "columnCapacityKg": {
+                  "L0W0": 180,
+                  "L0W1": 180,
+                  "L1W0": 180,
+                  "L1W1": 180
+                },
+                "reviewed": true,
+                "reviewedFor": "{\"model\":\"four-corner-paths-v1\",\"automaticStacking\":true,\"structure\":\"{\\\"length\\\":1000,\\\"width\\\":800,\\\"height\\\":100,\\\"weight\\\":40,\\\"maxLoad\\\":500,\\\"maxCargoHeight\\\":400,\\\"base\\\":\\\"corner-feet\\\",\\\"enclosure\\\":\\\"frame\\\",\\\"material\\\":\\\"wood\\\",\\\"deckBoards\\\":5,\\\"runners\\\":3,\\\"wallThickness\\\":40,\\\"lid\\\":true}\",\"policy\":\"rated\",\"revision\":\"QA-v45-SYNTHETIC\",\"source\":\"Software acceptance only; not a production rating\",\"conditions\":\"Synthetic four-corner static QA. Not field evidence.\",\"validUntil\":\"\",\"allowedOrientations\":[\"LWH\"],\"maxTopLoadKg\":120,\"maxLayers\":3,\"columnCapacityKg\":[180,180,180,180]}"
+              },
+              "packaging": {
+                "base": "corner-feet",
+                "enclosure": "frame",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 40,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "QA 四角框架木箱",
+              "length": 1000,
+              "width": 800,
+              "height": 100,
+              "weight": 40,
+              "maxLoad": 500,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 400
+            },
+            "maxPallets": 3,
+            "stackLayers": 1,
+            "maxTopLoadKg": 0
+          }
+        ],
+        "preparedBySpecification": {
+          "primary": 3
+        }
+      }
+    }
+  },
+  "coordinatePlan": {
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "crateBearing": {
+          "automaticStacking": true,
+          "policy": "rated",
+          "revision": "QA-v45-SYNTHETIC",
+          "source": "Software acceptance only; not a production rating",
+          "conditions": "Synthetic four-corner static QA. Not field evidence.",
+          "validUntil": "",
+          "allowedOrientations": [
+            "LWH"
+          ],
+          "maxTopLoadKg": 120,
+          "maxLayers": 3,
+          "columnCapacityKg": {
+            "L0W0": 180,
+            "L0W1": 180,
+            "L1W0": 180,
+            "L1W1": 180
+          },
+          "reviewed": true,
+          "reviewedFor": "{\"model\":\"four-corner-paths-v1\",\"automaticStacking\":true,\"structure\":\"{\\\"length\\\":1000,\\\"width\\\":800,\\\"height\\\":100,\\\"weight\\\":40,\\\"maxLoad\\\":500,\\\"maxCargoHeight\\\":400,\\\"base\\\":\\\"corner-feet\\\",\\\"enclosure\\\":\\\"frame\\\",\\\"material\\\":\\\"wood\\\",\\\"deckBoards\\\":5,\\\"runners\\\":3,\\\"wallThickness\\\":40,\\\"lid\\\":true}\",\"policy\":\"rated\",\"revision\":\"QA-v45-SYNTHETIC\",\"source\":\"Software acceptance only; not a production rating\",\"conditions\":\"Synthetic four-corner static QA. Not field evidence.\",\"validUntil\":\"\",\"allowedOrientations\":[\"LWH\"],\"maxTopLoadKg\":120,\"maxLayers\":3,\"columnCapacityKg\":[180,180,180,180]}"
+        },
+        "packaging": {
+          "base": "corner-feet",
+          "enclosure": "frame",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 40,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "QA 四角框架木箱",
+        "length": 1000,
+        "width": 800,
+        "height": 100,
+        "weight": 40,
+        "maxLoad": 500,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 400
+      },
+      "mix": "single",
+      "maxPallets": 3,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "primaryRule": {
+        "maxPallets": 3
+      }
+    },
+    "strategy": "practical",
+    "placements": [
+      {
+        "id": "prebuilt-1",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 40,
+        "y": 40,
+        "z": 100,
+        "dx": 900,
+        "dy": 700,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-2",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 40,
+        "y": 40,
+        "z": 300,
+        "dx": 900,
+        "dy": 700,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-3",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 40,
+        "y": 40,
+        "z": 640,
+        "dx": 900,
+        "dy": 700,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-4",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 40,
+        "y": 40,
+        "z": 840,
+        "dx": 900,
+        "dy": 700,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-5",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 40,
+        "y": 40,
+        "z": 1180,
+        "dx": 900,
+        "dy": 700,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-3"
+        ]
+      },
+      {
+        "id": "prebuilt-6",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 40,
+        "y": 40,
+        "z": 1380,
+        "dx": 900,
+        "dy": 700,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-3"
+        ]
+      }
+    ],
+    "pallets": [
+      {
+        "id": "floor-pallet-1",
+        "presetId": "eur-1200-800",
+        "name": "QA 四角框架木箱",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "dx": 1000,
+        "dy": 800,
+        "dz": 100,
+        "weight": 40,
+        "maxLoad": 500,
+        "orientation": "LWH",
+        "specificationId": "primary",
+        "packaging": {
+          "base": "corner-feet",
+          "enclosure": "frame",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 40,
+          "lid": true
+        },
+        "enclosureHeight": 540
+      },
+      {
+        "id": "floor-pallet-2",
+        "presetId": "eur-1200-800",
+        "name": "QA 四角框架木箱",
+        "x": 0,
+        "y": 0,
+        "z": 540,
+        "dx": 1000,
+        "dy": 800,
+        "dz": 100,
+        "weight": 40,
+        "maxLoad": 500,
+        "orientation": "LWH",
+        "specificationId": "primary",
+        "packaging": {
+          "base": "corner-feet",
+          "enclosure": "frame",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 40,
+          "lid": true
+        },
+        "enclosureHeight": 540
+      },
+      {
+        "id": "floor-pallet-3",
+        "presetId": "eur-1200-800",
+        "name": "QA 四角框架木箱",
+        "x": 0,
+        "y": 0,
+        "z": 1080,
+        "dx": 1000,
+        "dy": 800,
+        "dz": 100,
+        "weight": 40,
+        "maxLoad": 500,
+        "orientation": "LWH",
+        "specificationId": "primary",
+        "packaging": {
+          "base": "corner-feet",
+          "enclosure": "frame",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 40,
+          "lid": true
+        },
+        "enclosureHeight": 540
+      }
+    ],
+    "palletization": {
+      "config": {
+        "crateBearing": {
+          "automaticStacking": true,
+          "policy": "rated",
+          "revision": "QA-v45-SYNTHETIC",
+          "source": "Software acceptance only; not a production rating",
+          "conditions": "Synthetic four-corner static QA. Not field evidence.",
+          "validUntil": "",
+          "allowedOrientations": [
+            "LWH"
+          ],
+          "maxTopLoadKg": 120,
+          "maxLayers": 3,
+          "columnCapacityKg": {
+            "L0W0": 180,
+            "L0W1": 180,
+            "L1W0": 180,
+            "L1W1": 180
+          },
+          "reviewed": true,
+          "reviewedFor": "{\"model\":\"four-corner-paths-v1\",\"automaticStacking\":true,\"structure\":\"{\\\"length\\\":1000,\\\"width\\\":800,\\\"height\\\":100,\\\"weight\\\":40,\\\"maxLoad\\\":500,\\\"maxCargoHeight\\\":400,\\\"base\\\":\\\"corner-feet\\\",\\\"enclosure\\\":\\\"frame\\\",\\\"material\\\":\\\"wood\\\",\\\"deckBoards\\\":5,\\\"runners\\\":3,\\\"wallThickness\\\":40,\\\"lid\\\":true}\",\"policy\":\"rated\",\"revision\":\"QA-v45-SYNTHETIC\",\"source\":\"Software acceptance only; not a production rating\",\"conditions\":\"Synthetic four-corner static QA. Not field evidence.\",\"validUntil\":\"\",\"allowedOrientations\":[\"LWH\"],\"maxTopLoadKg\":120,\"maxLayers\":3,\"columnCapacityKg\":[180,180,180,180]}"
+        },
+        "packaging": {
+          "base": "corner-feet",
+          "enclosure": "frame",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 40,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "QA 四角框架木箱",
+        "length": 1000,
+        "width": 800,
+        "height": 100,
+        "weight": 40,
+        "maxLoad": 500,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 400
+      },
+      "mix": "single",
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "preparedCount": 3,
+      "bounded": false,
+      "only": false,
+      "specifications": [
+        {
+          "id": "primary",
+          "config": {
+            "crateBearing": {
+              "automaticStacking": true,
+              "policy": "rated",
+              "revision": "QA-v45-SYNTHETIC",
+              "source": "Software acceptance only; not a production rating",
+              "conditions": "Synthetic four-corner static QA. Not field evidence.",
+              "validUntil": "",
+              "allowedOrientations": [
+                "LWH"
+              ],
+              "maxTopLoadKg": 120,
+              "maxLayers": 3,
+              "columnCapacityKg": {
+                "L0W0": 180,
+                "L0W1": 180,
+                "L1W0": 180,
+                "L1W1": 180
+              },
+              "reviewed": true,
+              "reviewedFor": "{\"model\":\"four-corner-paths-v1\",\"automaticStacking\":true,\"structure\":\"{\\\"length\\\":1000,\\\"width\\\":800,\\\"height\\\":100,\\\"weight\\\":40,\\\"maxLoad\\\":500,\\\"maxCargoHeight\\\":400,\\\"base\\\":\\\"corner-feet\\\",\\\"enclosure\\\":\\\"frame\\\",\\\"material\\\":\\\"wood\\\",\\\"deckBoards\\\":5,\\\"runners\\\":3,\\\"wallThickness\\\":40,\\\"lid\\\":true}\",\"policy\":\"rated\",\"revision\":\"QA-v45-SYNTHETIC\",\"source\":\"Software acceptance only; not a production rating\",\"conditions\":\"Synthetic four-corner static QA. Not field evidence.\",\"validUntil\":\"\",\"allowedOrientations\":[\"LWH\"],\"maxTopLoadKg\":120,\"maxLayers\":3,\"columnCapacityKg\":[180,180,180,180]}"
+            },
+            "packaging": {
+              "base": "corner-feet",
+              "enclosure": "frame",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 40,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "QA 四角框架木箱",
+            "length": 1000,
+            "width": 800,
+            "height": 100,
+            "weight": 40,
+            "maxLoad": 500,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "maxPallets": 3,
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        }
+      ],
+      "preparedBySpecification": {
+        "primary": 3
+      }
+    }
+  }
+}
