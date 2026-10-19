@@ -1,0 +1,25 @@
+import {TransportAppearanceProvider} from "./transport-appearance";
+import {renderToStaticMarkup} from "react-dom/server";
+import {afterEach,beforeEach,expect,it,vi} from "vitest";
+import {setAppLanguage} from "./language";
+import {DeckSupportSettings} from "./deck-support-settings";
+import {DeckSupportPanel} from "./deck-support-panel";
+import {PackagingEditor} from "./packaging-editor";
+import {DEFAULT_PACKAGING} from "../lib/packing/packaging";
+import {DEFAULT_PALLET_BUILD} from "../lib/packing/loading-workflow";
+import {packLoadingWorkflow} from "../lib/packing/pack-loading";
+import type {DeckSupport} from "../lib/packing/deck-support";
+import type {FloorPalletConfig,ProductInput} from "../lib/packing/types";
+const s:DeckSupport={id:"wood",name:"QA solid",x:0,y:0,dx:200,dy:200,dz:50,weightKg:5,maxLoadKg:20,source:"QA",revision:"43"};
+const config:FloorPalletConfig={...DEFAULT_PALLET_BUILD.config,length:200,width:200,height:100,weight:5,maxLoad:100,maxCargoHeight:350,packaging:{...DEFAULT_PACKAGING,base:"solid",deckSupports:[s]}};
+const p:ProductInput={id:"p",sku:"P",name:"P",length:200,width:200,height:100,weight:10,quantity:2,priority:50,rotationPolicy:"upright",stackable:true,maxStackLayers:0,maxTopLoadKg:1000,color:"#338877"};
+const plan=()=>packLoadingWorkflow({mode:"mixed",workflow:"pallet-only",strategy:"maximum",clearance:0,products:[p],container:{id:"c",name:"C",length:1000,width:1000,height:1000,doorWidth:1000,doorHeight:1000,maxWeight:10000},palletBuild:{...DEFAULT_PALLET_BUILD,config,maxPallets:1}});
+const props={value:config,onChange:()=>{},onValidityChange:()=>{}};
+beforeEach(()=>vi.stubGlobal("document",{documentElement:{lang:""}}));afterEach(()=>{setAppLanguage("zh");vi.unstubAllGlobals();});
+it("exposes actual dimensions, separate added mass and null versus zero ratings",()=>{
+ const unknown={...config,packaging:{...config.packaging!,deckSupports:[{...s,weightKg:null,maxLoadKg:null}]}};setAppLanguage("en");const html=renderToStaticMarkup(<DeckSupportSettings {...props} value={unknown}/>);expect(html).toContain('aria-label="Deck support 1 dz"');expect(html).toContain('aria-label="Deck support 1 added tare"');expect(html).toContain('Confirm zero tare');expect(html).toContain('0 prohibits load');expect(html).not.toContain('aria-label="Deck support 1 static load limit"');expect(html).toContain('Remove deck support');expect(html).not.toMatch(/[\u3400-\u9fff]/u);
+ const zero=renderToStaticMarkup(<DeckSupportSettings {...props} value={{...config,packaging:{...config.packaging!,deckSupports:[{...s,maxLoadKg:0}]}}}/>);expect(zero).toContain('aria-label="Deck support 1 static load limit"');expect(zero).toContain('value="0"');
+});
+it("shows added and complete tare and retains settings in the packaging editor",()=>{const html=renderToStaticMarkup(<DeckSupportSettings {...props}/>);expect(html).toContain('5 / 10');const editor=renderToStaticMarkup(<TransportAppearanceProvider><PackagingEditor {...props}/></TransportAppearanceProvider>);expect(editor).toContain('托内实心支承件');expect(editor).toContain('新增托内支承件自重另填');});
+it("reports current cumulative mass and missing evidence in English",()=>{setAppLanguage("en");const original=plan(),html=renderToStaticMarkup(<DeckSupportPanel result={original} products={[p]}/>);expect(html).toContain('20.00');expect(html).toContain('Entered static load check passed');expect(html).toContain('Export deck support CSV');expect(html).not.toMatch(/[\u3400-\u9fff]/u);const missing=structuredClone(original);missing.pallets![0].packaging!.deckSupports![0].source='';expect(renderToStaticMarkup(<DeckSupportPanel result={missing} products={[p]}/>)).toContain('Unverified');expect(renderToStaticMarkup(<DeckSupportPanel result={original} products={[p]} disabled/>)).toContain('disabled=""');});
+it("marks unknown current cargo data as unverified without inventing a load",()=>{setAppLanguage("en");const html=renderToStaticMarkup(<DeckSupportPanel result={plan()}/>);expect(html).toContain('Unverified');expect(html).not.toContain('20.00');});

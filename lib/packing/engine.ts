@@ -1,3 +1,4 @@
+import {palletDeckSupportGeometry,DECK_SUPPORT_PREFIX} from "./deck-support";
 import {accessorySupportGeometry,assertAccessorySupportWorkflow,hasAccessorySupports,SUPPORT_WORKFLOW_ERROR} from "./accessory-support";
 import {containerAccessoryWeight,accessoryMassBoxes,accessoryProductErrors} from "./container-accessories";
 import {parseLongSupport,hasLongSupportLimits,inspectLongSupportPlacement,longSupportViolation} from "./long-support";
@@ -44,7 +45,12 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.42.0";
+export const ENGINE_VERSION = "0.43.0";
+
+function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
+ const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
+ return {boxes:[...a.boxes,...b.boxes],products:[...a.products,...b.products]};
+}
 
 type Orientation = {
   dx: number;
@@ -142,7 +148,7 @@ function assertValidRequest(request: PackingRequest) {
     throw new Error("单品计划箱数上限必须是大于 0 的整数。");
   }
   if(accessoryProductErrors(request.container,new Set(selectProductsForMode(request.products,request.mode).map(p=>p.id))).length)throw Error("Unknown accessory cargo reference / 附件关联了不存在的货物");
-  if(request.products.some(p=>p.id.startsWith(SITE_EXCLUSION_PREFIX)))throw Error("Reserved site region identifier / 产品 ID 使用了柜内区域保留前缀");
+  if(request.products.some(p=>(p.id.startsWith(SITE_EXCLUSION_PREFIX)||p.id.startsWith(DECK_SUPPORT_PREFIX))))throw Error("Reserved site region identifier / 产品 ID 使用了柜内区域保留前缀");
   if(request.container.exclusions?.length&&request.floorPallets)throw Error("柜内区域暂不支持自动铺底层托盘；请关闭底层托盘，或使用先打托后装柜 / Site regions currently require floor pallets off, or prebuilt pallet loading");
   if (request.floorPallets !== undefined) { parseFloorPalletConfig(request.floorPallets); if (request.products.some(p => p.id.startsWith("floor-pallet-"))) throw new Error("产品 ID 与底层托盘标识冲突。"); }
   if (request.loadingRules !== undefined) parseLoadingRules(request.loadingRules);
@@ -1625,7 +1631,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
     for (const point of candidatePoints) {
       for (const orientation of orientations) {
         const candidate = makePlacement(product, placementIndex, point, orientation);
-        const palletFloor = request.floorPallets && Math.abs(candidate.z - request.floorPallets.height) < EPS;
+        const palletFloor = request.floorPallets && Math.abs(candidate.z - request.floorPallets.height) < EPS || request.palletBuildStage&&fixed.boxes.some(b=>Math.abs(b.z+b.dz-candidate.z)<EPS&&contactArea(candidate,b)>EPS);
         if (request.floorPallets && !request.floorPallets.allowFloorCargo && candidate.z <= EPS) continue;
         if (
           candidate.x + candidate.dx > container.length + EPS ||
@@ -1819,13 +1825,18 @@ export function validatePacking(
   if (!Array.isArray(placements) || !Array.isArray(pallets)) return {valid:false,errors:["货物和托盘坐标必须是数组。"]};
   for(const p of products){try{parseShapeFields(p as unknown as Record<string,unknown>);}catch(e){return {valid:false,errors:[e instanceof Error?e.message:"Invalid cargo shape"]};}}
   const cargo = placements;
+  const deckConfigured=pallets.some(p=>p.packaging?.deckSupports!==undefined)||palletization?.config?.packaging?.deckSupports!==undefined||palletization?.specifications?.some(s=>s.config.packaging?.deckSupports!==undefined);
+  if(deckConfigured){
+    if(!palletization)return {valid:false,errors:["Deck supports require validated prebuilt specifications / 托内支承件需要有效的预打托规格"]};
+    try{const issues=validatePalletizedCargo(cargo,pallets,container,clearance,palletization,products);if(issues.length)return {valid:false,errors:issues};}catch(e){return {valid:false,errors:[e instanceof Error?e.message:"Invalid deck supports"]};}
+  }
   if(hasAccessorySupports(container)&&(floorConfig||pallets.length||palletization))return {valid:false,errors:[SUPPORT_WORKFLOW_ERROR]};
-  if(products.some(p=>p.id.startsWith(SITE_EXCLUSION_PREFIX)))return {valid:false,errors:["Reserved site region identifier / 产品 ID 使用了柜内区域保留前缀"]};
-  if (cargo.some(b=>b?.supportOnly||b?.supportEvidence||typeof b?.id==="string"&&b.id.startsWith(SITE_EXCLUSION_PREFIX))) return {valid:false,errors:["货物记录不能伪装为托盘支撑。"]};
+  if(products.some(p=>(p.id.startsWith(SITE_EXCLUSION_PREFIX)||p.id.startsWith(DECK_SUPPORT_PREFIX))))return {valid:false,errors:["Reserved site region identifier / 产品 ID 使用了柜内区域保留前缀"]};
+  if (cargo.some(b=>b?.supportOnly||b?.supportEvidence||typeof b?.id==="string"&&(b.id.startsWith(SITE_EXCLUSION_PREFIX)||b.id.startsWith(DECK_SUPPORT_PREFIX)))) return {valid:false,errors:["货物记录不能伪装为托盘支撑。"]};
   if(floorConfig&&container.exclusions?.length)return {valid:false,errors:["Site regions cannot be combined with floor-laid pallets / 柜内区域暂不支持铺底层托盘"]};
   if (floorConfig) {try {parseFloorPalletConfig(floorConfig);}catch(e){return {valid:false,errors:[e instanceof Error?e.message:"托盘配置无效。"]};}}
   if (pallets.length) {
-    if (pallets.length > 200 || new Set(pallets.map(p => p.id)).size !== pallets.length || pallets.some(p => !p || typeof p.id !== "string" || !p.id.trim() || p.id.startsWith(SITE_EXCLUSION_PREFIX) || typeof p.name!=="string" || typeof p.presetId!=="string" || p.locked!==undefined&&typeof p.locked!=="boolean" || !["LWH","WLH"].includes(p.orientation) || (palletization ? p.z < 0 : p.z !== 0) || ![p.x,p.y,p.z,p.dx,p.dy,p.dz,p.weight,p.maxLoad].every(Number.isFinite) || p.dx <= 0 || p.dy <= 0 || p.dz <= 0 || p.weight < 0 || p.maxLoad <= 0 || cargo.some(b => b.id === p.id || b.productId === p.id))) return {valid:false,errors:["底层托盘坐标、承重或标识无效。"]};
+    if (pallets.length > 200 || new Set(pallets.map(p => p.id)).size !== pallets.length || pallets.some(p => !p || typeof p.id !== "string" || !p.id.trim() || (p.id.startsWith(SITE_EXCLUSION_PREFIX)||p.id.startsWith(DECK_SUPPORT_PREFIX)) || typeof p.name!=="string" || typeof p.presetId!=="string" || p.locked!==undefined&&typeof p.locked!=="boolean" || p.quarterTurns!==undefined&&(!Number.isInteger(p.quarterTurns)||p.quarterTurns<0||p.quarterTurns>3||p.quarterTurns%2!==(p.orientation==="WLH"?1:0)) || !["LWH","WLH"].includes(p.orientation) || (palletization ? p.z < 0 : p.z !== 0) || ![p.x,p.y,p.z,p.dx,p.dy,p.dz,p.weight,p.maxLoad].every(Number.isFinite) || p.dx <= 0 || p.dy <= 0 || p.dz <= 0 || p.weight < 0 || p.maxLoad <= 0 || cargo.some(b => b.id === p.id || b.productId === p.id))) return {valid:false,errors:["底层托盘坐标、承重或标识无效。"]};
     placements = orderForLoading([...palletAnchors(pallets), ...cargo],products);
     products = [...products, ...palletSupportProducts(pallets)];
   }
@@ -1836,8 +1847,9 @@ export function validatePacking(
   if (mode !== "single" && mode !== "mixed") return { valid: false, errors: ["计算模式无效。"] };
   const effective = effectiveContainer(container, clearance);
   const exclusions=siteExclusionBoxes(container,clearance);
-  const fixed=accessorySupportGeometry(container,clearance);
+  const fixed=fixedPlanSupportGeometry(container,clearance,pallets);
   products=[...products,...fixed.products];
+  const obstacles=[...exclusions,...fixed.boxes.filter(b=>b.id.startsWith(DECK_SUPPORT_PREFIX))];
   const errors: string[] = [];
   const spatial = new SpatialIndex(effective,Math.max(0,...products.map(p=>p.protectionGap??0)));
   const topLevels = new Map<number, PlacedBox[]>();
@@ -1874,7 +1886,7 @@ export function validatePacking(
       // spatial cells. A boundary failure already invalidates this snapshot.
       return { valid: false, errors };
     }
-    for(const zone of exclusions)if(bodiesOverlap(box,zone,product,undefined))errors.push(`${box.sku}: 柜内障碍或禁占区 / Site exclusion: ${zone.name}`);
+    for(const zone of obstacles)if(bodiesOverlap(box,zone,product,undefined))errors.push(`${box.sku}: 柜内障碍或禁占区 / Site exclusion: ${zone.name}`);
     for (const otherIndex of spatial.query(box)) {
       if (bodiesOverlap(box, placements[otherIndex],product,productMap.get(placements[otherIndex].productId))) {
         errors.push(`${box.sku} 的箱体 ${index + 1} 与箱体 ${otherIndex + 1} 重叠。`);
@@ -1897,7 +1909,7 @@ export function validatePacking(
       if (strategy === "practical" && !product.allowedOrientations && Math.abs(box.dz - positive(product.height)) > EPS) {
         errors.push(`${box.sku} 的箱体 ${index + 1} 在现场易执行方案中发生侧翻；现场模式只允许保持原包装高度。`);
       }
-      if (product.bottomOnly === true && box.z > EPS && !(pallets.some(p=>Math.abs(box.z-p.z-p.dz)<EPS&&contactArea(box,palletAnchors([p])[0])>EPS))) errors.push(`${box.sku} 的箱体 ${index + 1} 未按“必须底置”规则放在柜底。`);
+      if (product.bottomOnly === true && box.z > EPS && !(pallets.some(p=>Math.abs(box.z-p.z-p.dz)<EPS&&contactArea(box,palletAnchors([p])[0])>EPS)||fixed.boxes.some(b=>b.id.startsWith(DECK_SUPPORT_PREFIX)&&Math.abs(b.z+b.dz-box.z)<EPS&&contactArea(box,b)>EPS)||container.category==="pallet"&&fixed.boxes.some(b=>Math.abs(b.z+b.dz-box.z)<EPS&&contactArea(box,b)>EPS))) errors.push(`${box.sku} 的箱体 ${index + 1} 未按“必须底置”规则放在柜底。`);
       if (!canPassDoor({ dx: box.dx, dy: box.dy, dz: box.dz, label: box.orientation }, effective)) {
         errors.push(`${box.sku} 的箱体 ${index + 1} 无法按当前方向通过门洞。`);
       }
@@ -2072,7 +2084,7 @@ function calculateExecutionComplexity(
   placements: PlacedBox[],
   products: ProductInput[],
   pallets: PlacedPallet[] = [],
-  fixed:ReturnType<typeof accessorySupportGeometry>={boxes:[],products:[]},
+  fixed:ReturnType<typeof fixedPlanSupportGeometry>={boxes:[],products:[]},
 ): PackingResult["metrics"]["executionComplexity"] {
   products=[...products,...fixed.products];
   const orientationsByProduct = new Map<string, Set<string>>();
@@ -2200,7 +2212,7 @@ export function pack(request: PackingRequest): PackingResult {
   const requestedCount = summaries.reduce((sum, item) => sum + item.requested, 0);
   const loadedCount = summaries.reduce((sum, item) => sum + item.loaded, 0);
   const centerOfGravity = calculateCenterOfGravity([...supports, ...orderedPlacements,...accessoryMassBoxes(normalized.container,normalized.clearance)], effective, normalized.products);
-  const executionComplexity = calculateExecutionComplexity(orderedPlacements, normalized.products, pallets,accessorySupportGeometry(normalized.container,normalized.clearance));
+  const executionComplexity = calculateExecutionComplexity(orderedPlacements, normalized.products, pallets,fixedPlanSupportGeometry(normalized.container,normalized.clearance,pallets));
   const physicalLoadedSets = normalized.mode === "single"
     ? setSummaries[0]?.loadedSets ?? loadedCount
     : 0;
@@ -2503,7 +2515,7 @@ export function packWithComparison(request: PackingRequest): PackingResult {
 
 /** Shared support-layer rebuild for movement and order-conserving pallet-content edits. */
 export function rebuildPlacementLayers(placements:PlacedBox[],pallets:PlacedPallet[],products:ProductInput[],loadingRules?:LoadingRules,container?:ContainerSpec,clearance=0){
-  const fixed=container?accessorySupportGeometry(container,clearance):{boxes:[],products:[]};
+  const fixed=container?fixedPlanSupportGeometry(container,clearance,pallets):{boxes:[],products:[]};
   products=[...applyTypeSupport(products,loadingRules),...fixed.products];
   const productMap = new Map(products.map(p => [p.id, p]));
   const levels = new Map<number, PlacedBox[]>();
@@ -2540,7 +2552,7 @@ export function revisePackingResult(original: PackingResult, placements: PlacedB
     cargoDetails:Object.fromEntries(products.map(p=>[p.id,shapeDetails(p)])),
     strategyPlans: undefined, strategyComparison: undefined, quoteEstimate: undefined, validation,
     warnings: ["手动调整已重新校验；继续优化会保留锁定箱位及其支撑；重新计算整个订单将创建新方案。"],
-    metrics: { ...original.metrics, centerOfGravity: calculateCenterOfGravity([...palletAnchors(pallets),...ordered,...accessoryMassBoxes(original.container,original.clearance)],effective,products), executionComplexity: calculateExecutionComplexity(ordered,products,pallets,accessorySupportGeometry(original.container,original.clearance)) }, createdAt: new Date().toISOString() };
+    metrics: { ...original.metrics, centerOfGravity: calculateCenterOfGravity([...palletAnchors(pallets),...ordered,...accessoryMassBoxes(original.container,original.clearance)],effective,products), executionComplexity: calculateExecutionComplexity(ordered,products,pallets,fixedPlanSupportGeometry(original.container,original.clearance,pallets)) }, createdAt: new Date().toISOString() };
 }
 
 export function explainUnloaded(result: PackingResult, products: ProductInput[]) {
@@ -2567,9 +2579,9 @@ export function diagnoseUnloadedPosition(result:PackingResult,products:ProductIn
   const p=products.find(p=>p.id===productId);if(!p)return {detail:"缺少箱规",candidate:null};
   const effective=effectiveContainer(result.container,result.clearance),orientations=orientationsForStrategy(p,effective,result.strategy);
   const spatial=new SpatialIndex(effective,Math.max(0,...products.map(p=>p.protectionGap??0))),tops=new Map<number,PlacedBox[]>(),rules=new Map(products.map(p=>[p.id,p]));
-  const fixed=accessorySupportGeometry(result.container,result.clearance);
+  const fixed=fixedPlanSupportGeometry(result.container,result.clearance,result.pallets);
   fixed.products.forEach(p=>rules.set(p.id,p));fixed.boxes.forEach(b=>indexSupport(tops,b,rules));
-  const obstacles=siteExclusionBoxes(result.container,result.clearance);
+  const obstacles=[...siteExclusionBoxes(result.container,result.clearance),...palletDeckSupportGeometry(result.pallets??[]).boxes];
   const allBoxes=[...palletAnchors(result.pallets??[]),...result.placements];
   allBoxes.forEach((b,i)=>{spatial.add(b,i);indexSupport(tops,b,rules);});
   const points:Point[]=[{x:0,y:0,z:0},...[...allBoxes,...obstacles].flatMap(b=>[{x:b.x+b.dx,y:b.y,z:b.z},{x:b.x,y:b.y+b.dy,z:b.z},{x:b.x,y:b.y,z:b.z+b.dz}])];
@@ -2605,6 +2617,10 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   if(palletization&&!palletization.specifications&&request.palletBuild&&(palletization.config.crateBearing||request.palletBuild.config.crateBearing)){
     const expected=parsePalletBuild(request.palletBuild).config;
     if(JSON.stringify(expected.crateBearing)!==JSON.stringify(palletization.config.crateBearing))throw new Error("Crate rating evidence does not match workspace inputs");
+  }
+  if(palletization&&!palletization.specifications&&request.palletBuild&&(palletization.config.packaging?.deckSupports?.length||request.palletBuild.config.packaging?.deckSupports?.length)){
+    const expected=parsePalletBuild(request.palletBuild).config;
+    if(JSON.stringify(expected)!==JSON.stringify(palletization.config))throw Error("Deck support specification does not match workspace inputs / 托内支承件规格与当前工作区输入不一致");
   }
   if(palletization){const source=request.palletBuild??raw.palletBuild;if(source!==undefined&&(parsePalletBuild(source).selection??"ordered")!==(palletization.selection??"ordered"))throw new Error("Packaging selection mode does not match workspace inputs");}
   if(palletization&&!Array.isArray(raw.pallets))throw new Error("Prebuilt pallet coordinates are missing");
@@ -2658,7 +2674,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
     accessConfig:parseAccessConfig(raw.accessConfig),palletization,delivery:parseDelivery(raw.delivery,new Set(products.map(p=>p.id))),floorPallets:request.floorPallets,pallets,container:request.container,clearance:request.clearance,singleCartonLimit:normalized.singleCartonLimit,placements:ordered,summaries,setSummaries,validation,
     metrics:{...envelopeMetrics(ordered,products,effectiveVolume,pallets),loadedCount:ordered.length,requestedCount:summaries.reduce((n,s)=>n+s.requested,0),loadedVolume,grossWeight,effectiveVolume,
       volumeUtilization:loadedVolume/effectiveVolume,weightUtilization:grossWeight/request.container.maxWeight,
-      centerOfGravity:calculateCenterOfGravity([...palletAnchors(pallets),...ordered,...accessoryMassBoxes(request.container,request.clearance)],effective,products),executionComplexity:calculateExecutionComplexity(ordered,products,pallets,accessorySupportGeometry(request.container,request.clearance)),solveTimeMs:0},
+      centerOfGravity:calculateCenterOfGravity([...palletAnchors(pallets),...ordered,...accessoryMassBoxes(request.container,request.clearance)],effective,products),executionComplexity:calculateExecutionComplexity(ordered,products,pallets,fixedPlanSupportGeometry(request.container,request.clearance,pallets)),solveTimeMs:0},
     loadingRules: request.loadingRules, cargoDetails: Object.fromEntries(products.map(p=>[p.id,shapeDetails(p)])),
     warnings:["历史箱位已按当前箱规与引擎重新校验。自动重算已暂停，可继续手动调整或生成新方案。"],createdAt:new Date().toISOString()};
 }

@@ -1,4 +1,5 @@
 "use client";
+import {deckSupportHeight} from "../lib/packing/deck-support";
 import { useMemo, useRef, useState } from "react";
 import { useModelViewport } from "./use-model-viewport";
 import { RotateCcw } from "lucide-react";
@@ -18,7 +19,7 @@ export function ModelPreviewFallback({ space, pallet, mode, transparency }: {spa
   const [orbit,setOrbit]=useState({yaw:.72,pitch:.42}),[zoom,setZoom]=useState(1);
   const {host,viewport}=useModelViewport();
   const pointer=useRef<{x:number;y:number}|null>(null);
-  const length=pallet?.length??space?.length??1200,width=pallet?.width??space?.width??800,height=pallet?(packagingInterior(pallet).crate?packagingHeight(pallet):pallet.height):space?.height??144;
+  const length=pallet?.length??space?.length??1200,width=pallet?.width??space?.width??800,height=pallet?(packagingInterior(pallet).crate?packagingHeight(pallet):pallet.height+deckSupportHeight(pallet)):space?.height??144;
   const target=useMemo(()=>space??{id:"preview",name:"",length,width,height,doorWidth:width,doorHeight:height,maxWeight:1},[space,length,width,height]);
   const parts=useMemo<TransportPart[]>(()=>pallet?packagingParts(length,width,pallet.height,pallet.packaging,pallet.maxCargoHeight).map((p)=>({name:`pallet-${p.kind}`,color:pallet.packaging?.color,shape:"box",role:"floor",position:[p.x+p.dx/2-length/2,p.z+p.dz/2,p.y+p.dy/2-width/2],size:[p.dx,p.dz,p.dy]})):mode==="model"?createTransportParts(target):[],[pallet,target,length,width,mode]);
   const bounds=useMemo(()=>pallet?{size:[length,height,width] as SceneSize,origin:[0,0,0] as SceneSize}:transportSceneBounds(target,1,mode,0),[pallet,target,length,width,height,mode]);

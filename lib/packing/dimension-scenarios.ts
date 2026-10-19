@@ -1,3 +1,4 @@
+import {palletEnvelopeTop} from "./deck-support";
 import { cargoShapeOf } from "./cargo-shape";
 import { getOrientations, restorePackingSnapshot } from "./engine";
 import { parseDimensionAllowance, DIMENSION_AXES, type DimensionSize } from "./dimension-allowance";
@@ -81,7 +82,7 @@ export function dimensionComparisonRows(comparison:DimensionComparison){
 }
 export function scenarioMargins(plan:PackingResult){
   if(!plan.placements.length)return null;
-  const units=plan.palletization?plan.pallets?.map(p=>({x:p.x,y:p.y,z:p.z,dx:p.dx,dy:p.dy,dz:Math.max(p.enclosureHeight??p.dz,...plan.placements.filter(b=>b.palletIds?.includes(p.id)).map(b=>b.z+b.dz-p.z))}))??[]:plan.placements;
+  const units=plan.palletization?plan.pallets?.map(p=>({x:p.x,y:p.y,z:p.z,dx:p.dx,dy:p.dy,dz:palletEnvelopeTop(p,plan.placements.filter(b=>b.palletIds?.includes(p.id)))-p.z}))??[]:plan.placements;
   if(!units.length)return null;
   const max=(axis:"x"|"y"|"z",size:"dx"|"dy"|"dz")=>Math.max(...units.map(b=>b[axis]+b[size]));
   const wall:DimensionSize={length:plan.container.length-2*plan.clearance-max("x","dx"),width:plan.container.width-2*plan.clearance-max("y","dy"),height:plan.container.height-plan.clearance-max("z","dz")};

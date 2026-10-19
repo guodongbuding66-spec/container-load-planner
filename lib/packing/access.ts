@@ -1,3 +1,4 @@
+import {palletEnvelopeTop} from "./deck-support";
 import {siteExclusionBoxes} from "./site-exclusions";
 import {findManeuverRoute,DEFAULT_ACCESS,type ManeuverRoute,type AccessConfig} from "./maneuver";
 import type { PackingResult, PlacedBox } from "./types";
@@ -14,7 +15,7 @@ export function auditAccess(plan:PackingResult,delivery:DeliveryMap=plan.deliver
   const routes:Record<string,ManeuverRoute>={},issues:PathIssue[]=[],open=plan.container.loadingAccess==="open";
   const fixed=siteExclusionBoxes(plan.container,plan.clearance);
   const stops={...delivery};
-  const items=plan.palletization?palletAnchors(plan.pallets??[]).map(p=>{const cargo=plan.placements.filter(b=>b.palletIds?.includes(p.id)),values=cargo.map(b=>delivery[b.productId]),numbers=new Set(values.filter(d=>d?.stop>0).map(d=>d.stop));if(numbers.size>1)issues.push({id:p.id,phase:"unload",reason:"mixed-stop",obstacles:cargo.map(b=>b.id)});if(values.length&&values.every(d=>d?.stop>0))stops[p.id]={customer:"",destination:"",stop:Math.min(...values.map(d=>d.stop))};return {...p,dz:Math.max(p.dz,plan.pallets?.find(q=>q.id===p.id)?.enclosureHeight??0,...cargo.map(b=>b.z+b.dz-p.z)),weight:p.weight+cargo.reduce((n,b)=>n+b.weight,0)};}):plan.placements;
+  const items=plan.palletization?palletAnchors(plan.pallets??[]).map(p=>{const cargo=plan.placements.filter(b=>b.palletIds?.includes(p.id)),values=cargo.map(b=>delivery[b.productId]),numbers=new Set(values.filter(d=>d?.stop>0).map(d=>d.stop));if(numbers.size>1)issues.push({id:p.id,phase:"unload",reason:"mixed-stop",obstacles:cargo.map(b=>b.id)});if(values.length&&values.every(d=>d?.stop>0))stops[p.id]={customer:"",destination:"",stop:Math.min(...values.map(d=>d.stop))};return {...p,dz:palletEnvelopeTop((plan.pallets??[]).find(q=>q.id===p.id)!,cargo)-p.z,weight:p.weight+cargo.reduce((n,b)=>n+b.weight,0)};}):plan.placements;
   const seen:PlacedBox[]=[...fixed,...(plan.palletization?[]:palletAnchors(plan.pallets??[]))];
   for(const b of items){if(!open){const obstacles=seen.filter(a=>corridor(a,b)).map(a=>a.id);if(!throughDoor(b,plan))issues.push({id:b.id,phase:"load",reason:"door",obstacles:[]});if(obstacles.length)issues.push({id:b.id,phase:"load",reason:"blocked",obstacles});}seen.push(b);}
   const order=[...items].sort((a,b)=>(stops[a.productId]?.stop||999)-(stops[b.productId]?.stop||999)||b.x-a.x||b.z-a.z||b.y-a.y),remaining=new Set(order.map(b=>b.id));

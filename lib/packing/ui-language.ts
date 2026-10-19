@@ -1,4 +1,16 @@
 export const ENGLISH: Record<string, string> = {
+  "Deck supports require validated prebuilt specifications / 托内支承件需要有效的预打托规格": "Deck supports require validated prebuilt specifications.",
+  "托内支承条件下未找到完整货物；请检查接触、静载、朝向、悬跨、净高及套装规则。有限搜索不证明无解 / No complete cargo found under current deck support constraints; check contact, static limits, orientation, spans, height and kits. Bounded search is not an infeasibility proof": "No complete cargo found under current deck support constraints. Check contact, static limits, orientation, spans, height and kits. Bounded search is not an infeasibility proof.",
+  "Invalid deck support data / 托内支承件的标识、尺寸、重量或静载资料无效": "Invalid deck support identity, dimensions, mass or static rating.",
+  "Deck supports currently require floor-only complete pallets / 托内支承件首阶段要求整托单层底置，上压为 0": "Deck supports currently require single-layer floor-only units, with zero declared top load.",
+  "Deck support mass exceeds packaging or payload limit / 支承件使整托自重超限或占满额定载荷": "Deck support mass exceeds complete tare limits or consumes the entire payload rating.",
+  "Deck support exceeds usable packaging interior / 托内支承件超出可用内尺寸或货物限高": "Deck support exceeds the usable interior or cargo height.",
+  "Deck supports overlap / 托内支承件不能相交或叠放": "Deck supports cannot overlap or stack.",
+  "Deck support must have full bottom contact / 托内支承件底部须完全贴合实际面板，不支持跨板缝架空": "Deck support requires full contact with actual deck boards; bridging gaps is unsupported.",
+  "Deck supports require the prebuilt pallet workflow / 托内支承件请使用先打托或只打托模式": "Deck supports require pallet-only or prebuilt loading.",
+  "托内支承件已占满当前货物净高 / Deck supports occupy the cargo height": "Deck supports occupy the entire available cargo height.",
+  "Deck support specification does not match workspace inputs / 托内支承件规格与当前工作区输入不一致": "Deck support specification does not match current workspace inputs.",
+
   "Support requires one physical timber / brace / other piece installed before cargo / 支承件必须为装货前安装的单件实心垫木、支架或其他实体": "Support requires one physical timber / brace / other piece installed before cargo.",
   "Support must rest on the floor / 首阶段支承件必须直接落地，Z 为 0": "Support must rest on the floor (Z=0).",
   "Support overlaps another physical region / 支承件与其他实体区域相交": "Support overlaps another physical region.",

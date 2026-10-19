@@ -1,3 +1,4 @@
+import {completePackagingTare,deckSupportHeight} from "./deck-support";
 import {assertAccessorySupportWorkflow} from "./accessory-support";
 import {inspectLongSupport,longSupportViolation} from "./long-support";
 import {containerAccessoryWeight} from "./container-accessories";
@@ -16,7 +17,7 @@ export type PreparedUnit = { specificationId: string; id: string; cargo: PlacedB
 
 /** A flat, complete top and the tightest known residual load limit are required. */
 function topCapacity(cargo: PlacedBox[], request: PackingRequest, config: FloorPalletConfig, options: PalletBuildOptions) {
-  if (packagingInterior(config).crate || options.stackLayers === 1 || options.maxTopLoadKg <= 0) return 0;
+  if (config.packaging?.deckSupports?.length || packagingInterior(config).crate || options.stackLayers === 1 || options.maxTopLoadKg <= 0) return 0;
   const top = Math.max(...cargo.map(b => b.z + b.dz));
   const deck: PlacedBox = { id: "__test-top__", productId: "__test-top__", sku: "__loaded-pallet__", name: "Pallet", color: "#997947", x: 0, y: 0, z: top, dx: config.length, dy: config.width, dz: config.height, weight: 1, layer: 1, orientation: "LWH" };
   const rules = new Map(request.products.map(p => [p.id, p]));
@@ -76,18 +77,20 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
       const cargoHeight=only||interior.crate?c.maxCargoHeight!:palletCargoCeiling(request.container,request.clearance,c)-c.height;
       if(cargoHeight<=0){lastReason="托盘上方没有可用净高";continue;}
       const products=remaining.filter(p=>!failed.has(groupKey(p))&&eligible.get(spec.id)!.has(groupKey(p))&&(options.mix==="mixed"||groupKey(p)===firstKey));
+      const supportRows=c.packaging?.deckSupports?.map(s=>({id:s.id,name:s.name,kind:"obstacle" as const,x:s.x-interior.inset,y:s.y-interior.inset,z:0,dx:s.dx,dy:s.dy,dz:s.dz,accessory:{type:"timber" as const,quantity:1,unitWeightKg:s.weightKg,phase:"before-cargo" as const,relatedProductIds:[],afterAccessoryIds:[],source:s.source,revision:s.revision,note:"",support:{version:1 as const,surface:"solid-rectangle" as const,maxLoadKg:s.maxLoadKg}}}));
+      if(deckSupportHeight(c)>=cargoHeight){lastReason="托内支承件已占满当前货物净高 / Deck supports occupy the cargo height";continue;}
       const local=pack({...request,palletBuildStage:true,workflow:undefined,palletBuild:undefined,floorPallets:undefined,mode:"mixed",strategy,practicalTargetUtilization:.95,
-        container:{id:"build-pallet",name:c.name,category:"pallet",loadingAccess:"open",length:interior.length,width:interior.width,height:cargoHeight,doorWidth:interior.width,doorHeight:cargoHeight,maxWeight:c.maxLoad},clearance:0,products});
+        container:{id:"build-pallet",name:c.name,category:"pallet",loadingAccess:"open",length:interior.length,width:interior.width,height:cargoHeight,doorWidth:interior.width,doorHeight:cargoHeight,maxWeight:c.maxLoad,...(supportRows?.length?{exclusions:supportRows}:{})},clearance:0,products});
       if(!local.validation.valid)throw new Error(local.validation.errors.join("; "));
       // The local floor is a search proxy. Recheck the actual measured boards before
       // committing a complete unit; never trim failed members out of a kit.
-      const supportBase:PlacedPallet={id:"build-base",presetId:c.presetId,name:c.name,x:0,y:0,z:0,dx:c.length,dy:c.width,dz:c.height,weight:c.weight,maxLoad:c.maxLoad,orientation:"LWH",packaging:c.packaging};
-      const physical={...local,pallets:[supportBase],placements:local.placements.map(b=>({...b,x:b.x+interior.inset,y:b.y+interior.inset,z:b.z+c.height}))};
+      const supportBase:PlacedPallet={id:"build-base",presetId:c.presetId,name:c.name,x:0,y:0,z:0,dx:c.length,dy:c.width,dz:c.height,weight:completePackagingTare(c),maxLoad:c.maxLoad,orientation:"LWH",packaging:c.packaging};
+      const physical={...local,container:{...local.container,length:c.length,width:c.width,height:c.height+cargoHeight,exclusions:undefined},pallets:[supportBase],placements:local.placements.map(b=>({...b,x:b.x+interior.inset,y:b.y+interior.inset,z:b.z+c.height}))};
       const violation=inspectLongSupport(physical,products).map(longSupportViolation).find(Boolean);
       if(violation){lastReason=violation;continue;}
-      if(!local.placements.some(b=>groupKey(sourceProducts.get(b.productId)!)===firstKey))continue;
+      if(!local.placements.some(b=>groupKey(sourceProducts.get(b.productId)!)===firstKey)){if(supportRows?.length)lastReason="托内支承条件下未找到完整货物；请检查接触、静载、朝向、悬跨、净高及套装规则。有限搜索不证明无解 / No complete cargo found under current deck support constraints; check contact, static limits, orientation, spans, height and kits. Bounded search is not an infeasibility proof";continue;}
       if(cartonCount+local.placements.length>MAX_VISIBLE_PLACEMENTS){coordinateLimit=true;if(options.selection==="compact")continue;break;}
-      const height=Math.max(...local.placements.map(b=>b.z+b.dz));
+      const height=Math.max(deckSupportHeight(c),...local.placements.map(b=>b.z+b.dz));
       const unit:PreparedUnit={id:`unit-${prepared.length+1}`,specificationId:spec.id,cargo:local.placements,height:interior.crate?packagingHeight(c):height+c.height,weight:local.metrics.grossWeight+c.weight,
         tail:local.summaries.every(s=>s.unloaded===0),topCapacity:only?0:topCapacity(local.placements,request,c,{...options,config:c,stackLayers:spec.stackLayers,maxTopLoadKg:spec.maxTopLoadKg})};
       if(!only&&(multiple||options.selection==="compact")){const directions=unitDirections(unit),v=request.container,g=request.clearance;
@@ -95,7 +98,7 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
       }
       if(!only&&options.selection==="compact"&&unit.weight>request.container.maxWeight-containerAccessoryWeight(request.container)+.0001)continue;
       if(options.selection!=="compact"){chosen=unit;break;}
-      candidates.push({unit,summary:{specificationId:spec.id,cartons:unit.cargo.length,loads:packagingLoads(unit.cargo,[...groups.values()]),exterior:[c.length,c.width,unit.height],tareKg:c.weight}});
+      candidates.push({unit,summary:{specificationId:spec.id,cartons:unit.cargo.length,loads:packagingLoads(unit.cargo,[...groups.values()]),exterior:[c.length,c.width,unit.height],tareKg:completePackagingTare(c)}});
     }
     if(candidates.length){const choice=choosePackaging(candidates.map(c=>c.summary),[...groups.keys()]);chosen=candidates.find(c=>c.summary===choice.candidate)!.unit;choiceByUnit.set(chosen.id,{chosenSpecificationId:chosen.specificationId,reason:choice.reason,candidates:candidates.map(c=>c.summary)});}
     if(coordinateLimit&&!chosen)break;
@@ -119,7 +122,7 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
   const placements:PlacedBox[]=[],pallets:PlacedPallet[]=[],setCounters=new Map<string,number>();
   for(const b of outerBoxes){
     const unit=prepared.find(p=>p.id===b.productId)!,c=bySpecification.get(unit.specificationId)!.config,interior=packagingInterior(c),cross=b.orientation==="WLH",palletId=`floor-pallet-${pallets.length+1}`,setMap=new Map<string,number>();
-    pallets.push({id:palletId,presetId:c.presetId,name:c.name,x:b.x,y:b.y,z:b.z,dx:b.dx,dy:b.dy,dz:c.height,weight:c.weight,maxLoad:c.maxLoad,orientation:cross?"WLH":"LWH",...(multiple?{specificationId:unit.specificationId}:{}),...(c.packaging?{packaging:c.packaging}:{}),...(interior.crate?{enclosureHeight:unit.height}:{})});
+    pallets.push({id:palletId,presetId:c.presetId,name:c.name,x:b.x,y:b.y,z:b.z,dx:b.dx,dy:b.dy,dz:c.height,weight:completePackagingTare(c),maxLoad:c.maxLoad,orientation:cross?"WLH":"LWH",...(multiple?{specificationId:unit.specificationId}:{}),...(c.packaging?{packaging:c.packaging}:{}),...(interior.crate?{enclosureHeight:unit.height}:{})});
     const choice=choiceByUnit.get(unit.id);if(choice)selectionChoices.push({...choice,palletId});
     for(const cargo of unit.cargo){let setNumber=cargo.setNumber;if(cargo.setCode){const key=`${cargo.setCode}/${cargo.setNumber}`;if(!setMap.has(key)){const next=(setCounters.get(cargo.setCode)??0)+1;setCounters.set(cargo.setCode,next);setMap.set(key,next);}setNumber=setMap.get(key);}
       placements.push({...cargo,id:`prebuilt-${placements.length+1}`,x:b.x+(cross?cargo.y+interior.inset:cargo.x+interior.inset),y:b.y+(cross?c.length-interior.inset-cargo.x-cargo.dx:cargo.y+interior.inset),z:b.z+cargo.z+c.height,dx:cross?cargo.dy:cargo.dx,dy:cross?cargo.dx:cargo.dy,...(cross?quarterTurnOrientation(cargo):{}),setNumber,palletIds:[palletId]});

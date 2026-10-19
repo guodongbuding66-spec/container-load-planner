@@ -1,3 +1,4 @@
+import {assertDeckSupportStacking} from "./deck-support";
 import { parseFloorPalletConfig } from "./floor-pallets";
 import { DEFAULT_PACKAGING, packagingHeight } from "./packaging";
 import { parsePackagingLimit, parsePackagingSelection, parsePackagingSpecifications } from "./pallet-specifications";
@@ -21,6 +22,7 @@ export function parsePalletBuild(value: unknown): PalletBuildOptions {
   if(p.primaryRule!==undefined){if(!p.primaryRule||typeof p.primaryRule!=="object"||Array.isArray(p.primaryRule))throw new Error("Invalid primary packaging rule");const productIds=parsePackagingSelection(p.primaryRule.productIds);primaryRule={maxPallets:parsePackagingLimit(p.primaryRule.maxPallets),...(productIds?{productIds}:{})};}
   let additionalSpecs: PalletBuildOptions["additionalSpecs"];
   if(p.additionalSpecs!==undefined){if(!Array.isArray(p.additionalSpecs)||p.additionalSpecs.length>7)throw new Error("Use at most 8 packaging specifications");if(p.additionalSpecs.length){additionalSpecs=parsePackagingSpecifications(p.additionalSpecs);if(additionalSpecs.some(s=>s.id==="primary"))throw new Error("Primary packaging identifier is reserved");}}
+  assertDeckSupportStacking(parseFloorPalletConfig(p.config),p.stackLayers,p.maxTopLoadKg);
   return { ...(p.selection===undefined?{}:{selection:p.selection}), config: { ...parseFloorPalletConfig(p.config), count: 0, allowFloorCargo: false }, mix: p.mix, maxPallets: p.maxPallets, stackLayers: p.stackLayers, maxTopLoadKg: p.maxTopLoadKg, ...(primaryRule?{primaryRule}:{}),...(additionalSpecs?{additionalSpecs}:{}) };
 }
 export function palletInspectionContainer(config: FloorPalletConfig, count: number): ContainerSpec {

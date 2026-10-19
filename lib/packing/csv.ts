@@ -1,3 +1,4 @@
+import {inspectDeckSupports,palletQuarterTurns,deckSupportHeight,palletDeckSupportGeometry} from "./deck-support";
 import {inspectAccessorySupports,ACCESSORY_SUPPORT_STATES} from "./accessory-support";
 import {inspectHandlingSequence} from "./handling-sequence";
 import {parseLongSupport} from "./long-support";
@@ -33,35 +34,48 @@ export function toCsvCell(value: string | number | null | undefined) {
     : protectedValue;
 }
 
-export function buildPlacementCsv(result: PackingResult): string {
+export function buildPlacementCsv(result:PackingResult):string{
+ const text=placementCsvCore(result),pallets=result.pallets??[];
+ if(!pallets.some(p=>p.quarterTurns!==undefined||p.packaging?.deckSupports?.length))return text;
+ const byId=new Map(pallets.map(p=>[p.id,p]));
+ return parseCsvRecords(text).map((row,i)=>{if(!i)return [...row,"托盘水平转数","托内支承件JSON"].map(toCsvCell).join(",");const p=byId.get(row[15]==="pallet"?row[1]:row[16]);return [...row,p?palletQuarterTurns(p):"",p&&row[15]==="pallet"?JSON.stringify(p.packaging?.deckSupports??[]):""].map(toCsvCell).join(",");}).join("\r\n");
+}
+export function buildDeckSupportCsv(plan:PackingResult,products?:readonly ProductInput[],en=false){
+ const t=(zh:string,eng:string)=>en?eng:zh,geometry=new Map(palletDeckSupportGeometry(plan.pallets??[]).boxes.map(b=>[b.id,b]));
+ const header=["Plan ID","Engine","Pallet ID","Support ID",t("名称","Name"),"X(mm)","Y(mm)","Z(mm)","L(mm)","W(mm)","H(mm)",t("新增自重kg","Added tare kg"),t("上方累计kg","Cumulative upper kg"),t("静载上限kg","Static limit kg"),t("状态","State"),t("来源","Source"),t("版本","Revision"),t("范围","Scope")];
+ const rows=inspectDeckSupports(plan,products).map(r=>{const b=geometry.get(r.id)!;return [plan.id,plan.engineVersion,r.palletId,r.id,r.name,b.x,b.y,b.z,b.dx,b.dy,b.dz,r.weightKg,r.loadKg??"",r.limitKg??"",r.state,r.source,r.revision,t("自重已包含在整托包装自重内；静载按接触面积传递，强度未核验","Tare included in complete packaging mass; static load shared by contact area, strength unverified")];});
+ return [header,...rows].map(row=>row.map(toCsvCell).join(",")).join("\r\n");
+}
+
+function placementCsvCore(result: PackingResult): string {
   if(Object.values(result.cargoDetails??{}).some(p=>p.longSupport)){
     const base={...result,cargoDetails:Object.fromEntries(Object.entries(result.cargoDetails??{}).map(([id,p])=>[id,{...p,longSupport:undefined}]))};
-    return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,!i?"长条箱承托资料JSON":row[15]==="cargo"?JSON.stringify(result.cargoDetails?.[result.placements[Number(row[0])-1]?.productId]?.longSupport??null):""].map(toCsvCell).join(",")).join("\r\n");
+    return parseCsvRecords(placementCsvCore(base)).map((row,i)=>[...row,!i?"长条箱承托资料JSON":row[15]==="cargo"?JSON.stringify(result.cargoDetails?.[result.placements[Number(row[0])-1]?.productId]?.longSupport??null):""].map(toCsvCell).join(",")).join("\r\n");
   }
-  if(result.dimensionScenario){const base={...result};delete base.dimensionScenario;return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(i===0?["尺寸方案ID","尺寸口径"]:[result.dimensionScenario!.id,result.dimensionScenario!.kind])].map(toCsvCell).join(",")).join("\r\n");}
-  if(result.handlingTasks?.length){const base={...result,handlingTasks:undefined};return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(!i?["设备连贯任务JSON","设备连贯预检JSON"]:[i===1?JSON.stringify(result.handlingTasks):"",i===1?JSON.stringify(result.handlingTasks!.map(task=>({unitId:task.unitId,revision:task.revision,check:inspectHandlingSequence(result,task)}))):""])].map(toCsvCell).join(",")).join("\r\n");}
+  if(result.dimensionScenario){const base={...result};delete base.dimensionScenario;return parseCsvRecords(placementCsvCore(base)).map((row,i)=>[...row,...(i===0?["尺寸方案ID","尺寸口径"]:[result.dimensionScenario!.id,result.dimensionScenario!.kind])].map(toCsvCell).join(",")).join("\r\n");}
+  if(result.handlingTasks?.length){const base={...result,handlingTasks:undefined};return parseCsvRecords(placementCsvCore(base)).map((row,i)=>[...row,...(!i?["设备连贯任务JSON","设备连贯预检JSON"]:[i===1?JSON.stringify(result.handlingTasks):"",i===1?JSON.stringify(result.handlingTasks!.map(task=>({unitId:task.unitId,revision:task.revision,check:inspectHandlingSequence(result,task)}))):""])].map(toCsvCell).join(",")).join("\r\n");}
 
   const forkGroups=forkEvidenceGroups(result);
   if(forkGroups.some(g=>g.config.forkInterface)){
     const strip=(c:NonNullable<PackingResult["floorPallets"]>)=>{const copy={...c};delete copy.forkInterface;return copy;},value=result.palletization;
     const base={...result,...(result.floorPallets?{floorPallets:strip(result.floorPallets)}:{}),...(value?{palletization:{...value,config:strip(value.config),specifications:value.specifications?.map(s=>({...s,config:strip(s.config)}))}}:{})};
     const byId=new Map(forkGroups.flatMap(g=>g.ids.map(id=>[id,g.config.forkInterface] as const)));
-    return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(!i?["叉具接口JSON","叉具预检范围"]:[byId.has(row[15]==="pallet"?row[1]:row[16])?JSON.stringify(byId.get(row[15]==="pallet"?row[1]:row[16])):"",row[15]==="site-exclusion"?"":"independent-rectangular-fork-preflight; equipment-unverified"])].map(toCsvCell).join(",")).join("\r\n");
+    return parseCsvRecords(placementCsvCore(base)).map((row,i)=>[...row,...(!i?["叉具接口JSON","叉具预检范围"]:[byId.has(row[15]==="pallet"?row[1]:row[16])?JSON.stringify(byId.get(row[15]==="pallet"?row[1]:row[16])):"",row[15]==="site-exclusion"?"":"independent-rectangular-fork-preflight; equipment-unverified"])].map(toCsvCell).join(",")).join("\r\n");
   }
   if(result.container.exclusions?.length){
-    const base={...result,container:{...result.container,exclusions:undefined}},rows=parseCsvRecords(buildPlacementCsv(base)),header=[...rows[0],"柜内区域类型","柜内区域JSON"];
+    const base={...result,container:{...result.container,exclusions:undefined}},rows=parseCsvRecords(placementCsvCore(base)),header=[...rows[0],"柜内区域类型","柜内区域JSON"];
     const records=result.container.exclusions.map(z=>{const row:Array<string|number>=Array(header.length).fill("");row[0]=0;row[1]=`site-exclusion/${z.id}`;row[2]=z.name;[z.x,z.y,z.z,z.dx,z.dy,z.dz].forEach((n,i)=>row[6+i]=n);row[14]=z.accessory&&z.kind==="obstacle"?z.accessory.quantity*(z.accessory.unitWeightKg??NaN):0;row[15]="site-exclusion";row[30]=result.workflow??"direct";row[31]="physical-inner";row[header.length-2]=z.kind;row[header.length-1]=JSON.stringify(z);return row;});
     return [header,...rows.slice(1).map(row=>[...row,"",""]),...records].map(row=>row.map(toCsvCell).join(",")).join("\r\n");
   }
   if(result.palletization?.selection==="compact"){
     const value=result.palletization,base={...result,palletization:{...value,selection:undefined,selectionChoices:undefined}},choices=new Map(value.selectionChoices?.map(c=>[c.palletId,c]));
-    return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>[...row,...(!i?["包装比选模式","生成时比选记录JSON"]:["compact",choices.has(row[15]==="pallet"?row[1]:row[16])?JSON.stringify(choices.get(row[15]==="pallet"?row[1]:row[16])):""])].map(toCsvCell).join(",")).join("\r\n");
+    return parseCsvRecords(placementCsvCore(base)).map((row,i)=>[...row,...(!i?["包装比选模式","生成时比选记录JSON"]:["compact",choices.has(row[15]==="pallet"?row[1]:row[16])?JSON.stringify(choices.get(row[15]==="pallet"?row[1]:row[16])):""])].map(toCsvCell).join(",")).join("\r\n");
   }
   const crateUnits=planCrateUnits(result);
   if(crateUnits.some(u=>u.config.crateBearing)){
     const strip=(c:NonNullable<PackingResult["palletization"]>["config"])=>{const copy={...c};delete copy.crateBearing;return copy;};
     const value=result.palletization!,base={...result,palletization:{...value,config:strip(value.config),specifications:value.specifications?.map(s=>({...s,config:strip(s.config)}))}},byId=new Map(crateUnits.map(u=>[u.pallet.id,u]));
-    return parseCsvRecords(buildPlacementCsv(base)).map((row,i)=>{
+    return parseCsvRecords(placementCsvCore(base)).map((row,i)=>{
       if(!i)return [...row,"木箱额定资料JSON","木箱资料状态","木箱核验范围"].map(toCsvCell).join(",");
       const unit=byId.get(row[15]==="pallet"?row[1]:row[16]);
       return [...row,unit?.config.crateBearing?JSON.stringify(unit.config.crateBearing):"",unit?crateEvidence(unit.config).state:"",unit?"independent-preflight-only; automatic-floor-only":""].map(toCsvCell).join(",");
@@ -104,7 +118,7 @@ export function buildPlacementCsv(result: PackingResult): string {
   const palletRows=(result.pallets??[]).map(p=>[0,p.id,p.name,"","","",p.x,p.y,p.z,p.dx,p.dy,p.dz,p.orientation,0,p.weight,"pallet",p.id,"","","","box","","","","","","",""].concat(["","",workflow,frame]).map(toCsvCell).join(","));
   const structure=result.pallets?.some(p=>p.packaging);
   const header=PLACEMENT_CSV_HEADER+(structure?",包装结构JSON,包装总高(mm)":"");
-  const packagingRows=palletRows.map((row,i)=>row+(structure?","+toCsvCell(JSON.stringify(result.pallets![i].packaging??null))+","+toCsvCell(result.pallets![i].enclosureHeight??result.pallets![i].dz):""));
+  const packagingRows=palletRows.map((row,i)=>row+(structure?","+toCsvCell(JSON.stringify(result.pallets![i].packaging??null))+","+toCsvCell(Math.max(result.pallets![i].enclosureHeight??result.pallets![i].dz,result.pallets![i].dz+deckSupportHeight(result.pallets![i]))):""));
   const cargoRows=rows.map(row=>row+(structure?",,":""));
   if(result.palletization?.specifications){
     const byId=new Map((result.pallets??[]).map(p=>[p.id,p]));

@@ -1,3 +1,4 @@
+import {palletQuarterTurns,rotateDeckRect} from "./deck-support";
 import {palletLayerCopies,parsePalletLayerTemplates,type PalletLayerTemplate} from "./pallet-layer";
 import {cargoShapeOf} from "./cargo-shape";
 import { MAX_VISIBLE_PLACEMENTS, pack, rebuildPlacementLayers, restorePackingSnapshot } from "./engine";
@@ -25,10 +26,12 @@ let serial=0;
 function turn(box:PlacedBox,times:number){let b={...box};for(let i=0;i<times;i++)b={...b,dx:b.dy,dy:b.dx,...quarterTurnOrientation(b)};return b;}
 /** Local X/Y follow the original pallet length/width; local Z=0 is the cargo deck surface. */
 export function palletLocalBox(b:PlacedBox,p:PlacedPallet):PlacedBox {
-  return p.orientation==="WLH"?{...turn(b,3),x:p.dy-(b.y-p.y)-b.dy,y:b.x-p.x,z:b.z-p.z-p.dz}:{...b,x:b.x-p.x,y:b.y-p.y,z:b.z-p.z-p.dz};
+  const times=palletQuarterTurns(p),local={...b,x:b.x-p.x,y:b.y-p.y,z:b.z-p.z-p.dz},r=rotateDeckRect(local,p.dx,p.dy,(4-times)%4),oriented=turn(local,(4-times)%4);
+  return {...oriented,x:r.x,y:r.y};
 }
 export function palletWorldBox(b:PlacedBox,p:PlacedPallet):PlacedBox {
-  return p.orientation==="WLH"?{...turn(b,1),x:p.x+b.y,y:p.y+p.dy-b.x-b.dx,z:p.z+p.dz+b.z,palletIds:[p.id]}:{...b,x:p.x+b.x,y:p.y+b.y,z:p.z+p.dz+b.z,palletIds:[p.id]};
+  const times=palletQuarterTurns(p),cross=p.orientation==="WLH",r=rotateDeckRect(b,cross?p.dy:p.dx,cross?p.dx:p.dy,times),oriented=turn(b,times);
+  return {...oriented,x:p.x+r.x,y:p.y+r.y,z:p.z+p.dz+b.z,palletIds:[p.id]};
 }
 export function palletLayers(plan:PackingResult,id:string){
   const p=plan.pallets?.find(p=>p.id===id);if(!p)return [];

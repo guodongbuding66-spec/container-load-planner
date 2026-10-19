@@ -1,3 +1,4 @@
+import {palletEnvelopeTop} from "./deck-support";
 import {containerAccessoryWeight,accessoryProductErrors} from "./container-accessories";
 import {bodiesOverlap} from "./cargo-body";
 import {availablePackingVolume,siteExclusionBoxes} from "./site-exclusions";
@@ -70,7 +71,7 @@ export function auditPackingResult(plan: PackingResult, products?: readonly Prod
     if(valid&&excluded.some(z=>bodiesOverlap(b,z,productMap.get(b.productId)??plan.cargoDetails?.[b.productId],undefined)))valid=false;
     if(!valid)outside.push(b.id);
   }
-  for(const p of pallets)if(![p.x,p.y,p.z,p.dx,p.dy,p.dz,p.weight].every(Number.isFinite)||p.dx<=0||p.dy<=0||p.dz<=0||p.weight<0||p.x< -EPS||p.y< -EPS||p.z< -EPS||p.x+p.dx>l+EPS||p.y+p.dy>w+EPS||p.z+(p.enclosureHeight??p.dz)>h+EPS)outside.push(p.id);
+  for(const p of pallets)if(![p.x,p.y,p.z,p.dx,p.dy,p.dz,p.weight].every(Number.isFinite)||p.dx<=0||p.dy<=0||p.dz<=0||p.weight<0||p.x< -EPS||p.y< -EPS||p.z< -EPS||p.x+p.dx>l+EPS||p.y+p.dy>w+EPS||palletEnvelopeTop(p)>h+EPS)outside.push(p.id);
   add("dimensions",outside.length?"fail":completeState,outside.length?"发现无效尺寸、朝向或越界坐标。":full?"已记录箱位的尺寸、朝向与有效边界一致。":"仅核对已保存的箱位，尚未保存完整坐标。",outside.length?"Invalid dimensions, orientations or out-of-bounds positions were found.":full?"Recorded dimensions, orientations and usable bounds agree.":"Only saved placements were checked; the coordinate set is incomplete.",outside);
 
   let quantities=Number.isInteger(totals.loadedCount)&&totals.loadedCount>=0&&(full||bounded)&&near(totals.loadedCount,plan.summaries.reduce((n,s)=>n+s.loaded,0))&&near(totals.requestedCount,plan.summaries.reduce((n,s)=>n+s.requested,0));
@@ -104,7 +105,7 @@ export function auditPackingResult(plan: PackingResult, products?: readonly Prod
     if(plan.palletization)packageErrors.push(...validatePalletizedCargo(boxes,pallets,plan.container,plan.clearance,plan.palletization,products));
     for(const p of pallets){
       if(p.packaging)parsePackaging(p.packaging);
-      for(const b of placedPackagingParts(p))if(![b.x,b.y,b.z,b.dx,b.dy,b.dz].every(Number.isFinite)||b.dx<=0||b.dy<=0||b.dz<=0||b.x<p.x-EPS||b.y<p.y-EPS||b.z<p.z-EPS||b.x+b.dx>p.x+p.dx+EPS||b.y+b.dy>p.y+p.dy+EPS||b.z+b.dz>p.z+(p.enclosureHeight??p.dz)+EPS){packageErrors.push(p.id);break;}
+      for(const b of placedPackagingParts(p))if(![b.x,b.y,b.z,b.dx,b.dy,b.dz].every(Number.isFinite)||b.dx<=0||b.dy<=0||b.dz<=0||b.x<p.x-EPS||b.y<p.y-EPS||b.z<p.z-EPS||b.x+b.dx>p.x+p.dx+EPS||b.y+b.dy>p.y+p.dy+EPS||b.z+b.dz>(b.kind==="support"?palletEnvelopeTop(p):p.z+(p.enclosureHeight??p.dz))+EPS){packageErrors.push(p.id);break;}
     }
   }catch{packageErrors.push("Invalid packaging specification");}
   add("packaging",packageErrors.length?"fail":completeState,packageErrors.length?"包装模型、净空或整托关联不一致。":pallets.length?"包装结构、外尺寸、围护净空和整托归属一致。":"当前方案没有额外底座或围护包装。",packageErrors.length?"Packaging geometry, interior clearance or unit membership disagree.":pallets.length?"Packaging parts, exterior dimensions, interior clearance and unit membership agree.":"This plan has no additional base or enclosure packaging.",packageErrors);

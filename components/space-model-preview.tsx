@@ -1,4 +1,5 @@
 "use client";
+import {deckSupportHeight,completePackagingTare} from "../lib/packing/deck-support";
 import { packagingHeight, packagingInterior } from "../lib/packing/packaging";
 import { tr, tt, useLanguage } from "./language";
 import { useMemo, useState, useSyncExternalStore } from "react";
@@ -26,9 +27,9 @@ export function SpaceModelPreview({ pallet, space }: { pallet?: FloorPalletConfi
   const ready = useSyncExternalStore(subscribe, () => true, () => false);
   const [view, setView] = useState<CameraView>("perspective");
   const controller = useMemo(() => new SceneCameraController(), []);
-  const length=pallet?.length??space?.length??1200,width=pallet?.width??space?.width??800,height=pallet?(packagingInterior(pallet).crate?packagingHeight(pallet):pallet.height):space?.height??144;
+  const length=pallet?.length??space?.length??1200,width=pallet?.width??space?.width??800,height=pallet?(packagingInterior(pallet).crate?packagingHeight(pallet):pallet.height+deckSupportHeight(pallet)):space?.height??144;
   const scale=3/Math.max(length,width,height),offset=useMemo(()=>new THREE.Vector3(-length*scale/2,0,-width*scale/2),[length,width,scale]);
-  const base=useMemo<PlacedPallet[]>(()=>[{id:"preview",presetId:pallet?.presetId??"preview",name:pallet?.name??"",x:0,y:0,z:0,dx:length,dy:width,dz:pallet?.height??height,packaging:pallet?.packaging,enclosureHeight:pallet&&packagingInterior(pallet).crate?height:undefined,weight:pallet?.weight??0,maxLoad:pallet?.maxLoad??0,orientation:"LWH"}],[pallet,length,width,height]);
+  const base=useMemo<PlacedPallet[]>(()=>[{id:"preview",presetId:pallet?.presetId??"preview",name:pallet?.name??"",x:0,y:0,z:0,dx:length,dy:width,dz:pallet?.height??height,packaging:pallet?.packaging,enclosureHeight:pallet&&packagingInterior(pallet).crate?height:undefined,weight:pallet?completePackagingTare(pallet):0,maxLoad:pallet?.maxLoad??0,orientation:"LWH"}],[pallet,length,width,height]);
   const dimensionBounds=useMemo<DimensionBounds>(()=>({min:[-length*scale/2,0,-width*scale/2],max:[length*scale/2,height*scale,width*scale/2]}),[length,width,height,scale]);
   const containerSize=useMemo<SceneSize>(()=>[length*scale,height*scale,width*scale],[length,height,width,scale]);
   const sceneBounds=useMemo(()=>space?transportSceneBounds(space,scale,appearance.mode,0):undefined,[space,scale,appearance.mode]);

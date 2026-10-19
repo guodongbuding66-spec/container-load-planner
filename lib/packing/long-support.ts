@@ -1,3 +1,4 @@
+import {palletDeckSupportGeometry} from "./deck-support";
 import {accessorySupportGeometry} from "./accessory-support";
 import type { PackingResult, PlacedBox, ProductInput } from "./types";
 import { bodyTopPatches, orientationAxes, validOrientationSigns } from "./cargo-body";
@@ -134,7 +135,7 @@ export function longSupportViolation(row:LongSupportRow|undefined):string|undefi
 /** Independent review shares the exact same contact geometry as placement acceptance. */
 export function inspectLongSupport(plan:PackingResult, products?:readonly ProductInput[]):LongSupportRow[] {
   const rules=new Map(products?.map(p=>[p.id,p])??[]),byTop=new Map<number,PlacedBox[]>();
-  const fixed=accessorySupportGeometry(plan.container,plan.clearance);fixed.products.forEach(p=>rules.set(p.id,p));
+  const a=accessorySupportGeometry(plan.container,plan.clearance),d=palletDeckSupportGeometry(plan.pallets??[]),fixed={boxes:[...a.boxes,...d.boxes],products:[...a.products,...d.products]};fixed.products.forEach(p=>rules.set(p.id,p));
   for(const b of [...plan.placements,...fixed.boxes]){const key=Math.round((b.z+b.dz)/EPS),list=byTop.get(key);if(list)list.push(b);else byTop.set(key,[b]);}
   const rows:LongSupportRow[]=[];let remaining=100000;
   for(const b of plan.placements){

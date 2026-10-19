@@ -1,10 +1,11 @@
+import {deckSupportMass,palletDeckSupportGeometry} from "./deck-support";
 import {containerAccessoryWeight} from "./container-accessories";
 import {parseForkInterface} from "./fork-interface";
 import {availablePackingVolume} from "./site-exclusions";
 import { parseCrateBearing } from "./crate-bearing";
 import type { ContainerSpec, FloorPalletConfig, PlacedBox, PlacedPallet, ProductInput } from "./types";
 
-import { parsePackaging, packagingInterior, packagingReservedVolume, validateBaseMeasurements } from "./packaging";
+import { parsePackaging, packagingInterior, packagingReservedVolume, validateBaseMeasurements,validateDeckSupports } from "./packaging";
 import { bodyContactArea, bodyTopLevels } from "./cargo-body";
 
 export const PALLET_PRODUCT_ID = "__floor-pallet__";
@@ -21,7 +22,8 @@ export function parseFloorPalletConfig(value: unknown): FloorPalletConfig {
   const packaging=v.packaging===undefined?undefined:parsePackaging(v.packaging);
   validateBaseMeasurements(Number(v.length),Number(v.width),Number(v.height),packaging);
   if(packaging){const inner=packagingInterior({...v,packaging} as FloorPalletConfig);if(inner.length<1||inner.width<1||inner.crate&&!Number(v.maxCargoHeight))throw new Error("木箱壁厚或内高无效 / Invalid crate wall thickness or inner height");}
-  return { ...(v.forkInterface===undefined?{}:{forkInterface:parseForkInterface(v.forkInterface)}), ...(v.crateBearing===undefined?{}:{crateBearing:parseCrateBearing(v.crateBearing)}), ...(packaging?{packaging}:{}), presetId: v.presetId as string, name: v.name as string, length: v.length as number, width: v.width as number, height: v.height as number, weight: v.weight as number, maxLoad: v.maxLoad as number, count: v.count as number, gap: v.gap as number, layout: v.layout as FloorPalletConfig["layout"], allowFloorCargo: v.allowFloorCargo, ...(v.maxCargoHeight === undefined ? {} : {maxCargoHeight:v.maxCargoHeight as number}) };
+  const parsed:FloorPalletConfig={ ...(v.forkInterface===undefined?{}:{forkInterface:parseForkInterface(v.forkInterface)}), ...(v.crateBearing===undefined?{}:{crateBearing:parseCrateBearing(v.crateBearing)}), ...(packaging?{packaging}:{}), presetId: v.presetId as string, name: v.name as string, length: v.length as number, width: v.width as number, height: v.height as number, weight: v.weight as number, maxLoad: v.maxLoad as number, count: v.count as number, gap: v.gap as number, layout: v.layout as FloorPalletConfig["layout"], allowFloorCargo: v.allowFloorCargo, ...(v.maxCargoHeight === undefined ? {} : {maxCargoHeight:v.maxCargoHeight as number}) };
+  validateDeckSupports(parsed);return parsed;
 }
 
 /** Loaded pallets must clear the door as a unit; heights are measured from the vehicle floor. */
@@ -50,6 +52,7 @@ export function palletSpaceSummary(container: ContainerSpec, clearance: number, 
 /** Rows can use either horizontal orientation; no pallet may overlap or overhang. */
 export function arrangeFloorPallets(container: ContainerSpec, clearance: number, input: FloorPalletConfig): PlacedPallet[] {
   const p = parseFloorPalletConfig(input);
+  if(p.packaging?.deckSupports?.length)throw Error("Deck supports require the prebuilt pallet workflow / 托内支承件请使用先打托或只打托模式");
   if(packagingInterior(p).crate)throw new Error("木箱请使用先打托后装柜模式 / Use the pallet-building workflow for crates");
   const length = container.length - clearance * 2, width = container.width - clearance * 2;
   const doorWidth = (container.loadingAccess === "open" ? container.width : container.doorWidth) - clearance * 2;
@@ -80,7 +83,7 @@ export function palletSupportBoxes(pallets: PlacedPallet[]): PlacedBox[] {
 }
 export function palletSupportProducts(pallets: PlacedPallet[]): ProductInput[] {
   // One product per physical support keeps different dimensions, payloads and weights independently verifiable.
-  return pallets.map(p => ({ id: p.id, sku: p.id, name: p.name, length: p.dx, width: p.dy, height: p.dz, weight: p.weight, quantity: 1, priority: 0, rotationPolicy: "fixed", stackable: true, maxStackLayers: 0, maxTopLoadKg: p.maxLoad, color: "#b68d5d" }));
+  return pallets.map(p => ({ id: p.id, sku: p.id, name: p.name, length: p.dx, width: p.dy, height: p.dz, weight: p.weight, quantity: 1, priority: 0, rotationPolicy: "fixed", stackable: true, maxStackLayers: 0, maxTopLoadKg: p.maxLoad-deckSupportMass(p), color: "#b68d5d" }));
 }
 export function palletAnchors(pallets: PlacedPallet[]): PlacedBox[] {
   return palletSupportBoxes(pallets).map(b => ({ ...b, productId: b.id }));
@@ -90,6 +93,7 @@ export function assignPalletReferences(boxes: PlacedBox[], pallets: PlacedPallet
   const rules=new Map(products.map(p=>[p.id,p]));
   const levels = new Map<number, PlacedBox[]>(), refs = new Map<string, string[]>();
   const key = (z: number) => Math.round(z / .0001);
+  for(const b of palletDeckSupportGeometry(pallets).boxes){refs.set(b.id,b.palletIds??[]);levels.set(key(b.z+b.dz),[...(levels.get(key(b.z+b.dz))??[]),b]);}
   for (const p of palletAnchors(pallets)) { refs.set(p.id, [p.id]); levels.set(key(p.z + p.dz), [...(levels.get(key(p.z + p.dz)) ?? []), p]); }
   const result = new Map<string, PlacedBox>();
   for (const box of [...boxes].sort((a, b) => a.z - b.z)) {

@@ -1,3 +1,4 @@
+import {completePackagingTare,palletEnvelopeTop,assertDeckSupportStacking} from "./deck-support";
 import {siteExclusionBoxes} from "./site-exclusions";
 import { choosePackaging, packagingGroupKey, packagingPriorityGroups, packagingLoads, parsePackagingChoices, type PackagingChoice, type PackagingSelection } from "./packaging-choice";
 import { parseFloorPalletConfig } from "./floor-pallets";
@@ -24,7 +25,7 @@ export function parsePalletization(value: unknown): Palletization | undefined {
   if (p.preparedCount !== undefined && (!Number.isInteger(p.preparedCount) || p.preparedCount < 0 || p.preparedCount > 200)) throw new Error("Invalid prepared pallet count");
   for (const k of ["bounded", "only"] as const) if (p[k] !== undefined && typeof p[k] !== "boolean") throw new Error("Invalid pallet metadata");
   if(p.selection!==undefined&&p.selection!=="ordered"&&p.selection!=="compact")throw new Error("Invalid packaging selection mode");
-  const config=parseFloorPalletConfig(p.config),specifications=p.specifications===undefined?undefined:parsePackagingSpecifications(p.specifications);
+  const config=parseFloorPalletConfig(p.config);assertDeckSupportStacking(config,p.stackLayers??1,p.maxTopLoadKg??0);const specifications=p.specifications===undefined?undefined:parsePackagingSpecifications(p.specifications);
   let preparedBySpecification:Record<string,number>|undefined;
   if(specifications){
     const primary=specifications[0];
@@ -57,13 +58,13 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
     used.set(specification.id,(used.get(specification.id)??0)+1);
     if(used.get(specification.id)!>specification.maxPallets||value.preparedBySpecification&&used.get(specification.id)!>(value.preparedBySpecification[specification.id]??0))errors.push("Packaging availability exceeded");
     const expected = p.orientation === "LWH" ? [config.length, config.width] : [config.width, config.length];
-    if (Math.abs(p.dx - expected[0]) > EPS || Math.abs(p.dy - expected[1]) > EPS || Math.abs(p.dz - config.height) > EPS || p.weight !== config.weight || p.maxLoad !== config.maxLoad || !value.only && config.layout === "long" && p.orientation !== "LWH" || !value.only && config.layout === "cross" && p.orientation !== "WLH") errors.push("Prebuilt pallet specification mismatch");
+    if (Math.abs(p.dx - expected[0]) > EPS || Math.abs(p.dy - expected[1]) > EPS || Math.abs(p.dz - config.height) > EPS || p.weight !== completePackagingTare(config) || p.maxLoad !== config.maxLoad || !value.only && config.layout === "long" && p.orientation !== "LWH" || !value.only && config.layout === "cross" && p.orientation !== "WLH") errors.push("Prebuilt pallet specification mismatch");
     if(JSON.stringify(p.packaging)!==JSON.stringify(config.packaging)||p.enclosureHeight!==(interior.crate?packagingHeight(config):undefined))errors.push("Packaging structure does not match its specification");
     if(interior.crate&&p.z>EPS)errors.push("Crate frame stacking has not been verified");
     const cargo = cargoByPallet.get(p.id)!;
     if(!cargo.length&&!value.editRevision)errors.push("Loaded pallet has no cargo");
     if(allowedProducts.get(specification.id)&&cargo.some(b=>!allowedProducts.get(specification.id)!.has(b.productId)))errors.push("Cargo is not eligible for this packaging specification");
-    const cargoTop=Math.max(p.z+p.dz,...cargo.map(b=>b.z+b.dz));
+    const cargoTop=palletEnvelopeTop({...p,enclosureHeight:undefined},cargo);
     if(interior.crate&&cargoTop>p.z+config.height+config.maxCargoHeight!+EPS)errors.push("Cargo exceeds crate interior height");
     const top = Math.max(cargoTop,p.z+(p.enclosureHeight??0)), height = top - p.z;
     if (config.maxCargoHeight && height > packagingHeight(config) + EPS || !value.only && height > Math.min(container.height, container.loadingAccess === "open" ? container.height : container.doorHeight) - clearance + EPS) errors.push("Loaded pallet exceeds door or cargo height limit");
@@ -74,10 +75,10 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
     for(const choice of value.selectionChoices){
       const p=pallets.find(p=>p.id===choice.palletId),candidate=choice.candidates.find(c=>c.specificationId===choice.chosenSpecificationId),cargo=p?cargoByPallet.get(p.id)!:[];
       if(!p||choice.chosenSpecificationId!==(p.specificationId??"primary")||!candidate||candidate.cartons!==cargo.length||candidate.tareKg!==p.weight){errors.push("Packaging choice record does not match its loaded unit");continue;}
-      const config=specifications.get(p.id)!.config,actualHeight=Math.max(p.z+p.dz,p.z+(p.enclosureHeight??0),...cargo.map(b=>b.z+b.dz))-p.z;
+      const config=specifications.get(p.id)!.config,actualHeight=palletEnvelopeTop(p,cargo)-p.z;
       if(candidate.exterior[0]!==config.length||candidate.exterior[1]!==config.width||Math.abs(candidate.exterior[2]-actualHeight)>EPS)errors.push("Chosen packaging envelope disagrees with its loaded unit");
       if(products.length&&JSON.stringify(Object.entries(packagingLoads(cargo,groups)).sort())!==JSON.stringify(Object.entries(candidate.loads).sort()))errors.push("Chosen packaging quantities disagree with its cargo");
-      for(const item of choice.candidates){const definition=value.specifications?.find(s=>s.id===item.specificationId)?.config??(item.specificationId==="primary"?value.config:undefined);if(!definition||item.exterior[0]!==definition.length||item.exterior[1]!==definition.width||item.tareKg!==definition.weight)errors.push("Packaging candidate disagrees with its source specification");}
+      for(const item of choice.candidates){const definition=value.specifications?.find(s=>s.id===item.specificationId)?.config??(item.specificationId==="primary"?value.config:undefined);if(!definition||item.exterior[0]!==definition.length||item.exterior[1]!==definition.width||item.tareKg!==completePackagingTare(definition))errors.push("Packaging candidate disagrees with its source specification");}
       if(products.length){const winner=choosePackaging(choice.candidates,groupKeys);if(winner.candidate.specificationId!==choice.chosenSpecificationId||winner.reason!==choice.reason)errors.push("Packaging choice does not follow its recorded comparison");}
     }
   }

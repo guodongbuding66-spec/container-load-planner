@@ -6,7 +6,7 @@ import type {ContainerSpec,PackingRequest,PackingResult,ProductInput} from "./ty
 export const SUPPORT_WORKFLOW_ERROR="Fixed accessory supports currently require direct cargo loading / 固定支承件首阶段仅支持散箱直接装柜，请关闭支承声明或切换工作流";
 export function hasAccessorySupports(c:Pick<ContainerSpec,"exclusions">){return accessoryRegions(c).some(z=>!!z.accessory.support);}
 export function assertAccessorySupportWorkflow(r:PackingRequest){
-  if(hasAccessorySupports(r.container)&&(r.floorPallets||r.palletBuildStage||r.workflow==="palletized"||r.workflow==="pallet-only"))throw Error(SUPPORT_WORKFLOW_ERROR);
+  if(hasAccessorySupports(r.container)&&(r.floorPallets||r.workflow==="palletized"||r.workflow==="pallet-only"))throw Error(SUPPORT_WORKFLOW_ERROR);
 }
 /** Derived zero-mass anchors only: physical material mass/volume remain in existing accessory accounting. */
 export function accessorySupportGeometry(c:ContainerSpec,clearance:number){

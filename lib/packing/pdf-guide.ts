@@ -1,3 +1,4 @@
+import {inspectDeckSupports,palletDeckSupportGeometry,deckSupportHeight} from "./deck-support";
 import {inspectAccessorySupports,ACCESSORY_SUPPORT_STATES,hasAccessorySupports} from "./accessory-support";
 import {inspectLongSupport,SUPPORT_ISSUES} from "./long-support";
 import {inspectHandlingSequence,HANDLING_STATE_TEXT,HANDLING_KIND_TEXT} from "./handling-sequence";
@@ -72,7 +73,7 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
     });await finish();
   }
   for (let startAt = 0; startAt < result.summaries.length; startAt += 28) { start(t("货物清单", "Cargo manifest")); const columns = [100, 630, 990, 1260]; ["SKU", t("需求 / 已装", "Requested / loaded"), t("重量 kg", "Weight kg"), t("体积 m³", "Volume m³")].forEach((v, i) => text(v, columns[i], 310, 27, true)); result.summaries.slice(startAt, startAt + 28).forEach((s, i) => { const y = 375 + i * 64; text(ellipsis(s.sku, 495), columns[0], y, 26); text(`${s.requested} / ${s.loaded}`, columns[1], y, 26); text(s.loadedWeight.toFixed(1), columns[2], y, 26); text((s.loadedVolume / 1e9).toFixed(3), columns[3], y, 26); }); await finish(); }
-  for(let startAt=0;startAt<(result.pallets?.length??0);startAt+=28){start(result.workflow==="pallet-only"?t("独立托盘清单与自重","Independent pallet manifest and tare"):result.palletization?t("整托入柜与自重","Complete pallet placement and tare"):t("底层托盘铺设与自重","Floor pallet layout and tare"));text(result.workflow==="pallet-only"?t("按关联清单独立打托，货物限高不含底座，总重含托盘自重。","Build each listed pallet independently. Cargo height excludes decks; gross weight includes tare."):result.palletization?t("按托盘关联清单在柜外打托，再整托入柜；货物 Z 已包含底座。","Build associated cargo on each pallet outside, then load complete pallets; Z includes decks."):t("先铺设托盘；货物 Z 已包含底座高度，勿再次加高。","Place pallets first. Cargo Z already includes the base height."),100,310,27,true);result.pallets!.slice(startAt,startAt+28).forEach((p,i)=>{const y=390+i*64;text(`${p.id} · ${p.name}`,100,y,25);text(`${p.x} / ${p.y} / ${p.z}`,700,y,25);text(`${p.dx} × ${p.dy} × ${p.enclosureHeight??p.dz}`,1100,y,25);text(`${p.weight} kg`,1530,y,25);});await finish();}
+  for(let startAt=0;startAt<(result.pallets?.length??0);startAt+=28){start(result.workflow==="pallet-only"?t("独立托盘清单与自重","Independent pallet manifest and tare"):result.palletization?t("整托入柜与自重","Complete pallet placement and tare"):t("底层托盘铺设与自重","Floor pallet layout and tare"));text(result.workflow==="pallet-only"?t("按关联清单独立打托，货物限高不含底座，总重含托盘自重。","Build each listed pallet independently. Cargo height excludes decks; gross weight includes tare."):result.palletization?t("按托盘关联清单在柜外打托，再整托入柜；货物 Z 已包含底座。","Build associated cargo on each pallet outside, then load complete pallets; Z includes decks."):t("先铺设托盘；货物 Z 已包含底座高度，勿再次加高。","Place pallets first. Cargo Z already includes the base height."),100,310,27,true);result.pallets!.slice(startAt,startAt+28).forEach((p,i)=>{const y=390+i*64;text(`${p.id} · ${p.name}`,100,y,25);text(`${p.x} / ${p.y} / ${p.z}`,700,y,25);text(`${p.dx} × ${p.dy} × ${Math.max(p.enclosureHeight??p.dz,p.dz+deckSupportHeight(p))}`,1100,y,25);text(`${p.weight} kg`,1530,y,25);});await finish();}
   if(result.container.exclusions?.length){
     start(t("柜内障碍与禁占区","Obstacles and keep-clear regions"));
     text(hasAccessorySupports(result.container)?t("绿色实心支承件以实际顶面承托；其他区域不承托；附件重量单列。","Green solid supports contact at the real top; other regions do not support. Accessory mass is separate."):t("坐标 mm 从实际柜内柜头、左壁、地板起算；区域不承托、不计货物；附件计划重量单列。","Physical inner nose/left/floor coordinates in mm; regions provide no support or cargo; accessory planned mass is separate."),100,310,25);
@@ -107,6 +108,18 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
     });
     text(t("缺额定值或来源版本保持未核验；不证明抗弯、刚度、地板局压或动态强度。","Missing ratings or evidence remain unverified; bending, stiffness, local floor pressure and dynamics are unverified."),100,2260,23);
     await finish();
+  }
+  const deckRows=inspectDeckSupports(result,products),deckGeometry=new Map(palletDeckSupportGeometry(result.pallets??[]).boxes.map(b=>[b.id,b]));
+  for(let from=0;from<deckRows.length;from+=7){
+    start(t("托内支承件与累计静载","Deck supports and cumulative static load"));
+    text(t("新增支承自重已计入包装总重及底座载荷，厚度占用托内净高。","Added support tare is included in packaging mass and deck payload; thickness consumes cargo height."),100,310,24);
+    deckRows.slice(from,from+7).forEach((r,i)=>{const y=430+i*250,b=deckGeometry.get(r.id)!;ctx.font="700 27px Arial,sans-serif";
+      text(ellipsis(`${r.palletId} / ${r.name}`,1500),100,y,27,true);
+      text(`${t("新增自重 / 上方累计 / 上限 kg","Added tare / upper load / limit kg")}: ${r.weightKg} / ${r.loadKg?.toFixed(2)??"—"} / ${r.limitKg??"—"} · ${t(...ACCESSORY_SUPPORT_STATES[r.state])}`,100,y+45,24);
+      text(`XYZ ${b.x}/${b.y}/${b.z} · ${b.dx} × ${b.dy} × ${b.dz} mm`,100,y+90,24);
+      text(ellipsis(`${r.source||"—"} / ${r.revision||"—"}`,1500),100,y+135,24);
+    });
+    text(t("仅按输入资料检查静载；抗弯、刚度、固定及运输动态强度未核验。","Entered static ratings only; bending, stiffness, securing and transport dynamics remain unverified."),100,2260,24);await finish();
   }
   for(const group of forkEvidenceGroups(result)){
     start(t("底座与叉具资料（独立预检）","Base and fork data (independent preflight)"));

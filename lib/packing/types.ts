@@ -51,6 +51,8 @@ export type FloorPalletConfig = {
   maxCargoHeight?: number;
 };
 export type PlacedPallet = {
+  /** Full horizontal rotation for asymmetric attached packaging; legacy omission uses orientation. */
+  quarterTurns?:0|1|2|3;
   /** Prevent movement and contents edits until explicitly unlocked. */
   locked?: boolean;
   specificationId?: string;
@@ -74,7 +76,7 @@ export type LoadingRules = {
 };
 
 export type ContainerSpec = {
-  /** Non-supporting fixed obstacles or keep-clear regions, physical inner-origin mm. */
+  /** Physical inner-origin regions; only explicitly declared solid accessories provide support. */
   exclusions?: import("./site-exclusions").SiteExclusion[];
   category?: "container" | "truck" | "pallet" | "other";
   loadingAccess?: "rear" | "open";

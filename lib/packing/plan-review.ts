@@ -1,3 +1,4 @@
+import {inspectDeckSupports} from "./deck-support";
 import {inspectAccessorySupports,hasAccessorySupports} from "./accessory-support";
 import {accessoryInstallationPlan} from "./container-accessories";
 import {inspectLongSupport,SUPPORT_ISSUES} from "./long-support";
@@ -80,13 +81,13 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
     securing.scope=["已记录附件包络、计划重量与安装依赖；所有预留始终参与几何和路径检查。固定强度、安装可达、拆除动作和现场施工未核验。","Accessory envelopes, planned mass and installation dependencies are recorded. All reservations always constrain geometry and access. Securing strength, installation reach, removal and field work remain unverified."];
     try{securing.items=accessoryInstallationPlan(plan).map(row=>[row.region.id,...row.missingProductIds].join(" / "));}catch{securing.state="fail";securing.scope=["附件安装依赖无效，请重新计算。","Accessory installation dependencies are invalid; recalculate."];securing.items=[];}
   }
-  const supports=inspectAccessorySupports(plan,products);
+  const supports=[...inspectAccessorySupports(plan,products),...inspectDeckSupports(plan,products)];
   if(supports.length){
     const bearing=checks.find(c=>c.id==="bearing")!;
     if(supports.some(r=>r.state==="fail"))bearing.state="fail";
     else if(supports.some(r=>r.state==="unverified")&&bearing.state!=="fail")bearing.state="unverified";
     bearing.model+=" + inspectAccessorySupports";
-    bearing.scope=[bearing.scope[0]+" 固定支承件按接触面积累计上方载荷；缺额定值或来源版本保持未核验。",bearing.scope[1]+" Fixed supports accumulate upper load by contact area; missing ratings or source/revision remain unverified."];
+    bearing.scope=[bearing.scope[0]+" 落地及托内实心支承件按接触面积累计上方载荷；缺额定值或来源版本保持未核验。",bearing.scope[1]+" Floor and deck supports accumulate upper load by contact area; missing ratings or source/revision remain unverified."];
     bearing.items.push(...supports.filter(r=>r.state!=="pass").map(r=>`${r.id}: ${r.state}; ${(r.loadKg?.toFixed(2)??"—")} / ${r.limitKg??"unknown"} kg`));
   }
   const longSupport=inspectLongSupport(plan,products);

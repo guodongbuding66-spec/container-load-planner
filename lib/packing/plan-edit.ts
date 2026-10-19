@@ -1,3 +1,4 @@
+import {palletQuarterTurns} from "./deck-support";
 import { bodyContactArea, quarterTurnOrientation } from "./cargo-body";
 import { revisePackingResult } from "./engine";
 import { palletAnchors } from "./floor-pallets";
@@ -40,6 +41,6 @@ export function editPlan(plan:PackingResult,products:ProductInput[],ids:string[]
     if(!rotate)return moved;
     return {...moved,x:bounds.x+b.y-bounds.y+move.x,y:bounds.y+bounds.dx-(b.x-bounds.x)-b.dx+move.y,dx:b.dy,dy:b.dx,...quarterTurnOrientation(b)};
   });
-  const pallets=(plan.pallets??[]).map(p=>!palletIds.has(p.id)?p:{...p,x:p.x+move.x,y:p.y+move.y,z:p.z+move.z,...(rotate?{x:bounds.x+p.y-bounds.y+move.x,y:bounds.y+bounds.dx-(p.x-bounds.x)-p.dx+move.y,dx:p.dy,dy:p.dx,orientation:p.orientation==="LWH"?"WLH" as const:"LWH" as const}:{})});
+  const pallets=(plan.pallets??[]).map(p=>!palletIds.has(p.id)?p:{...p,x:p.x+move.x,y:p.y+move.y,z:p.z+move.z,...(rotate?{quarterTurns:(palletQuarterTurns(p)+1)%4 as 0|1|2|3,x:bounds.x+p.y-bounds.y+move.x,y:bounds.y+bounds.dx-(p.x-bounds.x)-p.dx+move.y,dx:p.dy,dy:p.dx,orientation:p.orientation==="LWH"?"WLH" as const:"LWH" as const}:{})});
   return revisePackingResult(plan,placements,products,pallets);
 }

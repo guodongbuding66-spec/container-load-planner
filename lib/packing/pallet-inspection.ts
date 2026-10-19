@@ -1,3 +1,4 @@
+import {palletEnvelopeTop,deckSupportMass} from "./deck-support";
 import { packagingReservedVolume,packagingMassCenter } from "./packaging";
 import {modelMassCenter} from "./model-body";
 import type { PackingResult } from "./types";
@@ -6,8 +7,8 @@ export function isolatePalletPlan(plan:PackingResult,id:string):PackingResult {
   const p=plan.pallets?.find(p=>p.id===id);
   if(!p)throw new Error("Pallet not found");
   const cargo=plan.placements.filter(b=>b.palletIds?.includes(id)).map(b=>({...b,x:b.x-p.x,y:b.y-p.y,z:b.z-p.z}));
-  const height=Math.max(p.enclosureHeight??p.dz,...cargo.map(b=>b.z+b.dz));
-  const container={id:"unit-inspection",name:p.name,category:"other" as const,loadingAccess:"open" as const,length:p.dx,width:p.dy,height,doorWidth:p.dy,doorHeight:height,maxWeight:p.maxLoad+p.weight};
+  const height=palletEnvelopeTop({...p,x:0,y:0,z:0},cargo);
+  const container={id:"unit-inspection",name:p.name,category:"other" as const,loadingAccess:"open" as const,length:p.dx,width:p.dy,height,doorWidth:p.dy,doorHeight:height,maxWeight:p.maxLoad+p.weight-deckSupportMass(p)};
   const summaries=plan.summaries.filter(s=>cargo.some(b=>b.productId===s.productId)).map(s=>{const loaded=cargo.filter(b=>b.productId===s.productId).length;return {...s,requested:loaded,loaded,unloaded:0,loadedWeight:loaded*(s.loadedWeight/s.loaded),loadedVolume:loaded*(s.loadedVolume/s.loaded)};});
   const loadedVolume=summaries.reduce((n,s)=>n+s.loadedVolume,0)+packagingReservedVolume(p),grossWeight=p.weight+cargo.reduce((n,b)=>n+b.weight,0),effectiveVolume=p.dx*p.dy*height;
   const points=[{center:packagingMassCenter({...p,x:0,y:0,z:0}),weight:p.weight},...cargo.map(b=>({center:modelMassCenter(b,{...plan.cargoDetails?.[b.productId],weight:b.weight}),weight:b.weight}))];
