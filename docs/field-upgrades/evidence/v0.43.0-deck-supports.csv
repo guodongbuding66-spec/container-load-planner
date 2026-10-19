@@ -1,0 +1,2 @@
+﻿Plan ID,Engine,Pallet ID,Support ID,名称,X(mm),Y(mm),Z(mm),L(mm),W(mm),H(mm),新增自重kg,上方累计kg,静载上限kg,状态,来源,版本,范围
+restored-1792399582696,0.43.0,floor-pallet-1,deck-support/floor-pallet-1/96410de9-e9c4-4e01-b0aa-a2b7191d4e95,QA 实心支承 50mm,0,0,144,2200,620,50,5,85,85,pass,QA synthetic deck and load evidence; software acceptance only,QA-43-r1,自重已包含在整托包装自重内；静载按接触面积传递，强度未核验
