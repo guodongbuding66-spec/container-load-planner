@@ -1,0 +1,716 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.41.0",
+  "createdAt": "2026-10-19T03:17:22.443Z",
+  "inputs": {
+    "palletLayerTemplates": [],
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true,
+          "measurements": {
+            "deckThickness": 22,
+            "bottomThickness": 22,
+            "bearerThickness": 22,
+            "deckBoardWidth": 104.16,
+            "supportLength": 264,
+            "supportWidth": 86.8,
+            "source": "",
+            "revision": "qa41-base"
+          }
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 2200,
+        "width": 620,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "maxPallets": 1,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "primaryRule": {
+        "maxPallets": 1
+      }
+    },
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "practical",
+    "practicalTargetPercent": 88,
+    "container": {
+      "id": "40hq",
+      "name": "40HQ 高柜",
+      "length": 12032,
+      "width": 2350,
+      "height": 2700,
+      "doorWidth": 2340,
+      "doorHeight": 2597,
+      "maxWeight": 28600
+    },
+    "clearance": 10,
+    "products": [
+      {
+        "id": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "length": 2200,
+        "width": 620,
+        "height": 180,
+        "weight": 42.5,
+        "quantity": 1,
+        "priority": 100,
+        "rotationPolicy": "any",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.25,
+        "color": "#2f7f89",
+        "cargoType": "carton",
+        "cargoShape": "box",
+        "longSupport": {
+          "version": 1,
+          "dimensions": {
+            "length": 2200,
+            "width": 620,
+            "height": 180
+          },
+          "axis": "L",
+          "bands": [
+            {
+              "start": 0,
+              "end": 2200
+            }
+          ],
+          "minimumContactRatio": 1,
+          "maxSpanMm": 0,
+          "maxOverhangMm": 0,
+          "source": "QA synthetic geometry only",
+          "revision": "qa41"
+        },
+        "protectionGap": 0,
+        "allowedOrientations": [
+          "LWH"
+        ]
+      }
+    ],
+    "customContainers": [],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {
+    "practical": {
+      "workflow": "palletized",
+      "palletBuild": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true,
+            "measurements": {
+              "deckThickness": 22,
+              "bottomThickness": 22,
+              "bearerThickness": 22,
+              "deckBoardWidth": 104.16,
+              "supportLength": 264,
+              "supportWidth": 86.8,
+              "source": "",
+              "revision": "qa41-base"
+            }
+          },
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "length": 2200,
+          "width": 620,
+          "height": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 1000
+        },
+        "mix": "single",
+        "maxPallets": 1,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "primaryRule": {
+          "maxPallets": 1
+        }
+      },
+      "strategy": "practical",
+      "placements": [
+        {
+          "id": "prebuilt-1",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 144,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        }
+      ],
+      "pallets": [
+        {
+          "id": "floor-pallet-1",
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "specificationId": "primary",
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true,
+            "measurements": {
+              "deckThickness": 22,
+              "bottomThickness": 22,
+              "bearerThickness": 22,
+              "deckBoardWidth": 104.16,
+              "supportLength": 264,
+              "supportWidth": 86.8,
+              "source": "",
+              "revision": "qa41-base"
+            }
+          }
+        }
+      ],
+      "palletization": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true,
+            "measurements": {
+              "deckThickness": 22,
+              "bottomThickness": 22,
+              "bearerThickness": 22,
+              "deckBoardWidth": 104.16,
+              "supportLength": 264,
+              "supportWidth": 86.8,
+              "source": "",
+              "revision": "qa41-base"
+            }
+          },
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "length": 2200,
+          "width": 620,
+          "height": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 1000
+        },
+        "mix": "single",
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "preparedCount": 1,
+        "bounded": false,
+        "only": false,
+        "specifications": [
+          {
+            "id": "primary",
+            "config": {
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true,
+                "measurements": {
+                  "deckThickness": 22,
+                  "bottomThickness": 22,
+                  "bearerThickness": 22,
+                  "deckBoardWidth": 104.16,
+                  "supportLength": 264,
+                  "supportWidth": 86.8,
+                  "source": "",
+                  "revision": "qa41-base"
+                }
+              },
+              "presetId": "eur-1200-800",
+              "name": "EUR",
+              "length": 2200,
+              "width": 620,
+              "height": 144,
+              "weight": 25,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 1000
+            },
+            "maxPallets": 1,
+            "stackLayers": 1,
+            "maxTopLoadKg": 0
+          }
+        ],
+        "preparedBySpecification": {
+          "primary": 1
+        }
+      }
+    },
+    "maximum": {
+      "workflow": "palletized",
+      "palletBuild": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true,
+            "measurements": {
+              "deckThickness": 22,
+              "bottomThickness": 22,
+              "bearerThickness": 22,
+              "deckBoardWidth": 104.16,
+              "supportLength": 264,
+              "supportWidth": 86.8,
+              "source": "",
+              "revision": "qa41-base"
+            }
+          },
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "length": 2200,
+          "width": 620,
+          "height": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 1000
+        },
+        "mix": "single",
+        "maxPallets": 1,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "primaryRule": {
+          "maxPallets": 1
+        }
+      },
+      "strategy": "maximum",
+      "placements": [
+        {
+          "id": "prebuilt-1",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 144,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        }
+      ],
+      "pallets": [
+        {
+          "id": "floor-pallet-1",
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "specificationId": "primary",
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true,
+            "measurements": {
+              "deckThickness": 22,
+              "bottomThickness": 22,
+              "bearerThickness": 22,
+              "deckBoardWidth": 104.16,
+              "supportLength": 264,
+              "supportWidth": 86.8,
+              "source": "",
+              "revision": "qa41-base"
+            }
+          }
+        }
+      ],
+      "palletization": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true,
+            "measurements": {
+              "deckThickness": 22,
+              "bottomThickness": 22,
+              "bearerThickness": 22,
+              "deckBoardWidth": 104.16,
+              "supportLength": 264,
+              "supportWidth": 86.8,
+              "source": "",
+              "revision": "qa41-base"
+            }
+          },
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "length": 2200,
+          "width": 620,
+          "height": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 1000
+        },
+        "mix": "single",
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "preparedCount": 1,
+        "bounded": false,
+        "only": false,
+        "specifications": [
+          {
+            "id": "primary",
+            "config": {
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true,
+                "measurements": {
+                  "deckThickness": 22,
+                  "bottomThickness": 22,
+                  "bearerThickness": 22,
+                  "deckBoardWidth": 104.16,
+                  "supportLength": 264,
+                  "supportWidth": 86.8,
+                  "source": "",
+                  "revision": "qa41-base"
+                }
+              },
+              "presetId": "eur-1200-800",
+              "name": "EUR",
+              "length": 2200,
+              "width": 620,
+              "height": 144,
+              "weight": 25,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 1000
+            },
+            "maxPallets": 1,
+            "stackLayers": 1,
+            "maxTopLoadKg": 0
+          }
+        ],
+        "preparedBySpecification": {
+          "primary": 1
+        }
+      }
+    }
+  },
+  "coordinatePlan": {
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true,
+          "measurements": {
+            "deckThickness": 22,
+            "bottomThickness": 22,
+            "bearerThickness": 22,
+            "deckBoardWidth": 104.16,
+            "supportLength": 264,
+            "supportWidth": 86.8,
+            "source": "",
+            "revision": "qa41-base"
+          }
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 2200,
+        "width": 620,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "maxPallets": 1,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "primaryRule": {
+        "maxPallets": 1
+      }
+    },
+    "strategy": "practical",
+    "placements": [
+      {
+        "id": "prebuilt-1",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 144,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 180,
+        "weight": 42.5,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      }
+    ],
+    "pallets": [
+      {
+        "id": "floor-pallet-1",
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "orientation": "LWH",
+        "specificationId": "primary",
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true,
+          "measurements": {
+            "deckThickness": 22,
+            "bottomThickness": 22,
+            "bearerThickness": 22,
+            "deckBoardWidth": 104.16,
+            "supportLength": 264,
+            "supportWidth": 86.8,
+            "source": "",
+            "revision": "qa41-base"
+          }
+        }
+      }
+    ],
+    "palletization": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true,
+          "measurements": {
+            "deckThickness": 22,
+            "bottomThickness": 22,
+            "bearerThickness": 22,
+            "deckBoardWidth": 104.16,
+            "supportLength": 264,
+            "supportWidth": 86.8,
+            "source": "",
+            "revision": "qa41-base"
+          }
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 2200,
+        "width": 620,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "preparedCount": 1,
+      "bounded": false,
+      "only": false,
+      "specifications": [
+        {
+          "id": "primary",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true,
+              "measurements": {
+                "deckThickness": 22,
+                "bottomThickness": 22,
+                "bearerThickness": 22,
+                "deckBoardWidth": 104.16,
+                "supportLength": 264,
+                "supportWidth": 86.8,
+                "source": "",
+                "revision": "qa41-base"
+              }
+            },
+            "presetId": "eur-1200-800",
+            "name": "EUR",
+            "length": 2200,
+            "width": 620,
+            "height": 144,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 1000
+          },
+          "maxPallets": 1,
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        }
+      ],
+      "preparedBySpecification": {
+        "primary": 1
+      }
+    }
+  }
+}
