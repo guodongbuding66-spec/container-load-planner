@@ -1,0 +1,67 @@
+{
+  "old": {
+    "version": "0.45.0",
+    "strategies": {
+      "practical": {
+        "count": 4,
+        "pallets": 1,
+        "weight": 60,
+        "loose": [],
+        "valid": true
+      },
+      "maximum": {
+        "count": 4,
+        "pallets": 1,
+        "weight": 60,
+        "loose": [],
+        "valid": true
+      }
+    }
+  },
+  "mixed": {
+    "version": "0.46.0",
+    "strategies": {
+      "practical": {
+        "count": 6,
+        "pallets": 1,
+        "weight": 80,
+        "loose": [
+          {
+            "productId": "shed-qa",
+            "sku": "SHED-101",
+            "reserved": 2,
+            "loose": 2,
+            "palletized": 4,
+            "weightKg": 20,
+            "unloaded": 0
+          }
+        ],
+        "valid": true
+      },
+      "maximum": {
+        "count": 6,
+        "pallets": 1,
+        "weight": 80,
+        "loose": [
+          {
+            "productId": "shed-qa",
+            "sku": "SHED-101",
+            "reserved": 2,
+            "loose": 2,
+            "palletized": 4,
+            "weightKg": 20,
+            "unloaded": 0
+          }
+        ],
+        "valid": true
+      }
+    }
+  },
+  "csv": {
+    "records": 7,
+    "loose": 2,
+    "unitContents": 4,
+    "units": 1,
+    "weight": 80
+  }
+}

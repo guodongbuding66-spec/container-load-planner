@@ -1,0 +1,613 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.45.0",
+  "createdAt": "2026-10-19T23:22:05.253Z",
+  "inputs": {
+    "palletLayerTemplates": [],
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "QA pallet",
+        "length": 1000,
+        "width": 1000,
+        "height": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 200
+      },
+      "mix": "single",
+      "maxPallets": 50,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "maximum",
+    "practicalTargetPercent": 88,
+    "container": {
+      "category": "other",
+      "id": "v46-qa",
+      "name": "QA mixed load",
+      "length": 1500,
+      "width": 1000,
+      "height": 500,
+      "doorWidth": 1000,
+      "doorHeight": 500,
+      "maxWeight": 1000
+    },
+    "clearance": 0,
+    "products": [
+      {
+        "id": "shed-qa",
+        "sku": "SHED-101",
+        "name": "QA Shed carton",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 6,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.05,
+        "color": "#337788",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100
+      }
+    ],
+    "customContainers": [],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {
+    "practical": {
+      "workflow": "palletized",
+      "palletBuild": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "QA pallet",
+          "length": 1000,
+          "width": 1000,
+          "height": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 200
+        },
+        "mix": "single",
+        "maxPallets": 50,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0
+      },
+      "strategy": "practical",
+      "placements": [
+        {
+          "id": "prebuilt-1",
+          "productId": "shed-qa",
+          "sku": "SHED-101",
+          "name": "QA Shed carton",
+          "color": "#337788",
+          "x": 0,
+          "y": 0,
+          "z": 100,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-2",
+          "productId": "shed-qa",
+          "sku": "SHED-101",
+          "name": "QA Shed carton",
+          "color": "#337788",
+          "x": 0,
+          "y": 500,
+          "z": 100,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-3",
+          "productId": "shed-qa",
+          "sku": "SHED-101",
+          "name": "QA Shed carton",
+          "color": "#337788",
+          "x": 500,
+          "y": 0,
+          "z": 100,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-4",
+          "productId": "shed-qa",
+          "sku": "SHED-101",
+          "name": "QA Shed carton",
+          "color": "#337788",
+          "x": 500,
+          "y": 500,
+          "z": 100,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        }
+      ],
+      "pallets": [
+        {
+          "id": "floor-pallet-1",
+          "presetId": "eur-1200-800",
+          "name": "QA pallet",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 1000,
+          "dy": 1000,
+          "dz": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          }
+        }
+      ],
+      "palletization": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "QA pallet",
+          "length": 1000,
+          "width": 1000,
+          "height": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 200
+        },
+        "mix": "single",
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "preparedCount": 2,
+        "bounded": false,
+        "only": false
+      }
+    },
+    "maximum": {
+      "workflow": "palletized",
+      "palletBuild": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "QA pallet",
+          "length": 1000,
+          "width": 1000,
+          "height": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 200
+        },
+        "mix": "single",
+        "maxPallets": 50,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0
+      },
+      "strategy": "maximum",
+      "placements": [
+        {
+          "id": "prebuilt-1",
+          "productId": "shed-qa",
+          "sku": "SHED-101",
+          "name": "QA Shed carton",
+          "color": "#337788",
+          "x": 0,
+          "y": 0,
+          "z": 100,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-2",
+          "productId": "shed-qa",
+          "sku": "SHED-101",
+          "name": "QA Shed carton",
+          "color": "#337788",
+          "x": 0,
+          "y": 500,
+          "z": 100,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-3",
+          "productId": "shed-qa",
+          "sku": "SHED-101",
+          "name": "QA Shed carton",
+          "color": "#337788",
+          "x": 500,
+          "y": 0,
+          "z": 100,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-4",
+          "productId": "shed-qa",
+          "sku": "SHED-101",
+          "name": "QA Shed carton",
+          "color": "#337788",
+          "x": 500,
+          "y": 500,
+          "z": 100,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        }
+      ],
+      "pallets": [
+        {
+          "id": "floor-pallet-1",
+          "presetId": "eur-1200-800",
+          "name": "QA pallet",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 1000,
+          "dy": 1000,
+          "dz": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          }
+        }
+      ],
+      "palletization": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "QA pallet",
+          "length": 1000,
+          "width": 1000,
+          "height": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 200
+        },
+        "mix": "single",
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "preparedCount": 2,
+        "bounded": false,
+        "only": false
+      }
+    }
+  },
+  "coordinatePlan": {
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "QA pallet",
+        "length": 1000,
+        "width": 1000,
+        "height": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 200
+      },
+      "mix": "single",
+      "maxPallets": 50,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "strategy": "maximum",
+    "placements": [
+      {
+        "id": "prebuilt-1",
+        "productId": "shed-qa",
+        "sku": "SHED-101",
+        "name": "QA Shed carton",
+        "color": "#337788",
+        "x": 0,
+        "y": 0,
+        "z": 100,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-2",
+        "productId": "shed-qa",
+        "sku": "SHED-101",
+        "name": "QA Shed carton",
+        "color": "#337788",
+        "x": 0,
+        "y": 500,
+        "z": 100,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-3",
+        "productId": "shed-qa",
+        "sku": "SHED-101",
+        "name": "QA Shed carton",
+        "color": "#337788",
+        "x": 500,
+        "y": 0,
+        "z": 100,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-4",
+        "productId": "shed-qa",
+        "sku": "SHED-101",
+        "name": "QA Shed carton",
+        "color": "#337788",
+        "x": 500,
+        "y": 500,
+        "z": 100,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      }
+    ],
+    "pallets": [
+      {
+        "id": "floor-pallet-1",
+        "presetId": "eur-1200-800",
+        "name": "QA pallet",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "dx": 1000,
+        "dy": 1000,
+        "dz": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "orientation": "LWH",
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        }
+      }
+    ],
+    "palletization": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "QA pallet",
+        "length": 1000,
+        "width": 1000,
+        "height": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 200
+      },
+      "mix": "single",
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "preparedCount": 2,
+      "bounded": false,
+      "only": false
+    }
+  }
+}

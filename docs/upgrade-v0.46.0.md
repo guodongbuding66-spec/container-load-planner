@@ -19,4 +19,26 @@
 
 本地 `npm run build:pages` 已通过：1,195 项单元测试（92 个文件）、21 项 HTML 检查、TypeScript、生产静态构建；lint 0 错误，保留原有 3 条警告。新增 25 项核心边界回归和 4 项中英文界面回归。
 
-GitHub CI、两个正式站与实际下载恢复验收待发布后补齐。
+功能提交 `2b2b96418ecb219626d7f13f416478d12baf66d0`，源树 `49245114506629eb25d958a84aa52d245309eca6`。GitHub verify `39341386065`（job `118363512887`）成功，Pages `7c85e0bf-855c-4b8b-8acc-73a60d920041` 成功，Vercel `dpl_3x68eP2MKCRTWro1wRuzEArv41yx` READY、production，灰色正式域名已关联。之后仅同步本次验收证据及文档；最终提交和双站检查以 main 最新发布为准。正式地址：[Pages](https://container-load-planner.pages.dev/)／[Vercel](https://container-load-planner-gray.vercel.app/)。
+
+## 正式站实际验收
+
+合成软件订单：SHED-101 六箱，每箱 500×500×200 mm、10 kg、固定 LWH；托盘 1000×1000 mm、底座 100 mm、自重 20 kg、货物限高 200 mm。柜内 1500×1000×500 mm、门 1000×500 mm、额定总重 1000 kg、间隙 0。这是软件边界案例，不是现场货物或结构能力证据。
+
+| 实际操作 | 观察结果 |
+| --- | --- |
+| 升级前 v0.45 同一订单，未预留散箱 | 双算法各 4 箱、1 托、60 kg，余货 2 箱；实际下载旧版双策略备份 |
+| Pages 升级后保留旧草稿 | 混装预留默认 0；实际旧备份经新版解析和统一校验，两策略均保持上述数量、质量及全部坐标 |
+| 在新版输入 2 箱散装预留，先预览打托 | 预览只包含其余 4 箱、1 托，0 箱待打托；预留散箱不误计成待打托余货 |
+| 运行双算法共同装柜 | 均 6 箱、1 托、80 kg；托上 4 箱、散装 2 箱、余货 0，散箱总重 20 kg；整托内容仍连续，散箱 Z 为 0 |
+| 预留输入 7，超过订单 6 箱 | 数字框明确无效，计算被禁用；改回 2 后可继续 |
+| 切换只打托但保留 2 箱预留 | 明确提示清除散装预留或切换装柜，不能计算；没有静默清空分配 |
+| 实际下载并重新恢复混装双策略备份 | 两种算法均 6／1 托／80 kg；当前解析器、订单及独立校验通过，记录坐标、朝向、重量及归属无漂移；Pages 实际 UI 恢复后暂停自动重算，保留两套结果 |
+| 实际 CSV | 7 条记录：1 托盘、4 托内货物、2 散箱；装载单元类型分别为 complete-unit／unit-content／loose-cargo，全部记录重量之和 80 kg，各实物仅一次 |
+| 实际 PDF | 7 页 A4；第 4 页混装清单为 2／2／4／0／20 kg，第 6 页完整六箱坐标，前四箱标注托盘 ID，后两箱标注散箱、Z=0；逐页目标检查无文字裁切和重叠 |
+| Vercel 跨站恢复与英文 | 直接导入 Pages 实际下载的混装备份，成功恢复后重跑两算法；均 6 箱／80 kg，英文表头、提示及 2／2／4／0／20.0 一致，未见本功能自带汉字残留 |
+| 双站清理与默认回归 | 通过原始默认工作区恢复直接装柜、40HQ、间隙 10 mm、3 个默认 SKU 及默认包装；双算法均 116 箱、3,842 kg，引擎 0.46.0，无 QA 散装预留残留 |
+
+两站最近 200 条错误日志即时抽查未见应用错误，浏览器扩展单独排除；这不是持续监控。该浏览器 WebGL 未启用，实际使用三维坐标回退和真实投影，不计作 GPU 或硬件拖动验收。站次未填写和运输固定仍各自未核验。
+
+证据：[Pages 中文混装清单](field-upgrades/evidence/v0.46.0-pallet-loose-pages.jpg)、[Vercel 英文清单](field-upgrades/evidence/v0.46.0-pallet-loose-english.jpg)、[实际旧备份](field-upgrades/evidence/v0.46.0-old-workspace.json)、[实际混装双策略备份](field-upgrades/evidence/v0.46.0-mixed-workspace.json)、[实际 CSV](field-upgrades/evidence/v0.46.0-coordinates.csv)、[PDF 混装页](field-upgrades/evidence/v0.46.0-mixed-pdf-page.jpg)、[PDF 坐标页](field-upgrades/evidence/v0.46.0-coordinates-pdf-page.jpg)、[实际下载核对结果](field-upgrades/evidence/v0.46.0-download-review.json)。
