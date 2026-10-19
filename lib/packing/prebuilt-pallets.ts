@@ -1,3 +1,4 @@
+import {parseLooseQuantities,looseReservationErrors,looseOutsideUnit,type LooseQuantities} from "./loose-cargo";
 import {crateAutoEnabled,inspectCrateStacks,isCrate} from "./crate-auto-stack";
 import {completePackagingTare,palletEnvelopeTop,assertDeckSupportStacking} from "./deck-support";
 import {siteExclusionBoxes} from "./site-exclusions";
@@ -16,14 +17,22 @@ export function visiblePlanPallets(plan: PackingResult, visibleCount: number): P
 }
 /** Keep each prebuilt unit complete in playback/exports, below before above. */
 export function orderPalletizedCargo(boxes: PlacedBox[], pallets: PlacedPallet[]) {
-  const ranks = new Map([...pallets].sort((a,b)=>a.x-b.x||a.z-b.z||a.y-b.y).map((p,i)=>[p.id,i]));
-  return [...boxes].sort((a,b)=>(ranks.get(a.palletIds?.[0]??"")??Infinity)-(ranks.get(b.palletIds?.[0]??"")??Infinity));
+  const groups=new Map<string,PlacedBox[]>(),loose:PlacedBox[]=[];
+  for(const b of boxes){const id=b.palletIds?.[0];if(id){const list=groups.get(id);if(list)list.push(b);else groups.set(id,[b]);}else loose.push(b);}
+  const ordered:PlacedBox[]=[];let i=0;
+  for(const p of [...pallets].sort((a,b)=>a.x-b.x||a.z-b.z||a.y-b.y)){
+    while(i<loose.length&&loose[i].x<=p.x)ordered.push(loose[i++]);
+    ordered.push(...groups.get(p.id)??[]);groups.delete(p.id);
+  }
+  ordered.push(...loose.slice(i),...[...groups.values()].flat());return ordered;
 }
-export type Palletization = { selection?:PackagingSelection;selectionChoices?:PackagingChoice[]; editRevision?:number; config: FloorPalletConfig; mix: "single" | "mixed"; stackLayers?: number; maxTopLoadKg?: number; preparedCount?: number; bounded?: boolean; only?: boolean; specifications?:PalletBuildSpecification[]; preparedBySpecification?:Record<string,number> };
+export type Palletization = { looseQuantities?:LooseQuantities; selection?:PackagingSelection;selectionChoices?:PackagingChoice[]; editRevision?:number; config: FloorPalletConfig; mix: "single" | "mixed"; stackLayers?: number; maxTopLoadKg?: number; preparedCount?: number; bounded?: boolean; only?: boolean; specifications?:PalletBuildSpecification[]; preparedBySpecification?:Record<string,number> };
 export function parsePalletization(value: unknown): Palletization | undefined {
   if (value === undefined) return undefined;
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid prebuilt pallets");
   const p = value as Palletization;
+  const looseQuantities=parseLooseQuantities(p.looseQuantities);
+  if(looseQuantities&&p.only)throw Error("Pallet-only plans cannot contain loose reservations / 只打托不接受散箱");
   if(p.editRevision!==undefined&&(!Number.isSafeInteger(p.editRevision)||p.editRevision<1))throw new Error("Invalid pallet edit revision");
   if (!["single", "mixed"].includes(p.mix)) throw new Error("Invalid pallet mix");
   if (p.stackLayers !== undefined && (!Number.isInteger(p.stackLayers) || p.stackLayers < 1 || p.stackLayers > 20)) throw new Error("Invalid pallet stack layers");
@@ -43,7 +52,7 @@ export function parsePalletization(value: unknown): Palletization | undefined {
   }else if(p.preparedBySpecification!==undefined)throw new Error("Prepared packaging definitions are missing");
   const selectionChoices=parsePackagingChoices(p.selectionChoices,new Set(specifications?.map(s=>s.id)??["primary"]));
   if(selectionChoices&&p.selection!=="compact")throw new Error("Packaging choice records require compact selection");
-  return { ...(p.selection===undefined?{}:{selection:p.selection}),...(selectionChoices?{selectionChoices}:{}), config, mix: p.mix, ...(p.editRevision===undefined?{}:{editRevision:p.editRevision}), ...(p.stackLayers === undefined ? {} : { stackLayers: p.stackLayers }), ...(p.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: p.maxTopLoadKg }), ...(p.preparedCount === undefined ? {} : { preparedCount: p.preparedCount }), ...(p.bounded === undefined ? {} : { bounded: p.bounded }), ...(p.only === undefined ? {} : { only: p.only }),...(specifications?{specifications,preparedBySpecification}:{}) };
+  return { ...(looseQuantities?{looseQuantities}:{}), ...(p.selection===undefined?{}:{selection:p.selection}),...(selectionChoices?{selectionChoices}:{}), config, mix: p.mix, ...(p.editRevision===undefined?{}:{editRevision:p.editRevision}), ...(p.stackLayers === undefined ? {} : { stackLayers: p.stackLayers }), ...(p.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: p.maxTopLoadKg }), ...(p.preparedCount === undefined ? {} : { preparedCount: p.preparedCount }), ...(p.bounded === undefined ? {} : { bounded: p.bounded }), ...(p.only === undefined ? {} : { only: p.only }),...(specifications?{specifications,preparedBySpecification}:{}) };
 }
 export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPallet[], container: ContainerSpec, clearance: number, value: Palletization, products:readonly ProductInput[] = []) {
   value=parsePalletization(value)!;
@@ -51,9 +60,13 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
   const specifications=new Map(pallets.map(p=>[p.id,specificationForPallet(value,p)]));
   const used=new Map<string,number>();
   const allowedProducts=new Map((value.specifications??[]).map(s=>[s.id,s.productIds?new Set(s.productIds):undefined]));
-  if (!pallets.length && boxes.length) errors.push("Prebuilt cargo has no pallets");
+  if(products.length)errors.push(...looseReservationErrors(value.looseQuantities,products,!!value.only));
+  const loose=boxes.filter(b=>!b.palletIds?.length),looseCounts=new Map<string,number>(),unitCounts=new Map<string,number>();
+  for(const b of boxes){const counts=b.palletIds?.length?unitCounts:looseCounts;counts.set(b.productId,(counts.get(b.productId)??0)+1);}
+  if([...looseCounts].some(([id,n])=>n>(value.looseQuantities?.[id]??0))||products.some(p=>(unitCounts.get(p.id)??0)>p.quantity-(value.looseQuantities?.[p.id]??0)))errors.push("Cargo exceeds its loose or palletized allocation / 箱数超过散装或打托分配");
   const cargoByPallet = new Map(pallets.map(p => [p.id, boxes.filter(b => b.palletIds?.length === 1 && b.palletIds[0] === p.id)]));
   for (const b of boxes) {
+    if(!b.palletIds?.length){if(!((value.looseQuantities?.[b.productId]??0)>0))errors.push(`${b.sku}: loose cargo was not reserved / 未预留散装`);continue;}
     const p = b.palletIds?.length === 1 ? pallets.find(p => p.id === b.palletIds![0]) : undefined;
     const interior=packagingInterior(p?specifications.get(p.id)!.config:value.config);
     if (!p || b.x < p.x + interior.inset - EPS || b.y < p.y + interior.inset - EPS || b.x + b.dx > p.x + p.dx - interior.inset + EPS || b.y + b.dy > p.y + p.dy - interior.inset + EPS || b.z < p.z + p.dz - EPS) errors.push(`${b.sku}: cargo must remain within one complete pallet`);
@@ -88,8 +101,9 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
     }
   }
   const sets = new Map<string, Set<string>>();
-  for (const b of boxes) if (b.setCode) { const key = `${b.setCode}/${b.setNumber}`, ids = sets.get(key) ?? new Set<string>(); for (const id of b.palletIds ?? []) ids.add(id); sets.set(key, ids); }
-  if ([...sets.values()].some(ids => ids.size !== 1)) errors.push("A complete kit must stay on one pallet");
+  for (const b of boxes) if (b.setCode) { const key = `${b.setCode}/${b.setNumber}`, ids = sets.get(key) ?? new Set<string>(); for (const id of b.palletIds?.length?b.palletIds:["__loose__"]) ids.add(b.palletIds?.length?`pallet:${id}`:"loose"); sets.set(key, ids); }
+  if ([...sets.values()].some(ids => ids.size !== 1)) errors.push("A complete kit must stay on one pallet or entirely loose / 套装不能跨托或拆成打托和散装");
+  for(const b of loose)for(const e of envelopes)if(!looseOutsideUnit(b,e,Math.max(productMap.get(b.productId)?.protectionGap??0,specifications.get(e.id)!.config.gap)))errors.push("Loose cargo intersects, supports or violates the gap of a complete unit / 散箱与整托包络相交、互相承托或保护间隙不足");
   const stackLimit=(id:string)=>{const s=specifications.get(id)!;return isCrate(s.config)?crateAutoEnabled(s.config)?20:1:s.stackLayers;};
   const layers = new Map<string, number>(), ancestors=new Map<string,string[]>();
   for (const e of [...envelopes].sort((a, b) => a.z - b.z)) {

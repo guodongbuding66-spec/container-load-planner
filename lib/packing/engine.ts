@@ -1,3 +1,4 @@
+import {parseLooseQuantities} from "./loose-cargo";
 import {palletDeckSupportGeometry,DECK_SUPPORT_PREFIX} from "./deck-support";
 import {accessorySupportGeometry,assertAccessorySupportWorkflow,hasAccessorySupports,SUPPORT_WORKFLOW_ERROR} from "./accessory-support";
 import {containerAccessoryWeight,accessoryMassBoxes,accessoryProductErrors} from "./container-accessories";
@@ -45,7 +46,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.45.0";
+export const ENGINE_VERSION = "0.46.0";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -1829,7 +1830,7 @@ export function validatePacking(
   for(const p of products){try{parseShapeFields(p as unknown as Record<string,unknown>);}catch(e){return {valid:false,errors:[e instanceof Error?e.message:"Invalid cargo shape"]};}}
   const cargo = placements;
   const deckConfigured=pallets.some(p=>p.packaging?.deckSupports!==undefined)||palletization?.config?.packaging?.deckSupports!==undefined||palletization?.specifications?.some(s=>s.config.packaging?.deckSupports!==undefined);
-  if(deckConfigured || palletization && pallets.some(p=>p.packaging&&p.packaging.enclosure!=="none")){
+  if(palletization || deckConfigured){
     if(!palletization)return {valid:false,errors:["Deck supports require validated prebuilt specifications / 托内支承件需要有效的预打托规格"]};
     try{const issues=validatePalletizedCargo(cargo,pallets,container,clearance,palletization,products);if(issues.length)return {valid:false,errors:issues};}catch(e){return {valid:false,errors:[e instanceof Error?e.message:"Invalid deck supports"]};}
   }
@@ -2628,7 +2629,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
     const expected=parsePalletBuild(request.palletBuild).config;
     if(JSON.stringify(expected)!==JSON.stringify(palletization.config))throw Error("Deck support specification does not match workspace inputs / 托内支承件规格与当前工作区输入不一致");
   }
-  if(palletization){const source=request.palletBuild??raw.palletBuild;if(source!==undefined&&(parsePalletBuild(source).selection??"ordered")!==(palletization.selection??"ordered"))throw new Error("Packaging selection mode does not match workspace inputs");}
+  if(palletization){for(const source of [request.palletBuild,raw.palletBuild])if(source!==undefined){const expected=parsePalletBuild(source);if((expected.selection??"ordered")!==(palletization.selection??"ordered"))throw new Error("Packaging selection mode does not match workspace inputs");if(JSON.stringify(parseLooseQuantities(expected.looseQuantities))!==JSON.stringify(palletization.looseQuantities))throw Error("Loose reservations do not match workspace inputs / 散装预留与当前输入不一致");}}
   if(palletization&&!Array.isArray(raw.pallets))throw new Error("Prebuilt pallet coordinates are missing");
   if(palletization&&((raw.pallets as unknown[]).length>200||(raw.pallets as unknown[]).some(p=>!p||typeof p!=="object")))throw new Error("Invalid prebuilt pallet coordinates");
   if(palletization?.specifications){

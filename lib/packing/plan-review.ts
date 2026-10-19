@@ -47,7 +47,7 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
     add({ id: "path", state: "not-applicable", scope: ["当前方案没有入柜装卸任务。", "This plan has no vehicle loading or unloading task."], model: "no-vehicle-task", items: [] });
   } else if (!audit.completeCoordinates) {
     add({ id: "path", state: "unverified", scope: ["缺少完整箱位，无法核验全部装卸路径。", "Incomplete coordinates prevent a complete access review."], model: "incomplete-coordinates", items: [] });
-  } else if ((plan.palletization ? plan.pallets?.length ?? 0 : plan.placements.length) > 240) {
+  } else if ((plan.palletization ? (plan.pallets?.length ?? 0)+plan.placements.filter(b=>!b.palletIds?.length).length : plan.placements.length) > 240) {
     add({ id: "path", state: "unverified", scope: ["装载单元超过摘要自动路径复核预算（240 件）；尚未核验完整装卸任务。", "Loading units exceed the automatic summary access-review budget (240); the complete handling task is unverified."], model: "review-budget", items: [] });
   } else {
     const access = auditAccess(plan), blocked = access.issues.filter(i => !["unassigned", "search"].includes(i.reason));

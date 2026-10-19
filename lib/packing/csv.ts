@@ -84,6 +84,10 @@ function placementCsvCore(result: PackingResult): string {
       return [...row,cell?.state??"",cell?.topLoadKg??"",cell?.throughLoadBoundKg??"",cell?.supporterId??"",cell?.level??"",unit?.config.crateBearing?JSON.stringify(unit.config.crateBearing):"",unit?crateEvidence(unit.config).state:"",unit?(unit.config.crateBearing?.automaticStacking?"four-corner-paths-v1; unified-static-review":"independent-preflight-only; automatic-floor-only"):""].map(toCsvCell).join(",");
     }).join("\r\n");
   }
+  if(result.palletization?.looseQuantities){
+    const base={...result,palletization:{...result.palletization,looseQuantities:undefined}},palletIds=new Set(result.pallets?.map(p=>p.id));
+    return parseCsvRecords(placementCsvCore(base)).map((row,i)=>[...row,!i?"装载单元类型":row[15]==="pallet"&&palletIds.has(row[1])?"complete-unit":row[16]?"unit-content":"loose-cargo"].map(toCsvCell).join(",")).join("\r\n");
+  }
   const workflow = result.workflow ?? (result.palletization ? "palletized" : result.mode === "single" ? "single-capacity" : "direct");
   const frame = workflow === "pallet-only" ? "pallet-inspection" : "vehicle-loading";
   const rows = result.placements.map((box, index) => [

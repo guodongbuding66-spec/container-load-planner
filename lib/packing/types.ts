@@ -11,6 +11,8 @@ export type PalletBuildSpecification = {
   maxTopLoadKg: number;
 };
 export type PalletBuildOptions = {
+  /** Explicit cartons reserved outside packaging; kits require equal complete-set counts. */
+  looseQuantities?: import("./loose-cargo").LooseQuantities;
   selection?: import("./packaging-choice").PackagingSelection;
   config: FloorPalletConfig;
   primaryRule?: { maxPallets: number; productIds?: string[] };

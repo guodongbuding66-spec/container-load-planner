@@ -33,5 +33,5 @@ export function snapTranslation(box:PlacedBox, delta:{x:number;y:number;z:number
 }
 export function fieldBlocks(plan:PackingResult){
   const groups:{key:string;sku:string;indices:number[];orientation:string;zone:number}[]=[];
-  plan.placements.forEach((b,i)=>{const zone=Math.floor(b.x/1000)+1;const key=`${zone}-${b.sku}-${b.dx}/${b.dy}/${b.dz}-${b.z}`;const last=groups.at(-1);if(last?.key===key)last.indices.push(i);else groups.push({key,sku:b.sku,indices:[i],orientation:`${b.dx} × ${b.dy} × ${b.dz}`,zone});});return groups;
+  plan.placements.forEach((b,i)=>{const zone=Math.floor(b.x/1000)+1;const key=`${plan.palletization?(b.palletIds?.[0]??"loose"):""}-${zone}-${b.sku}-${b.dx}/${b.dy}/${b.dz}-${b.z}`;const last=groups.at(-1);if(last?.key===key)last.indices.push(i);else groups.push({key,sku:b.sku,indices:[i],orientation:`${b.dx} × ${b.dy} × ${b.dz}`,zone});});return groups;
 }

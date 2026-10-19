@@ -66,7 +66,7 @@ export function probeEmptySpace(plan:PackingResult,inputs:ProductInput[],product
       const supporters=plan.placements.filter(a=>bodyContactArea(b,a,p,products.find(p=>p.id===a.productId))>EPS);
       b.layer=supporters.length?Math.max(...supporters.map(a=>a.layer))+1:1;
       const validation=validatePacking([...plan.placements,b].sort((a,b)=>a.z-b.z||a.x-b.x),plan.container,plan.clearance,checkedProducts,plan.strategy,plan.mode,plan.pallets,plan.floorPallets,plan.palletization);
-      if(validation.valid&&plan.palletization)validation.errors.push(...validatePalletizedCargo([...plan.placements,b],plan.pallets??[],plan.container,plan.clearance,plan.palletization));
+      if(validation.valid&&plan.palletization)validation.errors.push(...validatePalletizedCargo([...plan.placements,b],plan.pallets??[],plan.container,plan.clearance,plan.palletization,checkedProducts));
       if(validation.valid&&!validation.errors.length)return {candidate:b,status:"fits",errors:[],tested};
       validation.errors.forEach(e=>errors.add(e));
     }
