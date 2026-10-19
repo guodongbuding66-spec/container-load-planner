@@ -31,7 +31,7 @@ export type CargoShape = "box" | "cylinder" | "wedge" | "trapezoid" | "frustum" 
 export type FloorPalletConfig = {
   /** Documentary twin-fork preflight; does not authorize handling. */
   forkInterface?: import("./fork-interface").ForkInterface;
-  /** Documentary ratings for independent crate-stack preflight; never unlocks automatic stacking. */
+  /** Documentary four-path ratings; automatic stacking requires a separate explicit opt-in and current validation. */
   crateBearing?: import("./crate-bearing").CrateBearingProfile;
   /** Physical packaging recipe. Dimensions below are exterior dimensions. */
   packaging?: import("./packaging").PackagingSpec;

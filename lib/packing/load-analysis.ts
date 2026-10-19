@@ -1,3 +1,4 @@
+import {planCrateStackReview} from "./crate-auto-stack";
 import {palletDeckSupportGeometry,deckSupportMass,DECK_SUPPORT_PREFIX} from "./deck-support";
 import {accessorySupportGeometry} from "./accessory-support";
 import {accessoryMassBoxes} from "./container-accessories";
@@ -29,7 +30,8 @@ export function analyzeLoads(plan:PackingResult,products:ProductInput[]){
     else zones[Math.max(0,Math.min(3,Math.floor((b.x+b.dx/2)/length*4)))].weight+=b.weight;
   }
   const max=Math.max(1,...zones.map(z=>z.weight));zones.forEach(z=>z.color=loadColor(z.weight/max));
-  const crates=planCrateUnits(plan).map(u=>{const evidence=crateEvidence(u.config);return {id:u.pallet.id,grossKg:u.pallet.weight+u.cargoKg,evidence,profile:u.config.crateBearing,color:evidence.state==="ready"?"#2b8d83":evidence.state==="prohibited"?"#c23832":"#7d8393"};});
+  const staticCells=new Map(planCrateStackReview(plan).cells.map(c=>[c.id,c]));
+  const crates=planCrateUnits(plan).map(u=>{const evidence=crateEvidence(u.config);return {id:u.pallet.id,grossKg:u.pallet.weight+u.cargoKg,stack:staticCells.get(u.pallet.id)!,evidence,profile:u.config.crateBearing,color:staticCells.get(u.pallet.id)?.state==="passed"?"#2b8d83":staticCells.get(u.pallet.id)?.state==="failed"||evidence.state==="prohibited"?"#c23832":"#7d8393"};});
   return {boxes,pallets,zones,crates,unknown:boxes.filter(b=>b.status==="unknown").length};
 }
 export type LoadAnalysis=ReturnType<typeof analyzeLoads>;

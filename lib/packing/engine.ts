@@ -9,7 +9,7 @@ import { parseLoadingWorkflow, parsePalletBuild } from "./loading-workflow";
 import { palletSpecifications, mixedInspectionContainer, independentPalletVolume, specificationForPallet } from "./pallet-specifications";
 import { parseShapeFields, shapeDetails, cargoShapeOf, isRectilinearShape, withShapeSupport } from "./cargo-shape";
 import { cargoBodyParts, bodyBottomPatches, bodyContactArea, bodyTopLevels, bodyVolumeRatio, bodiesOverlap, surfaceArea, validOrientationSigns, orientationAxes, intersectSurface, surfacePolygon, bodyTopPatches } from "./cargo-body";
-import { parsePalletization, validatePalletizedCargo } from "./prebuilt-pallets";
+import { parsePalletization, validatePalletizedCargo, orderPalletizedCargo } from "./prebuilt-pallets";
 import { modelRestError, modelMassCenter, modelStable } from "./model-body";
 import { buildSolidModel } from "./solid-model";
 import { envelopeMetrics } from "./solid-utilization";
@@ -45,7 +45,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.44.0";
+export const ENGINE_VERSION = "0.45.0";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -1545,7 +1545,8 @@ function buildItemBatches(request: PackingRequest, sort: SortStrategy) {
   return batches.sort((a, b) => sort(a.items[0], b.items[0]));
 }
 
-function packMixedWithStrategy(request: PackingRequest, container: EffectiveContainer, sort: SortStrategy, anchors: PlacedBox[] = []) {
+type RigidCandidateCheck = (candidate: PlacedBox, placed: readonly PlacedBox[]) => boolean;
+function packMixedWithStrategy(request: PackingRequest, container: EffectiveContainer, sort: SortStrategy, anchors: PlacedBox[] = [], candidateCheck?: RigidCandidateCheck) {
   const already = new Map<string, number>();
   anchors.forEach(b => already.set(b.productId, (already.get(b.productId) ?? 0) + 1));
   const batches = buildItemBatches({...request, products:request.products.map(p=>({...p,quantity:Math.max(0,p.quantity-(already.get(p.id)??0))}))}, sort);
@@ -1666,6 +1667,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
         if (support.longSupportError || support.ratio + EPS < requiredSupport(product, strategy) || (layerLimit > 0 && support.layer > layerLimit)) continue;
         if (bearingProducts.some(hasBearingRules) && bearingErrors([...fixed.boxes,...placements, candidate], bearingProducts).length) continue;
 
+        if (candidateCheck && !candidateCheck(candidate, placements)) continue;
         if (!best || score < best.score) best = { point, orientation, layer: support.layer, score, palletIds };
       }
     }
@@ -1754,7 +1756,7 @@ function weightedScore(placements: PlacedBox[], products: ProductInput[]) {
   );
 }
 
-function packMixed(request: PackingRequest, container: EffectiveContainer, anchors: PlacedBox[] = []) {
+function packMixed(request: PackingRequest, container: EffectiveContainer, anchors: PlacedBox[] = [], candidateCheck?: RigidCandidateCheck) {
   const requested = request.products.reduce((sum, item) => sum + Math.max(0, Math.floor(item.quantity)), 0);
   // Both solvers may learn from the same multi-start ordering ideas, but every
   // candidate is rebuilt under that solver's own orientation/support rules.
@@ -1770,7 +1772,7 @@ function packMixed(request: PackingRequest, container: EffectiveContainer, ancho
     const order=[...request.products].sort(strategy).map(p=>p.id).join('\u0000');
     if(attemptedOrders.has(order))continue;
     attemptedOrders.add(order);
-    const placements = packMixedWithStrategy(request, container, strategy, anchors);
+    const placements = packMixedWithStrategy(request, container, strategy, anchors, candidateCheck);
     const score = weightedScore(placements, request.products);
     if (score > bestScore) {
       best = placements;
@@ -1827,7 +1829,7 @@ export function validatePacking(
   for(const p of products){try{parseShapeFields(p as unknown as Record<string,unknown>);}catch(e){return {valid:false,errors:[e instanceof Error?e.message:"Invalid cargo shape"]};}}
   const cargo = placements;
   const deckConfigured=pallets.some(p=>p.packaging?.deckSupports!==undefined)||palletization?.config?.packaging?.deckSupports!==undefined||palletization?.specifications?.some(s=>s.config.packaging?.deckSupports!==undefined);
-  if(deckConfigured){
+  if(deckConfigured || palletization && pallets.some(p=>p.packaging&&p.packaging.enclosure!=="none")){
     if(!palletization)return {valid:false,errors:["Deck supports require validated prebuilt specifications / 托内支承件需要有效的预打托规格"]};
     try{const issues=validatePalletizedCargo(cargo,pallets,container,clearance,palletization,products);if(issues.length)return {valid:false,errors:issues};}catch(e){return {valid:false,errors:[e instanceof Error?e.message:"Invalid deck supports"]};}
   }
@@ -1925,7 +1927,9 @@ export function validatePacking(
     if (!isPallet && support.longSupportError) errors.push(support.longSupportError);
     const supportThreshold = requiredSupport(product, strategy);
     if(product?.solidModel&&box.z<=EPS&&support.ratio+EPS<supportThreshold)errors.push(`${box.sku} 的实体模型缺少稳定平底、有效承托面或防滚支架。`);
-    if (box.z > EPS && support.ratio + EPS < supportThreshold) {
+    // Crate decks use the independently checked four-path column, not cargo below the lid.
+    const crateDeck = isPallet && palletization && pallets.some(p=>p.id===box.id&&p.packaging&&p.packaging.enclosure!=="none");
+    if (box.z > EPS && support.ratio + EPS < supportThreshold && !crateDeck) {
       errors.push(`${box.sku} 的箱体 ${index + 1} 底面支撑不足 ${(supportThreshold * 100).toFixed(1)}%。`);
     }
     const layerLimit = product ? maxStackLayers(product) : 0;
@@ -2544,7 +2548,8 @@ export function revisePackingResult(original: PackingResult, placements: PlacedB
     if ((old.locked || original.pallets?.some(p=>p.locked&&old.palletIds?.includes(p.id))) && (["x", "y", "z", "dx", "dy", "dz", "orientation"].some(k => old[k as keyof PlacedBox] !== b[k as keyof PlacedBox])||JSON.stringify(old.orientationSigns)!==JSON.stringify(b.orientationSigns))) throw new Error("请先解除箱位锁定。");
   }
   const relayered = rebuildPlacementLayers(placements,pallets,products,original.loadingRules,original.container,original.clearance);
-  const ordered = assignPalletReferences(orderForLoading([...palletAnchors(pallets),...relayered],[...products,...palletSupportProducts(pallets)]).filter(b=>!b.supportOnly), pallets, products);
+  const referenced = assignPalletReferences(orderForLoading([...palletAnchors(pallets),...relayered],[...products,...palletSupportProducts(pallets)]).filter(b=>!b.supportOnly), pallets, products);
+  const ordered = original.palletization ? orderPalletizedCargo(referenced,pallets) : referenced;
   const validation = validatePacking(ordered, original.container, original.clearance, products, original.strategy, original.mode, pallets, original.floorPallets, original.palletization);
   if (!validation.valid) throw new Error(validation.errors.slice(0,3).join("\n"));
   if(original.palletization){const errors=validatePalletizedCargo(ordered,pallets,original.container,original.clearance,original.palletization,products);if(errors.length)throw new Error(errors.slice(0,3).join("\n"));}
@@ -2617,7 +2622,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   if(palletization&&request.floorPallets)throw new Error("Prebuilt and floor pallet modes cannot be combined");
   if(palletization&&!palletization.specifications&&request.palletBuild&&(palletization.config.crateBearing||request.palletBuild.config.crateBearing)){
     const expected=parsePalletBuild(request.palletBuild).config;
-    if(JSON.stringify(expected.crateBearing)!==JSON.stringify(palletization.config.crateBearing))throw new Error("Crate rating evidence does not match workspace inputs");
+    if(JSON.stringify(expected)!==JSON.stringify(palletization.config))throw new Error("Crate geometry or rating evidence does not match workspace inputs");
   }
   if(palletization&&!palletization.specifications&&request.palletBuild&&(palletization.config.packaging?.deckSupports?.length||request.palletBuild.config.packaging?.deckSupports?.length)){
     const expected=parsePalletBuild(request.palletBuild).config;
@@ -2657,7 +2662,8 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
       weight:b.weight as number,layer:b.layer as number,orientation:b.orientation as string,orientationSigns:b.orientationSigns as PlacedBox["orientationSigns"],locked:b.locked as boolean|undefined,
       setCode:b.setCode as string|undefined,setNumber:b.setNumber as number|undefined,setItemNumber:b.setItemNumber as number|undefined};
   });
-  const ordered=assignPalletReferences(orderForLoading([...palletAnchors(pallets),...placements],[...products,...palletSupportProducts(pallets)]).filter(b=>!b.supportOnly),pallets,products);
+  const referenced=assignPalletReferences(orderForLoading([...palletAnchors(pallets),...placements],[...products,...palletSupportProducts(pallets)]).filter(b=>!b.supportOnly),pallets,products);
+  const ordered=palletization?orderPalletizedCargo(referenced,pallets):referenced;
   const validation=validatePacking(ordered,request.container,request.clearance,products,raw.strategy,request.mode,pallets,request.floorPallets,palletization);
   if(!validation.valid)throw new Error(`归档坐标未通过当前校验：${validation.errors.slice(0,3).join("；")}`);
   if(palletization){const errors=validatePalletizedCargo(ordered,pallets,request.container,request.clearance,palletization,products);if(errors.length)throw new Error(errors.join("; "));}
@@ -2719,4 +2725,14 @@ export function improvePacking(original: PackingResult, products: ProductInput[]
   candidate.id=`optimized-${Date.now()}-${pass}`;candidate.singleCartonLimit=original.singleCartonLimit;candidate.delivery=original.delivery;candidate.accessConfig=original.accessConfig;
   candidate.warnings=[`已保留 ${fixed.size} 个固定／支撑／成套箱位，其余空间完成第 ${pass+1} 轮搜索。`,...candidate.warnings];
   return candidate;
+}
+
+/** Internal rigid-unit search: candidate gates run before acceptance, never after trimming. */
+export function searchRigidUnits(request: PackingRequest, check: RigidCandidateCheck) {
+  assertValidRequest(request);
+  if(request.mode!=="mixed"||request.floorPallets||request.palletBuild)throw Error("Invalid rigid-unit search");
+  const normalized={...request,products:applyTypeSupport(request.products,request.loadingRules)};
+  const output=packMixed(normalized,effectiveContainer(request.container,request.clearance),[],check);
+  const placements=orderForLoading(output.placements,normalized.products);
+  return {placements,validation:validatePacking(placements,request.container,request.clearance,normalized.products,request.strategy,request.mode)};
 }

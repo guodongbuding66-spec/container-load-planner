@@ -40,7 +40,7 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
   const strength = audit.checks.find(c => c.id === "strength");
   const errors = products ? bearingErrors(plan.placements, [...products]) : [];
   const unknown = products ? bearingStatus(plan.placements, [...products]).unknownIds : [];
-  add({ id: "bearing", state: empty ? "not-applicable" : errors.length ? "fail" : !products || unknown.length || strength?.state !== "pass" ? "unverified" : "pass",
+  add({ id: "bearing", state: empty ? "not-applicable" : errors.length || strength?.state === "fail" ? "fail" : !products || unknown.length || strength?.state !== "pass" ? "unverified" : "pass",
     scope: ["按输入额定值检查静态垂直上压；木箱框架、柜底局部压力和运输动态载荷尚未核验。", "Checks static vertical top load against entered ratings; crate frames, local floor pressure and dynamic transport loads remain unverified."],
     model: "bearingErrors + bearingStatus + strength", items: [...errors, ...unknown, ...(strength?.state !== "pass" ? strength?.items ?? [] : []), ...(plan.pallets ?? []).filter(p => p.packaging && p.packaging.enclosure !== "none").map(p => p.id)] });
   if (empty || plan.workflow === "pallet-only") {
@@ -62,7 +62,7 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
   add({ id: "securing", state: empty ? "not-applicable" : "unverified", scope: ["尚未建立绑扎、挡木、气袋和制动工况模型，需现场确认固定方案。", "Lashings, blocking, airbags and braking conditions are not modeled; confirm a securing plan on site."], model: "not-modeled", items: [] });
   if(plan.pallets?.some(p=>p.packaging&&p.packaging.enclosure!=="none")){
     const check=checks.find(c=>c.id==="bearing")!;
-    check.scope=["箱体按录入额定值核对静态上压；木箱额定资料与独立叠放预检分开显示，主求解器仍将木箱底置。柜底局部压力与运输动态载荷未核验。","Carton static top load uses entered ratings. Crate rating evidence and independent stack preflight are separate; the main solver keeps crates floor-only. Local floor pressure and transport dynamics remain unverified."];
+    check.scope=["箱体静态上压与木箱实际四角传力列均按当前录入额定值核对，资料缺失仍未核验；材料、连接件、柜底局部压力与运输动态载荷未核验。","Carton top loads and actual four-path crate columns use current entered ratings. Missing evidence stays unverified. Material, joints, local floor pressure and transport dynamics are unverified."];
   }
   if(plan.dimensionScenario?.proxyProductIds.length){
     const bearing=checks.find(c=>c.id==="bearing")!;

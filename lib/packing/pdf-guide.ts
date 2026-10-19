@@ -1,3 +1,4 @@
+import {planCrateStackReview,CRATE_STACK_STATE_TEXT} from "./crate-auto-stack";
 import {inspectDeckSupports,palletDeckSupportGeometry,deckSupportHeight} from "./deck-support";
 import {inspectAccessorySupports,ACCESSORY_SUPPORT_STATES,hasAccessorySupports} from "./accessory-support";
 import {inspectLongSupport,SUPPORT_ISSUES} from "./long-support";
@@ -155,7 +156,7 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
 
   }
   for(const group of crateEvidenceGroups(result)){
-    start(t("木箱额定资料（独立预检）","Crate rating evidence (independent preflight)"));
+    start(t("木箱额定资料与实际静载","Crate rating evidence and actual static review"));
     const p=group.config.crateBearing,e=crateEvidence(group.config);
     text(ellipsis(group.config.name,1500),100,320,32,true);
     text(ellipsis(group.ids.join(" · "),1500),100,375,24);
@@ -167,8 +168,15 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
     text(`${t("额定顶载 kg／总层数","Rated top kg / total layers")}: ${p?.maxTopLoadKg??"—"} / ${p?.maxLayers??"—"}`,100,1170,28,true);
     text(`${t("允许朝向","Rated orientations")}: ${p?.allowedOrientations.join(" / ")||"—"}`,100,1240,26);
     CRATE_CORNERS.forEach((id,i)=>text(`${id} → ${t("同位置立柱与底脚","coaxial post and foot")}: ${p?.columnCapacityKg[id]??"—"} kg`,100,1350+i*65,27));
-    wrap(t("该页为资料摘要，完整来源与条件见工作区／坐标 JSON。自动装柜仍将木箱底置；叠放预检不核验运输动态、地板与实际材料强度。","This is an evidence summary; see workspace / coordinate JSON for full sources and conditions. Automatic packing keeps crates floor-only. Preflight does not certify transport dynamics, floors or actual material strength."),1740,6);
+    wrap(t("该页为资料摘要，完整来源与条件见工作区／坐标 JSON。仅显式启用且资料有效的四角传力列可叠放，其他木箱仍底置；不核验运输动态、地板、材料与连接件强度。","This is an evidence summary; see workspace / coordinate JSON for full sources and conditions. Only explicitly enabled crates with valid four-path evidence may stack; all others remain floor-only. Transport dynamics, floors, material and joints are unverified."),1740,6);
     await finish();
+  }
+  const crateStatic=planCrateStackReview(result).cells;
+  for(let from=0;from<crateStatic.length;from+=8){
+    start(t("木箱实际叠放静载复核","Actual crate stack static review"));
+    text(t("累计上压与每条路径上界分开；不把路径上界相加计重。","Cumulative top load and each-path bounds are separate; bounds are not summed as mass."),100,320,25);
+    crateStatic.slice(from,from+8).forEach((c,i)=>{const y=430+i*180;text(ellipsis(`${c.id} · ${t(...CRATE_STACK_STATE_TEXT[c.state])}`,1500),100,y,27,true);text(ellipsis(`${t("支承木箱／层","Supporting crate / tier")}: ${c.supporterId??t("柜底","Floor")} / ${c.level}`,1500),100,y+50,25);text(`${t("累计上压／每路径总载荷上界 kg","Top / EACH-path through-load kg")}: ${c.topLoadKg.toFixed(2)} / ${c.throughLoadBoundKg.toFixed(2)}`,100,y+95,25);});
+    text(t("材料、连接件、局部地板压力及运输动态强度未核验。","Material, joints, local floor pressure and transport dynamics are unverified."),100,2070,25);await finish();
   }
   for (let startAt = 0; startAt < result.placements.length; startAt += 32) { start(t("逐箱装载顺序与坐标", "Loading sequence and coordinates")); text("#     SKU                         X / Y / Z                        L × W × H                  ↑    Layer", 100, 310, 25, true); result.placements.slice(startAt, startAt + 32).forEach((b, i) => { const y = 375 + i * 58; text(String(startAt + i + 1), 100, y, 24); text(ellipsis(b.sku, 380), 200, y, 24); text(`${b.x.toFixed(0)} / ${b.y.toFixed(0)} / ${b.z.toFixed(0)}`, 600, y, 24); text(`${b.dx} × ${b.dy} × ${b.dz}`, 1100, y, 24); text(`${b.orientation}  ${b.layer}`, 1520, y, 24); }); await finish(); }
   if(result.delivery){const rows=Object.entries(result.delivery),pathReview=review.checks.find(c=>c.id==="path")!;for(let startAt=0;startAt<rows.length;startAt+=24){start(t("装卸站次与路径复核","Delivery stops and access review"));text(t("路径模型和未核验范围见方案复核页。","See the plan review page for the access model and unverified scope."),100,305,24);text(`${t("路径复核状态","Access review status")}: ${t(...REVIEW_STATES[pathReview.state])} · ${pathReview.items.length} ${t("项提示","issues")}`,100,350,28,true);rows.slice(startAt,startAt+24).forEach(([id,d],i)=>{const y=430+i*70;text(ellipsis(result.summaries.find(s=>s.productId===id)?.sku??id,350),100,y,25);text(String(d.stop),490,y,25);text(ellipsis(d.customer,480),650,y,25);text(ellipsis(d.destination,480),1180,y,25);});await finish();}}

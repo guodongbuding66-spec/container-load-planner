@@ -1,3 +1,4 @@
+import {crateAutoEnabled,inspectCrateStacks,isCrate} from "./crate-auto-stack";
 import {completePackagingTare,palletEnvelopeTop,assertDeckSupportStacking} from "./deck-support";
 import {siteExclusionBoxes} from "./site-exclusions";
 import { choosePackaging, packagingGroupKey, packagingPriorityGroups, packagingLoads, parsePackagingChoices, type PackagingChoice, type PackagingSelection } from "./packaging-choice";
@@ -12,6 +13,11 @@ export function visiblePlanPallets(plan: PackingResult, visibleCount: number): P
   if (!plan.palletization) return plan.pallets ?? [];
   const ids = new Set(plan.placements.slice(0, Math.max(0, Math.floor(visibleCount))).flatMap(b=>b.palletIds ?? []));
   return (plan.pallets ?? []).filter(p=>ids.has(p.id)||!!plan.palletization?.editRevision&&visibleCount>=plan.placements.length&&!plan.placements.some(b=>b.palletIds?.includes(p.id)));
+}
+/** Keep each prebuilt unit complete in playback/exports, below before above. */
+export function orderPalletizedCargo(boxes: PlacedBox[], pallets: PlacedPallet[]) {
+  const ranks = new Map([...pallets].sort((a,b)=>a.x-b.x||a.z-b.z||a.y-b.y).map((p,i)=>[p.id,i]));
+  return [...boxes].sort((a,b)=>(ranks.get(a.palletIds?.[0]??"")??Infinity)-(ranks.get(b.palletIds?.[0]??"")??Infinity));
 }
 export type Palletization = { selection?:PackagingSelection;selectionChoices?:PackagingChoice[]; editRevision?:number; config: FloorPalletConfig; mix: "single" | "mixed"; stackLayers?: number; maxTopLoadKg?: number; preparedCount?: number; bounded?: boolean; only?: boolean; specifications?:PalletBuildSpecification[]; preparedBySpecification?:Record<string,number> };
 export function parsePalletization(value: unknown): Palletization | undefined {
@@ -60,7 +66,6 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
     const expected = p.orientation === "LWH" ? [config.length, config.width] : [config.width, config.length];
     if (Math.abs(p.dx - expected[0]) > EPS || Math.abs(p.dy - expected[1]) > EPS || Math.abs(p.dz - config.height) > EPS || p.weight !== completePackagingTare(config) || p.maxLoad !== config.maxLoad || !value.only && config.layout === "long" && p.orientation !== "LWH" || !value.only && config.layout === "cross" && p.orientation !== "WLH") errors.push("Prebuilt pallet specification mismatch");
     if(JSON.stringify(p.packaging)!==JSON.stringify(config.packaging)||p.enclosureHeight!==(interior.crate?packagingHeight(config):undefined))errors.push("Packaging structure does not match its specification");
-    if(interior.crate&&p.z>EPS)errors.push("Crate frame stacking has not been verified");
     const cargo = cargoByPallet.get(p.id)!;
     if(!cargo.length&&!value.editRevision)errors.push("Loaded pallet has no cargo");
     if(allowedProducts.get(specification.id)&&cargo.some(b=>!allowedProducts.get(specification.id)!.has(b.productId)))errors.push("Cargo is not eligible for this packaging specification");
@@ -85,16 +90,16 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
   const sets = new Map<string, Set<string>>();
   for (const b of boxes) if (b.setCode) { const key = `${b.setCode}/${b.setNumber}`, ids = sets.get(key) ?? new Set<string>(); for (const id of b.palletIds ?? []) ids.add(id); sets.set(key, ids); }
   if ([...sets.values()].some(ids => ids.size !== 1)) errors.push("A complete kit must stay on one pallet");
+  const stackLimit=(id:string)=>{const s=specifications.get(id)!;return isCrate(s.config)?crateAutoEnabled(s.config)?20:1:s.stackLayers;};
   const layers = new Map<string, number>(), ancestors=new Map<string,string[]>();
   for (const e of [...envelopes].sort((a, b) => a.z - b.z)) {
     const lower = envelopes.filter(p => p.id !== e.id && Math.abs(p.z + p.dz - e.z) < EPS && e.x >= p.x - EPS && e.y >= p.y - EPS && e.x + e.dx <= p.x + p.dx + EPS && e.y + e.dy <= p.y + p.dy + EPS);
     const layer = e.z <= EPS ? 1 : lower.length === 1 ? (layers.get(lower[0].id) ?? 0) + 1 : 0;
-    const specification=specifications.get(e.id)!;
-    if (!layer || layer > (value.only ? 1 : specification.stackLayers)) errors.push("Loaded pallet stack exceeds layer limit or lacks one complete supporting unit");
+    if (!layer || layer > (value.only ? 1 : stackLimit(e.id))) errors.push("Loaded pallet stack exceeds layer limit or lacks one complete supporting unit");
     layers.set(e.id, layer);
     const chain=lower.length===1?[lower[0].id,...ancestors.get(lower[0].id)??[]]:[];ancestors.set(e.id,chain);
-    if(chain.some(id=>layer-(layers.get(id)??0)+1>specifications.get(id)!.stackLayers))errors.push("A supporting packaging unit exceeds its stack-layer limit");
-    if(lower.length===1){const cargo=cargoByPallet.get(lower[0].id)??[],area=cargo.reduce((n,b)=>n+bodyContactArea(e,b,undefined,productMap.get(b.productId)),0);if(area<e.dx*e.dy-EPS)errors.push("Loaded pallet requires a complete flat cargo top");}
+    if(chain.some(id=>layer-(layers.get(id)??0)+1>stackLimit(id)))errors.push("A supporting packaging unit exceeds its stack-layer limit");
+    if(lower.length===1&&!isCrate(specifications.get(lower[0].id)!.config)){const cargo=cargoByPallet.get(lower[0].id)??[],area=cargo.reduce((n,b)=>n+bodyContactArea(e,b,undefined,productMap.get(b.productId)),0);if(area<e.dx*e.dy-EPS)errors.push("Loaded pallet requires a complete flat cargo top");}
     for (const other of envelopes) if (other.id !== e.id && Math.min(e.x + e.dx, other.x + other.dx) - Math.max(e.x, other.x) > EPS && Math.min(e.y + e.dy, other.y + other.dy) - Math.max(e.y, other.y) > EPS && Math.min(e.z + e.dz, other.z + other.dz) - Math.max(e.z, other.z) > EPS) errors.push("Complete loaded-pallet envelopes overlap");
   }
   if(!value.only)for(let i=0;i<envelopes.length;i++)for(let j=i+1;j<envelopes.length;j++){
@@ -105,6 +110,7 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
   }
   for(const e of envelopes)for(const b of siteExclusionBoxes(container,clearance))if(Math.min(e.x+e.dx,b.x+b.dx)-Math.max(e.x,b.x)>EPS&&Math.min(e.y+e.dy,b.y+b.dy)-Math.max(e.y,b.y)>EPS&&Math.min(e.z+e.dz,b.z+b.dz)-Math.max(e.z,b.z)>EPS)errors.push(`Complete pallet intersects site region: ${b.name}`);
   const loads = bearingLoads(envelopes);
-  for (const e of envelopes) if ((loads.get(e.id) ?? 0) > specifications.get(e.id)!.maxTopLoadKg + EPS) errors.push("Loaded pallet exceeds declared top-load limit");
+  for (const e of envelopes) if (!isCrate(specifications.get(e.id)!.config) && (loads.get(e.id) ?? 0) > specifications.get(e.id)!.maxTopLoadKg + EPS) errors.push("Loaded pallet exceeds declared top-load limit");
+  errors.push(...inspectCrateStacks(pallets.filter(p=>isCrate(specifications.get(p.id)!.config)).map(p=>({pallet:p,config:specifications.get(p.id)!.config,cargoKg:cargoByPallet.get(p.id)!.reduce((n,b)=>n+b.weight,0)})),envelopes).errors);
   return errors;
 }

@@ -110,5 +110,5 @@ it("includes an independent evidence summary in the PDF without changing the pla
   const ctx={fillText:(s:string)=>texts.push(s),measureText:(s:string)=>({width:s.length*15}),fillRect(){},strokeRect(){},beginPath(){},moveTo(){},lineTo(){},closePath(){},stroke(){},fill(){}};
   vi.stubGlobal("document",{fonts:{ready:Promise.resolve()},createElement:(tag:string)=>tag==="canvas"?{getContext:()=>ctx,toBlob:(cb:(b:Blob)=>void)=>cb(new Blob([new Uint8Array([255,216,255,217])]))}:{click(){}}});
   vi.stubGlobal("URL",{createObjectURL:()=>"blob:test",revokeObjectURL(){}});vi.stubGlobal("setTimeout",vi.fn());
-  try{await downloadPdfGuide(plan,"en",[cargo]);expect(texts).toContain("Crate rating evidence (independent preflight)");expect(texts.some(s=>s.includes("SYNTHETIC-TEST-ONLY"))).toBe(true);expect(texts.some(s=>s.includes("keeps crates floor-only"))).toBe(true);expect(JSON.stringify(plan)).toBe(before);}finally{vi.unstubAllGlobals();}
+  try{await downloadPdfGuide(plan,"en",[cargo]);expect(texts).toContain("Crate rating evidence and actual static review");expect(texts.some(s=>s.includes("SYNTHETIC-TEST-ONLY"))).toBe(true);expect(texts.some(s=>s.includes("all others remain floor-only"))).toBe(true);expect(JSON.stringify(plan)).toBe(before);}finally{vi.unstubAllGlobals();}
 });

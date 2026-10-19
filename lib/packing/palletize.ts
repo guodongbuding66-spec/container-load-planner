@@ -1,8 +1,9 @@
+import {crateAutoEnabled,crateTopCapacity,crateCandidateAllowed,isCrate} from "./crate-auto-stack";
 import {completePackagingTare,deckSupportHeight} from "./deck-support";
 import {assertAccessorySupportWorkflow} from "./accessory-support";
 import {inspectLongSupport,longSupportViolation} from "./long-support";
 import {containerAccessoryWeight} from "./container-accessories";
-import { pack, restorePackingSnapshot, getOrientations, MAX_VISIBLE_PLACEMENTS } from "./engine";
+import { pack, searchRigidUnits, restorePackingSnapshot, getOrientations, MAX_VISIBLE_PLACEMENTS } from "./engine";
 import { quarterTurnOrientation, bodyContactArea } from "./cargo-body";
 import { packagingInterior, packagingHeight } from "./packaging";
 import { bearingLoads, bearingLimit } from "./bearing";
@@ -17,7 +18,8 @@ export type PreparedUnit = { specificationId: string; id: string; cargo: PlacedB
 
 /** A flat, complete top and the tightest known residual load limit are required. */
 function topCapacity(cargo: PlacedBox[], request: PackingRequest, config: FloorPalletConfig, options: PalletBuildOptions) {
-  if (config.packaging?.deckSupports?.length || packagingInterior(config).crate || options.stackLayers === 1 || options.maxTopLoadKg <= 0) return 0;
+  if (packagingInterior(config).crate) return crateTopCapacity(config, config.weight + cargo.reduce((n,b)=>n+b.weight,0));
+  if (config.packaging?.deckSupports?.length || options.stackLayers === 1 || options.maxTopLoadKg <= 0) return 0;
   const top = Math.max(...cargo.map(b => b.z + b.dz));
   const deck: PlacedBox = { id: "__test-top__", productId: "__test-top__", sku: "__loaded-pallet__", name: "Pallet", color: "#997947", x: 0, y: 0, z: top, dx: config.length, dy: config.width, dz: config.height, weight: 1, layer: 1, orientation: "LWH" };
   const rules = new Map(request.products.map(p => [p.id, p]));
@@ -110,12 +112,14 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
   if(!prepared.length)throw new Error(lastReason||"没有货物能按当前尺寸、限高、载重、朝向或完整套装规则放上托盘");
   const units:ProductInput[]=prepared.map(p=>{
     const spec=bySpecification.get(p.specificationId)!,c=spec.config;
-    return {id:p.id,sku:p.id,name:c.name,length:c.length,width:c.width,height:p.height,weight:p.weight,quantity:1,priority:Math.max(...p.cargo.map(b=>sourceProducts.get(b.productId)!.priority)),mustLoad:p.cargo.some(b=>sourceProducts.get(b.productId)!.mustLoad!==false),rotationPolicy:"upright",allowedOrientations:unitDirections(p),stackable:p.topCapacity>0,maxTopLoadKg:p.topCapacity,maxStackLayers:spec.stackLayers,bottomOnly:packagingInterior(c).crate||spec.stackLayers===1,minimumSupportRatio:1,protectionGap:c.gap,cargoType:"pallet",palletBaseHeight:c.height,color:"#997947"};
+    return {id:p.id,sku:p.id,name:c.name,length:c.length,width:c.width,height:p.height,weight:p.weight,quantity:1,priority:Math.max(...p.cargo.map(b=>sourceProducts.get(b.productId)!.priority)),mustLoad:p.cargo.some(b=>sourceProducts.get(b.productId)!.mustLoad!==false),rotationPolicy:"upright",allowedOrientations:unitDirections(p),stackable:p.topCapacity>0,maxTopLoadKg:p.topCapacity,maxStackLayers:isCrate(c)?20:spec.stackLayers,bottomOnly:isCrate(c)?!crateAutoEnabled(c):spec.stackLayers===1,minimumSupportRatio:1,protectionGap:c.gap,cargoType:"pallet",palletBaseHeight:c.height,color:"#997947"};
   });
   const columns=Math.min(5,Math.ceil(Math.sqrt(prepared.length))),cellLength=Math.max(...prepared.map(u=>bySpecification.get(u.specificationId)!.config.length)),cellWidth=Math.max(...prepared.map(u=>bySpecification.get(u.specificationId)!.config.width));
   const container=only?mixedInspectionContainer(prepared.map(p=>bySpecification.get(p.specificationId)!.config)):request.container;
   const loadable=units.filter(p=>p.allowedOrientations!.length);
-  const outer=only?null:pack({...request,container:{...request.container,exclusions:request.container.exclusions?.map(z=>z.accessory?{...z,accessory:{...z.accessory,relatedProductIds:[]}}:z)},workflow:undefined,palletBuild:undefined,floorPallets:undefined,products:loadable.length?loadable:units.map(p=>({...p,quantity:0,allowedOrientations:["LWH"]})),loadingRules:request.loadingRules?{...request.loadingRules,supportByType:undefined}:undefined,mode:"mixed",strategy});
+  const outerRequest:PackingRequest={...request,container:{...request.container,exclusions:request.container.exclusions?.map(z=>z.accessory?{...z,accessory:{...z.accessory,relatedProductIds:[]}}:z)},workflow:undefined,palletBuild:undefined,floorPallets:undefined,products:loadable.length?loadable:units.map(p=>({...p,quantity:0,allowedOrientations:["LWH"]})),loadingRules:request.loadingRules?{...request.loadingRules,supportByType:undefined}:undefined,mode:"mixed",strategy};
+  const resolveCrate=(b:PlacedBox)=>{const unit=prepared.find(p=>p.id===b.productId)!,c=bySpecification.get(unit.specificationId)!.config;return isCrate(c)?{config:c,cargoKg:unit.weight-c.weight,pallet:{...b,id:b.productId,presetId:c.presetId,name:c.name,dz:c.height,enclosureHeight:unit.height,weight:c.weight,maxLoad:c.maxLoad,orientation:b.orientation as "LWH"|"WLH",packaging:c.packaging}}:undefined;};
+  const outer=only?null:prepared.some(u=>isCrate(bySpecification.get(u.specificationId)!.config))?searchRigidUnits(outerRequest,(candidate,placed)=>crateCandidateAllowed(candidate,placed,resolveCrate)):pack(outerRequest);
   if(outer&&!outer.validation.valid)throw new Error(outer.validation.errors.join("; "));
   const outerBoxes:PlacedBox[]=outer?.placements??prepared.map((u,i)=>{const c=bySpecification.get(u.specificationId)!.config;return {id:u.id,productId:u.id,sku:u.id,name:c.name,color:"#997947",x:i%columns*(cellLength+200),y:Math.floor(i/columns)*(cellWidth+200),z:0,dx:c.length,dy:c.width,dz:u.height,weight:u.weight,layer:1,orientation:"LWH"};});
   const selectionChoices:PackagingChoice[]=[];
@@ -139,7 +143,7 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
   if(remaining.some(p=>p.quantity>0)&&multiple)plan.warnings.push("仍有货物待打包，请核对各规格适用 SKU、可用数量、净空与完整套装要求。");
   plan.workflow=only?"pallet-only":"palletized";plan.palletBuild=options;
   if(only){plan.metrics.effectiveVolume=independentPalletVolume(palletization,pallets);plan.metrics.volumeUtilization=plan.metrics.loadedVolume/plan.metrics.effectiveVolume;if(plan.metrics.envelopeVolume!==undefined)plan.metrics.envelopeUtilization=plan.metrics.envelopeVolume/plan.metrics.effectiveVolume;plan.warnings.unshift("仅生成独立托盘；三维编组位置用于查看，不代表柜内箱位。利用率按每托限高包络统计");}
-  if(prepared.some(p=>packagingInterior(bySpecification.get(p.specificationId)!.config).crate))plan.warnings.unshift("木箱按实际内尺寸装货、完整外形装柜；自重请填写包含底座与围板的实测总重。木箱按单层布置，未推定框架承重 / Crates use measured interior, exterior and complete tare; frame strength is not inferred and crate units remain on the floor");
+  if(prepared.some(p=>packagingInterior(bySpecification.get(p.specificationId)!.config).crate))plan.warnings.unshift("木箱按实际内尺寸装货、完整外形装柜；自重请填写包含底座与围板的实测总重。仅显式启用且资料有效的四角传力列可自动叠放，其他木箱仍底置 / Crates use measured interior, exterior and complete tare; only explicitly enabled crates with valid four-path evidence may stack; all others remain floor-only");
   if(!only&&specifications.some(s=>s.stackLayers>1))plan.warnings.unshift("整托堆叠按声明的整托上压和已提供的箱体承重核验；缺少箱体承重资料时不能视为逐箱承重已核验");
   plan.metrics.solveTimeMs=performance.now()-started;
   return {plan,prepared,loadedPallets:pallets.length,unloadedPallets:prepared.length-pallets.length,remaining:plan.summaries.filter(s=>s.unloaded>0),bounded};

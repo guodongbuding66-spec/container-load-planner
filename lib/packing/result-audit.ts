@@ -1,3 +1,4 @@
+import {planCrateStackReview} from "./crate-auto-stack";
 import {palletEnvelopeTop} from "./deck-support";
 import {containerAccessoryWeight,accessoryProductErrors} from "./container-accessories";
 import {bodiesOverlap} from "./cargo-body";
@@ -138,7 +139,8 @@ export function auditPackingResult(plan: PackingResult, products?: readonly Prod
   const missing=products?[...new Set(boxes.filter(b=>{const p=productMap.get(b.productId);return p&&p.stackable&&bearingLimit(b,p)===undefined;}).map(b=>b.sku))]:[];
   const crateUnits=planCrateUnits(plan),reviewedCrates=crateUnits.filter(u=>crateEvidence(u.config).state==="ready").length;
   const crates=pallets.some(p=>p.packaging&&p.packaging.enclosure!=="none");
-  add("strength",!products||missing.length||crates?"unverified":"pass",crates?`木箱额定资料已核对 ${reviewedCrates}/${crateUnits.length}；结构承托尚未接入主求解器，仍按单层布置。`:missing.length?"部分允许承托的 SKU 缺少额定上压资料。":products?"允许承托的 SKU 已填写承重资料；材料强度仍以实测为准。":"缺少原始产品承重资料。",crates?`Reviewed crate rating evidence: ${reviewedCrates}/${crateUnits.length}; structural support is not integrated into the main solver, so crates remain floor-only.`:missing.length?"Some load-bearing SKUs have no declared top-load rating.":products?"Load-bearing SKU ratings are provided; material strength still depends on measured data.":"Original bearing data was not provided.",missing);
+  const crateStatic=planCrateStackReview(plan),crateUnknown=crates&&(crateStatic.cells.length!==pallets.filter(p=>p.packaging&&p.packaging.enclosure!=="none").length||crateStatic.cells.some(c=>c.state!=="passed"));
+  add("strength",crateStatic.errors.length?"fail":!products||missing.length||crateUnknown?"unverified":"pass",crates?`木箱额定资料已核对 ${reviewedCrates}/${crateUnits.length}；当前叠放静载通过 ${crateStatic.cells.filter(c=>c.state==="passed").length}/${crateUnits.length}。仅四角传力与录入静载，材料及连接强度未核验。`:missing.length?"部分允许承托的 SKU 缺少额定上压资料。":products?"允许承托的 SKU 已填写承重资料；材料强度仍以实测为准。":"缺少原始产品承重资料。",crates?`Reviewed crate evidence: ${reviewedCrates}/${crateUnits.length}; actual static stacks passed ${crateStatic.cells.filter(c=>c.state==="passed").length}/${crateUnits.length}. Only four-path contacts and entered static ratings are checked, not material or joint strength.`:missing.length?"Some load-bearing SKUs have no declared top-load rating.":products?"Load-bearing SKU ratings are provided; material strength still depends on measured data.":"Original bearing data was not provided.",[...missing,...crateStatic.errors]);
   if(!boxes.length)for(const check of checks)if(check.state==="pass"&&check.id!=="records"&&check.id!=="products")check.state="unverified";
   const failed=checks.filter(c=>c.state==="fail").length,unverified=checks.filter(c=>c.state==="unverified").length;
   return {checks,hasErrors:failed>0,completeCoordinates:full,passed:checks.length-failed-unverified,failed,unverified};
