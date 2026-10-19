@@ -5,6 +5,12 @@ import type { ContainerSpec, FloorPalletConfig, PalletBuildOptions, PalletBuildS
 
 export const PRIMARY_SPECIFICATION = "primary";
 export const MAX_PACKAGING_SPECIFICATIONS = 8;
+/** Copy dimensions for a new specification without transferring operational consent. */
+export function newPackagingConfig(config: FloorPalletConfig): FloorPalletConfig {
+  const copy = structuredClone(config);
+  if (copy.crateBearing) copy.crateBearing = {...copy.crateBearing,automaticStacking:false,reviewed:false,reviewedFor:""};
+  return copy;
+}
 export function parsePackagingSelection(value: unknown): string[] | undefined {
   if (value === undefined) return undefined;
   if (!Array.isArray(value) || !value.length || value.length > 10000 || value.some(id => typeof id !== "string" || !id.trim() || id.length > 120) || new Set(value).size !== value.length) throw new Error("Invalid packaging SKU selection / 包装适用 SKU 无效");

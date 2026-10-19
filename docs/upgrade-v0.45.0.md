@@ -2,7 +2,7 @@
 
 日期：2026-10-19。基线 GitHub `3ab2bc7c2fed853bf62ce66397341e8656671749`，源树 `e89f420b52d0de6086350ac4cd45deac2247c6d9`。
 
-木箱额定资料新增独立的自动叠放启用项。显式启用并重新人工核对后，两套主算法可建立四角单列；旧文件和未启用／资料失效的木箱继续底置。
+木箱额定资料新增独立的自动叠放启用项。显式启用并重新人工核对后，两套主算法可建立四角单列；旧文件和未启用／资料失效的木箱继续底置。新增规格可复制尺寸和来源，但自动叠放及人工核对默认重置，须独立启用。
 
 ## 本轮完成
 
@@ -17,11 +17,11 @@
 
 专项回归覆盖双算法、旧资料默认、显式关闭、缺失／过期／未核对／禁止／零上限、顶载及单路径临界值、逐层限额、20 层上限、世界朝向和四向坐标、柜内障碍、门洞与总重、1:2 完整套装、上下箱壁厚不同的装载顺序、错位／悬空拒绝、上层增货回退、当前输入变更、备份、静载热力图和交付报告。
 
-完整 `npm run build:pages` 通过：1,165 项单元测试（90 个文件）、21 项 HTML 检查、TypeScript 和生产静态构建；lint 0 错误、保留原有 3 条警告。本轮新增 31 项核心回归及 1 项中英文实际静载界面回归。软件静载检查不作为真实 GPU、结构强度或现场试装证据。
+完整 `npm run build:pages` 通过：1,166 项单元测试（90 个文件）、21 项 HTML 检查、TypeScript 和生产静态构建；lint 0 错误、保留原有 3 条警告。本轮新增 32 项核心回归及 1 项中英文实际静载界面回归。软件静载检查不作为真实 GPU、结构强度或现场试装证据。
 
 ## 正式站实际验收
 
-功能提交 `b79070a6e3d4adb4aba3288fcb6ca4a12f0d2655`，源树 `4bf6d984ec664e1ac7368fe84ba582674546dad0`。GitHub verify `39270073637`（job `118119732317`）成功，Pages `86cc682f-c0bf-4e15-a34a-ce00bffc6f2d` 成功，Vercel `dpl_7tY6BH5X6nvf3n5oeU97d7rxpWit` READY、production，灰色正式域名已关联。本段及证据随随后文档提交同步，应用代码保持不变。正式地址：[Pages](https://container-load-planner.pages.dev/)／[Vercel](https://container-load-planner-gray.vercel.app/)。
+首个功能提交 `b79070a6e3d4adb4aba3288fcb6ca4a12f0d2655`，源树 `4bf6d984ec664e1ac7368fe84ba582674546dad0`。GitHub verify `39270073637`（job `118119732317`）成功，Pages `86cc682f-c0bf-4e15-a34a-ce00bffc6f2d` 成功，Vercel `dpl_7tY6BH5X6nvf3n5oeU97d7rxpWit` READY、production，灰色正式域名已关联。首次验收后同步了交付证据，并在收尾提交补充“新增规格关闭自动叠放及清除核对标记”的修正和回归。最终交付检查以 main 最后提交及对应双站部署为准。正式地址：[Pages](https://container-load-planner.pages.dev/)／[Vercel](https://container-load-planner-gray.vercel.app/)。
 
 实际验收使用明确标注为软件测试的合成额定资料：SHED-101 需求 6 箱，每箱 900×700×200 mm、10 kg、仅 LWH；框架木箱 1000×800 mm，四角脚底座高 100 mm、内货物高 400 mm、箱盖厚 40 mm、完整外高 540 mm、自重 40 kg、内部载荷 500 kg；库存和生成上限均 3。结构版本 `QA-v45-SYNTHETIC`，来源 `Software acceptance only; not a production rating`，条件明确不是现场证据。顶载 120 kg、每条路径 180 kg、3 层、允许 LWH。柜内 1000×800×2000 mm、门 800×2000 mm、间隙 0。合成资料不代表任何实际包装能力。
 

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { packagingInterior } from "../lib/packing/packaging";
 import { parsePalletBuild } from "../lib/packing/loading-workflow";
-import { MAX_PACKAGING_SPECIFICATIONS, palletSpecifications } from "../lib/packing/pallet-specifications";
+import { MAX_PACKAGING_SPECIFICATIONS, palletSpecifications, newPackagingConfig } from "../lib/packing/pallet-specifications";
 import { PackagingEditor } from "./packaging-editor";
 import type { PalletBuildOptions, PalletBuildSpecification, ProductInput } from "../lib/packing/types";
 import { NumericInput } from "./numeric-input";
@@ -29,7 +29,7 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,onChange,on
     if(current.id==="primary")onChange({...value,config:next.config,stackLayers:next.stackLayers,maxTopLoadKg:next.maxTopLoadKg,...(value.primaryRule||patch.maxPallets!==undefined||"productIds" in patch?{primaryRule:{maxPallets:next.maxPallets,...(next.productIds===undefined?{}:{productIds:next.productIds})}}:{})});
     else onChange({...value,additionalSpecs:value.additionalSpecs?.map(s=>s.id===current.id?next:s)});
   };
-  const add=()=>{const s:PalletBuildSpecification={id:crypto.randomUUID(),config:{...structuredClone(current.config),name:`Spec ${specifications.length+1}`},maxPallets:value.maxPallets,stackLayers:1,maxTopLoadKg:0};onChange({...value,primaryRule:value.primaryRule??{maxPallets:value.maxPallets},additionalSpecs:[...value.additionalSpecs??[],s]});setSelected(s.id);};
+  const add=()=>{const s:PalletBuildSpecification={id:crypto.randomUUID(),config:{...newPackagingConfig(current.config),name:`Spec ${specifications.length+1}`},maxPallets:value.maxPallets,stackLayers:1,maxTopLoadKg:0};onChange({...value,primaryRule:value.primaryRule??{maxPallets:value.maxPallets},additionalSpecs:[...value.additionalSpecs??[],s]});setSelected(s.id);};
   const remove=()=>{onChange({...value,additionalSpecs:value.additionalSpecs?.filter(s=>s.id!==current.id)});setSelected("primary");};
   const reorder=(direction:number)=>{const list=[...value.additionalSpecs??[]],i=list.findIndex(s=>s.id===current.id),j=i+direction;if(i<0||j<0||j>=list.length)return;[list[i],list[j]]=[list[j],list[i]];onChange({...value,additionalSpecs:list});};
   const reset=()=>{setDraftErrors({token:resetToken,keys:new Set()});onReset?.();};

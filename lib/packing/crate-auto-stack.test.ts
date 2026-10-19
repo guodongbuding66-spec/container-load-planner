@@ -3,6 +3,7 @@ import { auditPackingResult } from "./result-audit";
 import { reviewPlan } from "./plan-review";
 import { buildPlacementCsv,parseCsvRecords } from "./csv";
 import { crateEvidenceHtml } from "./field-report";
+import { newPackagingConfig } from "./pallet-specifications";
 import { expect, it } from "vitest";
 import { crateAutoEnabled, inspectCrateStacks, planCrateStackReview } from "./crate-auto-stack";
 import { crateEvidenceKey, emptyCrateBearing, planCrateUnits } from "./crate-bearing";
@@ -31,6 +32,9 @@ for(const strategy of ["practical","maximum"] as const)it(`${strategy}: loads th
 });
 it("requires explicit opt-in, preserving old independent reviewed evidence and floor-only coordinates",()=>{
   const r=request(),c=r.palletBuild!.config;delete c.crateBearing!.automaticStacking;seal(c);expect(crateAutoEnabled(c)).toBe(false);const p=pack(r);expect(p.metrics.loadedCount).toBe(2);expect(p.pallets?.map(p=>p.z)).toEqual([0]);
+});
+it("starts a newly copied specification floor-only without changing the original reviewed source",()=>{
+  const r=request(),source=r.palletBuild!.config,before=JSON.stringify(source),copy=newPackagingConfig(source);expect(crateAutoEnabled(source)).toBe(true);expect(copy.crateBearing?.automaticStacking).toBe(false);expect(copy.crateBearing?.reviewed).toBe(false);expect(copy.crateBearing?.reviewedFor).toBe("");expect(JSON.stringify(source)).toBe(before);r.palletBuild!.config=copy;expect(pack(r).metrics.loadedCount).toBe(2);
 });
 for(const scenario of ["missing","disabled","unreviewed","stale","expired","prohibited","zero","unsupported"] as const)it(`keeps ${scenario} evidence crates on the floor`,()=>{
   const r=request(),c=r.palletBuild!.config;
