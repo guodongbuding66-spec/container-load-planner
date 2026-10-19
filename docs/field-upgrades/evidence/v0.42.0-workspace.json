@@ -1,0 +1,235 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.42.0",
+  "createdAt": "2026-10-19T05:12:51.947Z",
+  "inputs": {
+    "palletLayerTemplates": [],
+    "workflow": "direct",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 1200,
+        "width": 800,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "maxPallets": 50,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "practical",
+    "practicalTargetPercent": 88,
+    "container": {
+      "exclusions": [
+        {
+          "id": "a-9fda0afa-5894-4530-99ca-c96fb302842b",
+          "name": "QA42 合成实心支承面",
+          "kind": "obstacle",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 12032,
+          "dy": 2350,
+          "dz": 100,
+          "accessory": {
+            "type": "timber",
+            "quantity": 1,
+            "unitWeightKg": 5,
+            "phase": "before-cargo",
+            "relatedProductIds": [],
+            "afterAccessoryIds": [],
+            "source": "QA synthetic geometry only",
+            "revision": "QA42",
+            "note": "Synthetic benchmark; not actual material data",
+            "support": {
+              "version": 1,
+              "surface": "solid-rectangle",
+              "maxLoadKg": 85
+            }
+          }
+        }
+      ],
+      "id": "40hq",
+      "name": "40HQ 高柜",
+      "length": 12032,
+      "width": 2350,
+      "height": 2700,
+      "doorWidth": 2340,
+      "doorHeight": 2597,
+      "maxWeight": 28600
+    },
+    "clearance": 10,
+    "products": [
+      {
+        "id": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "length": 2200,
+        "width": 620,
+        "height": 180,
+        "weight": 42.5,
+        "quantity": 3,
+        "priority": 100,
+        "rotationPolicy": "any",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.25,
+        "color": "#2f7f89"
+      }
+    ],
+    "customContainers": [],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {
+    "practical": {
+      "workflow": "direct",
+      "strategy": "practical",
+      "placements": [
+        {
+          "id": "shed-101-0",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 100,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "orientation": "LWH",
+          "layer": 1
+        },
+        {
+          "id": "shed-101-1",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 620,
+          "z": 100,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "orientation": "LWH",
+          "layer": 1
+        }
+      ],
+      "pallets": []
+    },
+    "maximum": {
+      "workflow": "direct",
+      "strategy": "maximum",
+      "placements": [
+        {
+          "id": "shed-101-0",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 100,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "orientation": "LWH",
+          "layer": 1
+        },
+        {
+          "id": "shed-101-1",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 2200,
+          "y": 0,
+          "z": 100,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "orientation": "LWH",
+          "layer": 1
+        }
+      ],
+      "pallets": []
+    }
+  },
+  "coordinatePlan": {
+    "workflow": "direct",
+    "strategy": "practical",
+    "placements": [
+      {
+        "id": "shed-101-0",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 100,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 180,
+        "weight": 42.5,
+        "orientation": "LWH",
+        "layer": 1
+      },
+      {
+        "id": "shed-101-1",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 620,
+        "z": 100,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 180,
+        "weight": 42.5,
+        "orientation": "LWH",
+        "layer": 1
+      }
+    ],
+    "pallets": []
+  }
+}

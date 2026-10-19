@@ -1,0 +1,2 @@
+﻿方案ID,算法版本,ID,名称,用途,材料,数量,单件计划kg,合计计划kg,X(mm),Y(mm),Z(mm),L(mm),W(mm),H(mm),安装阶段,前置附件,关联货物ID,最早装箱步骤后,未全部装入货物,来源,版本,备注,核验范围,支承声明JSON,上方累计kg,支承静载状态
+plan-1792386737705-practical,0.42.0,a-9fda0afa-5894-4530-99ca-c96fb302842b,QA42 合成实心支承面,obstacle,垫木／挡木,1,5,5,0,0,0,12032,2350,100,before-cargo,,,0,,QA synthetic geometry only,QA42,Synthetic benchmark; not actual material data,计划重量；固定强度、安装动作和实称未核验,"{""version"":1,""surface"":""solid-rectangle"",""maxLoadKg"":85}",85,输入静载检查通过

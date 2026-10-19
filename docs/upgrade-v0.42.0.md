@@ -19,3 +19,25 @@
 ## 验证与发布
 
 本阶段测试覆盖：未知与零额定、厚度和层级、累计上压、来源缺失、输入范围、浮空和重叠、顶面裁切、单品／拼柜、完整套装回退、锁定编辑／优化、两端垫木悬跨、普通承托面积不可放宽、补货、双策略备份、篡改恢复、CSV／HTML／分页 PDF 和中英文设置。新增 28 项核心回归与 2 项界面回归。最终 `npm run build:pages` 通过：1,073 项单元测试（85 文件）、21 项 HTML、TypeScript、lint 零错误（3 条既有警告）及 Next 静态生产构建。正式站验收与发布标识在实际完成后补入。
+
+## 正式站实际验收与证据
+
+功能提交 `dffb2579e67676ab0c42261b9a1125468f8496ca`，源树 `9c0c418c5cec25a91d9bbc5d2a78f65d2e2a4eb0`。GitHub verify `39202990773`（job `117899736843`）成功；Pages `8a71b711-83d9-4978-a486-eebe0c3f94ea` 成功；Vercel `dpl_9AeMTq2Y3c9biQTqv5Jmii3Bp63r` READY、production，正式灰色域名已关联。现有地址：[Pages](https://container-load-planner.pages.dev/)／[Vercel](https://container-load-planner-gray.vercel.app/)。
+
+Pages 使用明确标注 QA 的合成支承面与默认 SHED-101 箱规：3 箱需求、每箱 42.5 kg，支承面 12032 × 2350 × 100 mm、计划 5 kg。完整地面覆盖及此重量只用于软件边界验收，不能作为实际材料资料。
+
+| 实际操作 | 观察结果 |
+| --- | --- |
+| 来源版本完整、上方静载上限 85 kg | 两套算法均 2 箱；箱底 Z=100 mm、层级 1；上方累计 85.00 kg；总重 90 kg，支承件自重仅计一次 |
+| 清空来源、保留 85 kg 上限 | 两套算法仍各 2 箱；英文结果显示 Source unspecified / Unverified，数值上限继续生效 |
+| 补回来源、取消已知上限 | 两套算法均 3 箱；累计 127.50 kg，上限显示未填写、状态未核验；未把未知写成 0 |
+| 勾选已知上限并保留明确的 0 | 两套算法均 0 箱；仅有附件计划重量 5 kg，累计上压 0.00 kg |
+| 实际下载工作区、坐标 CSV、附件 CSV | 当前代码恢复两套实际箱位与原文件完全一致，均 2 箱、Z=100 mm、90 kg；坐标有 2 货物加 1 区域记录，附件重量 5 kg、累计上压 85 kg、声明 JSON 上限 85 一致 |
+| 实际下载 PDF 并渲染 | 共 8 页；第 6 页列 85.00 / 85 kg 与来源版本；第 2 页五项复核无重叠／裁切。该合成箱位另有既有门洞与卸货站次失败／未知提示，支承静载通过没有覆盖这些独立结论 |
+| Vercel 正式站与双站清理后复核 | Vercel 实际新增／删除附件后可见新的实心支承声明；两站均显示引擎 v0.42.0，恢复默认直接装箱、无区域和附件，双算法均 116 箱、3,842 kg |
+
+验收时读取最近 200 条错误日志，两站未见应用错误；浏览器扩展自身的 metadata 通信错误单独排除。这不是持续监控。Chrome 明确显示 WebGL 未启用，使用真实坐标回退视图；没有将其计作 GPU 验收。
+
+证据：[中文实际载荷](field-upgrades/evidence/v0.42.0-support-live.jpg)、[英文缺来源](field-upgrades/evidence/v0.42.0-support-unknown.jpg)、[实际双策略工作区](field-upgrades/evidence/v0.42.0-workspace.json)、[附件 CSV](field-upgrades/evidence/v0.42.0-accessories.csv)、[坐标 CSV](field-upgrades/evidence/v0.42.0-coordinates.csv)、[实际 PDF 支承页](field-upgrades/evidence/v0.42.0-support-pdf-page.png)。备份恢复通过文件解析与当前统一校验验证，不声称浏览器文件上传流程已验收。
+
+011C、U04、U06、U07 继续 PARTIAL。下一步是托内／托盘连接支承件以及保留锁定整托的局部自动重排；材料结构强度、GPU／多浏览器实机和现场试装分别保留未完成状态。
