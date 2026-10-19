@@ -16,6 +16,8 @@ export type ContainerAccessory = {
   source:string;
   revision:string;
   note:string;
+  /** Explicit solid, flat-top floor support; never inferred from the material name. */
+  support?:{version:1;surface:"solid-rectangle";maxLoadKg:number|null};
 };
 const identity=(x:unknown)=>typeof x==="string"&&x.length>0&&x.length<=300;
 export function parseContainerAccessory(value:unknown,kind:SiteExclusion["kind"],draft=false):ContainerAccessory|undefined{
@@ -28,7 +30,12 @@ export function parseContainerAccessory(value:unknown,kind:SiteExclusion["kind"]
   if(kind==="reserved"&&v.unitWeightKg!==0)return fail();
   for(const key of ["relatedProductIds","afterAccessoryIds"] as const){const a=v[key];if(!Array.isArray(a)||a.length>200||a.some(x=>!identity(x))||new Set(a).size!==a.length)return fail();}
   for(const key of ["source","revision","note"] as const)if(typeof v[key]!=="string"||v[key].length>(key==="revision"?100:500))return fail();
-  return {type:v.type,quantity:v.quantity,unitWeightKg:v.unitWeightKg,phase:v.phase,relatedProductIds:[...v.relatedProductIds],afterAccessoryIds:[...v.afterAccessoryIds],source:v.source.trim(),revision:v.revision.trim(),note:v.note.trim()};
+  if(v.support!==undefined){
+    const s=v.support;
+    if(!s||typeof s!=="object"||Array.isArray(s)||s.version!==1||s.surface!=="solid-rectangle"||!(s.maxLoadKg===null||typeof s.maxLoadKg==="number"&&Number.isFinite(s.maxLoadKg)&&s.maxLoadKg>=0&&s.maxLoadKg<=1000000))return fail();
+    if(!draft&&(kind!=="obstacle"||!["timber","bar","other"].includes(v.type)||v.quantity!==1||v.phase!=="before-cargo"))throw Error("Support requires one physical timber / brace / other piece installed before cargo / 支承件必须为装货前安装的单件实心垫木、支架或其他实体");
+  }
+  return {type:v.type,quantity:v.quantity,unitWeightKg:v.unitWeightKg,phase:v.phase,relatedProductIds:[...v.relatedProductIds],afterAccessoryIds:[...v.afterAccessoryIds],source:v.source.trim(),revision:v.revision.trim(),note:v.note.trim(),...(v.support?{support:{version:1 as const,surface:"solid-rectangle" as const,maxLoadKg:v.support.maxLoadKg}}:{})};
 }
 export function accessoryRegions(c:Pick<ContainerSpec,"exclusions">){return (c.exclusions??[]).filter((z):z is SiteExclusion&{accessory:ContainerAccessory}=>!!z.accessory);}
 /** Dependencies refer only to other accessory rows, never to anonymous obstacles. */

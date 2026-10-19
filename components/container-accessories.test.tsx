@@ -35,3 +35,13 @@ it("shows planned mass and installation boundaries without a securing approval a
 it("reserves all accessory planned mass from playback step zero",()=>{
  const plan=pack({workflow:"direct",mode:"mixed",strategy:"maximum",container:c,clearance:0,products:[p]});setAppLanguage("en");const html=renderToStaticMarkup(<RemainingCapacity result={plan} visibleCount={0}/>);expect(html).toContain("90");expect(html).toContain("all container accessory planned mass");expect(html).toContain("does not confirm installation or weighing");
 });
+it("renders an explicit solid support declaration and nullable static load controls in both languages",()=>{
+ const container={...c,exclusions:[{...z,z:0,accessory:{...z.accessory!,quantity:1,phase:"before-cargo" as const,support:{version:1 as const,surface:"solid-rectangle" as const,maxLoadKg:null}}}]};
+ for(const language of ["zh","en"] as const){setAppLanguage(language);const html=renderToStaticMarkup(<ContainerAccessorySettings {...props} container={container}/>);expect(html).toContain(language==="en"?"solid support declaration":"实心支承声明");expect(html).toContain(language==="en"?"0 prohibits load":"0 表示禁止承载");expect(html).not.toContain('aria-label="Accessory 1 static load limit"');if(language==="en")expect(html).not.toMatch(/[\u3400-\u9fff]/u);}
+ const incompatible=renderToStaticMarkup(<ContainerAccessorySettings {...props} container={container} prebuilt/>);expect(incompatible).toContain('role="alert"');expect(incompatible).toContain("disable the support declaration");
+});
+it("renders current support load and known zero without treating a missing rating as zero",()=>{
+ const container={...c,exclusions:[{...z,z:0,accessory:{...z.accessory!,quantity:1,phase:"before-cargo" as const,support:{version:1 as const,surface:"solid-rectangle" as const,maxLoadKg:0}}}]};
+ setAppLanguage("en");const settings=renderToStaticMarkup(<ContainerAccessorySettings {...props} container={container}/>);expect(settings).toContain('aria-label="Accessory 1 static load limit"');expect(settings).toContain('value="0"');
+ const plan=pack({mode:"mixed",strategy:"maximum",container,clearance:0,products:[p]}),html=renderToStaticMarkup(<ContainerAccessoryManifest result={plan} products={[p]}/>);expect(html).toContain("Fixed support static load check");expect(html).toContain("Entered static load check passed");expect(html).not.toMatch(/[\u3400-\u9fff]/u);
+});

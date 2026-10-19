@@ -1,3 +1,4 @@
+import {inspectAccessorySupports,ACCESSORY_SUPPORT_STATES} from "./accessory-support";
 import {inspectHandlingSequence} from "./handling-sequence";
 import {parseLongSupport} from "./long-support";
 import {accessoryInstallationPlan,ACCESSORY_TYPE_TEXT} from "./container-accessories";
@@ -277,9 +278,10 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
 }
 
 /** Separate material / installation list. Carton counts and packaging tare stay untouched. */
-export function buildContainerAccessoryCsv(plan:PackingResult,en=false){
+export function buildContainerAccessoryCsv(plan:PackingResult,en=false,products?:readonly ProductInput[]){
  const t=(zh:string,english:string)=>en?english:zh;
- const header=[t("方案ID","Plan ID"),t("算法版本","Engine"),"ID",t("名称","Name"),t("用途","Purpose"),t("材料","Material"),t("数量","Quantity"),t("单件计划kg","Planned unit kg"),t("合计计划kg","Planned row kg"),"X(mm)","Y(mm)","Z(mm)","L(mm)","W(mm)","H(mm)",t("安装阶段","Phase"),t("前置附件","Prior accessories"),t("关联货物ID","Related product IDs"),t("最早装箱步骤后","Earliest after carton step"),t("未全部装入货物","Cargo not fully loaded"),t("来源","Source"),t("版本","Revision"),t("备注","Notes"),t("核验范围","Scope")];
- const rows=accessoryInstallationPlan(plan).map(({region:z,afterCargoStep,missingProductIds,weightKg})=>{const a=z.accessory;return [plan.id,plan.engineVersion,z.id,z.name,z.kind,t(...ACCESSORY_TYPE_TEXT[a.type]),a.quantity,a.unitWeightKg,weightKg,z.x,z.y,z.z,z.dx,z.dy,z.dz,a.phase,a.afterAccessoryIds.join(" / "),a.relatedProductIds.join(" / "),afterCargoStep,missingProductIds.join(" / "),a.source,a.revision,a.note,t("计划重量；固定强度、安装动作和实称未核验","Planned mass; securing strength, installation actions and weighing unverified")];});
+ const header=[t("方案ID","Plan ID"),t("算法版本","Engine"),"ID",t("名称","Name"),t("用途","Purpose"),t("材料","Material"),t("数量","Quantity"),t("单件计划kg","Planned unit kg"),t("合计计划kg","Planned row kg"),"X(mm)","Y(mm)","Z(mm)","L(mm)","W(mm)","H(mm)",t("安装阶段","Phase"),t("前置附件","Prior accessories"),t("关联货物ID","Related product IDs"),t("最早装箱步骤后","Earliest after carton step"),t("未全部装入货物","Cargo not fully loaded"),t("来源","Source"),t("版本","Revision"),t("备注","Notes"),t("核验范围","Scope"),t("支承声明JSON","Support declaration JSON"),t("上方累计kg","Cumulative upper kg"),t("支承静载状态","Support static load state")];
+ const supports=new Map(inspectAccessorySupports(plan,products).map(r=>[r.id,r]));
+ const rows=accessoryInstallationPlan(plan).map(({region:z,afterCargoStep,missingProductIds,weightKg})=>{const a=z.accessory,r=supports.get(z.id);return [plan.id,plan.engineVersion,z.id,z.name,z.kind,t(...ACCESSORY_TYPE_TEXT[a.type]),a.quantity,a.unitWeightKg,weightKg,z.x,z.y,z.z,z.dx,z.dy,z.dz,a.phase,a.afterAccessoryIds.join(" / "),a.relatedProductIds.join(" / "),afterCargoStep,missingProductIds.join(" / "),a.source,a.revision,a.note,t("计划重量；固定强度、安装动作和实称未核验","Planned mass; securing strength, installation actions and weighing unverified"),a.support?JSON.stringify(a.support):"",r?.loadKg??"",r?t(...ACCESSORY_SUPPORT_STATES[r.state]):""];});
  return [header,...rows].map(row=>row.map(toCsvCell).join(",")).join("\r\n");
 }

@@ -128,7 +128,7 @@ export function editPalletContents(plan:PackingResult,products:ProductInput[],id
     if(lockedPallet&&(!next||identity(old)!==identity(next)))throw new Error("其他锁定托盘必须保持不变 / Other locked pallets must remain unchanged");
     if(old.locked&&action.type!=="lock-cargo"&&(!next||identity(old)!==identity(next)))throw new Error("锁定箱位必须保持不变 / Locked cargo must remain unchanged");
   }
-  const candidate={...plan,pallets,placements:rebuildPlacementLayers(placements,pallets,products,plan.loadingRules),palletization:{...plan.palletization,selectionChoices:undefined,editRevision:(plan.palletization.editRevision??0)+1}};
+  const candidate={...plan,pallets,placements:rebuildPlacementLayers(placements,pallets,products,plan.loadingRules,plan.container,plan.clearance),palletization:{...plan.palletization,selectionChoices:undefined,editRevision:(plan.palletization.editRevision??0)+1}};
   const result=restorePackingSnapshot({workflow:plan.workflow,mode:plan.mode,strategy:plan.strategy,palletBuild:plan.palletBuild,container:plan.container,clearance:plan.clearance,loadingRules:plan.loadingRules,practicalTargetUtilization:plan.practicalTargetUtilization,products},candidate);
   // A local contents edit cannot silently reassign neighbouring cargo to another unit.
   for(const b of result.placements){const expected=byId.get(b.id)!;if(JSON.stringify(b.palletIds)!==JSON.stringify(expected.palletIds))throw new Error("箱位失去目标托盘支撑 / Cargo lost support from its assigned pallet");

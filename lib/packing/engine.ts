@@ -1,3 +1,4 @@
+import {accessorySupportGeometry,assertAccessorySupportWorkflow,hasAccessorySupports,SUPPORT_WORKFLOW_ERROR} from "./accessory-support";
 import {containerAccessoryWeight,accessoryMassBoxes,accessoryProductErrors} from "./container-accessories";
 import {parseLongSupport,hasLongSupportLimits,inspectLongSupportPlacement,longSupportViolation} from "./long-support";
 import {parseHandlingTasks} from "./handling-sequence";
@@ -43,7 +44,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.41.0";
+export const ENGINE_VERSION = "0.42.0";
 
 type Orientation = {
   dx: number;
@@ -120,6 +121,7 @@ export function validateContainerInput(container: ContainerSpec, clearance: numb
 }
 
 function assertValidRequest(request: PackingRequest) {
+  assertAccessorySupportWorkflow(request);
   if (request.palletBuildStage !== undefined && (request.palletBuildStage !== true || request.container.category !== "pallet" || request.container.loadingAccess !== "open" || request.mode !== "mixed")) throw new Error("Invalid pallet-building stage");
   if (request.mode !== "single" && request.mode !== "mixed") {
     throw new Error("计算模式必须是单品最大装柜或多 SKU 拼柜。");
@@ -505,7 +507,7 @@ function supportDetails(candidate:PlacedBox,topLevels:Map<number,PlacedBox[]>,pr
   if(!hasLongSupportLimits(own))return {...area,longSupportError:undefined};
   const below=topLevels.get(supportLevelKey(candidate.z))??[];
   const pallets=below.filter(b=>b.supportOnly&&"presetId" in b) as unknown as PlacedPallet[];
-  const row=inspectLongSupportPlacement(candidate,own,products,below.filter(b=>!b.supportOnly),pallets);
+  const row=inspectLongSupportPlacement(candidate,own,products,below.filter(b=>!b.supportOnly||b.supportEvidence),pallets);
   return {...area,longSupportError:longSupportViolation(row)};
 }
 
@@ -1558,7 +1560,9 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
   const placements: PlacedBox[] = anchors.map(b=>({...b}));
   let spatial = new SpatialIndex(container,Math.max(0,...request.products.map(p=>p.protectionGap??0)));
   let topLevels = new Map<number, PlacedBox[]>();
-  const productMap = new Map(request.products.map((product) => [product.id, product]));
+  const fixed=accessorySupportGeometry(request.container,request.clearance);
+  const bearingProducts=[...request.products,...fixed.products];
+  const productMap = new Map(bearingProducts.map((product) => [product.id, product]));
   const orientationCache = new Map<string, Orientation[]>();
   const exclusions=siteExclusionBoxes(request.container,request.clearance);
   let points: Point[] = [{ x: 0, y: 0, z: 0, envelope: true }];
@@ -1580,6 +1584,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
   const rebuildIndexes = () => {
     spatial = new SpatialIndex(container,Math.max(0,...request.products.map(p=>p.protectionGap??0)));
     topLevels = new Map<number, PlacedBox[]>();
+    fixed.boxes.forEach(b=>indexSupport(topLevels,b,productMap));
     placements.forEach((box, index) => {
       spatial.add(box, index);
       indexSupport(topLevels,box,productMap);
@@ -1652,7 +1657,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
         if (request.floorPallets && palletIds.length && candidate.z + candidate.dz > palletCargoCeiling(request.container, request.clearance, request.floorPallets) + EPS) continue;
         const layerLimit = maxStackLayers(product);
         if (support.longSupportError || support.ratio + EPS < requiredSupport(product, strategy) || (layerLimit > 0 && support.layer > layerLimit)) continue;
-        if (request.products.some(hasBearingRules) && bearingErrors([...placements, candidate], request.products).length) continue;
+        if (bearingProducts.some(hasBearingRules) && bearingErrors([...fixed.boxes,...placements, candidate], bearingProducts).length) continue;
 
         if (!best || score < best.score) best = { point, orientation, layer: support.layer, score, palletIds };
       }
@@ -1814,7 +1819,9 @@ export function validatePacking(
   if (!Array.isArray(placements) || !Array.isArray(pallets)) return {valid:false,errors:["货物和托盘坐标必须是数组。"]};
   for(const p of products){try{parseShapeFields(p as unknown as Record<string,unknown>);}catch(e){return {valid:false,errors:[e instanceof Error?e.message:"Invalid cargo shape"]};}}
   const cargo = placements;
-  if (cargo.some(b=>b?.supportOnly||typeof b?.id==="string"&&b.id.startsWith(SITE_EXCLUSION_PREFIX))) return {valid:false,errors:["货物记录不能伪装为托盘支撑。"]};
+  if(hasAccessorySupports(container)&&(floorConfig||pallets.length||palletization))return {valid:false,errors:[SUPPORT_WORKFLOW_ERROR]};
+  if(products.some(p=>p.id.startsWith(SITE_EXCLUSION_PREFIX)))return {valid:false,errors:["Reserved site region identifier / 产品 ID 使用了柜内区域保留前缀"]};
+  if (cargo.some(b=>b?.supportOnly||b?.supportEvidence||typeof b?.id==="string"&&b.id.startsWith(SITE_EXCLUSION_PREFIX))) return {valid:false,errors:["货物记录不能伪装为托盘支撑。"]};
   if(floorConfig&&container.exclusions?.length)return {valid:false,errors:["Site regions cannot be combined with floor-laid pallets / 柜内区域暂不支持铺底层托盘"]};
   if (floorConfig) {try {parseFloorPalletConfig(floorConfig);}catch(e){return {valid:false,errors:[e instanceof Error?e.message:"托盘配置无效。"]};}}
   if (pallets.length) {
@@ -1829,10 +1836,13 @@ export function validatePacking(
   if (mode !== "single" && mode !== "mixed") return { valid: false, errors: ["计算模式无效。"] };
   const effective = effectiveContainer(container, clearance);
   const exclusions=siteExclusionBoxes(container,clearance);
+  const fixed=accessorySupportGeometry(container,clearance);
+  products=[...products,...fixed.products];
   const errors: string[] = [];
   const spatial = new SpatialIndex(effective,Math.max(0,...products.map(p=>p.protectionGap??0)));
   const topLevels = new Map<number, PlacedBox[]>();
   const productMap = new Map(products.map(p=>withShapeSupport({...p,...parseShapeFields(p as unknown as Record<string,unknown>)})).map((product) => [product.id, product]));
+  fixed.boxes.forEach(b=>indexSupport(topLevels,b,productMap));
   if (productMap.size !== products.length) errors.push("产品资料存在重复 ID，无法独立核对箱体归属。");
   const placementIds = new Set<string>();
   const orientationsByProduct = new Map<string, Set<string>>();
@@ -2001,7 +2011,7 @@ export function validatePacking(
       }
     }
   }
-  errors.push(...bearingErrors(placements, products));
+  errors.push(...bearingErrors([...fixed.boxes,...placements], products));
   return { valid: errors.length === 0, errors };
 }
 
@@ -2062,11 +2072,13 @@ function calculateExecutionComplexity(
   placements: PlacedBox[],
   products: ProductInput[],
   pallets: PlacedPallet[] = [],
+  fixed:ReturnType<typeof accessorySupportGeometry>={boxes:[],products:[]},
 ): PackingResult["metrics"]["executionComplexity"] {
+  products=[...products,...fixed.products];
   const orientationsByProduct = new Map<string, Set<string>>();
   const productMap = new Map(products.map(p=>withShapeSupport({...p,...parseShapeFields(p as unknown as Record<string,unknown>)})).map((product) => [product.id, product]));
   const topLevels = new Map<number, PlacedBox[]>();
-  for (const b of palletAnchors(pallets)) indexSupport(topLevels,b,productMap);
+  for (const b of [...palletAnchors(pallets),...fixed.boxes]) indexSupport(topLevels,b,productMap);
   let partialSupportCount = 0;
   let tippedCartonCount = 0;
 
@@ -2188,13 +2200,14 @@ export function pack(request: PackingRequest): PackingResult {
   const requestedCount = summaries.reduce((sum, item) => sum + item.requested, 0);
   const loadedCount = summaries.reduce((sum, item) => sum + item.loaded, 0);
   const centerOfGravity = calculateCenterOfGravity([...supports, ...orderedPlacements,...accessoryMassBoxes(normalized.container,normalized.clearance)], effective, normalized.products);
-  const executionComplexity = calculateExecutionComplexity(orderedPlacements, normalized.products, pallets);
+  const executionComplexity = calculateExecutionComplexity(orderedPlacements, normalized.products, pallets,accessorySupportGeometry(normalized.container,normalized.clearance));
   const physicalLoadedSets = normalized.mode === "single"
     ? setSummaries[0]?.loadedSets ?? loadedCount
     : 0;
   const quoteEstimate = pallets.length||normalized.container.exclusions?.length ? undefined : estimateQuoteLoading(normalized, effectiveVolume, physicalLoadedSets);
   const warnings = [...output.warnings];
-  if(normalized.container.exclusions?.length)warnings.unshift("柜内障碍与禁占区已用于当前包络求解和独立校验；区域不提供承托、不计作货物；附件计划重量单独计入 / Site regions constrain packing and validation; accessory planned mass is recorded separately, with no added cargo count or support");
+  if(hasAccessorySupports(normalized.container))warnings.unshift("已声明的落地实心支承件参与接触与输入静载上限校验；未知额定值、材料强度及动态载荷未核验 / Declared solid floor supports participate in contact and entered static load limits; missing ratings, material strength and dynamics remain unverified");
+  if(normalized.container.exclusions?.length&&!hasAccessorySupports(normalized.container))warnings.unshift("柜内障碍与禁占区已用于当前包络求解和独立校验；区域不提供承托、不计作货物；附件计划重量单独计入 / Site regions constrain packing and validation; accessory planned mass is recorded separately, with no added cargo count or support");
   if (pallets.length) warnings.unshift(`底层托盘 ${pallets.length} 个，自重 ${palletWeight} kg；货物 Z 坐标已包含托盘高度 ${normalized.floorPallets!.height} mm，托盘单独记录，不计入货物箱数。`);
   const bearingCheck = bearingStatus(orderedPlacements, normalized.products);
   if (!bearingCheck.verified) warnings.push(`承重未核验：${bearingCheck.unknownIds.length} 个受压箱体尚未填写该朝向的承重参数；几何通过不代表承重已确认。`);
@@ -2489,11 +2502,12 @@ export function packWithComparison(request: PackingRequest): PackingResult {
 }
 
 /** Shared support-layer rebuild for movement and order-conserving pallet-content edits. */
-export function rebuildPlacementLayers(placements:PlacedBox[],pallets:PlacedPallet[],products:ProductInput[],loadingRules?:LoadingRules){
-  products=applyTypeSupport(products,loadingRules);
+export function rebuildPlacementLayers(placements:PlacedBox[],pallets:PlacedPallet[],products:ProductInput[],loadingRules?:LoadingRules,container?:ContainerSpec,clearance=0){
+  const fixed=container?accessorySupportGeometry(container,clearance):{boxes:[],products:[]};
+  products=[...applyTypeSupport(products,loadingRules),...fixed.products];
   const productMap = new Map(products.map(p => [p.id, p]));
   const levels = new Map<number, PlacedBox[]>();
-  for (const b of palletAnchors(pallets)) indexSupport(levels,b,productMap);
+  for (const b of [...palletAnchors(pallets),...fixed.boxes]) indexSupport(levels,b,productMap);
   return [...placements].sort((a,b) => a.z-b.z).map(b => {
     const box = { ...b, layer: supportDetails(b, levels, productMap).layer };
     indexSupport(levels,box,productMap);
@@ -2516,7 +2530,7 @@ export function revisePackingResult(original: PackingResult, placements: PlacedB
     if (!old || old.productId !== b.productId || old.weight !== b.weight || old.setCode !== b.setCode || old.setNumber !== b.setNumber || old.setItemNumber !== b.setItemNumber) throw new Error("箱体身份和成套关系不能改变。");
     if ((old.locked || original.pallets?.some(p=>p.locked&&old.palletIds?.includes(p.id))) && (["x", "y", "z", "dx", "dy", "dz", "orientation"].some(k => old[k as keyof PlacedBox] !== b[k as keyof PlacedBox])||JSON.stringify(old.orientationSigns)!==JSON.stringify(b.orientationSigns))) throw new Error("请先解除箱位锁定。");
   }
-  const relayered = rebuildPlacementLayers(placements,pallets,products,original.loadingRules);
+  const relayered = rebuildPlacementLayers(placements,pallets,products,original.loadingRules,original.container,original.clearance);
   const ordered = assignPalletReferences(orderForLoading([...palletAnchors(pallets),...relayered],[...products,...palletSupportProducts(pallets)]).filter(b=>!b.supportOnly), pallets, products);
   const validation = validatePacking(ordered, original.container, original.clearance, products, original.strategy, original.mode, pallets, original.floorPallets, original.palletization);
   if (!validation.valid) throw new Error(validation.errors.slice(0,3).join("\n"));
@@ -2526,7 +2540,7 @@ export function revisePackingResult(original: PackingResult, placements: PlacedB
     cargoDetails:Object.fromEntries(products.map(p=>[p.id,shapeDetails(p)])),
     strategyPlans: undefined, strategyComparison: undefined, quoteEstimate: undefined, validation,
     warnings: ["手动调整已重新校验；继续优化会保留锁定箱位及其支撑；重新计算整个订单将创建新方案。"],
-    metrics: { ...original.metrics, centerOfGravity: calculateCenterOfGravity([...palletAnchors(pallets),...ordered,...accessoryMassBoxes(original.container,original.clearance)],effective,products), executionComplexity: calculateExecutionComplexity(ordered,products,pallets) }, createdAt: new Date().toISOString() };
+    metrics: { ...original.metrics, centerOfGravity: calculateCenterOfGravity([...palletAnchors(pallets),...ordered,...accessoryMassBoxes(original.container,original.clearance)],effective,products), executionComplexity: calculateExecutionComplexity(ordered,products,pallets,accessorySupportGeometry(original.container,original.clearance)) }, createdAt: new Date().toISOString() };
 }
 
 export function explainUnloaded(result: PackingResult, products: ProductInput[]) {
@@ -2553,15 +2567,19 @@ export function diagnoseUnloadedPosition(result:PackingResult,products:ProductIn
   const p=products.find(p=>p.id===productId);if(!p)return {detail:"缺少箱规",candidate:null};
   const effective=effectiveContainer(result.container,result.clearance),orientations=orientationsForStrategy(p,effective,result.strategy);
   const spatial=new SpatialIndex(effective,Math.max(0,...products.map(p=>p.protectionGap??0))),tops=new Map<number,PlacedBox[]>(),rules=new Map(products.map(p=>[p.id,p]));
+  const fixed=accessorySupportGeometry(result.container,result.clearance);
+  fixed.products.forEach(p=>rules.set(p.id,p));fixed.boxes.forEach(b=>indexSupport(tops,b,rules));
+  const obstacles=siteExclusionBoxes(result.container,result.clearance);
   const allBoxes=[...palletAnchors(result.pallets??[]),...result.placements];
   allBoxes.forEach((b,i)=>{spatial.add(b,i);indexSupport(tops,b,rules);});
-  const points:Point[]=[{x:0,y:0,z:0},...allBoxes.flatMap(b=>[{x:b.x+b.dx,y:b.y,z:b.z},{x:b.x,y:b.y+b.dy,z:b.z},{x:b.x,y:b.y,z:b.z+b.dz}])];
+  const points:Point[]=[{x:0,y:0,z:0},...[...allBoxes,...obstacles].flatMap(b=>[{x:b.x+b.dx,y:b.y,z:b.z},{x:b.x,y:b.y+b.dy,z:b.z},{x:b.x,y:b.y,z:b.z+b.dz}])];
   const unique=[...new Map(points.map(p=>[[p.x,p.y,p.z].join('/'),p])).values()];
   const stride=Math.max(1,Math.ceil(unique.length/240));let geometry=0,supportFailures=0,layerFailures=0;let first:PlacedBox|null=null;
   for(let i=0;i<unique.length;i+=stride)for(const o of orientations){
     const b=makePlacement(p,0,unique[i],o);
     if(b.x+b.dx>effective.length+EPS||b.y+b.dy>effective.width+EPS||b.z+b.dz>effective.height+EPS)continue;
     if([...spatial.query(b)].some(j=>bodiesOverlap(b,allBoxes[j],p,rules.get(allBoxes[j].productId))))continue;
+    if(obstacles.some(o=>overlaps(b,o)))continue;
     geometry++;first??=b;
     const support=supportDetails(b,tops,rules);
     const ids=supportingPalletIds(b,tops.get(supportLevelKey(b.z))??[]);
@@ -2640,7 +2658,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
     accessConfig:parseAccessConfig(raw.accessConfig),palletization,delivery:parseDelivery(raw.delivery,new Set(products.map(p=>p.id))),floorPallets:request.floorPallets,pallets,container:request.container,clearance:request.clearance,singleCartonLimit:normalized.singleCartonLimit,placements:ordered,summaries,setSummaries,validation,
     metrics:{...envelopeMetrics(ordered,products,effectiveVolume,pallets),loadedCount:ordered.length,requestedCount:summaries.reduce((n,s)=>n+s.requested,0),loadedVolume,grossWeight,effectiveVolume,
       volumeUtilization:loadedVolume/effectiveVolume,weightUtilization:grossWeight/request.container.maxWeight,
-      centerOfGravity:calculateCenterOfGravity([...palletAnchors(pallets),...ordered,...accessoryMassBoxes(request.container,request.clearance)],effective,products),executionComplexity:calculateExecutionComplexity(ordered,products,pallets),solveTimeMs:0},
+      centerOfGravity:calculateCenterOfGravity([...palletAnchors(pallets),...ordered,...accessoryMassBoxes(request.container,request.clearance)],effective,products),executionComplexity:calculateExecutionComplexity(ordered,products,pallets,accessorySupportGeometry(request.container,request.clearance)),solveTimeMs:0},
     loadingRules: request.loadingRules, cargoDetails: Object.fromEntries(products.map(p=>[p.id,shapeDetails(p)])),
     warnings:["历史箱位已按当前箱规与引擎重新校验。自动重算已暂停，可继续手动调整或生成新方案。"],createdAt:new Date().toISOString()};
 }

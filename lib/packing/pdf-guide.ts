@@ -1,3 +1,4 @@
+import {inspectAccessorySupports,ACCESSORY_SUPPORT_STATES,hasAccessorySupports} from "./accessory-support";
 import {inspectLongSupport,SUPPORT_ISSUES} from "./long-support";
 import {inspectHandlingSequence,HANDLING_STATE_TEXT,HANDLING_KIND_TEXT} from "./handling-sequence";
 import {accessoryInstallationPlan,containerAccessoryWeight,ACCESSORY_TYPE_TEXT} from "./container-accessories";
@@ -53,7 +54,8 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
   start(t("方案复核", "Plan review"));
   const review=reviewPlan(result,products);
   text(`${review.passed} ${t("项通过","passed")} · ${review.failed} ${t("项不通过","failed")} · ${review.unverified} ${t("项未核验","unverified")}`,100,315,32,true);
-  review.checks.forEach((c,i)=>{const y=420+i*345;text(`${t(...REVIEW_TITLES[c.id])} · ${t(...REVIEW_STATES[c.state])}`,100,y,32,true);let line="",row=0;ctx.font="25px Arial,sans-serif";for(const char of t(...c.scope)){if(ctx.measureText(line+char).width>1500){text(line,100,y+55+row++*40,25);line="";}line+=char;}text(line,100,y+55+row*40,25);if(c.items.length)text(ellipsis(c.items.slice(0,3).join(" · "),1500),100,y+245,24);});
+  review.checks.forEach((c,i)=>{const y=420+i*345;text(`${t(...REVIEW_TITLES[c.id])} · ${t(...REVIEW_STATES[c.state])}`,100,y,32,true);let line="";const lines:string[]=[];ctx.font="25px Arial,sans-serif";for(const char of t(...c.scope)){if(ctx.measureText(line+char).width>1500){lines.push(line);line="";}line+=char;}lines.push(line);lines.slice(0,5).forEach((value,row)=>text(row===4?ellipsis(lines.slice(4).join(""),1500):value,100,y+55+row*40,25));if(c.items.length)text(ellipsis(c.items.slice(0,3).join(" · "),1500),100,y+245,24);});
+  text(t("本页长文本可能省略；完整核验范围见客户报告或工作区。","Long scope text may be shortened here; full review scope is in the customer report or workspace."),100,2260,23);
   await finish();
   const longSupport=inspectLongSupport(result,products);
   for(let from=0;from<longSupport.length;from+=5){
@@ -73,9 +75,9 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
   for(let startAt=0;startAt<(result.pallets?.length??0);startAt+=28){start(result.workflow==="pallet-only"?t("独立托盘清单与自重","Independent pallet manifest and tare"):result.palletization?t("整托入柜与自重","Complete pallet placement and tare"):t("底层托盘铺设与自重","Floor pallet layout and tare"));text(result.workflow==="pallet-only"?t("按关联清单独立打托，货物限高不含底座，总重含托盘自重。","Build each listed pallet independently. Cargo height excludes decks; gross weight includes tare."):result.palletization?t("按托盘关联清单在柜外打托，再整托入柜；货物 Z 已包含底座。","Build associated cargo on each pallet outside, then load complete pallets; Z includes decks."):t("先铺设托盘；货物 Z 已包含底座高度，勿再次加高。","Place pallets first. Cargo Z already includes the base height."),100,310,27,true);result.pallets!.slice(startAt,startAt+28).forEach((p,i)=>{const y=390+i*64;text(`${p.id} · ${p.name}`,100,y,25);text(`${p.x} / ${p.y} / ${p.z}`,700,y,25);text(`${p.dx} × ${p.dy} × ${p.enclosureHeight??p.dz}`,1100,y,25);text(`${p.weight} kg`,1530,y,25);});await finish();}
   if(result.container.exclusions?.length){
     start(t("柜内障碍与禁占区","Obstacles and keep-clear regions"));
-    text(t("坐标 mm 从实际柜内柜头、左壁、地板起算；区域不承托、不计货物；附件计划重量单列。","Physical inner nose/left/floor coordinates in mm; regions provide no support or cargo; accessory planned mass is separate."),100,310,25);
+    text(hasAccessorySupports(result.container)?t("绿色实心支承件以实际顶面承托；其他区域不承托；附件重量单列。","Green solid supports contact at the real top; other regions do not support. Accessory mass is separate."):t("坐标 mm 从实际柜内柜头、左壁、地板起算；区域不承托、不计货物；附件计划重量单列。","Physical inner nose/left/floor coordinates in mm; regions provide no support or cargo; accessory planned mass is separate."),100,310,25);
     text(`${t("有效区域占用","Excluded usable volume")}: ${(siteExcludedVolume(result.container,result.clearance)/1e9).toFixed(4)} m³`,100,365,27,true);
-    result.container.exclusions.forEach((z,i)=>{const y=450+i*100;text(ellipsis(`${z.id} · ${z.name}`,520),100,y,25,true);text(`${z.x} / ${z.y} / ${z.z}`,660,y,25);text(`${z.dx} × ${z.dy} × ${z.dz}`,1100,y,25);text(z.kind==="obstacle"?t("障碍","Obstacle"):t("预留","Reservation"),1500,y,24);});
+    result.container.exclusions.forEach((z,i)=>{const y=450+i*100;text(ellipsis(`${z.id} · ${z.name}`,520),100,y,25,true);text(`${z.x} / ${z.y} / ${z.z}`,660,y,25);text(`${z.dx} × ${z.dy} × ${z.dz}`,1100,y,25);text(z.accessory?.support?t("支承","Support"):z.kind==="obstacle"?t("障碍","Obstacle"):t("预留","Reservation"),1500,y,24);});
     text(t("重叠容积只扣一次。设备、门槛通过与运输固定强度未核验。","Overlap is deducted once. Equipment, threshold traversal and securing strength remain unverified."),100,2260,25);
     await finish();
   }
@@ -93,6 +95,18 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
       if(missingProductIds.length)text(ellipsis(`${t("关联货物未全部装入","Associated cargo not fully loaded")}: ${missingProductIds.join(" / ")}`,1500),100,y+208,23);
     });
     text(t("完整长文本与资料见工作区或附件 CSV；安装步骤不证明实际施工可行。","Full text is preserved in workspace / accessory CSV; ordering does not prove field feasibility."),100,2260,24);await finish();
+  }
+  const supportRows=inspectAccessorySupports(result,products);
+  for(let from=0;from<supportRows.length;from+=8){
+    start(t("固定支承件静载检查","Fixed support static load check"));
+    text(t("上方累计包含全部货物层；按实际接触面积分配。上限不含支承件自重。","All upper cargo tiers included; load shared by contact area. Limit excludes support tare."),100,310,24);
+    supportRows.slice(from,from+8).forEach((r,i)=>{const y=440+i*205;
+      text(ellipsis(`${r.id} · ${r.name}`,1500),100,y,27,true);
+      text(`${t("上方累计 / 输入上限 kg","Cumulative upper / entered limit kg")}: ${(r.loadKg?.toFixed(2)??"—")} / ${r.limitKg??"—"} · ${t(...ACCESSORY_SUPPORT_STATES[r.state])}`,100,y+50,24);
+      text(ellipsis(`${t("来源 / 版本","Source / revision")}: ${r.source||"—"} / ${r.revision||"—"}`,1500),100,y+100,24);
+    });
+    text(t("缺额定值或来源版本保持未核验；不证明抗弯、刚度、地板局压或动态强度。","Missing ratings or evidence remain unverified; bending, stiffness, local floor pressure and dynamics are unverified."),100,2260,23);
+    await finish();
   }
   for(const group of forkEvidenceGroups(result)){
     start(t("底座与叉具资料（独立预检）","Base and fork data (independent preflight)"));

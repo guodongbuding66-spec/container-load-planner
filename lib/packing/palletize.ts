@@ -1,3 +1,4 @@
+import {assertAccessorySupportWorkflow} from "./accessory-support";
 import {inspectLongSupport,longSupportViolation} from "./long-support";
 import {containerAccessoryWeight} from "./container-accessories";
 import { pack, restorePackingSnapshot, getOrientations, MAX_VISIBLE_PLACEMENTS } from "./engine";
@@ -34,6 +35,7 @@ function topCapacity(cargo: PlacedBox[], request: PackingRequest, config: FloorP
 /** Pack cargo with stock-limited specifications, then load rigid units. */
 export function palletizeThenPack(request: PackingRequest, input: FloorPalletConfig, mix: "single" | "mixed", maxPallets = 20, build?: PalletBuildOptions) {
   const started = performance.now();
+  assertAccessorySupportWorkflow({...request,workflow:"palletized"});
   const config = parseFloorPalletConfig(input);
   const options = parsePalletBuild(build ?? { ...DEFAULT_PALLET_BUILD, config, mix, maxPallets });
   const specifications = palletSpecifications(options), bySpecification = new Map(specifications.map(s=>[s.id,s]));

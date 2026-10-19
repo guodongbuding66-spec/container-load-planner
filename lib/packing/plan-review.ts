@@ -1,3 +1,4 @@
+import {inspectAccessorySupports,hasAccessorySupports} from "./accessory-support";
 import {accessoryInstallationPlan} from "./container-accessories";
 import {inspectLongSupport,SUPPORT_ISSUES} from "./long-support";
 import { auditAccess } from "./access";
@@ -69,7 +70,7 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
     bearing.scope=["公差包络仅用于保守占位；真实接触面、防滚和承托未核验。","Tolerance proxies only reserve conservative space; actual contact faces, anti-roll and support remain unverified."];
   }
   if(plan.container.exclusions?.length){
-    const geometry=checks.find(c=>c.id==="geometry")!;geometry.scope=[geometry.scope[0]+" 柜内障碍及禁占区参与同一校验，不提供承托。",geometry.scope[1]+" Site exclusions participate in the same validation and provide no support."];
+    const geometry=checks.find(c=>c.id==="geometry")!;geometry.scope=hasAccessorySupports(plan.container)?[geometry.scope[0]+" 仅明确声明的落地实心支承件提供顶面接触，其余区域不承托。",geometry.scope[1]+" Only explicitly declared solid floor supports provide top-surface contact; other regions provide no support."]:[geometry.scope[0]+" 柜内障碍及禁占区参与同一校验，不提供承托。",geometry.scope[1]+" Site exclusions participate in the same validation and provide no support."];
     if(plan.container.loadingAccess==="open"&&plan.workflow!=="pallet-only"){
       const path=checks.find(c=>c.id==="path")!;if(path.state!=="fail")path.state="unverified";path.scope=["开放装载面的区域绕行尚未核验；具体装卸操作由现场安排。","Routing around site regions during open loading remains unverified; on-site teams arrange actual loading operations."];
     }
@@ -78,6 +79,15 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
     const securing=checks.find(c=>c.id==="securing")!;
     securing.scope=["已记录附件包络、计划重量与安装依赖；所有预留始终参与几何和路径检查。固定强度、安装可达、拆除动作和现场施工未核验。","Accessory envelopes, planned mass and installation dependencies are recorded. All reservations always constrain geometry and access. Securing strength, installation reach, removal and field work remain unverified."];
     try{securing.items=accessoryInstallationPlan(plan).map(row=>[row.region.id,...row.missingProductIds].join(" / "));}catch{securing.state="fail";securing.scope=["附件安装依赖无效，请重新计算。","Accessory installation dependencies are invalid; recalculate."];securing.items=[];}
+  }
+  const supports=inspectAccessorySupports(plan,products);
+  if(supports.length){
+    const bearing=checks.find(c=>c.id==="bearing")!;
+    if(supports.some(r=>r.state==="fail"))bearing.state="fail";
+    else if(supports.some(r=>r.state==="unverified")&&bearing.state!=="fail")bearing.state="unverified";
+    bearing.model+=" + inspectAccessorySupports";
+    bearing.scope=[bearing.scope[0]+" 固定支承件按接触面积累计上方载荷；缺额定值或来源版本保持未核验。",bearing.scope[1]+" Fixed supports accumulate upper load by contact area; missing ratings or source/revision remain unverified."];
+    bearing.items.push(...supports.filter(r=>r.state!=="pass").map(r=>`${r.id}: ${r.state}; ${(r.loadKg?.toFixed(2)??"—")} / ${r.limitKg??"unknown"} kg`));
   }
   const longSupport=inspectLongSupport(plan,products);
   if(longSupport.length){

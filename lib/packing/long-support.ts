@@ -1,3 +1,4 @@
+import {accessorySupportGeometry} from "./accessory-support";
 import type { PackingResult, PlacedBox, ProductInput } from "./types";
 import { bodyTopPatches, orientationAxes, validOrientationSigns } from "./cargo-body";
 import { placedPackagingParts } from "./packaging";
@@ -95,7 +96,9 @@ export function inspectLongSupportPlacement(b:PlacedBox,p:ProductInput|undefined
         if(lower.id===b.id||lower.x+lower.dx<=b.x||lower.x>=b.x+b.dx||lower.y+lower.dy<=b.y||lower.y>=b.y+b.dy)continue;
         const lp=rules.get(lower.productId);
         if(!rectangular(lp)){row.issues.push("surface");continue;}
-        for(const patch of bodyTopPatches(lower,lp,b.z))add(patch.x,patch.y,patch.dx,patch.dy,lower.id);
+        const patches=bodyTopPatches(lower,lp,b.z);
+        if(patches.length&&lower.supportEvidence&&(!lower.supportEvidence.source.trim()||!lower.supportEvidence.revision.trim()))row.issues.push("base-evidence");
+        for(const patch of patches)add(patch.x,patch.y,patch.dx,patch.dy,lower.id);
       }
       for(const pallet of pallets){
         if(Math.abs(pallet.z+pallet.dz-b.z)>EPS||pallet.x+pallet.dx<=b.x||pallet.x>=b.x+b.dx||pallet.y+pallet.dy<=b.y||pallet.y>=b.y+b.dy)continue;
@@ -131,7 +134,8 @@ export function longSupportViolation(row:LongSupportRow|undefined):string|undefi
 /** Independent review shares the exact same contact geometry as placement acceptance. */
 export function inspectLongSupport(plan:PackingResult, products?:readonly ProductInput[]):LongSupportRow[] {
   const rules=new Map(products?.map(p=>[p.id,p])??[]),byTop=new Map<number,PlacedBox[]>();
-  for(const b of plan.placements){const key=Math.round((b.z+b.dz)/EPS),list=byTop.get(key);if(list)list.push(b);else byTop.set(key,[b]);}
+  const fixed=accessorySupportGeometry(plan.container,plan.clearance);fixed.products.forEach(p=>rules.set(p.id,p));
+  for(const b of [...plan.placements,...fixed.boxes]){const key=Math.round((b.z+b.dz)/EPS),list=byTop.get(key);if(list)list.push(b);else byTop.set(key,[b]);}
   const rows:LongSupportRow[]=[];let remaining=100000;
   for(const b of plan.placements){
     const p=rules.get(b.productId),raw=p?p.longSupport:plan.cargoDetails?.[b.productId]?.longSupport;

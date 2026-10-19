@@ -198,6 +198,8 @@ export type PlacedBox = {
   orientationSigns?: OrientationSigns;
   /** Internal support envelope; never used for a customer carton. */
   supportOnly?: boolean;
+  /** Internal fixed support contact provenance; reconstructed from container configuration. */
+  supportEvidence?: {source:string;revision:string};
   palletIds?: string[];
   locked?: boolean;
   id: string;
