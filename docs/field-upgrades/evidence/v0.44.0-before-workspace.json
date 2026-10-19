@@ -1,0 +1,1265 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.44.0",
+  "createdAt": "2026-10-19T09:36:26.536Z",
+  "inputs": {
+    "palletLayerTemplates": [],
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "solid",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "QA 长条箱托",
+        "length": 2200,
+        "width": 1240,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 540
+      },
+      "mix": "single",
+      "maxPallets": 2,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "primaryRule": {
+        "maxPallets": 2
+      }
+    },
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "practical",
+    "practicalTargetPercent": 88,
+    "container": {
+      "id": "40hq",
+      "name": "40HQ 高柜",
+      "length": 12032,
+      "width": 2350,
+      "height": 2700,
+      "doorWidth": 2340,
+      "doorHeight": 2597,
+      "maxWeight": 28600
+    },
+    "clearance": 10,
+    "products": [
+      {
+        "id": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "length": 2200,
+        "width": 620,
+        "height": 180,
+        "weight": 42.5,
+        "quantity": 12,
+        "priority": 100,
+        "rotationPolicy": "any",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.25,
+        "color": "#2f7f89"
+      }
+    ],
+    "customContainers": [],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {
+    "practical": {
+      "workflow": "palletized",
+      "palletBuild": {
+        "config": {
+          "packaging": {
+            "base": "solid",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "QA 长条箱托",
+          "length": 2200,
+          "width": 1240,
+          "height": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 540
+        },
+        "mix": "single",
+        "maxPallets": 2,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "primaryRule": {
+          "maxPallets": 2
+        }
+      },
+      "strategy": "practical",
+      "placements": [
+        {
+          "id": "prebuilt-1",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 144,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-2",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 620,
+          "z": 144,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-3",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 324,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-4",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 620,
+          "z": 324,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-5",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 504,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-6",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 620,
+          "z": 504,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-7",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 2200,
+          "y": 0,
+          "z": 144,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-8",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 2200,
+          "y": 620,
+          "z": 144,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-9",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 2200,
+          "y": 0,
+          "z": 324,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-10",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 2200,
+          "y": 620,
+          "z": 324,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-11",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 2200,
+          "y": 0,
+          "z": 504,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-12",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 2200,
+          "y": 620,
+          "z": 504,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        }
+      ],
+      "pallets": [
+        {
+          "id": "floor-pallet-1",
+          "presetId": "eur-1200-800",
+          "name": "QA 长条箱托",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 2200,
+          "dy": 1240,
+          "dz": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "specificationId": "primary",
+          "packaging": {
+            "base": "solid",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          }
+        },
+        {
+          "id": "floor-pallet-2",
+          "presetId": "eur-1200-800",
+          "name": "QA 长条箱托",
+          "x": 2200,
+          "y": 0,
+          "z": 0,
+          "dx": 2200,
+          "dy": 1240,
+          "dz": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "specificationId": "primary",
+          "packaging": {
+            "base": "solid",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          }
+        }
+      ],
+      "palletization": {
+        "config": {
+          "packaging": {
+            "base": "solid",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "QA 长条箱托",
+          "length": 2200,
+          "width": 1240,
+          "height": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 540
+        },
+        "mix": "single",
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "preparedCount": 2,
+        "bounded": false,
+        "only": false,
+        "specifications": [
+          {
+            "id": "primary",
+            "config": {
+              "packaging": {
+                "base": "solid",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "QA 长条箱托",
+              "length": 2200,
+              "width": 1240,
+              "height": 144,
+              "weight": 25,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 540
+            },
+            "maxPallets": 2,
+            "stackLayers": 1,
+            "maxTopLoadKg": 0
+          }
+        ],
+        "preparedBySpecification": {
+          "primary": 2
+        }
+      }
+    },
+    "maximum": {
+      "workflow": "palletized",
+      "palletBuild": {
+        "config": {
+          "packaging": {
+            "base": "solid",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "QA 长条箱托",
+          "length": 2200,
+          "width": 1240,
+          "height": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 540
+        },
+        "mix": "single",
+        "maxPallets": 2,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "primaryRule": {
+          "maxPallets": 2
+        }
+      },
+      "strategy": "maximum",
+      "placements": [
+        {
+          "id": "prebuilt-1",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 144,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-2",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 620,
+          "z": 144,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-3",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 324,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-4",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 620,
+          "z": 324,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-5",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 504,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-6",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 620,
+          "z": 504,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-7",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 2200,
+          "y": 0,
+          "z": 144,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-8",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 2200,
+          "y": 620,
+          "z": 144,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-9",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 2200,
+          "y": 0,
+          "z": 324,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-10",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 2200,
+          "y": 620,
+          "z": 324,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-11",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 2200,
+          "y": 0,
+          "z": 504,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-12",
+          "productId": "shed-101",
+          "sku": "SHED-101",
+          "name": "金属工具房主箱",
+          "color": "#2f7f89",
+          "x": 2200,
+          "y": 620,
+          "z": 504,
+          "dx": 2200,
+          "dy": 620,
+          "dz": 180,
+          "weight": 42.5,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        }
+      ],
+      "pallets": [
+        {
+          "id": "floor-pallet-1",
+          "presetId": "eur-1200-800",
+          "name": "QA 长条箱托",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 2200,
+          "dy": 1240,
+          "dz": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "specificationId": "primary",
+          "packaging": {
+            "base": "solid",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          }
+        },
+        {
+          "id": "floor-pallet-2",
+          "presetId": "eur-1200-800",
+          "name": "QA 长条箱托",
+          "x": 2200,
+          "y": 0,
+          "z": 0,
+          "dx": 2200,
+          "dy": 1240,
+          "dz": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "specificationId": "primary",
+          "packaging": {
+            "base": "solid",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          }
+        }
+      ],
+      "palletization": {
+        "config": {
+          "packaging": {
+            "base": "solid",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "QA 长条箱托",
+          "length": 2200,
+          "width": 1240,
+          "height": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 540
+        },
+        "mix": "single",
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "preparedCount": 2,
+        "bounded": false,
+        "only": false,
+        "specifications": [
+          {
+            "id": "primary",
+            "config": {
+              "packaging": {
+                "base": "solid",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "QA 长条箱托",
+              "length": 2200,
+              "width": 1240,
+              "height": 144,
+              "weight": 25,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 540
+            },
+            "maxPallets": 2,
+            "stackLayers": 1,
+            "maxTopLoadKg": 0
+          }
+        ],
+        "preparedBySpecification": {
+          "primary": 2
+        }
+      }
+    }
+  },
+  "coordinatePlan": {
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "solid",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "QA 长条箱托",
+        "length": 2200,
+        "width": 1240,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 540
+      },
+      "mix": "single",
+      "maxPallets": 2,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "primaryRule": {
+        "maxPallets": 2
+      }
+    },
+    "strategy": "practical",
+    "placements": [
+      {
+        "id": "prebuilt-1",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 144,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 180,
+        "weight": 42.5,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-2",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 620,
+        "z": 144,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 180,
+        "weight": 42.5,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-3",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 324,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 180,
+        "weight": 42.5,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-4",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 620,
+        "z": 324,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 180,
+        "weight": 42.5,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-5",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 504,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 180,
+        "weight": 42.5,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-6",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 620,
+        "z": 504,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 180,
+        "weight": 42.5,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-7",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 2200,
+        "y": 0,
+        "z": 144,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 180,
+        "weight": 42.5,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-8",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 2200,
+        "y": 620,
+        "z": 144,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 180,
+        "weight": 42.5,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-9",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 2200,
+        "y": 0,
+        "z": 324,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 180,
+        "weight": 42.5,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-10",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 2200,
+        "y": 620,
+        "z": 324,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 180,
+        "weight": 42.5,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-11",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 2200,
+        "y": 0,
+        "z": 504,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 180,
+        "weight": 42.5,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-12",
+        "productId": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "color": "#2f7f89",
+        "x": 2200,
+        "y": 620,
+        "z": 504,
+        "dx": 2200,
+        "dy": 620,
+        "dz": 180,
+        "weight": 42.5,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      }
+    ],
+    "pallets": [
+      {
+        "id": "floor-pallet-1",
+        "presetId": "eur-1200-800",
+        "name": "QA 长条箱托",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "dx": 2200,
+        "dy": 1240,
+        "dz": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "orientation": "LWH",
+        "specificationId": "primary",
+        "packaging": {
+          "base": "solid",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        }
+      },
+      {
+        "id": "floor-pallet-2",
+        "presetId": "eur-1200-800",
+        "name": "QA 长条箱托",
+        "x": 2200,
+        "y": 0,
+        "z": 0,
+        "dx": 2200,
+        "dy": 1240,
+        "dz": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "orientation": "LWH",
+        "specificationId": "primary",
+        "packaging": {
+          "base": "solid",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        }
+      }
+    ],
+    "palletization": {
+      "config": {
+        "packaging": {
+          "base": "solid",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "QA 长条箱托",
+        "length": 2200,
+        "width": 1240,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 540
+      },
+      "mix": "single",
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "preparedCount": 2,
+      "bounded": false,
+      "only": false,
+      "specifications": [
+        {
+          "id": "primary",
+          "config": {
+            "packaging": {
+              "base": "solid",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "QA 长条箱托",
+            "length": 2200,
+            "width": 1240,
+            "height": 144,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 540
+          },
+          "maxPallets": 2,
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        }
+      ],
+      "preparedBySpecification": {
+        "primary": 2
+      }
+    }
+  }
+}
