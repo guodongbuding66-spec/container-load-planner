@@ -2,7 +2,7 @@ import {afterEach,describe,expect,it,vi} from "vitest";
 import * as engine from "./engine";
 import {packLoadingWorkflow} from "./pack-loading";
 import {DEFAULT_PALLET_BUILD} from "./loading-workflow";
-import {editPalletContents,palletLocalBox,palletOrderPool} from "./pallet-edit";
+import {editPalletContents,palletLocalBox,palletLocalDelta,palletOrderPool,palletWorldBox} from "./pallet-edit";
 import {editPlan} from "./plan-edit";
 import {inspectDeckSupports} from "./deck-support";
 import {auditPackingResult} from "./result-audit";
@@ -23,6 +23,10 @@ function sparse(strategy:PackingStrategy="maximum"){
 }
 afterEach(()=>vi.restoreAllMocks());
 describe("single-pallet bounded repacking",()=>{
+ it("converts scene drags into the same local offset as world/local box transforms for all four turns",()=>{
+   const p=make().pallets![0],b={...make().placements[0],x:20,y:30,z:40},delta={x:70,y:-90,z:10};
+   for(const q of [0,1,2,3] as const){const pallet={...p,orientation:q%2?"WLH" as const:"LWH" as const,quarterTurns:q,dx:q%2?600:800,dy:q%2?800:600},world=palletWorldBox(b,pallet),moved=palletLocalBox({...world,x:world.x+delta.x,y:world.y+delta.y,z:world.z+delta.z},pallet),expected=palletLocalDelta(delta,pallet);expect([moved.x-b.x,moved.y-b.y,moved.z-b.z]).toEqual([expected.x,expected.y,expected.z]);}
+ });
  it.each(["practical","maximum"] as const)("lowers a sparse stack without borrowing order cargo or moving other pallets (%s)",strategy=>{
    let plan=sparse(strategy);const p=plan.pallets![0];plan=editPalletContents(plan,[product],p.id,{type:"lock-others",locked:true});
    const before=JSON.stringify(plan),next=repackPalletContents(plan,[product],p.id);

@@ -12,7 +12,7 @@ import { FeatureDialog } from "./feature-dialog";
 import { tr, trText, useLanguage } from "./language";
 import { usePlanEditor, type PlanEditor } from "./use-plan-editor";
 import { NumericInput } from "./numeric-input";
-import { palletLayers, palletLocalBox, palletOrderPool } from "../lib/packing/pallet-edit";
+import { palletLayers, palletLocalBox, palletLocalDelta, palletOrderPool } from "../lib/packing/pallet-edit";
 import { snapGroupTranslation, type Delta } from "../lib/packing/plan-edit";
 import { specificationForPallet } from "../lib/packing/pallet-specifications";
 import { packagingInterior } from "../lib/packing/packaging";
@@ -63,7 +63,7 @@ export function PalletUnitViewer({result,id,onClose,products=[],disabled=false,o
   const p=draft.pallets!.find(p=>p.id===id)!;
   const selected=editor.selected.filter(b=>b.palletIds?.includes(id)).map(b=>({...b,x:b.x-p.x,y:b.y-p.y,z:b.z-p.z}));
   const scoped:PlanEditor={...editor,source:plan,plan,selected,message:palletMessage(editor.message),disabled:editor.disabled||pending||!!p.locked,discard,apply:()=>{if(!pending)editor.apply();},
-    move:(delta,rotate=false)=>{const snap=rotate?delta:snapGroupTranslation(plan,selected,delta,editor.grid,editor.tolerance);return editor.palletEdit(id,rotate?{type:"rotate",ids:selected.map(b=>b.id)}:{type:"move",ids:selected.map(b=>b.id),delta:p.orientation==="WLH"?{x:-snap.y,y:snap.x,z:snap.z}:snap});},
+    move:(delta,rotate=false)=>{const snap=rotate?delta:snapGroupTranslation(plan,selected,delta,editor.grid,editor.tolerance);return editor.palletEdit(id,rotate?{type:"rotate",ids:selected.map(b=>b.id)}:{type:"move",ids:selected.map(b=>b.id),delta:palletLocalDelta(snap,p)});},
     lock:()=>editor.palletEdit(id,{type:"lock-cargo",ids:selected.map(b=>b.id),locked:!selected.every(b=>b.locked)})
   };
   const [view,setView]=useState<CameraView>("perspective"),[projection,setProjection]=useState<CameraProjection>("perspective");

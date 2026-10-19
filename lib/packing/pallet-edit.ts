@@ -34,6 +34,10 @@ export function palletWorldBox(b:PlacedBox,p:PlacedPallet):PlacedBox {
   const times=palletQuarterTurns(p),cross=p.orientation==="WLH",r=rotateDeckRect(b,cross?p.dy:p.dx,cross?p.dx:p.dy,times),oriented=turn(b,times);
   return {...oriented,x:p.x+r.x,y:p.y+r.y,z:p.z+p.dz+b.z,palletIds:[p.id]};
 }
+/** Scene drags use world axes; editing inputs use the original pallet axes. */
+export function palletLocalDelta(delta:Delta,p:PlacedPallet):Delta{
+  let result={...delta};for(let n=0;n<palletQuarterTurns(p);n++)result={x:-result.y,y:result.x,z:result.z};return result;
+}
 export type PalletRepackMeasures={cargoTopMm:number;unitHeightMm:number;lengthMm:number;widthMm:number;footprintMm2:number};
 export function palletContentMeasures(p:PlacedPallet,cargo:PlacedBox[]):PalletRepackMeasures{
   const boxes=cargo.map(b=>palletLocalBox(b,p)),length=Math.max(...boxes.map(b=>b.x+b.dx))-Math.min(...boxes.map(b=>b.x)),width=Math.max(...boxes.map(b=>b.y+b.dy))-Math.min(...boxes.map(b=>b.y));
