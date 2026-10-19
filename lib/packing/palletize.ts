@@ -1,3 +1,4 @@
+import {inspectLongSupport,longSupportViolation} from "./long-support";
 import {containerAccessoryWeight} from "./container-accessories";
 import { pack, restorePackingSnapshot, getOrientations, MAX_VISIBLE_PLACEMENTS } from "./engine";
 import { quarterTurnOrientation, bodyContactArea } from "./cargo-body";
@@ -76,6 +77,12 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
       const local=pack({...request,palletBuildStage:true,workflow:undefined,palletBuild:undefined,floorPallets:undefined,mode:"mixed",strategy,practicalTargetUtilization:.95,
         container:{id:"build-pallet",name:c.name,category:"pallet",loadingAccess:"open",length:interior.length,width:interior.width,height:cargoHeight,doorWidth:interior.width,doorHeight:cargoHeight,maxWeight:c.maxLoad},clearance:0,products});
       if(!local.validation.valid)throw new Error(local.validation.errors.join("; "));
+      // The local floor is a search proxy. Recheck the actual measured boards before
+      // committing a complete unit; never trim failed members out of a kit.
+      const supportBase:PlacedPallet={id:"build-base",presetId:c.presetId,name:c.name,x:0,y:0,z:0,dx:c.length,dy:c.width,dz:c.height,weight:c.weight,maxLoad:c.maxLoad,orientation:"LWH",packaging:c.packaging};
+      const physical={...local,pallets:[supportBase],placements:local.placements.map(b=>({...b,x:b.x+interior.inset,y:b.y+interior.inset,z:b.z+c.height}))};
+      const violation=inspectLongSupport(physical,products).map(longSupportViolation).find(Boolean);
+      if(violation){lastReason=violation;continue;}
       if(!local.placements.some(b=>groupKey(sourceProducts.get(b.productId)!)===firstKey))continue;
       if(cartonCount+local.placements.length>MAX_VISIBLE_PLACEMENTS){coordinateLimit=true;if(options.selection==="compact")continue;break;}
       const height=Math.max(...local.placements.map(b=>b.z+b.dz));

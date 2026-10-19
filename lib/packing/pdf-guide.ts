@@ -58,7 +58,7 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
   const longSupport=inspectLongSupport(result,products);
   for(let from=0;from<longSupport.length;from+=5){
     start(t("长条箱承托预检（独立几何）","Long-carton support preflight (independent geometry)"));
-    text(t("所有尺寸 mm；不自动重排或放行箱位；材料强度未核验。完整资料见工作区或客户报告。","All sizes in mm; no automatic repacking or placement authorization. Material strength is unverified. Complete data: workspace or customer report."),100,305,24);
+    text(t("尺寸 mm；完整适用资料参与求解和箱位校验；材料强度未核验。完整资料见工作区或客户报告。","Sizes in mm; complete applicable data constrains packing and placement acceptance. Material strength is unverified. Full data: workspace or customer report."),100,305,24);
     longSupport.slice(from,from+5).forEach((r,i)=>{const y=410+i*375;
       text(ellipsis(`${r.sku} / ${r.id}`,1500),100,y,28,true);
       text(r.state==="pass"?t("符合输入几何限制","Meets entered geometric limits"):r.state==="fail"?t("不符合输入几何限制","Exceeds entered geometric limits"):t("未核验","Unverified"),100,y+45,26,true);

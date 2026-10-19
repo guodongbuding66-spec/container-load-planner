@@ -65,25 +65,19 @@ function contactSlabs(contacts:Rect[],length:number,width:number,ratio:number) {
   return {area,intervals};
 }
 function rectangular(p: ProductInput | undefined) { return !!p && !p.solidModel && cargoShapeOf(p) === "box"; }
-/** Independent check only: never changes quantities, places supports, or certifies material strength. */
-export function inspectLongSupport(plan:PackingResult, products?:readonly ProductInput[]):LongSupportRow[] {
-  const rules=new Map(products?.map(p=>[p.id,p])??[]);
-  const byTop=new Map<number,PlacedBox[]>();
-  for(const b of plan.placements){const key=Math.round((b.z+b.dz)/EPS),list=byTop.get(key);if(list)list.push(b);else byTop.set(key,[b]);}
-  const rows:LongSupportRow[]=[];let remaining=100000;
-  for(const b of plan.placements){
-    const p=rules.get(b.productId),raw=p?p.longSupport:plan.cargoDetails?.[b.productId]?.longSupport;
-    if(raw===undefined)continue;
-    const row:LongSupportRow={id:b.id,sku:b.sku,state:"unverified",issues:[],contacts:[],supporterIds:[],bandRatios:[]};rows.push(row);
-    let profile:LongSupportProfile;try{profile=parseLongSupport(raw);row.profile=profile;}catch{row.issues.push("invalid");continue;}
-    if(!p){row.issues.push("missing-product");continue;}
-    if(!rectangular(p)){row.issues.push("shape");continue;}
-    if((["length","width","height"] as const).some(k=>Math.abs(p[k]-profile.dimensions[k])>EPS)){row.issues.push("dimensions");continue;}
-    if(plan.dimensionScenario&&plan.dimensionScenario.kind!=="nominal"){row.issues.push("tolerance");continue;}
-    if(!["LWH","LHW","WLH","WHL","HLW","HWL"].includes(b.orientation)||!validOrientationSigns(b.orientation,b.orientationSigns)||![b.x,b.y,b.z,b.dx,b.dy,b.dz].every(Number.isFinite)||b.z<-EPS){row.issues.push("invalid");continue;}
+/** The shared bounded contact check. Supporters are indexed at this box's bottom level. */
+export function inspectLongSupportPlacement(b:PlacedBox,p:ProductInput|undefined,rules:ReadonlyMap<string,ProductInput>,supporters:readonly PlacedBox[],pallets:readonly import("./types").PlacedPallet[]=[],raw=p?.longSupport,nominal=true,budget=100000):LongSupportRow|undefined {
+    if(raw===undefined)return undefined;
+    const row:LongSupportRow={id:b.id,sku:b.sku,state:"unverified",issues:[],contacts:[],supporterIds:[],bandRatios:[]};
+    let profile:LongSupportProfile;try{profile=parseLongSupport(raw);row.profile=profile;}catch{row.issues.push("invalid");return row;}
+    if(!p){row.issues.push("missing-product");return row;}
+    if(!rectangular(p)){row.issues.push("shape");return row;}
+    if((["length","width","height"] as const).some(k=>Math.abs(p[k]-profile.dimensions[k])>EPS)){row.issues.push("dimensions");return row;}
+    if(!nominal){row.issues.push("tolerance");return row;}
+    if(!["LWH","LHW","WLH","WHL","HLW","HWL"].includes(b.orientation)||!validOrientationSigns(b.orientation,b.orientationSigns)||![b.x,b.y,b.z,b.dx,b.dy,b.dz].every(Number.isFinite)||b.z<-EPS){row.issues.push("invalid");return row;}
     const axes=orientationAxes(b.orientation as import("./types").OrientationCode,b.orientationSigns);
-    if(axes.some((a,i)=>Math.abs([p.length,p.width,p.height][a.original]-[b.dx,b.dy,b.dz][i])>EPS)){row.issues.push("dimensions");continue;}
-    if(axes[2].original!==2||axes[2].negative){row.state="fail";row.issues.push("face");continue;}
+    if(axes.some((a,i)=>Math.abs([p.length,p.width,p.height][a.original]-[b.dx,b.dy,b.dz][i])>EPS)){row.issues.push("dimensions");return row;}
+    if(axes[2].original!==2||axes[2].negative){row.state="fail";row.issues.push("face");return row;}
     const axis=profile.axis==="L"?0:1,worldAxis=axes.findIndex(a=>a.original===axis);
     const length=profile.axis==="L"?p.length:p.width,width=profile.axis==="L"?p.width:p.length;row.length=length;row.width=width;
     const add=(x:number,y:number,dx:number,dy:number,id:string)=>{
@@ -94,16 +88,16 @@ export function inspectLongSupport(plan:PackingResult, products?:readonly Produc
     };
     if(b.z<=EPS)add(b.x,b.y,b.dx,b.dy,"floor");
     else {
-      const candidates=byTop.get(Math.round(b.z/EPS))??[];
-      if(candidates.length>500||candidates.length+(plan.pallets?.length??0)>remaining){row.issues.push("budget");continue;}
-      remaining-=candidates.length+(plan.pallets?.length??0);
+      const candidates=supporters;
+      if(candidates.length>500||candidates.length+pallets.length>budget){row.issues.push("budget");return row;}
+
       for(const lower of candidates){
         if(lower.id===b.id||lower.x+lower.dx<=b.x||lower.x>=b.x+b.dx||lower.y+lower.dy<=b.y||lower.y>=b.y+b.dy)continue;
         const lp=rules.get(lower.productId);
         if(!rectangular(lp)){row.issues.push("surface");continue;}
         for(const patch of bodyTopPatches(lower,lp,b.z))add(patch.x,patch.y,patch.dx,patch.dy,lower.id);
       }
-      for(const pallet of plan.pallets??[]){
+      for(const pallet of pallets){
         if(Math.abs(pallet.z+pallet.dz-b.z)>EPS||pallet.x+pallet.dx<=b.x||pallet.x>=b.x+b.dx||pallet.y+pallet.dy<=b.y||pallet.y>=b.y+b.dy)continue;
         const m=pallet.packaging?.measurements;
         if(!m?.source.trim()||!m.revision.trim())row.issues.push("base-evidence");
@@ -123,6 +117,29 @@ export function inspectLongSupport(plan:PackingResult, products?:readonly Produc
     row.issues=[...new Set(row.issues)];
     const uncertain=row.issues.some(i=>["surface","base-evidence"].includes(i));
     row.state=!uncertain&&row.issues.some(i=>["no-contact","band","span","overhang"].includes(i))?"fail":row.issues.length?"unverified":"pass";
+  return row;
+}
+/** Missing evidence never becomes an enforceable pass or a guessed rejection. */
+export function hasLongSupportLimits(p:ProductInput|undefined):boolean {
+  if(!rectangular(p)||p?.longSupport===undefined)return false;
+  try{const r=parseLongSupport(p.longSupport);return !!r.source&&!!r.revision&&r.maxSpanMm!==undefined&&r.maxOverhangMm!==undefined&&(["length","width","height"] as const).every(k=>Math.abs(p[k]-r.dimensions[k])<=EPS);}catch{return false;}
+}
+export function longSupportViolation(row:LongSupportRow|undefined):string|undefined {
+  if(row?.state!=="fail"||!row.profile?.source||!row.profile.revision||row.profile.maxSpanMm===undefined||row.profile.maxOverhangMm===undefined)return undefined;
+  return `${row.sku} / ${row.id}: 长条箱承托限制 / Long-carton support limits: ${row.issues.map(i=>SUPPORT_ISSUES[i].join(" / ")).join("; ")}`;
+}
+/** Independent review shares the exact same contact geometry as placement acceptance. */
+export function inspectLongSupport(plan:PackingResult, products?:readonly ProductInput[]):LongSupportRow[] {
+  const rules=new Map(products?.map(p=>[p.id,p])??[]),byTop=new Map<number,PlacedBox[]>();
+  for(const b of plan.placements){const key=Math.round((b.z+b.dz)/EPS),list=byTop.get(key);if(list)list.push(b);else byTop.set(key,[b]);}
+  const rows:LongSupportRow[]=[];let remaining=100000;
+  for(const b of plan.placements){
+    const p=rules.get(b.productId),raw=p?p.longSupport:plan.cargoDetails?.[b.productId]?.longSupport;
+    if(raw===undefined)continue;
+    const candidates=byTop.get(Math.round(b.z/EPS))??[];
+    const row=inspectLongSupportPlacement(b,p,rules,candidates,plan.pallets??[],raw,!plan.dimensionScenario||plan.dimensionScenario.kind==="nominal",remaining);
+    if(row)rows.push(row);
+    if(b.z>EPS)remaining-=candidates.length+(plan.pallets?.length??0);
   }
   return rows;
 }

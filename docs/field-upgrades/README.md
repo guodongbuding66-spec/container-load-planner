@@ -23,7 +23,7 @@
 | [010C](010c-turning-contract.md) | 具体叉车转向 | — | — | — | EXCLUDED 用户移出范围 |
 | [011](011-layer-templates.md) | 托内层型模板与批量叠层 | P1 | M | 002 | v0.39.0 首阶段软件 |
 | [011B](011b-long-cargo-support.md) | 长条箱承托与悬跨资料 | P1 | M | 011 | PARTIAL：v0.40.0 资料与独立预检 |
-| [011C](011c-support-enforcement.md) | 长件支承约束与局部重排 | P1 | L | 011B | TODO |
+| [011C](011c-support-enforcement.md) | 长件支承约束与局部重排 | P1 | L | 011B | PARTIAL：v0.41.0 约束接入；垫木与局部重排待做 |
 
 002 与 003 在输入和版本契约稳定后可独立推进。004 的生产启用依赖有效的木箱结构额定资料；资料缺失时可以完成参数与未核验流程，不允许靠示例数值启用实际叠箱。
 

@@ -1,5 +1,5 @@
 import {containerAccessoryWeight,accessoryMassBoxes,accessoryProductErrors} from "./container-accessories";
-import {parseLongSupport} from "./long-support";
+import {parseLongSupport,hasLongSupportLimits,inspectLongSupportPlacement,longSupportViolation} from "./long-support";
 import {parseHandlingTasks} from "./handling-sequence";
 import {parseSiteExclusions,siteExclusionBoxes,availablePackingVolume,SITE_EXCLUSION_PREFIX} from "./site-exclusions";
 import { packagingReservedVolume, packagingMassCenter } from "./packaging";
@@ -43,7 +43,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.40.0";
+export const ENGINE_VERSION = "0.41.0";
 
 type Orientation = {
   dx: number;
@@ -317,7 +317,7 @@ export function getOrientations(product: ProductInput, deduplicate = true): Orie
   if (product.allowedOrientations) {
     const dimensions: Record<string, number> = { L: product.length, W: product.width, H: product.height };
     const seen = new Set<string>();
-    return product.allowedOrientations.map(code => ({ dx: dimensions[code[0]], dy: dimensions[code[1]], dz: dimensions[code[2]], label: code })).filter(v => { const key = `${v.dx}:${v.dy}:${v.dz}`; if (deduplicate && cargoShapeOf(product)==="box" && seen.has(key)) return false; seen.add(key); return true; });
+    return product.allowedOrientations.map(code => ({ dx: dimensions[code[0]], dy: dimensions[code[1]], dz: dimensions[code[2]], label: code })).filter(v => { const key = `${v.dx}:${v.dy}:${v.dz}`; if (deduplicate && cargoShapeOf(product)==="box" && !hasLongSupportLimits(product) && seen.has(key)) return false; seen.add(key); return true; });
   }
   const l = positive(product.length);
   const w = positive(product.width);
@@ -343,7 +343,7 @@ export function getOrientations(product: ProductInput, deduplicate = true): Orie
   const seen = new Set<string>();
   return raw.filter((item) => {
     const key = `${item.dx}:${item.dy}:${item.dz}`;
-    if (cargoShapeOf(product)==="box" && seen.has(key)) return false;
+    if (cargoShapeOf(product)==="box" && !hasLongSupportLimits(product) && seen.has(key)) return false;
     seen.add(key);
     return true;
   });
@@ -368,7 +368,7 @@ function getPracticalOrientations(product: ProductInput): Orientation[] {
   const seen = new Set<string>();
   return raw.filter((item) => {
     const key = `${item.dx}:${item.dy}:${item.dz}`;
-    if (cargoShapeOf(product)==="box" && seen.has(key)) return false;
+    if (cargoShapeOf(product)==="box" && !hasLongSupportLimits(product) && seen.has(key)) return false;
     seen.add(key);
     return true;
   });
@@ -395,6 +395,7 @@ export function inspectCargoFit(product: ProductInput, container: ContainerSpec,
     if (!rest.length) reasons.push("适配柜体的朝向均缺少有效平底、允许受托面或防滚固定；请添加真实底座／支架并确认防滚，或调整允许受托面和朝向。");
     else if (!rest.some(b => supportDetails(b, new Map(), new Map([[product.id, product]])).ratio + EPS >= requiredSupport(product, strategy))) reasons.push("适配柜体的底面无法稳定支撑货物重心，请调整部件位置、配重或支架。");
   }
+  if(hasLongSupportLimits(product)&&fitting.length&&fitting.every(o=>supportDetails(makePlacement(product,0,{x:0,y:0,z:0},o),new Map(),new Map([[product.id,product]])).longSupportError))reasons.push("当前适配的允许朝向均不能使指定原始底面 H− 朝下 / No fitting allowed orientation keeps the specified H− bottom face down");
   if (product.weight > container.maxWeight + EPS) reasons.push("单件毛重超过装载空间最大载重，请核对重量单位或更换装载空间。");
   return { effective, reasons };
 }
@@ -471,7 +472,7 @@ class SpatialIndex {
   }
 }
 
-function supportDetails(
+function supportAreaDetails(
   candidate: PlacedBox,
   topLevels: Map<number, PlacedBox[]>,
   products: Map<string, ProductInput>,
@@ -496,6 +497,16 @@ function supportDetails(
   }
   const bottomArea=ownPatches.reduce((n,s)=>n+surfaceArea(s),0);
   return { ratio: bottomArea>EPS&&modelStable(candidate,own??{},contacts)?(ownPatches.every((_,i)=>coveredBottom.has(i))?1:Math.min(1, supportedArea / bottomArea)):0, layer };
+}
+
+/** Preserve the existing support-area/weight rules and add sourced geometric limits. */
+function supportDetails(candidate:PlacedBox,topLevels:Map<number,PlacedBox[]>,products:Map<string,ProductInput>) {
+  const area=supportAreaDetails(candidate,topLevels,products),own=products.get(candidate.productId);
+  if(!hasLongSupportLimits(own))return {...area,longSupportError:undefined};
+  const below=topLevels.get(supportLevelKey(candidate.z))??[];
+  const pallets=below.filter(b=>b.supportOnly&&"presetId" in b) as unknown as PlacedPallet[];
+  const row=inspectLongSupportPlacement(candidate,own,products,below.filter(b=>!b.supportOnly),pallets);
+  return {...area,longSupportError:longSupportViolation(row)};
 }
 
 function modelCandidatePoints(b:PlacedBox,p:ProductInput):Point[]{
@@ -1640,7 +1651,7 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
         const palletIds = supportingPalletIds(candidate, topLevels.get(supportLevelKey(candidate.z)) ?? []);
         if (request.floorPallets && palletIds.length && candidate.z + candidate.dz > palletCargoCeiling(request.container, request.clearance, request.floorPallets) + EPS) continue;
         const layerLimit = maxStackLayers(product);
-        if (support.ratio + EPS < requiredSupport(product, strategy) || (layerLimit > 0 && support.layer > layerLimit)) continue;
+        if (support.longSupportError || support.ratio + EPS < requiredSupport(product, strategy) || (layerLimit > 0 && support.layer > layerLimit)) continue;
         if (request.products.some(hasBearingRules) && bearingErrors([...placements, candidate], request.products).length) continue;
 
         if (!best || score < best.score) best = { point, orientation, layer: support.layer, score, palletIds };
@@ -1888,6 +1899,7 @@ export function validatePacking(
     if (!isPallet && box.layer !== support.layer) {
       errors.push(`${box.sku} 的箱体 ${index + 1} 标注为第 ${box.layer} 层，按支撑关系应为第 ${support.layer} 层。`);
     }
+    if (!isPallet && support.longSupportError) errors.push(support.longSupportError);
     const supportThreshold = requiredSupport(product, strategy);
     if(product?.solidModel&&box.z<=EPS&&support.ratio+EPS<supportThreshold)errors.push(`${box.sku} 的实体模型缺少稳定平底、有效承托面或防滚支架。`);
     if (box.z > EPS && support.ratio + EPS < supportThreshold) {
@@ -2132,7 +2144,7 @@ export function pack(request: PackingRequest): PackingResult {
     preliminaryQuoteEstimate.physicallyPossibleByBounds
     ? preliminaryQuoteEstimate.predictedSets
     : undefined;
-  const bearingEnabled = normalized.products.some(p => p.solidModel || p.protectionGap || isRectilinearShape(p) || hasBearingRules(p) || p.minimumSupportRatio !== undefined) || (normalized.loadingRules?.layout !== undefined && normalized.loadingRules.layout !== "auto");
+  const bearingEnabled = normalized.products.some(p => p.solidModel || p.protectionGap || isRectilinearShape(p) || hasLongSupportLimits(p) || hasBearingRules(p) || p.minimumSupportRatio !== undefined) || (normalized.loadingRules?.layout !== undefined && normalized.loadingRules.layout !== "auto");
   const cartonsPerUnit = normalized.products.reduce((sum,p)=>sum+(setCode(p)?unitsPerSet(p):1),0);
   const unitVolume = normalized.products.reduce((sum,p)=>sum+p.length*p.width*p.height*bodyVolumeRatio(p)*(setCode(p)?unitsPerSet(p):1),0);
   const bearingUnitLimit = Math.min(Math.floor(4000/cartonsPerUnit), Math.floor(effectiveVolume/unitVolume), Math.floor((normalized.singleCartonLimit ?? 4000)/cartonsPerUnit));
@@ -2192,7 +2204,8 @@ export function pack(request: PackingRequest): PackingResult {
   if(normalized.products.some(p=>p.solidModel))warnings.push("实体模型使用相同的凸体分解校验碰撞、平面承托和空隙；曲面使用保守外逼近，弯管有明确误差范围。几何通过不代表材料强度已核验。");
   if (normalized.container.specificationNote) warnings.push(normalized.container.specificationNote);
   if (normalized.loadingRules || normalized.products.some(p => p.allowedOrientations)) warnings.push("已启用自定义布局、朝向或承托规则，独立校验使用相同约束。");
-  if (bearingEnabled) warnings.push("已启用逐箱上方累计承重约束，按接触面积分配静态竖向载荷；结果可能比无承重约束的排列更保守。");
+  if(normalized.products.some(p=>p.longSupport!==undefined))warnings.push("长条箱承托：来源、版本、上限与箱规齐全且接触面适用时，求解与箱位采用执行同一几何限制；缺资料仍未核验，材料强度未核验。 / Long-carton support: complete bound evidence uses the same geometric limits in solving and placement acceptance. Missing data and material strength remain unverified.");
+  if (normalized.products.some(hasBearingRules)) warnings.push("已启用逐箱上方累计承重约束，按接触面积分配静态竖向载荷；结果可能比无承重约束的排列更保守。");
   if (normalized.mode === "single" && normalized.singleCartonLimit !== undefined) {
     const plannedQuantity = setSummaries.length
       ? Math.floor(normalized.singleCartonLimit / setSummaries[0].cartonsPerSet)
@@ -2510,6 +2523,7 @@ export function revisePackingResult(original: PackingResult, placements: PlacedB
   if(original.palletization){const errors=validatePalletizedCargo(ordered,pallets,original.container,original.clearance,original.palletization,products);if(errors.length)throw new Error(errors.slice(0,3).join("\n"));}
   const effective = effectiveContainer(original.container, original.clearance);
   return { ...original, id: `manual-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, placements: ordered,pallets,
+    cargoDetails:Object.fromEntries(products.map(p=>[p.id,shapeDetails(p)])),
     strategyPlans: undefined, strategyComparison: undefined, quoteEstimate: undefined, validation,
     warnings: ["手动调整已重新校验；继续优化会保留锁定箱位及其支撑；重新计算整个订单将创建新方案。"],
     metrics: { ...original.metrics, centerOfGravity: calculateCenterOfGravity([...palletAnchors(pallets),...ordered,...accessoryMassBoxes(original.container,original.clearance)],effective,products), executionComplexity: calculateExecutionComplexity(ordered,products,pallets) }, createdAt: new Date().toISOString() };
@@ -2526,6 +2540,7 @@ export function explainUnloaded(result: PackingResult, products: ProductInput[])
     if (p.length*p.width*p.height*bodyVolumeRatio(p) > result.metrics.effectiveVolume-result.metrics.loadedVolume) reasons.push("剩余总容积不足一箱（确定限制）");
     if (p.setCode) reasons.push("必须整套装入；任一组件不足或放不下会整套回退");
     if (!reasons.length) reasons.push("搜索未找到满足当前约束的摆放位置；不能据此证明绝对装不下");
+    if(hasLongSupportLimits(p))reasons.push("已启用长条箱支承带、悬跨与悬挑限制；未找到合格位置不证明绝对装不下 / Long-carton bands, spans and overhangs constrain placement; search failure is not an infeasibility proof");
     if (p.maxStackLayers>0) reasons.push(`配置了 ${p.maxStackLayers} 层上限`);
     if (p.maxTopLoadKg!==undefined) reasons.push(`配置了上方承重 ${p.maxTopLoadKg} kg`);
     return { ...s, reasons };
@@ -2551,7 +2566,7 @@ export function diagnoseUnloadedPosition(result:PackingResult,products:ProductIn
     const support=supportDetails(b,tops,rules);
     const ids=supportingPalletIds(b,tops.get(supportLevelKey(b.z))??[]);
     if(result.floorPallets&&ids.length&&b.z+b.dz>palletCargoCeiling(result.container,result.clearance,result.floorPallets)+EPS){layerFailures++;continue;}
-    if(result.floorPallets&&!result.floorPallets.allowFloorCargo&&b.z<=EPS||p.bottomOnly&&b.z>EPS&&!(result.floorPallets&&Math.abs(b.z-result.floorPallets.height)<EPS)||support.ratio+EPS<requiredSupport(p,result.strategy)){supportFailures++;continue;}
+    if(result.floorPallets&&!result.floorPallets.allowFloorCargo&&b.z<=EPS||p.bottomOnly&&b.z>EPS&&!(result.floorPallets&&Math.abs(b.z-result.floorPallets.height)<EPS)||support.longSupportError||support.ratio+EPS<requiredSupport(p,result.strategy)){supportFailures++;continue;}
     if(p.maxStackLayers>0&&support.layer>p.maxStackLayers){layerFailures++;continue;}
     return {detail:"抽样找到满足几何及承托的候选区域；仍需校验整套配比、累计承重、载重与目标上限。可继续优化验证，不能直接加箱。",candidate:b};
   }

@@ -27,7 +27,7 @@ export function LongSupportSettings({product,onChange,onValidity}:{product:Produ
   const supported=!product.solidModel&&cargoShapeOf(product)==="box";
   return <details className="long-support-settings" open={draft.enabled||undefined}>
     <summary>{tr("长条箱承托与悬跨资料","Long-carton support and span data")}</summary>
-    <p>{tr("独立几何预检，不自动重排或放行箱位。指定原始底面 H−；支承带沿原始 L 或 W，横跨整个另一方向，每条都须达到填写的接触比例。所有数值固定为 mm。","Independent geometry preflight; it neither repacks nor authorizes placements. Uses the original H− bottom face. Bands follow original L or W across the full transverse width; every band must meet the entered contact ratio. All dimensions here are always mm.")}</p>
+    <p>{tr("资料来源、版本及上限齐全且适用当前箱规时，自动排布与箱位采用执行同一几何限制；缺资料保持未核验，材料强度未核验。指定原始底面 H−；支承带沿原始 L 或 W，横跨整个另一方向，每条都须达到填写的接触比例。所有数值固定为 mm。","Complete, current bound evidence applies the same geometric limits in packing and placement acceptance. Missing data and material strength remain unverified. Uses the original H− bottom face. Bands follow original L or W across the full transverse width; every band must meet the entered contact ratio. All dimensions here are always mm.")}</p>
     <label className="long-support-enable"><input type="checkbox" aria-label={tr("启用长条箱承托资料","Enable long-carton support data")} checked={draft.enabled} disabled={!supported&&!draft.enabled} onChange={e=>update({enabled:e.target.checked})}/>{tr("记录本 SKU 的承托资料","Record support data for this SKU")}</label>
     {!supported&&<p>{tr("首阶段仅检查普通长方体，异型件和实体模型保持未核验；可关闭此资料。","This stage checks ordinary rectangular cartons. Irregular and solid-model cargo remain unverified; this profile may be disabled.")}</p>}
     {draft.enabled&&<>

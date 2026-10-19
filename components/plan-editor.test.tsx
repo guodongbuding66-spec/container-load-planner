@@ -39,3 +39,19 @@ it("mounts a real transform gizmo on a scene parent and converts Three X/Y/Z int
     const anchor=control.object,before=anchor.position.clone();await act(async()=>control.dispatchEvent({type:"mouseDown"}));anchor.position.x+=.7;await act(async()=>listeners.get("pointercancel")!());expect(moved).toHaveBeenCalledTimes(1);expect(before.distanceTo(anchor.position)).toBe(0);expect(drag.mock.calls.at(-1)).toEqual([false]);
   }finally{await act(async()=>root.unmount());_roots.delete(canvas);}
 });
+
+it("rechecks current support evidence before history replay or adoption and keeps failed transactions intact",async()=>{
+ vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT",true);extend({Group:THREE.Group});
+ const profile={version:1 as const,dimensions:{length:1000,width:100,height:100},axis:"L" as const,bands:[{start:0,end:200},{start:800,end:1000}],minimumContactRatio:1,maxSpanMm:600,maxOverhangMm:0,source:"Synthetic hook QA",revision:"1"};
+ const cargo:ProductInput={...profile.dimensions,id:"long",sku:"LONG",name:"Long",quantity:1,weight:10,priority:50,rotationPolicy:"upright",stackable:true,maxStackLayers:0,color:"#338877",minimumSupportRatio:.4,longSupport:profile},base={...cargo,id:"base",sku:"BASE",length:200,weight:1,quantity:2,longSupport:undefined};
+ const products=[cargo,base],container={id:"c",name:"C",length:2000,width:100,height:400,doorWidth:100,doorHeight:400,maxWeight:1000},positions=[{p:base,id:"a",x:0,z:0},{p:base,id:"b",x:800,z:0},{p:cargo,id:"top",x:0,z:100}].map(({p,id,x,z})=>({id,productId:p.id,sku:p.sku,name:p.name,x,y:0,z,dx:p.length,dy:p.width,dz:p.height,weight:p.weight,orientation:"LWH",layer:z?2:1,color:p.color}));
+ const source=restorePackingSnapshot({mode:"mixed",strategy:"maximum",container,clearance:0,products},{strategy:"maximum",placements:positions}),adopt=vi.fn();
+ let editor!:PlanEditor,setRules!:(rules:ProductInput[])=>void;
+ function Hook(){const [rules,updateRules]=useState(products);setRules=updateRules;editor=usePlanEditor(source,rules,false,adopt);return <group/>;}
+ const canvas={style:{}} as HTMLCanvasElement,renderer={domElement:canvas,render(){},setPixelRatio(){},getPixelRatio(){return 1;},setSize(){}} as unknown as THREE.WebGLRenderer,root=createRoot(canvas);await root.configure({gl:renderer,frameloop:"never",size:{width:800,height:400,top:0,left:0}});
+ try{
+  await act(async()=>root.render(<Hook/>));await act(async()=>{editor.selectMany(source.placements.map(b=>b.id));editor.update({tolerance:0});});await act(async()=>editor.move({x:10,y:0,z:0}));const draft=editor.plan!;expect(editor.undo).toHaveLength(1);
+  await act(async()=>setRules([{...cargo,longSupport:{...profile,maxSpanMm:599}},base]));await act(async()=>editor.undoEdit());expect(editor.plan).toBe(draft);expect(editor.undo).toHaveLength(1);expect(editor.redo).toHaveLength(0);expect(editor.message).toContain("Long-carton");await act(async()=>editor.apply());expect(adopt).not.toHaveBeenCalled();
+  await act(async()=>setRules([{...cargo,longSupport:{...profile,maxSpanMm:700,revision:"2"}},base]));await act(async()=>editor.undoEdit());expect(editor.plan!.cargoDetails?.long.longSupport?.revision).toBe("2");expect(editor.redo).toHaveLength(1);await act(async()=>editor.redoEdit());expect(editor.plan!.placements.map(b=>b.x)).toEqual(draft.placements.map(b=>b.x));await act(async()=>editor.apply());expect(adopt).toHaveBeenCalledTimes(1);expect(adopt.mock.calls[0][0].cargoDetails.long.longSupport.revision).toBe("2");
+ }finally{await act(async()=>root.unmount());_roots.delete(canvas);}
+});

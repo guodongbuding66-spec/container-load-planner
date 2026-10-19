@@ -84,7 +84,7 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
     const bearing=checks.find(c=>c.id==="bearing")!;
     if(longSupport.some(r=>r.state==="fail"))bearing.state="fail";
     else if(bearing.state!=="fail")bearing.state="unverified";
-    bearing.scope=[bearing.scope[0]+" 长条箱支承带、悬跨与悬挑另作独立几何预检，不自动重排或放行箱位；材料强度未核验。",bearing.scope[1]+" Long-carton bands, spans and overhangs have an independent geometry preflight; it neither repacks nor authorizes placements. Material strength is unverified."];
+    bearing.scope=[bearing.scope[0]+" 长条箱支承带、悬跨与悬挑使用同一几何校验；资料完整且适用时，求解和箱位采用拒绝明确不合格的位置。材料强度未核验。",bearing.scope[1]+" Long-carton bands, spans and overhangs share the same geometric check. Complete applicable evidence rejects known failures in packing and placement acceptance. Material strength is unverified."];
     bearing.model+=" + inspectLongSupport";
     bearing.items.push(...longSupport.filter(r=>r.state!=="pass").map(r=>`${r.id}: ${r.issues.map(i=>SUPPORT_ISSUES[i][1]).join("; ")}`));
   }
