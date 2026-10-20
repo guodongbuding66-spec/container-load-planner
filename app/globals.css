@@ -1444,3 +1444,10 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 @media(max-width:700px){.packaging-specification-rule{grid-template-columns:repeat(2,minmax(0,1fr))}.packaging-specification-actions{grid-column:1/-1}.packaging-specification-tabs>button:not(.button){flex:1 1 120px;max-width:none}}
 
 .pallet-specification-totals{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 12px}.pallet-specification-totals>span{font-size:12px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:#f6fafb;overflow-wrap:anywhere}
+
+.fleet-pricing, .fleet-inventory { margin:20px 0; padding:18px; border:1px solid var(--line); border-radius:12px; background:#f8fbfc; }
+.fleet-pricing > label { display:flex; gap:12px; align-items:center; }
+.fleet-pricing .upgrade-rule-grid > div { display:flex; flex-direction:column; gap:12px; }
+.fleet-pricing fieldset { margin:0; padding:12px; min-width:0; border:1px solid var(--line); border-radius:8px; }
+.fleet-pricing fieldset:disabled { opacity:.55; }
+.fleet-inventory table { font-variant-numeric:tabular-nums; }

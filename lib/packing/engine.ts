@@ -46,7 +46,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.46.0";
+export const ENGINE_VERSION = "0.47.0";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -127,7 +127,7 @@ export function validateContainerInput(container: ContainerSpec, clearance: numb
   return null;
 }
 
-function assertValidRequest(request: PackingRequest) {
+export function assertValidRequest(request: PackingRequest) {
   assertAccessorySupportWorkflow(request);
   if (request.palletBuildStage !== undefined && (request.palletBuildStage !== true || request.container.category !== "pallet" || request.container.loadingAccess !== "open" || request.mode !== "mixed")) throw new Error("Invalid pallet-building stage");
   if (request.mode !== "single" && request.mode !== "mixed") {

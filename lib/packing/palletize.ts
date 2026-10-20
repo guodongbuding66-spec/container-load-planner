@@ -154,7 +154,7 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
   if(placements.length>MAX_VISIBLE_PLACEMENTS)throw Error("Mixed load exceeds the coordinate limit / 混装超过箱位上限，请减少生成托盘或散装预留");
   const bounded=(prepared.length===options.maxPallets||coordinateLimit||cartonCount>=MAX_VISIBLE_PLACEMENTS)&&remaining.some(p=>p.quantity>0);
   const palletization={...(options.looseQuantities?{looseQuantities:options.looseQuantities}:{}),...(options.selection===undefined?{}:{selection:options.selection}),...(options.selection==="compact"?{selectionChoices}:{}),config:options.config,mix:options.mix,...(build?{stackLayers:options.stackLayers,maxTopLoadKg:options.maxTopLoadKg,preparedCount:prepared.length,bounded,only}:{}),...(multiple?{specifications,preparedBySpecification:Object.fromEntries(used)}:{})};
-  const plan:PackingResult=restorePackingSnapshot({...request,floorPallets:undefined,container,clearance:only?0:request.clearance,strategy},{strategy,placements,pallets,palletization});
+  const plan:PackingResult=restorePackingSnapshot({...request,floorPallets:undefined,container,clearance:only?0:request.clearance,strategy},{strategy,placements,pallets,palletization,delivery:request.delivery,accessConfig:request.accessConfig});
   plan.warnings=["货物打托与整托坐标已通过独立校验"];
   if(bounded)plan.warnings.push("已达到托盘或箱位搜索上限，未完成订单仍保留");
   if(options.selection==="compact")plan.warnings.push("多规格逐托比较：优先满足必装与高优先级货量，同货量依次选更小外包络、更小占地和更轻包装；局部启发式不保证全局最少托数或费用。");
