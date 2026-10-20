@@ -1,0 +1,12 @@
+﻿序号,SKU,品名,套装编码,套号,套内序号,X(mm),Y(mm),Z(mm),长(mm),宽(mm),高(mm),方向,层级,重量(kg),记录类型,托盘关联,客户,目的地,卸货站次,货物外形,圆筒轴向,顶边或顶径比例,竖壁厚度比例,横壁厚度比例,高台长度比例,低台高度比例,旋转轴符号,实体模型JSON,保护间隙(mm),装载方式,坐标用途,订单行ID,订单编号,业务行号,批次
+1,SHED-BOX,Shed carton A,,,,0,0,0,500,500,200,LWH,1,10,cargo,,Customer A,Port A,1,box,H,,,,,,,,,direct,vehicle-loading,row-a,PO-A,10,A-01
+2,SHED-BOX,Shed carton A,,,,500,0,0,500,500,200,LWH,1,10,cargo,,Customer A,Port A,1,box,H,,,,,,,,,direct,vehicle-loading,row-a,PO-A,10,A-01
+3,SHED-BOX,Shed carton B,,,,1000,0,0,500,500,200,LWH,1,10,cargo,,Customer B,Port B,2,box,H,,,,,,,,,direct,vehicle-loading,row-b,PO-B,20,B-02
+4,SHED-BOX,Shed carton B,,,,1500,0,0,500,500,200,LWH,1,10,cargo,,Customer B,Port B,2,box,H,,,,,,,,,direct,vehicle-loading,row-b,PO-B,20,B-02
+5,SHED-BOX,Shed carton B,,,,2000,0,0,500,500,200,LWH,1,10,cargo,,Customer B,Port B,2,box,H,,,,,,,,,direct,vehicle-loading,row-b,PO-B,20,B-02
+6,SHED-BOX,Shed carton B,,,,2500,0,0,500,500,200,LWH,1,10,cargo,,Customer B,Port B,2,box,H,,,,,,,,,direct,vehicle-loading,row-b,PO-B,20,B-02
+7,SHED-BOX,Shed carton B,,,,3000,0,0,500,500,200,LWH,1,10,cargo,,Customer B,Port B,2,box,H,,,,,,,,,direct,vehicle-loading,63ee53d3-2a6c-4fe1-815d-80fe1088ed85,PO-B,,B-02
+8,SHED-BOX,Shed carton B,,,,3500,0,0,500,500,200,LWH,1,10,cargo,,Customer B,Port B,2,box,H,,,,,,,,,direct,vehicle-loading,63ee53d3-2a6c-4fe1-815d-80fe1088ed85,PO-B,,B-02
+9,SHED-BOX,Shed carton B,,,,4000,0,0,500,500,200,LWH,1,10,cargo,,Customer B,Port B,2,box,H,,,,,,,,,direct,vehicle-loading,63ee53d3-2a6c-4fe1-815d-80fe1088ed85,PO-B,,B-02
+10,SHED-BOX,Shed carton B,,,,4500,0,0,500,500,200,LWH,1,10,cargo,,Customer B,Port B,2,box,H,,,,,,,,,direct,vehicle-loading,63ee53d3-2a6c-4fe1-815d-80fe1088ed85,PO-B,,B-02
+11,SHED-BOX,Shed carton C,,,,5000,0,0,500,500,200,LWH,1,10,cargo,,Customer C,Port C,3,box,H,,,,,,,,,direct,vehicle-loading,4b27b06e-dea1-48d1-900a-d7eebd1e2413,PO-C,30,C-03

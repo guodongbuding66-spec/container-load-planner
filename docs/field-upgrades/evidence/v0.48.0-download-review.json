@@ -1,0 +1,112 @@
+{
+  "version": "0.48.0",
+  "date": "2026-10-20T09:09:01.040163+00:00",
+  "sourceCommits": [
+    "307b81eae9617584692797d6842ec5e7ff7976aa",
+    "580ecdf9382d67ee9dbfe9049974dcd9e10f134a"
+  ],
+  "sourceTree": "c6842a44faf356f75eb20a5fee3ef7ac568d8e21",
+  "syntheticFixture": true,
+  "rowIds": [
+    "row-a",
+    "row-b",
+    "63ee53d3-2a6c-4fe1-815d-80fe1088ed85",
+    "4b27b06e-dea1-48d1-900a-d7eebd1e2413"
+  ],
+  "quantities": [
+    2,
+    4,
+    4,
+    1
+  ],
+  "coreAssertions": "PASS: stable source IDs, metadata, coordinates, quantities, weights and CSV correspondence",
+  "crossSiteRestore": {
+    "activeInputs": "identical",
+    "bothCoordinatePlans": "identical",
+    "normalization": [
+      "copy row absent setCode becomes empty string",
+      "direct workflow materializes inactive default palletBuild"
+    ]
+  },
+  "pdf": {
+    "pages": 7,
+    "renderedAllPages": true,
+    "orderIdentityPage": 4,
+    "review": "four independent rows, full UUIDs, metadata and counts readable; no overlaps or clipping",
+    "staticPathCheck": "NOT_PASSED, explicitly shown in report",
+    "sha256": "01633c8d879eac035ad27e4517ec313f07493f1a4a233f0cce680059784c2320"
+  },
+  "uiCases": [
+    "replace CSV",
+    "Excel quantity-only ignores customer column",
+    "unknown ID rejected atomically",
+    "zero quantity preserves source row",
+    "copy creates new ID and clears business reference",
+    "append regenerates colliding input ID",
+    "read-only stable ID",
+    "Chinese/English styled form",
+    "draft refresh preserves four rows",
+    "Pages to Vercel backup restore"
+  ],
+  "defaultCleanup": {
+    "pages": {
+      "engine": "0.48.0",
+      "sourceIds": [
+        "shed-101",
+        "bed-205",
+        "parcel-310"
+      ],
+      "cartonsPerStrategy": 116,
+      "kgPerStrategy": 3842,
+      "appErrorsInRecent200": 0
+    },
+    "vercel": {
+      "engine": "0.48.0",
+      "sourceIds": [
+        "shed-101",
+        "bed-205",
+        "parcel-310"
+      ],
+      "cartonsPerStrategy": 116,
+      "kgPerStrategy": 3842,
+      "appErrorsInRecent200": 0
+    }
+  },
+  "limitations": {
+    "realGPU": "PENDING, WebGL unavailable",
+    "multiBrowser": "PENDING",
+    "fieldLoading": "PENDING",
+    "physicalIdentityAndQR": "TODO 014B onward",
+    "forkliftOperations": "EXCLUDED"
+  },
+  "files": {
+    "v0.48.0-coordinates.csv": {
+      "bytes": 2128,
+      "sha256": "8a597f48d6979978063ce63416540d7d5c89a4c2bce8bb37ff29da5f3cc14bb0"
+    },
+    "v0.48.0-order-pdf-page.jpg": {
+      "bytes": 68981,
+      "sha256": "1b6a586182f400a30893ef7333aaf8641ced7d3214344cd96b4fcbae5a31c9c4"
+    },
+    "v0.48.0-order-rows-english.jpg": {
+      "bytes": 72269,
+      "sha256": "92b85c3f5e8103ec657d3f561557bf799cd5d3f8cf1477bd73c44ff57daf9f13"
+    },
+    "v0.48.0-order-rows-pages.jpg": {
+      "bytes": 66499,
+      "sha256": "0f8356085ba21e53ac33f2822d9e453ba3b7e980f9d04f06bed8bb5ddad4263a"
+    },
+    "v0.48.0-order-rows.csv": {
+      "bytes": 1207,
+      "sha256": "e37c43a007a8370193b548a4812eb59c0489fd8c72841100486e58552080bbdb"
+    },
+    "v0.48.0-pdf-contact.jpg": {
+      "bytes": 97079,
+      "sha256": "311c0d9b194965e595fdadcf962070df50d57a888107988e51c301ad6deb7e7b"
+    },
+    "v0.48.0-workspace.json": {
+      "bytes": 19691,
+      "sha256": "550ccd3e4eb8594d428cad74f717212520c4fe29239aa9c6164ca745e9a7021d"
+    }
+  }
+}
