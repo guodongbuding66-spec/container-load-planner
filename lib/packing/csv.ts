@@ -1,3 +1,4 @@
+import {deliveryIdentityState,deliveryUnitBindings} from "./delivery-identity";
 import {parseOrderLine,assertOrderLineIds} from "./order-lines";
 import {planCrateStackReview} from "./crate-auto-stack";
 import {inspectDeckSupports,palletQuarterTurns,deckSupportHeight,palletDeckSupportGeometry} from "./deck-support";
@@ -43,9 +44,14 @@ function placementWithDeckCsv(result:PackingResult):string{
  const byId=new Map(pallets.map(p=>[p.id,p]));
  return parseCsvRecords(text).map((row,i)=>{if(!i)return [...row,"托盘水平转数","托内支承件JSON"].map(toCsvCell).join(",");const p=byId.get(row[15]==="pallet"?row[1]:row[16]);return [...row,p?palletQuarterTurns(p):"",p&&row[15]==="pallet"?JSON.stringify(p.packaging?.deckSupports??[]):""].map(toCsvCell).join(",");}).join("\r\n");
 }
-export function buildPlacementCsv(result:PackingResult):string{
+function placementWithOrderCsv(result:PackingResult):string{
  if(!Object.values(result.cargoDetails??{}).some(p=>p.orderLine)&&new Set((result.summaries??[]).map(s=>s.sku)).size===(result.summaries??[]).length)return placementWithDeckCsv(result);
  return parseCsvRecords(placementWithDeckCsv(result)).map((row,i)=>{if(!i)return [...row,"订单行ID","订单编号","业务行号","批次"].map(toCsvCell).join(",");const b=row[15]==="cargo"?result.placements[Number(row[0])-1]:undefined,line=b?result.cargoDetails?.[b.productId]?.orderLine:undefined;return [...row,b?.productId??"",line?.orderReference??"",line?.lineReference??"",line?.batch??""].map(toCsvCell).join(",");}).join("\r\n");
+}
+export function buildPlacementCsv(result:PackingResult):string{
+ const text=placementWithOrderCsv(result),identity=result.deliveryIdentity;if(!identity)return text;
+ const units=new Map(deliveryUnitBindings(result).map(u=>[`${u.kind}/${u.localId}`,u.unitId??""])),state=deliveryIdentityState(result);
+ return parseCsvRecords(text).map((row,i)=>{if(!i)return [...row,"交付计划ID","交付版本","版本状态","实物登记ID","交付版本ID"].map(toCsvCell).join(",");const kind=row[15],local=kind==="cargo"?result.placements[Number(row[0])-1]?.id:kind==="pallet"?row[1]:undefined;return [...row,identity.planId,identity.revision,state,local?units.get(`${kind==="cargo"?"carton":"pallet"}/${local}`)??"":"",identity.revisionId].map(toCsvCell).join(",");}).join("\r\n");
 }
 export function buildDeckSupportCsv(plan:PackingResult,products?:readonly ProductInput[],en=false){
  const t=(zh:string,eng:string)=>en?eng:zh,geometry=new Map(palletDeckSupportGeometry(plan.pallets??[]).boxes.map(b=>[b.id,b]));

@@ -1,0 +1,12 @@
+import {afterEach,it,expect,vi} from "vitest";
+import {renderToStaticMarkup} from "react-dom/server";
+import {DeliveryVersionPanel} from "./delivery-version-panel";
+import {setAppLanguage} from "./language";
+import {pack} from "../lib/packing/engine";
+import {issueDeliveryIdentity} from "../lib/packing/delivery-identity";
+const plan=pack({mode:"mixed",strategy:"maximum",clearance:0,container:{id:"c",name:"C",length:1000,width:1000,height:1000,doorWidth:1000,doorHeight:1000,maxWeight:1000},products:[{id:"a",sku:"A",name:"A",length:200,width:200,height:200,weight:10,quantity:2,priority:50,rotationPolicy:"any",stackable:true,maxStackLayers:0,color:"#336677"}]});
+afterEach(()=>{vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("zh");vi.unstubAllGlobals();});
+it("offers explicit issue/download and states the persistence and physical limitations",()=>{const h=renderToStaticMarkup(<DeliveryVersionPanel plan={plan} disabled={false} onIssue={()=>{}}/>);expect(h).toContain("登记并下载版本备份");expect(h).toContain("普通输入草稿不保存交付版本");expect(h).toContain("未确认制作、实装或运输安全");expect(h).not.toContain('aria-label="交付计划 ID"');});
+it("shows a read-only plan ID, issued revision, current units and explicit new-plan copy",()=>{const p=issueDeliveryIdentity(plan),h=renderToStaticMarkup(<DeliveryVersionPanel plan={p} disabled={false} onIssue={()=>{}}/>);expect(h).toContain(`readOnly="" value="${p.deliveryIdentity!.planId}"`);expect(h).toContain("当前箱位与登记版本一致");expect(h).toContain("复制为新计划并下载");expect(h).toContain(p.deliveryIdentity!.units[0].unitId);expect(h).toMatch(/disabled=""[^>]*>发布下一版并下载/);});
+it("shows stale status for edits and blocks issuing while inputs are dirty",()=>{const p=issueDeliveryIdentity(plan),draft={...p,clearance:1},h=renderToStaticMarkup(<DeliveryVersionPanel plan={draft} disabled={true} onIssue={()=>{}}/>);expect(h).toContain("方案已变化，需登记下一版");expect(h).toMatch(/disabled=""[^>]*>发布下一版并下载/);expect(h).toMatch(/disabled=""[^>]*>复制为新计划并下载/);});
+it("renders new versioning controls and explanations in English",()=>{vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");const h=renderToStaticMarkup(<DeliveryVersionPanel plan={issueDeliveryIdentity(plan)} disabled={false} onIssue={()=>{}}/>);expect(h).toContain("Delivery plan ID");expect(h).toContain("Copy as a new plan and download");expect(h).not.toMatch(/[\u3400-\u9fff]/u);});

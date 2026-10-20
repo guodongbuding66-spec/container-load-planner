@@ -1,4 +1,5 @@
 "use client";
+import {DeliveryVersionPanel} from "./delivery-version-panel";
 import {ContainerAccessorySettings} from "./container-accessory-settings";
 import {ContainerAccessoryManifest} from "./container-accessory-manifest";
 
@@ -1569,6 +1570,13 @@ export function PackingApp() {
   };
   const workspaceBackup = useMemo(() => serializeWorkspaceBackup({palletLayerTemplates,workflow,palletBuild,floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,result,resultBundle?.strategyPlans), [palletLayerTemplates,workflow,palletBuild,floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit,result,resultBundle?.strategyPlans]);
   const upgradesDisabled = hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0 || status === "working";
+  const adoptDeliveryVersion=(next:PackingResult)=>{
+    const inputs=parseWorkspaceBackup(workspaceBackup);
+    const backup=serializeWorkspaceBackup(inputs,ENGINE_VERSION,next,{[next.strategy]:next});
+    downloadFile(`delivery-${next.deliveryIdentity!.planId}-v${next.deliveryIdentity!.revision}.json`,backup,"application/json");
+    clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");
+    setMessage(tr("交付版本已登记并下载；请保留备份，修改后重新发布版本。","Delivery version issued and downloaded. Keep the backup and issue a new revision after edits."));
+  };
   const adoptManualPlan=(next:PackingResult)=>{const rows=adoptOrderDelivery(products,next.delivery??result?.delivery);setProducts(rows);next={...next,cargoDetails:Object.fromEntries(rows.filter(p=>next.summaries.some(s=>s.productId===p.id)).map(p=>[p.id,shapeDetails(p)])),delivery:orderDelivery(rows.filter(p=>next.summaries.some(s=>s.productId===p.id)),next.delivery??result?.delivery),accessConfig:next.accessConfig??result?.accessConfig,handlingTasks:next.handlingTasks??result?.handlingTasks};clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。"));};
 
   const planEditor=usePlanEditor(result,activeProducts,upgradesDisabled||!result?.validation.valid||result.metrics.loadedCount!==result.placements.length,adoptManualPlan);
@@ -2325,6 +2333,7 @@ export function PackingApp() {
             </> : <p className="tool-empty">{tr("计算方案后，可诊断余货并手动调整箱位。")}</p>}
           </>}
           delivery={result && !hasPendingDimensionChanges ? <>
+            <DeliveryVersionPanel plan={result} disabled={!canExport} onIssue={adoptDeliveryVersion}/>
             {canExport ? <FieldGuide key={`field-${result.id}`} result={result} products={activeProducts}/> : null}
             <CustomerReportPanel plan={result} products={activeProducts} disabled={!canExport}/>
           </> : <p className="tool-empty">{tr("先完成一次装柜计算，再生成客户报告和现场指导书。")}</p>}

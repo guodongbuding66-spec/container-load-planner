@@ -350,6 +350,7 @@ export type QuoteEstimate = {
 };
 
 export type PackingResult = {
+  deliveryIdentity?: import("./delivery-identity").DeliveryIdentity;
   /** Independent handling tasks; never packing authorization or cached check conclusions. */
   handlingTasks?: import("./handling-sequence").HandlingTask[];
   dimensionScenario?: import("./dimension-scenarios").DimensionScenarioTag;

@@ -3,7 +3,7 @@ import type { PackingResult, PlacedBox } from "./types";
 
 /** Progress is tied to cargo identity and executable order, not a transient plan ID. */
 export function fieldPlanFingerprint(plan: PackingResult) {
-  return JSON.stringify([plan.container.id, plan.container.length, plan.container.width, plan.container.height,
+  return JSON.stringify([...(plan.deliveryIdentity?[plan.deliveryIdentity]:[]),plan.container.id, plan.container.length, plan.container.width, plan.container.height,
     plan.container.doorWidth, plan.container.doorHeight, plan.clearance, plan.strategy,
     ...(plan.container.exclusions?.length?[plan.container.exclusions]:[]),
     ...(plan.handlingTasks?.length?[plan.handlingTasks]:[]),

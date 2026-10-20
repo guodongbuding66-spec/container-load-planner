@@ -1,3 +1,4 @@
+import {deliveryIdentityState,deliveryUnitBindings} from "./delivery-identity";
 import {planOrderRows} from "./order-lines";
 import {looseManifest} from "./loose-cargo";
 import {planCrateStackReview,CRATE_STACK_STATE_TEXT} from "./crate-auto-stack";
@@ -76,6 +77,13 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
     });await finish();
   }
   for (let startAt = 0; startAt < result.summaries.length; startAt += 28) { start(t("货物清单", "Cargo manifest")); const columns = [100, 630, 990, 1260]; ["SKU", t("需求 / 已装", "Requested / loaded"), t("重量 kg", "Weight kg"), t("体积 m³", "Volume m³")].forEach((v, i) => text(v, columns[i], 310, 27, true)); result.summaries.slice(startAt, startAt + 28).forEach((s, i) => { const y = 375 + i * 64; text(ellipsis(s.sku, 495), columns[0], y, 26); text(`${s.requested} / ${s.loaded}`, columns[1], y, 26); text(s.loadedWeight.toFixed(1), columns[2], y, 26); text((s.loadedVolume / 1e9).toFixed(3), columns[3], y, 26); }); await finish(); }
+  if(result.deliveryIdentity){
+    const id=result.deliveryIdentity,title=t("交付版本与箱托编号","Delivery version and unit IDs");let y=315;start(title);
+    const wrap=(value:string)=>{ctx.font="24px 'Noto Sans SC','Microsoft YaHei',Arial,sans-serif";const lines:string[]=[];let line="";for(const ch of value){if(line&&ctx.measureText(line+ch).width>1570){lines.push(line);line="";}line+=ch;}lines.push(line);return lines;};
+    const lines=[`${id.planId} · v${id.revision}`,id.revisionId,id.issuedAt,deliveryIdentityState(result)==="current"?t("当前箱位与登记版本一致","Current positions match the issued version"):t("方案已变化，需登记下一版","Plan changed; issue the next revision"),t("计划登记不代表已制作或实装；完整历史见工作区。","Registration does not confirm manufacture or actual loading; full history is in the workspace."),`${t("已撤出编号","Withdrawn IDs")}: ${id.withdrawn.length}`];
+    for(const u of deliveryUnitBindings(result))lines.push(`${u.kind} · ${u.localId} · ${u.sourceId}`,u.unitId??t("下一版分配","Assigned on next issue"),"");
+    for(const line of lines.flatMap(wrap)){if(y>2370){await finish();start(title);y=315;}text(line,100,y,24);y+=36;}await finish();
+  }
   const orderRows=planOrderRows(result);
   if(orderRows.length){
     const title=t("稳定订单行与批次清单","Stable order rows and batches");start(title);let y=315;

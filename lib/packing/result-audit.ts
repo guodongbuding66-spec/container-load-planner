@@ -1,3 +1,4 @@
+import {parseDeliveryIdentity,restoreDeliveryIdentity} from "./delivery-identity";
 import {planCrateStackReview} from "./crate-auto-stack";
 import {palletEnvelopeTop} from "./deck-support";
 import {containerAccessoryWeight,accessoryProductErrors} from "./container-accessories";
@@ -40,7 +41,8 @@ export function auditPackingResult(plan: PackingResult, products?: readonly Prod
   const counts=new Map<string,number>();
   for(const b of boxes)counts.set(b.productId,(counts.get(b.productId)??0)+1);
   const allIds=[...boxes.map(b=>b.id),...pallets.map(p=>p.id)];
-  const records=allIds.every(id=>typeof id==="string"&&id.trim().length>0)&&new Set(allIds).size===allIds.length&&summaries.size===plan.summaries.length&&(!products||productMap.size===products.length);
+  let deliveryRecords=true;try{parseDeliveryIdentity(plan.deliveryIdentity);restoreDeliveryIdentity(plan,plan.deliveryIdentity);}catch{deliveryRecords=false;}
+  const records=deliveryRecords&&allIds.every(id=>typeof id==="string"&&id.trim().length>0)&&new Set(allIds).size===allIds.length&&summaries.size===plan.summaries.length&&(!products||productMap.size===products.length);
   add("records",records?"pass":"fail",records?"箱位、托盘和产品标识没有重复。":"发现缺失或重复的追踪标识。",records?"Placement, pallet and product identifiers are unique.":"Missing or duplicate tracking identifiers were found.");
 
   let sourceValid=true, volumeValid=true;

@@ -1,3 +1,4 @@
+import {issueDeliveryIdentity} from "./delivery-identity";
 import {parseOrderLine,assertOrderLineIds} from "./order-lines";
 import {parsePalletLayerTemplates,type PalletLayerTemplate} from "./pallet-layer";
 import {parseLongSupport} from "./long-support";
@@ -106,8 +107,8 @@ export function parseWorkspaceBackup(contents: string): WorkspaceInputs {
 export function serializeWorkspaceBackup(inputs: WorkspaceInputs, engineVersion: string, plan?: PackingResult | null, plans?: PackingResult["strategyPlans"]): string {
   return JSON.stringify({ format: "cargo-fit-workspace", version: 1, engineVersion,
     createdAt: new Date().toISOString(), inputs,
-    coordinatePlans: Object.fromEntries(Object.entries(plan?.validation.valid?(plans??plan.strategyPlans??{}):{}).filter(([,p])=>p?.validation.valid).map(([key,p])=>[key,{workflow:p!.workflow,palletBuild:p!.palletBuild,strategy:p!.strategy,singleCartonLimit:p!.singleCartonLimit,placements:p!.placements,pallets:p!.pallets,palletization:p!.palletization,delivery:p!.delivery,accessConfig:p!.accessConfig,handlingTasks:p!.handlingTasks}])),
-    ...(plan?.validation.valid ? { coordinatePlan: { workflow:plan.workflow,palletBuild:plan.palletBuild,strategy: plan.strategy, singleCartonLimit: plan.singleCartonLimit, placements: plan.placements,pallets:plan.pallets,palletization:plan.palletization,delivery:plan.delivery,accessConfig:plan.accessConfig,handlingTasks:plan.handlingTasks } } : {}) }, null, 2);
+    coordinatePlans: Object.fromEntries(Object.entries(plan?.validation.valid?(plans??plan.strategyPlans??{}):{}).filter(([,p])=>p?.validation.valid).map(([key,p])=>[key,{deliveryIdentity:p!.deliveryIdentity,workflow:p!.workflow,palletBuild:p!.palletBuild,strategy:p!.strategy,singleCartonLimit:p!.singleCartonLimit,placements:p!.placements,pallets:p!.pallets,palletization:p!.palletization,delivery:p!.delivery,accessConfig:p!.accessConfig,handlingTasks:p!.handlingTasks}])),
+    ...(plan?.validation.valid ? { coordinatePlan: { deliveryIdentity:plan.deliveryIdentity,workflow:plan.workflow,palletBuild:plan.palletBuild,strategy: plan.strategy, singleCartonLimit: plan.singleCartonLimit, placements: plan.placements,pallets:plan.pallets,palletization:plan.palletization,delivery:plan.delivery,accessConfig:plan.accessConfig,handlingTasks:plan.handlingTasks } } : {}) }, null, 2);
 }
 
 
@@ -118,4 +119,13 @@ export function restoreWorkspacePlans(contents: string, inputs: WorkspaceInputs)
   if(raw.coordinatePlans!==undefined)for(const [key,snapshot] of Object.entries(record(raw.coordinatePlans))){if(key!=="practical"&&key!=="maximum")throw new Error("归档算法无效");const p=restorePackingSnapshot(request,snapshot);if(p.strategy!==key)throw new Error("算法与坐标不一致");plans[key]=p;}
   const selected=raw.coordinatePlan===undefined?plans[inputs.strategy]??plans.practical??plans.maximum:restorePackingSnapshot(request,raw.coordinatePlan);
   return selected?{...selected,strategyPlans:Object.keys(plans).length?{...plans,[selected.strategy]:selected}:undefined}:null;
+}
+
+/** Restoring a version preserves its identity; explicitly copying creates a new plan lineage. */
+export function forkWorkspaceBackup(contents:string):string {
+ const inputs=parseWorkspaceBackup(contents),plan=restoreWorkspacePlans(contents,inputs);
+ if(!plan)return contents;
+ const plans=Object.fromEntries(Object.entries(plan.strategyPlans??{[plan.strategy]:plan}).map(([key,p])=>[key,p!.deliveryIdentity?issueDeliveryIdentity(p!,true):p!]));
+ const selected=plans[plan.strategy]??(plan.deliveryIdentity?issueDeliveryIdentity(plan,true):plan);
+ return serializeWorkspaceBackup(inputs,plan.engineVersion,selected,plans);
 }
