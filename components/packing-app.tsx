@@ -36,7 +36,9 @@ import {
   X,
 } from "lucide-react";
 import dynamic from "next/dynamic";
-import { shapeCanSupport } from "../lib/packing/cargo-shape";
+import {OrderLineEditor} from "./order-line-editor";
+import {adoptOrderDelivery,inheritOrderDelivery,orderDelivery,copyOrderRows,importOrderRows,updateOrderQuantities,assertOrderReferences,parseOrderLine} from "../lib/packing/order-lines";
+import { shapeDetails, shapeCanSupport } from "../lib/packing/cargo-shape";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { CameraProjection, CameraView } from "../lib/packing/camera-fit";
@@ -47,7 +49,7 @@ import {
   resultDisplayQuantity,
   selectStrategyResult,
 } from "../lib/packing/calculation-state";
-import { buildPlacementCsv, MAX_CSV_BYTES, MAX_CSV_ROWS, parseProductsCsv } from "../lib/packing/csv";
+import { buildPlacementCsv, buildOrderRowsCsv, parseOrderQuantityCsv, MAX_CSV_BYTES, MAX_CSV_ROWS, parseProductsCsv } from "../lib/packing/csv";
 import {
   calculateReverseCounts,
   combineStrategyResults,
@@ -269,6 +271,7 @@ function normalizeProductDraft(product: Partial<ProductInput>, index: number): P
   return {
     ...fallback,
     ...product,
+    ...(product.orderLine===undefined?{}:{orderLine:parseOrderLine(product.orderLine)}),
     id: safeText(product.id, fallback.id, 120),
     sku: safeText(product.sku, fallback.sku, 80),
     name: safeText(product.name, fallback.name, 200),
@@ -354,6 +357,9 @@ export function PackingApp() {
   const [floorPallets, setFloorPallets] = useState<FloorPalletConfig | undefined>();
   const [showFloorPallets, setShowFloorPallets] = useState(false);
   const [loadingRules, setLoadingRules] = useState<LoadingRules>({...DEFAULT_LOADING_RULES});
+  const [activeOrderLine,setActiveOrderLine]=useState<string|null>(null);
+  const orderImportRevisionRef=useRef(0);
+  const [orderImportMode,setOrderImportMode]=useState<"replace"|"append"|"quantity">("replace");
   const [activeCargo, setActiveCargo] = useState<string | null>(null);
   const [showRules, setShowRules] = useState(false);
   const [showTransport, setShowTransport] = useState(false);
@@ -681,6 +687,7 @@ export function PackingApp() {
   const setInputSummaries = useMemo(() => summarizeSetInputs(activeProducts), [activeProducts]);
   const totalProductPages = Math.max(1, Math.ceil(activeProducts.length / PRODUCT_PAGE_SIZE));
   const currentProductPage = Math.min(productPage, totalProductPages - 1);
+  const skuCounts=useMemo(()=>{const map=new Map<string,number>();for(const p of activeProducts)map.set(p.sku,(map.get(p.sku)??0)+1);return map;},[activeProducts]);
   const pagedActiveProducts = useMemo(
     () => activeProducts.slice(currentProductPage * PRODUCT_PAGE_SIZE, (currentProductPage + 1) * PRODUCT_PAGE_SIZE),
     [activeProducts, currentProductPage],
@@ -1135,7 +1142,7 @@ export function PackingApp() {
         !Number.isInteger(item.priority) || item.priority < 0 || item.priority > 100 ||
         !["fixed", "upright", "any"].includes(item.rotationPolicy) ||
         (Boolean(item.setCode?.trim()) && (!Number.isInteger(item.unitsPerSet) || !item.unitsPerSet || item.unitsPerSet < 1 || item.unitsPerSet > 99)) ||
-        (mode === "mixed" && (!Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 1_000_000)),
+        (mode === "mixed" && (!Number.isInteger(item.quantity) || item.quantity < 0 || item.quantity > 1_000_000)),
     );
     return invalid ? tt`${invalid.sku || tr("未命名产品")} 的尺寸、重量或数量不完整。` : null;
   }, [workflow,activeProducts, clearance, container, invalidNumericFields, mode]);
@@ -1478,7 +1485,7 @@ export function PackingApp() {
 
   const downloadTemplate = () => {
     const lines = [
-      "sku,name,length,width,height,lengthUnit,weight,weightUnit,quantity,priority,setCode,unitsPerSet,rotationPolicy,stackable,maxStackLayers,mustLoad,bottomOnly,color,maxTopLoadKg,topLoadLengthKg,topLoadWidthKg,topLoadHeightKg,allowedAboveSkus,cargoType,allowedOrientations,minimumSupportRatio,palletBaseHeight,cargoShape,shapeAxis,shapeTopRatio,shapeWallRatio,shapeWallHeightRatio,shapeStepLengthRatio,shapeStepHeightRatio,solidModel,protectionGap,longSupport",
+      "sku,name,length,width,height,lengthUnit,weight,weightUnit,quantity,priority,setCode,unitsPerSet,rotationPolicy,stackable,maxStackLayers,mustLoad,bottomOnly,color,maxTopLoadKg,topLoadLengthKg,topLoadWidthKg,topLoadHeightKg,allowedAboveSkus,cargoType,allowedOrientations,minimumSupportRatio,palletBaseHeight,cargoShape,shapeAxis,shapeTopRatio,shapeWallRatio,shapeWallHeightRatio,shapeStepLengthRatio,shapeStepHeightRatio,solidModel,protectionGap,longSupport,orderLineId,orderReference,orderLineReference,batch,customer,destination,unloadStop",
       tr("SET5-A-128,五箱套装A箱,1280,540,110,mm,40,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#2f7f89"),
       tr("SET5-B-068,五箱套装B箱,680,540,110,mm,14,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#a95e78"),
       tr("SET5-C-103,五箱套装C箱,1030,620,120,mm,30,kg,120,100,SET-5BOX,1,upright,true,0,true,false,#d5a72f"),
@@ -1495,19 +1502,25 @@ export function PackingApp() {
       return;
     }
     try {
-      const importRevision = inputRevisionRef.current;
-      const parsed = file.name.toLowerCase().endsWith(".xlsx") ? await importSpreadsheet(file, COLORS) : parseProductsCsv(await file.text(), COLORS);
-      if (importRevision !== inputRevisionRef.current || pendingDimensionChangesRef.current.size > 0) throw new Error(tr("导入期间输入发生变化，请完成录入后重新导入。"));
-      const importedMode = inferImportedPackingMode(parsed);
+      const importRevision = inputRevisionRef.current,importActionRevision=orderImportRevisionRef.current;
+      const excel=file.name.toLowerCase().endsWith(".xlsx");
+      const parsed=orderImportMode==="quantity"?undefined:excel?await importSpreadsheet(file,COLORS):parseProductsCsv(await file.text(),COLORS);
+      const updates=orderImportMode!=="quantity"?undefined:excel?await (await import("../lib/packing/spreadsheet")).parseSpreadsheetQuantities(await file.arrayBuffer()):parseOrderQuantityCsv(await file.text());
+      if (importRevision !== inputRevisionRef.current || importActionRevision!==orderImportRevisionRef.current || pendingDimensionChangesRef.current.size > 0) throw new Error(tr("导入期间输入发生变化，请完成录入后重新导入。"));
+      const inherited=inheritOrderDelivery(products,result?.delivery);
+      const next=updates?updateOrderQuantities(inherited,updates):importOrderRows(inherited,parsed!,orderImportMode as "replace"|"append");
+      assertOrderReferences(next,palletBuild,container);
+      const importedMode = orderImportMode==="replace"?inferImportedPackingMode(next):"mixed";
       clearNumericDraftErrors();
-      setProducts(parsed);
+      if(importedMode==="mixed"&&workflow==="single-capacity")setLoadingWorkflow("direct");
+      setProducts(next);
       setMode(importedMode);
       setResultBundle(null);
       markDirty();
       setStatus("idle");
-      setMessage(importedMode === "single"
-        ? tt`已识别同一套装编码，按单品多箱模式导入 ${parsed.length} 个箱型；将直接计算完整套数`
-        : tt`已导入 ${parsed.length} 个 SKU，请检查后计算`);
+      setMessage(orderImportMode==="quantity"?tr("已按稳定 ID 更新数量，箱规、客户、批次和包装规则保留。","Quantities updated by stable ID; dimensions, customer, batch and packaging rules are preserved."):orderImportMode==="append"?tr("已追加新订单行并生成新 ID，请核对数量和套装编码。","New order rows appended with new IDs; review quantities and kit codes."):importedMode === "single"
+        ? tt`已识别同一套装编码，按单品多箱模式导入 ${next.length} 个箱型；将直接计算完整套数`
+        : tt`已导入 ${next.length} 个 SKU，请检查后计算`);
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : tr("CSV 读取失败，请检查文件后重试。"));
@@ -1556,10 +1569,10 @@ export function PackingApp() {
   };
   const workspaceBackup = useMemo(() => serializeWorkspaceBackup({palletLayerTemplates,workflow,palletBuild,floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,result,resultBundle?.strategyPlans), [palletLayerTemplates,workflow,palletBuild,floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit,result,resultBundle?.strategyPlans]);
   const upgradesDisabled = hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0 || status === "working";
-  const adoptManualPlan=(next:PackingResult)=>{next={...next,delivery:next.delivery??result?.delivery,accessConfig:next.accessConfig??result?.accessConfig,handlingTasks:next.handlingTasks??result?.handlingTasks};clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。"));};
+  const adoptManualPlan=(next:PackingResult)=>{const rows=adoptOrderDelivery(products,next.delivery??result?.delivery);setProducts(rows);next={...next,cargoDetails:Object.fromEntries(rows.filter(p=>next.summaries.some(s=>s.productId===p.id)).map(p=>[p.id,shapeDetails(p)])),delivery:orderDelivery(rows.filter(p=>next.summaries.some(s=>s.productId===p.id)),next.delivery??result?.delivery),accessConfig:next.accessConfig??result?.accessConfig,handlingTasks:next.handlingTasks??result?.handlingTasks};clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。"));};
 
   const planEditor=usePlanEditor(result,activeProducts,upgradesDisabled||!result?.validation.valid||result.metrics.loadedCount!==result.placements.length,adoptManualPlan);
-  const fleetRequest: PackingRequest = {delivery:result?.delivery,accessConfig:result?.accessConfig, floorPallets, loadingRules, mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
+  const fleetRequest: PackingRequest = {delivery:orderDelivery(activeProducts,Object.fromEntries(Object.entries(result?.delivery??{}).filter(([id])=>activeProducts.some(p=>p.id===id&&!p.orderLine)))),accessConfig:result?.accessConfig, floorPallets, loadingRules, mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
 
   const downloadExcelTemplate = async () => { setMessage(tr("正在生成 Excel 模板…")); try { const { createSpreadsheetTemplate } = await import("../lib/packing/spreadsheet"); const bytes=await createSpreadsheetTemplate(); const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));const a=document.createElement("a");a.href=url;a.download="CargoFit_products_template.xlsx";document.body.appendChild(a);a.click();a.remove();setMessage(tr("Excel 模板已生成。"));setTimeout(()=>URL.revokeObjectURL(url),10000); } catch(e) {setMessage(e instanceof Error?e.message:"Excel export failed");} };
   const downloadPdf = async () => { if(!result?.validation.valid||resultAudit?.hasErrors||dirty||hasPendingDimensionChanges)return;setExportingPdf(true);try{const {downloadPdfGuide}=await import("../lib/packing/pdf-guide");await downloadPdfGuide(result,getAppLanguage(),activeProducts);}catch(e){setMessage(e instanceof Error?e.message:"PDF export failed");}finally{setExportingPdf(false);} };
@@ -1588,7 +1601,7 @@ export function PackingApp() {
     if(step===workflowStep)return;
     if(step===2&&workflowStep===1){
       const next=activeProducts.map(p=>({...p,...pendingDimensionChangesRef.current.get(p.id)}));
-      if(invalidNumericFields.size||!next.length||next.some(p=>!p.sku.trim()||p.length<=0||p.width<=0||p.height<=0||p.weight<0||(mode==="mixed"&&p.quantity<=0))){setStatus("error");setMessage(tr("请先完成货物 SKU、完整尺寸、毛重和需求数量。"));return;}
+      if(invalidNumericFields.size||!next.length||next.some(p=>!p.sku.trim()||p.length<=0||p.width<=0||p.height<=0||p.weight<0||(mode==="mixed"&&p.quantity<0))){setStatus("error");setMessage(tr("请先完成货物 SKU、完整尺寸、毛重和需求数量。"));return;}
       commitPendingDimensions();
     }
     if(step===3&&!result&&status!=="working"){setMessage(tr("请在第二步确认配置，并点击开始计算。"));return;}
@@ -1600,7 +1613,7 @@ export function PackingApp() {
   const advanceToConfiguration=()=>{
     if(invalidNumericFields.size){setMessage(tr("请先完成所有数字输入。"));return;}
     const next=activeProducts.map(p=>({...p,...pendingDimensionChangesRef.current.get(p.id)}));
-    if(!next.length||next.some(p=>!p.sku.trim()||p.length<=0||p.width<=0||p.height<=0||p.weight<0||(mode==="mixed"&&p.quantity<=0))){setStatus("error");setMessage(tr("请填写有效 SKU、完整尺寸、重量和需求数量。"));return;}
+    if(!next.length||next.some(p=>!p.sku.trim()||p.length<=0||p.width<=0||p.height<=0||p.weight<0||(mode==="mixed"&&p.quantity<0))){setStatus("error");setMessage(tr("请填写有效 SKU、完整尺寸、重量和需求数量。"));return;}
     commitPendingDimensions();goToStep(2);
   };
   const startConfiguredCalculation=()=>{
@@ -1667,6 +1680,7 @@ export function PackingApp() {
         {showTransport && <TransportPicker selected={container} customContainers={customContainers} onCustomChange={spaces=>{setCustomContainers(spaces);persistDraft({customContainers:spaces});}} onSelect={space=>{persistDraft({container:space,practicalTargetPercent:recommendedPracticalTarget(space)*100});clearNumericDraftErrors();setContainer(space);setPracticalTargetPercent(recommendedPracticalTarget(space)*100);markDirty();}} onClose={()=>setShowTransport(false)}/>}
         {showFloorPallets && <FloorPalletSettings config={floorPallets} container={container} clearance={clearance} customSpaces={customContainers} onClose={()=>setShowFloorPallets(false)} onSave={next=>{persistDraft({floorPallets:next});setFloorPallets(next);markDirty();}}/>}
         {showRules && <LoadingRuleSettings rules={loadingRules} products={products} onSave={(rules,next)=>{persistDraft({loadingRules:rules,products:next});setLoadingRules(rules);setProducts(next);markDirty();}} onClose={()=>setShowRules(false)}/>}
+        {activeOrderLine&&products.find(p=>p.id===activeOrderLine)&&<OrderLineEditor key={activeOrderLine} product={products.find(p=>p.id===activeOrderLine)!} delivery={result?.delivery} onSave={line=>{setProducts(current=>current.map(p=>p.id===activeOrderLine?{...p,orderLine:line}:p));setActiveOrderLine(null);markDirty();}} onCopy={()=>{try{const rows=copyOrderRows(inheritOrderDelivery(products,result?.delivery),activeOrderLine);if(rows.length>MAX_CSV_ROWS)throw Error(tr("订单行超过上限","Order-line limit exceeded"));setProducts(rows);setMode("mixed");if(workflow==="single-capacity")setLoadingWorkflow("direct");setActiveOrderLine(null);markDirty();}catch(e){setMessage(String(e instanceof Error?e.message:e));}}} onClose={()=>setActiveOrderLine(null)}/>}
         {activeCargo && products.find(p=>p.id===activeCargo) && <CargoSettings product={products.find(p=>p.id===activeCargo)!} mode={mode} lengthUnit={lengthUnit} weightUnit={weightUnit} container={container} clearance={clearance} strategy={strategy} onSave={product=>{if(product.cargoType !== products.find(p=>p.id===product.id)?.cargoType) product = {...product,minimumSupportRatio:loadingRules.supportByType?.[product.cargoType ?? "carton"]};persistDraft({products:products.map(p=>p.id===product.id?product:p)});clearNumericDraftErrors();setProducts(current=>current.map(p=>p.id===product.id?product:p));markDirty();}} onClose={()=>setActiveCargo(null)}/>}
         {showViewer && result && <PlanViewer plans={[result]} exportsBlocked={!canExport} onClose={()=>setShowViewer(false)}/>}
 
@@ -1716,7 +1730,9 @@ export function PackingApp() {
               <button className="button small" aria-pressed={showProductRules} onClick={()=>setShowProductRules(v=>!v)}>{showProductRules?tr("收起详细规则"):tr("显示详细规则")}</button>
               <button className="button ghost small" disabled={!hydrated} onClick={() => void downloadExcelTemplate()}><FileSpreadsheet size={15}/>{tr("下载 Excel 模板")}</button>
               <button className="button ghost small" onClick={downloadTemplate}><Download size={15} />{tr("下载模板")}</button>
-              <button className="button ghost small" onClick={() => fileInputRef.current?.click()}><Upload size={15} />{tr("导入 CSV / Excel")}</button>
+              <label>{tr("导入方式","Import action")}<select aria-label={tr("订单行导入方式","Order-row import action")} value={orderImportMode} onChange={e=>{setOrderImportMode(e.target.value as typeof orderImportMode);orderImportRevisionRef.current+=1;}}><option value="replace">{tr("替换订单","Replace order")}</option><option value="append">{tr("追加为新行","Append as new rows")}</option><option value="quantity">{tr("按 ID 只更新数量","Update quantities by ID")}</option></select></label>
+              <button className="button ghost small" disabled={hasPendingDimensionChanges||invalidNumericFields.size>0} onClick={()=>downloadFile("order-rows.csv","\uFEFF"+buildOrderRowsCsv(inheritOrderDelivery(products,result?.delivery)),"text/csv;charset=utf-8")}>{tr("导出订单行 CSV","Export order-row CSV")}</button>
+              <button className="button ghost small" disabled={hasPendingDimensionChanges||invalidNumericFields.size>0} onClick={() => fileInputRef.current?.click()}><Upload size={15} />{tr("导入 CSV / Excel")}</button>
               {mode === "mixed" ? <button className="button primary small" onClick={addProduct}><Plus size={15} />{tr("添加 SKU")}</button> : null}
             </div>
           </div>
@@ -1810,33 +1826,34 @@ export function PackingApp() {
               <thead><tr><th>{tr("标识")}</th><th className="cargo-sku-heading">SKU</th><th className="cargo-settings-heading">{tr("货物设置", "Cargo settings")}</th><th>{tr("外箱长")}</th><th>{tr("外箱宽")}</th><th>{tr("外箱高")}</th><th>{tr("CBM 自动")}</th><th>{tr("毛重")}</th>{mode === "mixed" ? <th>{tr("需求箱数")}</th> : null}{mode === "mixed" || isSingleProductSet ? <><th>{tr("套装编码")}</th><th>{tr("套内数量")}</th></> : null}{mode === "mixed" && showProductRules ? <><th>{tr("装载优先级")}</th><th>{tr("必装")}</th></> : null}{showProductRules && <><th>{tr("方向规则")}</th><th>{tr("可承托")}</th><th>{tr("必须底置")}</th><th>{tr("层数上限")}</th></>}<th aria-label={tr("操作")} /></tr></thead>
               <tbody>
                 {pagedActiveProducts.map((product) => {
+                  const rowLabel=(skuCounts.get(product.sku)??0)>1?`${product.sku} [${product.id}]`:product.sku;
                   const calculatedCbm = exactCartonVolumeCbm(product);
                   const roundedCbm = roundedCartonVolumeCbm(product);
                   return <tr key={product.id}>
-                    <td><input className="color-input" aria-label={tt`${product.sku} 颜色`} type="color" value={product.color} onChange={(event) => updateProduct(product.id, "color", event.target.value)} /></td>
-                    <td className="cargo-sku-cell"><input aria-label={`${product.sku} SKU`} maxLength={80} className="sku-input" value={product.sku} onChange={(event) => updateProduct(product.id, "sku", event.target.value)} /></td>
-                    <td className="cargo-settings-cell"><button className="button primary cargo-settings-button" disabled={hasPendingDimensionChanges} onClick={()=>setActiveCargo(product.id)} aria-label={`${product.sku} ${tr("货物设置")}`}><Box size={16}/><span className="cargo-settings-label">{tr("朝向与规则", "Orientation & rules")}</span><span className="cargo-settings-short">{tr("设置", "Settings")}</span></button></td>
-                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${product.sku} 外箱长`} value={fromMillimeters(product.length, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => stageProductDimension(product.id, "length", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setDimensionFieldValidity(product.id, "length", valid)} onFocusChange={handleDimensionFocusChange} /><small className="cell-unit">{lengthUnit}</small></td>
-                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${product.sku} 外箱宽`} value={fromMillimeters(product.width, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => stageProductDimension(product.id, "width", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setDimensionFieldValidity(product.id, "width", valid)} onFocusChange={handleDimensionFocusChange} /><small className="cell-unit">{lengthUnit}</small></td>
-                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${product.sku} 外箱高`} value={fromMillimeters(product.height, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => stageProductDimension(product.id, "height", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setDimensionFieldValidity(product.id, "height", valid)} onFocusChange={handleDimensionFocusChange} /><small className="cell-unit">{lengthUnit}</small></td>
-                    <td className="cbm-cell"><output className="cbm-auto-value" aria-label={tt`${product.sku} 自动计算 CBM`}>{roundedCbm.toFixed(2)}</output><small className="cell-meta">{tr("自动计算 · 精确值 ")}{calculatedCbm.toFixed(4)}</small></td>
-                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${product.sku} 毛重`} value={fromKilograms(product.weight, weightUnit)} precision={weightUnitPrecision(weightUnit)} onValueChange={(value) => updateProduct(product.id, "weight", toKilograms(value, weightUnit))} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:weight`, valid)} /><small className="cell-unit">{weightUnit}</small></td>
-                    {mode === "mixed" ? <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${product.sku} 需求箱数`} value={product.quantity} integer max={1_000_000} onValueChange={(value) => updateProduct(product.id, "quantity", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:quantity`, valid)} /><small className="cell-unit">{tr("箱")}</small></td> : null}
-                    {mode === "mixed" || isSingleProductSet ? <><td><input className="set-code-input" aria-label={tt`${product.sku} 套装编码`} maxLength={80} value={product.setCode ?? ""} placeholder={tr("留空=散箱")} readOnly={mode === "single"} onChange={(event) => updateProduct(product.id, "setCode", event.target.value)} /><small>{mode === "single" ? tr("同一产品包装") : tr("同编码组成一套")}</small></td><td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${product.sku} 套内数量`} value={product.unitsPerSet || 1} integer min={1} max={99} onValueChange={(value) => updateProduct(product.id, "unitsPerSet", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:unitsPerSet`, valid)} /><small className="cell-unit">{tr("箱 / 套")}</small></td></> : null}
-                    {mode === "mixed" && showProductRules ? <><td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${product.sku} 装载优先级`} value={product.priority} integer max={100} onValueChange={(value) => updateProduct(product.id, "priority", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:priority`, valid)} /><small className="cell-meta">{tr("数值越高越先装")}</small></td><td><label className="switch" title={tr("必装货物优先于塞货，并在缺装时单独告警")}><input aria-label={tt`${product.sku} 必装`} type="checkbox" checked={product.mustLoad !== false} onChange={(event) => updateProduct(product.id, "mustLoad", event.target.checked)} /><span /></label></td></> : null}
+                    <td><input className="color-input" aria-label={tt`${rowLabel} 颜色`} type="color" value={product.color} onChange={(event) => updateProduct(product.id, "color", event.target.value)} /></td>
+                    <td className="cargo-sku-cell"><input aria-label={`${rowLabel} SKU`} maxLength={80} className="sku-input" value={product.sku} onChange={(event) => updateProduct(product.id, "sku", event.target.value)} /><button className="button small" disabled={hasPendingDimensionChanges} aria-label={`${rowLabel} ${tr("订单行","Order row")}`} onClick={()=>setActiveOrderLine(product.id)}>{tr("订单行","Order row")}</button><small className="order-row-reference" title={product.id}>{product.orderLine?.lineReference||product.id}</small>{product.orderLine&&<small className="order-row-reference">{[product.orderLine.customer,product.orderLine.batch].filter(Boolean).join(" · ")}</small>}</td>
+                    <td className="cargo-settings-cell"><button className="button primary cargo-settings-button" disabled={hasPendingDimensionChanges} onClick={()=>setActiveCargo(product.id)} aria-label={`${rowLabel} ${tr("货物设置")}`}><Box size={16}/><span className="cargo-settings-label">{tr("朝向与规则", "Orientation & rules")}</span><span className="cargo-settings-short">{tr("设置", "Settings")}</span></button></td>
+                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${rowLabel} 外箱长`} value={fromMillimeters(product.length, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => stageProductDimension(product.id, "length", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setDimensionFieldValidity(product.id, "length", valid)} onFocusChange={handleDimensionFocusChange} /><small className="cell-unit">{lengthUnit}</small></td>
+                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${rowLabel} 外箱宽`} value={fromMillimeters(product.width, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => stageProductDimension(product.id, "width", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setDimensionFieldValidity(product.id, "width", valid)} onFocusChange={handleDimensionFocusChange} /><small className="cell-unit">{lengthUnit}</small></td>
+                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${rowLabel} 外箱高`} value={fromMillimeters(product.height, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => stageProductDimension(product.id, "height", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setDimensionFieldValidity(product.id, "height", valid)} onFocusChange={handleDimensionFocusChange} /><small className="cell-unit">{lengthUnit}</small></td>
+                    <td className="cbm-cell"><output className="cbm-auto-value" aria-label={tt`${rowLabel} 自动计算 CBM`}>{roundedCbm.toFixed(2)}</output><small className="cell-meta">{tr("自动计算 · 精确值 ")}{calculatedCbm.toFixed(4)}</small></td>
+                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${rowLabel} 毛重`} value={fromKilograms(product.weight, weightUnit)} precision={weightUnitPrecision(weightUnit)} onValueChange={(value) => updateProduct(product.id, "weight", toKilograms(value, weightUnit))} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:weight`, valid)} /><small className="cell-unit">{weightUnit}</small></td>
+                    {mode === "mixed" ? <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${rowLabel} 需求箱数`} value={product.quantity} integer max={1_000_000} onValueChange={(value) => updateProduct(product.id, "quantity", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:quantity`, valid)} /><small className="cell-unit">{tr("箱")}</small></td> : null}
+                    {mode === "mixed" || isSingleProductSet ? <><td><input className="set-code-input" aria-label={tt`${rowLabel} 套装编码`} maxLength={80} value={product.setCode ?? ""} placeholder={tr("留空=散箱")} readOnly={mode === "single"} onChange={(event) => updateProduct(product.id, "setCode", event.target.value)} /><small>{mode === "single" ? tr("同一产品包装") : tr("同编码组成一套")}</small></td><td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${rowLabel} 套内数量`} value={product.unitsPerSet || 1} integer min={1} max={99} onValueChange={(value) => updateProduct(product.id, "unitsPerSet", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:unitsPerSet`, valid)} /><small className="cell-unit">{tr("箱 / 套")}</small></td></> : null}
+                    {mode === "mixed" && showProductRules ? <><td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${rowLabel} 装载优先级`} value={product.priority} integer max={100} onValueChange={(value) => updateProduct(product.id, "priority", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:priority`, valid)} /><small className="cell-meta">{tr("数值越高越先装")}</small></td><td><label className="switch" title={tr("必装货物优先于塞货，并在缺装时单独告警")}><input aria-label={tt`${rowLabel} 必装`} type="checkbox" checked={product.mustLoad !== false} onChange={(event) => updateProduct(product.id, "mustLoad", event.target.checked)} /><span /></label></td></> : null}
                     {showProductRules && <>
                     <td>
-                      <select className="constraint-select" aria-label={tt`${product.sku} 方向规则`} value={product.rotationPolicy} onChange={(event) => updateProduct(product.id, "rotationPolicy", event.target.value)}>
+                      <select className="constraint-select" aria-label={tt`${rowLabel} 方向规则`} value={product.rotationPolicy} onChange={(event) => updateProduct(product.id, "rotationPolicy", event.target.value)}>
                         <option value="fixed">{tr("固定方向")}</option>
                         <option value="upright">{tr("仅平面旋转")}</option>
                         <option value="any">{tr("任意旋转")}</option>
                       </select>
                     </td>
-                    <td><label className="switch" title={tr("关闭后，其他箱体不能放在此产品上方")}><input aria-label={tt`${product.sku} 可承托`} type="checkbox" checked={shapeCanSupport(product)&&product.stackable} disabled={!shapeCanSupport(product)} onChange={(event) => updateProduct(product.id, "stackable", event.target.checked)} /><span /></label></td>
-                    <td><label className="switch" title={tr("开启后该产品只允许摆放在集装箱地板")}><input aria-label={tt`${product.sku} 必须底置`} type="checkbox" checked={product.bottomOnly === true} onChange={(event) => updateProduct(product.id, "bottomOnly", event.target.checked)} /><span /></label></td>
-                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${product.sku} 层数上限`} value={product.maxStackLayers} integer max={99} onValueChange={(value) => updateProduct(product.id, "maxStackLayers", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:maxStackLayers`, valid)} /><small className="cell-meta" title={tr("0 表示不设置人为层数上限，仍受柜高、门高、承托和载重约束")}>{tr("0 = 自动按柜高")}</small></td>
+                    <td><label className="switch" title={tr("关闭后，其他箱体不能放在此产品上方")}><input aria-label={tt`${rowLabel} 可承托`} type="checkbox" checked={shapeCanSupport(product)&&product.stackable} disabled={!shapeCanSupport(product)} onChange={(event) => updateProduct(product.id, "stackable", event.target.checked)} /><span /></label></td>
+                    <td><label className="switch" title={tr("开启后该产品只允许摆放在集装箱地板")}><input aria-label={tt`${rowLabel} 必须底置`} type="checkbox" checked={product.bottomOnly === true} onChange={(event) => updateProduct(product.id, "bottomOnly", event.target.checked)} /><span /></label></td>
+                    <td className="numeric-cell"><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${rowLabel} 层数上限`} value={product.maxStackLayers} integer max={99} onValueChange={(value) => updateProduct(product.id, "maxStackLayers", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:maxStackLayers`, valid)} /><small className="cell-meta" title={tr("0 表示不设置人为层数上限，仍受柜高、门高、承托和载重约束")}>{tr("0 = 自动按柜高")}</small></td>
                     </>}
-                    <td>{mode === "mixed" || isSingleProductSet ? <button className="icon-button danger" aria-label={tt`删除 ${product.sku}`} onClick={() => removeProduct(product.id)} disabled={activeProducts.length <= 1}><Trash2 size={16} /></button> : null}</td>
+                    <td>{mode === "mixed" || isSingleProductSet ? <button className="icon-button danger" aria-label={tt`删除 ${rowLabel}`} onClick={() => removeProduct(product.id)} disabled={activeProducts.length <= 1}><Trash2 size={16} /></button> : null}</td>
                   </tr>
                 })}
               </tbody>
@@ -2278,8 +2295,8 @@ export function PackingApp() {
               </div>
               <div className="coordinate-wrap">
                 <table className="coordinate-table">
-                  <thead><tr><th>#</th><th>SKU</th><th>{tr("套装 / 套号")}</th><th>X</th><th>Y</th><th>Z</th><th>{tr("摆放尺寸（长×宽×高）")}</th><th>{tr("方向")}</th><th>{tr("层级")}</th><th>{tr("重量")}</th></tr></thead>
-                  <tbody>{result.placements.slice(0, 80).map((box, index) => <tr key={box.id}><td>{index + 1}</td><td><i style={{ background: box.color }} />{box.sku}</td><td>{box.setCode ? tt`${box.setCode} · 第 ${box.setNumber} 套 · ${box.setItemNumber}/${result.setSummaries.find((item) => item.setCode === box.setCode)?.cartonsPerSet ?? ""}` : tr("散箱")}</td><td>{formatNumber(box.x)}</td><td>{formatNumber(box.y)}</td><td>{formatNumber(box.z)}</td><td>{formatNumber(box.dx)} × {formatNumber(box.dy)} × {formatNumber(box.dz)} mm</td><td>{box.orientation}</td><td>{tt`第 ${box.layer} 层`}</td><td>{box.weight} kg</td></tr>)}</tbody>
+                  <thead><tr><th>#</th><th>SKU</th><th>{tr("套装 / 套号")}</th><th>X</th><th>Y</th><th>Z</th><th>{tr("摆放尺寸（长×宽×高）")}</th><th>{tr("方向")}</th><th>{tr("层级")}</th><th>{tr("重量")}</th><th>{tr("订单行 ID","Order-line ID")}</th><th>{tr("批次","Batch")}</th></tr></thead>
+                  <tbody>{result.placements.slice(0, 80).map((box, index) => <tr key={box.id}><td>{index + 1}</td><td><i style={{ background: box.color }} />{box.sku}</td><td>{box.setCode ? tt`${box.setCode} · 第 ${box.setNumber} 套 · ${box.setItemNumber}/${result.setSummaries.find((item) => item.setCode === box.setCode)?.cartonsPerSet ?? ""}` : tr("散箱")}</td><td>{formatNumber(box.x)}</td><td>{formatNumber(box.y)}</td><td>{formatNumber(box.z)}</td><td>{formatNumber(box.dx)} × {formatNumber(box.dy)} × {formatNumber(box.dz)} mm</td><td>{box.orientation}</td><td>{tt`第 ${box.layer} 层`}</td><td>{box.weight} kg</td><td style={{overflowWrap:"anywhere"}}>{box.productId}</td><td>{result.cargoDetails?.[box.productId]?.orderLine?.batch??""}</td></tr>)}</tbody>
                 </table>
               </div>
             </article>

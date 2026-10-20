@@ -1,3 +1,4 @@
+import {planOrderRows} from "./order-lines";
 import {looseManifest} from "./loose-cargo";
 import {planCrateStackReview,CRATE_STACK_STATE_TEXT} from "./crate-auto-stack";
 import {inspectDeckSupports,palletDeckSupportGeometry,deckSupportHeight} from "./deck-support";
@@ -75,6 +76,13 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
     });await finish();
   }
   for (let startAt = 0; startAt < result.summaries.length; startAt += 28) { start(t("货物清单", "Cargo manifest")); const columns = [100, 630, 990, 1260]; ["SKU", t("需求 / 已装", "Requested / loaded"), t("重量 kg", "Weight kg"), t("体积 m³", "Volume m³")].forEach((v, i) => text(v, columns[i], 310, 27, true)); result.summaries.slice(startAt, startAt + 28).forEach((s, i) => { const y = 375 + i * 64; text(ellipsis(s.sku, 495), columns[0], y, 26); text(`${s.requested} / ${s.loaded}`, columns[1], y, 26); text(s.loadedWeight.toFixed(1), columns[2], y, 26); text((s.loadedVolume / 1e9).toFixed(3), columns[3], y, 26); }); await finish(); }
+  const orderRows=planOrderRows(result);
+  if(orderRows.length){
+    const title=t("稳定订单行与批次清单","Stable order rows and batches");start(title);let y=315;
+    const wrap=(value:string)=>{ctx.font="24px 'Noto Sans SC','Microsoft YaHei',Arial,sans-serif";const lines:string[]=[];let line="";for(const ch of value){if(line&&ctx.measureText(line+ch).width>1570){lines.push(line);line="";}line+=ch;}lines.push(line);return lines;};
+    for(const row of orderRows){const lines=[`ID: ${row.id}`,`SKU: ${row.sku} · ${t("需求 / 已装","Requested / loaded")}: ${row.requested} / ${row.loaded}`,`${t("订单 / 业务行号","Order / business line")}: ${row.line.orderReference} / ${row.line.lineReference}`,`${t("客户 / 目的地","Customer / destination")}: ${row.line.customer} / ${row.line.destination}`,`${t("批次 / 站次","Batch / stop")}: ${row.line.batch} / ${row.line.stop}`].flatMap(wrap);for(const line of lines){if(y>2370){await finish();start(title);y=315;}text(line,100,y,24);y+=36;}y+=28;}
+    await finish();
+  }
   const looseRows=looseManifest(result);
   for(let from=0;from<looseRows.length;from+=25){
     start(t("整托与散箱混装清单","Complete units and loose cargo manifest"));

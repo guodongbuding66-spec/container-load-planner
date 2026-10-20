@@ -1,3 +1,4 @@
+import {parseOrderLine,assertOrderLineIds} from "./order-lines";
 import {planCrateStackReview} from "./crate-auto-stack";
 import {inspectDeckSupports,palletQuarterTurns,deckSupportHeight,palletDeckSupportGeometry} from "./deck-support";
 import {inspectAccessorySupports,ACCESSORY_SUPPORT_STATES} from "./accessory-support";
@@ -21,6 +22,7 @@ const REQUIRED_PRODUCT_COLUMNS = ["sku", "name", "length", "width", "height", "w
 const VALID_COLOR = /^#[0-9a-f]{6}$/i;
 const FORMULA_PREFIX = /^[\t ]*[=+\-@]/;
 
+function decodeOrderId(value:string){const s=value.trim();if(s.startsWith('"')){try{const v=JSON.parse(s);if(typeof v==="string")return v;}catch{}}return s;}
 function sanitizeText(value: string, maxLength: number) {
   return value.trim().slice(0, maxLength);
 }
@@ -35,11 +37,15 @@ export function toCsvCell(value: string | number | null | undefined) {
     : protectedValue;
 }
 
-export function buildPlacementCsv(result:PackingResult):string{
+function placementWithDeckCsv(result:PackingResult):string{
  const text=placementCsvCore(result),pallets=result.pallets??[];
  if(!pallets.some(p=>p.quarterTurns!==undefined||p.packaging?.deckSupports?.length))return text;
  const byId=new Map(pallets.map(p=>[p.id,p]));
  return parseCsvRecords(text).map((row,i)=>{if(!i)return [...row,"托盘水平转数","托内支承件JSON"].map(toCsvCell).join(",");const p=byId.get(row[15]==="pallet"?row[1]:row[16]);return [...row,p?palletQuarterTurns(p):"",p&&row[15]==="pallet"?JSON.stringify(p.packaging?.deckSupports??[]):""].map(toCsvCell).join(",");}).join("\r\n");
+}
+export function buildPlacementCsv(result:PackingResult):string{
+ if(!Object.values(result.cargoDetails??{}).some(p=>p.orderLine)&&new Set((result.summaries??[]).map(s=>s.sku)).size===(result.summaries??[]).length)return placementWithDeckCsv(result);
+ return parseCsvRecords(placementWithDeckCsv(result)).map((row,i)=>{if(!i)return [...row,"订单行ID","订单编号","业务行号","批次"].map(toCsvCell).join(",");const b=row[15]==="cargo"?result.placements[Number(row[0])-1]:undefined,line=b?result.cargoDetails?.[b.productId]?.orderLine:undefined;return [...row,b?.productId??"",line?.orderReference??"",line?.lineReference??"",line?.batch??""].map(toCsvCell).join(",");}).join("\r\n");
 }
 export function buildDeckSupportCsv(plan:PackingResult,products?:readonly ProductInput[],en=false){
  const t=(zh:string,eng:string)=>en?eng:zh,geometry=new Map(palletDeckSupportGeometry(plan.pallets??[]).boxes.map(b=>[b.id,b]));
@@ -270,7 +276,8 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
       ...(allowedOrientations ? { allowedOrientations } : {}),
       ...(minimumSupportRatio === undefined ? {} : { minimumSupportRatio }),
       ...(palletBaseHeight === undefined ? {} : { palletBaseHeight }),
-      id: `import-${now}-${index}`,
+      id: decodeOrderId(get("orderLineId")) || `import-${now}-${index}`,
+      ...( ["orderReference","orderLineReference","batch","customer","destination","unloadStop"].some(k=>get(k).trim()) ? {orderLine:parseOrderLine({orderReference:get("orderReference"),lineReference:get("orderLineReference"),batch:get("batch"),customer:get("customer"),destination:get("destination"),stop:number("unloadStop",0,999,0,true)})}:{}),
       sku: sanitizeText(get("sku"), 80),
       name: sanitizeText(get("name"), 200),
       length,
@@ -295,6 +302,7 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
   });
 
   if (!products.length) throw new Error("CSV 中没有可导入的数据行。");
+  assertOrderLineIds(products);
   return products;
 }
 
@@ -305,4 +313,15 @@ export function buildContainerAccessoryCsv(plan:PackingResult,en=false,products?
  const supports=new Map(inspectAccessorySupports(plan,products).map(r=>[r.id,r]));
  const rows=accessoryInstallationPlan(plan).map(({region:z,afterCargoStep,missingProductIds,weightKg})=>{const a=z.accessory,r=supports.get(z.id);return [plan.id,plan.engineVersion,z.id,z.name,z.kind,t(...ACCESSORY_TYPE_TEXT[a.type]),a.quantity,a.unitWeightKg,weightKg,z.x,z.y,z.z,z.dx,z.dy,z.dz,a.phase,a.afterAccessoryIds.join(" / "),a.relatedProductIds.join(" / "),afterCargoStep,missingProductIds.join(" / "),a.source,a.revision,a.note,t("计划重量；固定强度、安装动作和实称未核验","Planned mass; securing strength, installation actions and weighing unverified"),a.support?JSON.stringify(a.support):"",r?.loadKg??"",r?t(...ACCESSORY_SUPPORT_STATES[r.state]):""];});
  return [header,...rows].map(row=>row.map(toCsvCell).join(",")).join("\r\n");
+}
+
+export function parseOrderQuantityCsv(text:string){
+ if(new TextEncoder().encode(text).length>MAX_CSV_BYTES)throw Error("数量文件超过 5 MB / Quantity file exceeds 5 MB");
+ const [header,...rows]=parseCsvRecords(text.replace(/^\uFEFF/,"")),h=header?.map(s=>s.trim());
+ if(!h||new Set(h).size!==h.length||!h.includes("orderLineId")||!h.includes("quantity")||!rows.length||rows.length>MAX_CSV_ROWS)throw Error("数量更新需要 orderLineId、quantity 表头及数据 / Quantity updates require orderLineId and quantity headers and data");
+ const seen=new Set<string>();return rows.map(row=>{const id=decodeOrderId(row[h.indexOf("orderLineId")]??""),raw=row[h.indexOf("quantity")]?.trim(),quantity=Number(raw);if(!id||id.length>120||seen.has(id)||!raw||!Number.isInteger(quantity)||quantity<0||quantity>1000000)throw Error("数量文件的 ID 或箱数无效或重复 / Invalid or duplicate quantity-file ID or quantity");seen.add(id);return {id,quantity};});
+}
+export function buildOrderRowsCsv(products:readonly ProductInput[]){
+ const columns=["orderLineId","sku","name","length","width","height","weight","quantity","priority","setCode","unitsPerSet","rotationPolicy","stackable","maxStackLayers","mustLoad","bottomOnly","color","maxTopLoadKg","topLoadLengthKg","topLoadWidthKg","topLoadHeightKg","allowedAboveSkus","cargoType","allowedOrientations","minimumSupportRatio","palletBaseHeight","cargoShape","shapeAxis","shapeTopRatio","shapeWallRatio","shapeWallHeightRatio","shapeStepLengthRatio","shapeStepHeightRatio","solidModel","protectionGap","longSupport","dimensionAllowance","orderReference","orderLineReference","batch","customer","destination","unloadStop"];
+ assertOrderLineIds(products);return [columns,...products.map(p=>{const line=p.orderLine;return columns.map(k=>k==="orderLineId"?(FORMULA_PREFIX.test(p.id)?JSON.stringify(p.id):p.id):k==="orderLineReference"?line?.lineReference:k==="unloadStop"?line?.stop:["orderReference","batch","customer","destination"].includes(k)?line?.[k as keyof typeof line]:k.startsWith("topLoad")?p.topLoadByVerticalAxis?.[k==="topLoadLengthKg"?"length":k==="topLoadWidthKg"?"width":"height"]:["allowedAboveSkus","allowedOrientations","solidModel","longSupport","dimensionAllowance"].includes(k)?(p[k as keyof ProductInput]===undefined?undefined:JSON.stringify(p[k as keyof ProductInput])):p[k as keyof ProductInput] as string|number|boolean|undefined);})].map(row=>row.map(v=>toCsvCell(typeof v==="boolean"?String(v):v as string|number|undefined)).join(",")).join("\r\n");
 }

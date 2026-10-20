@@ -1,3 +1,4 @@
+import {assertOrderLineIds,orderDelivery} from "./order-lines";
 import {parseLooseQuantities} from "./loose-cargo";
 import {palletDeckSupportGeometry,DECK_SUPPORT_PREFIX} from "./deck-support";
 import {accessorySupportGeometry,assertAccessorySupportWorkflow,hasAccessorySupports,SUPPORT_WORKFLOW_ERROR} from "./accessory-support";
@@ -15,7 +16,7 @@ import { modelRestError, modelMassCenter, modelStable } from "./model-body";
 import { buildSolidModel } from "./solid-model";
 import { envelopeMetrics } from "./solid-utilization";
 import { parseAccessConfig } from "./maneuver";
-import { parseDelivery } from "./access";
+
 import { arrangeFloorPallets, parseFloorPalletConfig, palletAnchors, palletSupportProducts, assignPalletReferences, palletCargoCeiling, supportingPalletIds } from "./floor-pallets";
 import { parseLoadingRules, parseOrientations, CARGO_TYPES, requiredSupport, applyTypeSupport } from "./loading-rules";
 import { executionAudit } from "./execution";
@@ -46,7 +47,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.47.0";
+export const ENGINE_VERSION = "0.48.0";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -159,6 +160,7 @@ export function assertValidRequest(request: PackingRequest) {
     throw new Error("请至少添加一个产品。");
   }
 
+  assertOrderLineIds(request.products);
   const productIds = new Set<string>();
   for (const product of request.products) {
     if (!product.id || productIds.has(product.id)) throw new Error("产品 ID 不能为空或重复。");
@@ -2305,7 +2307,7 @@ export function pack(request: PackingRequest): PackingResult {
   }
 
   return {
-    delivery:parseDelivery(request.delivery,new Set(normalized.products.map(p=>p.id))),accessConfig:parseAccessConfig(request.accessConfig),
+    delivery:orderDelivery(normalized.products,request.delivery),accessConfig:parseAccessConfig(request.accessConfig),
     id: `plan-${Date.now()}-${normalized.strategy}`,
     mode: normalized.mode,
     strategy: normalized.strategy!,
@@ -2679,7 +2681,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   const workflow=raw.workflow===undefined ? palletization?.only ? "pallet-only" : palletization ? "palletized" : request.workflow : parseLoadingWorkflow(raw.workflow,request.mode);
   const palletBuild=raw.palletBuild===undefined ? request.palletBuild : parsePalletBuild(raw.palletBuild);
   return {handlingTasks:parseHandlingTasks(raw.handlingTasks),workflow,palletBuild,id:`restored-${Date.now()}`,mode:request.mode,strategy:raw.strategy,practicalTargetUtilization:practicalTarget(normalized),engineVersion:ENGINE_VERSION,
-    accessConfig:parseAccessConfig(raw.accessConfig),palletization,delivery:parseDelivery(raw.delivery,new Set(products.map(p=>p.id))),floorPallets:request.floorPallets,pallets,container:request.container,clearance:request.clearance,singleCartonLimit:normalized.singleCartonLimit,placements:ordered,summaries,setSummaries,validation,
+    accessConfig:parseAccessConfig(raw.accessConfig),palletization,delivery:orderDelivery(products,raw.delivery),floorPallets:request.floorPallets,pallets,container:request.container,clearance:request.clearance,singleCartonLimit:normalized.singleCartonLimit,placements:ordered,summaries,setSummaries,validation,
     metrics:{...envelopeMetrics(ordered,products,effectiveVolume,pallets),loadedCount:ordered.length,requestedCount:summaries.reduce((n,s)=>n+s.requested,0),loadedVolume,grossWeight,effectiveVolume,
       volumeUtilization:loadedVolume/effectiveVolume,weightUtilization:grossWeight/request.container.maxWeight,
       centerOfGravity:calculateCenterOfGravity([...palletAnchors(pallets),...ordered,...accessoryMassBoxes(request.container,request.clearance)],effective,products),executionComplexity:calculateExecutionComplexity(ordered,products,pallets,fixedPlanSupportGeometry(request.container,request.clearance,pallets)),solveTimeMs:0},

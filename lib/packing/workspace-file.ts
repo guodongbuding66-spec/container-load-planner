@@ -1,3 +1,4 @@
+import {parseOrderLine,assertOrderLineIds} from "./order-lines";
 import {parsePalletLayerTemplates,type PalletLayerTemplate} from "./pallet-layer";
 import {parseLongSupport} from "./long-support";
 import {parseSiteExclusions} from "./site-exclusions";
@@ -68,7 +69,7 @@ export function parseProductInput(value: unknown): ProductInput {
   const color = text(v.color, 7);
   if (!/^#[0-9a-f]{6}$/i.test(color)) throw new Error("箱型颜色无效。");
   if (v.cargoType !== undefined && !CARGO_TYPES.includes(v.cargoType as never)) throw new Error("货物类型无效。");
-  return withShapeSupport({ ...(v.dimensionAllowance===undefined?{}:{dimensionAllowance:parseDimensionAllowance(v.dimensionAllowance)}), ...parseShapeFields(v), ...(v.cargoType === undefined ? {} : { cargoType: v.cargoType as ProductInput["cargoType"] }), ...(v.allowedOrientations === undefined ? {} : { allowedOrientations: parseOrientations(v.allowedOrientations) }), ...(v.minimumSupportRatio === undefined ? {} : { minimumSupportRatio: number(v.minimumSupportRatio, Number.MIN_VALUE, 1) }), ...(v.palletBaseHeight === undefined ? {} : { palletBaseHeight: (() => { const base = number(v.palletBaseHeight); if (base >= number(v.height)) throw new Error("底座必须小于总高。"); return base; })() }), id: text(v.id, 120), sku: text(v.sku, 80), name: text(v.name, 200),
+  return withShapeSupport({ ...(v.orderLine===undefined?{}:{orderLine:parseOrderLine(v.orderLine)}), ...(v.dimensionAllowance===undefined?{}:{dimensionAllowance:parseDimensionAllowance(v.dimensionAllowance)}), ...parseShapeFields(v), ...(v.cargoType === undefined ? {} : { cargoType: v.cargoType as ProductInput["cargoType"] }), ...(v.allowedOrientations === undefined ? {} : { allowedOrientations: parseOrientations(v.allowedOrientations) }), ...(v.minimumSupportRatio === undefined ? {} : { minimumSupportRatio: number(v.minimumSupportRatio, Number.MIN_VALUE, 1) }), ...(v.palletBaseHeight === undefined ? {} : { palletBaseHeight: (() => { const base = number(v.palletBaseHeight); if (base >= number(v.height)) throw new Error("底座必须小于总高。"); return base; })() }), id: text(v.id, 120), sku: text(v.sku, 80), name: text(v.name, 200),
     length: number(v.length), width: number(v.width), height: number(v.height),
     weight: number(v.weight), quantity: integer(v.quantity, 0, 1_000_000),
     priority: integer(v.priority, 0, 100), rotationPolicy: v.rotationPolicy,
@@ -95,9 +96,10 @@ export function parseWorkspaceBackup(contents: string): WorkspaceInputs {
   if (!isLengthUnit(v.lengthUnit) || !isWeightUnit(v.weightUnit)) throw new Error("录入单位无效。");
   if (!Array.isArray(v.products) || !v.products.length || v.products.length > MAX_CSV_ROWS) throw new Error("备份的箱型数量无效。");
   if (!Array.isArray(v.customContainers) || v.customContainers.length > 100) throw new Error("自定义柜型数量无效。");
+  const products=v.products.map(parseProductInput);assertOrderLineIds(products);
   return { ...(v.palletLayerTemplates===undefined?{}:{palletLayerTemplates:parsePalletLayerTemplates(v.palletLayerTemplates)}), ...(v.workflow===undefined?{}:{workflow:parseLoadingWorkflow(v.workflow,v.mode)}), ...(v.palletBuild===undefined?{}:{palletBuild:parsePalletBuild(v.palletBuild)}), ...(v.floorPallets === undefined ? {} : {floorPallets:parseFloorPalletConfig(v.floorPallets)}), ...(v.loadingRules === undefined ? {} : { loadingRules: parseLoadingRules(v.loadingRules) }), mode: v.mode, strategy: v.strategy, practicalTargetPercent: number(v.practicalTargetPercent, 50, 95),
     container: container(v.container), clearance: number(v.clearance, 0, 50),
-    products: v.products.map(parseProductInput), customContainers: v.customContainers.map(container),
+    products, customContainers: v.customContainers.map(container),
     targetVolumePercent: integer(v.targetVolumePercent, 1, 100), targetWeightPercent: integer(v.targetWeightPercent, 1, 100),
     lengthUnit: v.lengthUnit, weightUnit: v.weightUnit };
 }

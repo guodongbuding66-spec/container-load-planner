@@ -114,7 +114,7 @@ test("debounces draft persistence and recognizes a one-code multi-carton CSV as 
 
   assert.match(source, /STORAGE_SAVE_DELAY_MS = 320/);
   assert.match(source, /window\.setTimeout\(\(\) => \{[\s\S]*?localStorage\.setItem[\s\S]*?STORAGE_SAVE_DELAY_MS/);
-  assert.match(source, /inferImportedPackingMode\(parsed\)/);
+  assert.match(source, /inferImportedPackingMode\(next\)/);
   assert.match(setUtils, /export function inferImportedPackingMode/);
 });
 
@@ -135,8 +135,8 @@ test("provides accessible names for mode, ranges, and product data fields", asyn
   assert.match(source, /aria-pressed=\{workflow === value\}/);
   assert.match(source, /aria-label=\{tr\("安全间隙"\)\}/);
   assert.match(source, /aria-label=\{tr\("目标体积利用率滑块"\)\}/);
-  assert.match(source, /ariaLabel=\{tt`\$\{product\.sku\} 外箱长`\}/);
-  assert.match(source, /ariaLabel=\{tt`\$\{product\.sku\} 层数上限`\}/);
+  assert.match(source, /ariaLabel=\{tt`\$\{rowLabel\} 外箱长`\}/);
+  assert.match(source, /ariaLabel=\{tt`\$\{rowLabel\} 层数上限`\}/);
 });
 
 test("keeps unit switching canonical and removes implicit layer caps and leading-zero coercion", async () => {

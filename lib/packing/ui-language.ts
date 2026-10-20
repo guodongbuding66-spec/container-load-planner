@@ -1,4 +1,19 @@
 export const ENGLISH: Record<string, string> = {
+  "订单行资料无效 / Invalid order-line details": "Invalid order-line details",
+  "卸货站次须为 0–999 / Unload stop must be 0–999": "Unload stop must be 0–999",
+  "订单行 ID（产品 ID）不能为空、重复或超过 120 字符 / Order-line IDs must be unique, nonempty and at most 120 characters": "Order-line IDs must be unique, nonempty and at most 120 characters",
+  "结果站次与源订单行不一致 / Result delivery differs from its source order line": "Result delivery differs from its source order line",
+  "订单行已不存在 / Order line no longer exists": "Order line no longer exists",
+  "追加套装编码已存在，请使用新套装编码 / Appended kit code already exists; use a new kit code": "Appended kit code already exists; use a new kit code",
+  "订单行最多 10,000 行 / Use at most 10,000 order lines": "Use at most 10,000 order lines",
+  "数量更新须使用当前订单的唯一 ID 和有效箱数 / Quantity updates require unique current order-line IDs and valid quantities": "Quantity updates require unique current order-line IDs and valid quantities",
+  "没有可更新的数量 / No quantity updates": "No quantity updates",
+  "导入会移除包装或附件关联的订单行，请保留原 ID 或先清除关联 / Import removes packaging or accessory order references; preserve IDs or clear references first": "Import removes packaging or accessory order references; preserve IDs or clear references first",
+  "更新数量小于已指定的散装数量 / Updated quantity is below the reserved loose quantity": "Updated quantity is below the reserved loose quantity",
+  "数量文件超过 5 MB / Quantity file exceeds 5 MB": "Quantity file exceeds 5 MB",
+  "数量更新需要 orderLineId、quantity 表头及数据 / Quantity updates require orderLineId and quantity headers and data": "Quantity updates require orderLineId and quantity headers and data",
+
+
   "剩余货物未找到完整可行方案，请核对包装库存、柜型、尺寸和套装 / No complete feasible load found; check shared stock, vehicle, dimensions and kits": "No complete feasible load found; check shared stock, vehicle, dimensions and kits",
   "多柜需要直接装柜或先打托后装柜 / Fleet allocation requires vehicle loading": "Fleet allocation requires vehicle loading",
   "多柜方案包含未知订单行 / Unknown fleet order line": "Unknown fleet order line",

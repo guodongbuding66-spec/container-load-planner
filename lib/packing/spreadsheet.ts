@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
-import { MAX_CSV_BYTES, MAX_CSV_ROWS, parseProductsCsv, toCsvCell } from "./csv";
-export const SPREADSHEET_COLUMNS = ["sku", "name", "length", "width", "height", "lengthUnit", "weight", "weightUnit", "quantity", "priority", "setCode", "unitsPerSet", "rotationPolicy", "stackable", "maxStackLayers", "mustLoad", "bottomOnly", "color", "maxTopLoadKg", "topLoadLengthKg", "topLoadWidthKg", "topLoadHeightKg", "allowedAboveSkus", "cargoType", "allowedOrientations", "minimumSupportRatio", "palletBaseHeight", "cargoShape", "shapeAxis", "shapeTopRatio", "shapeWallRatio", "shapeWallHeightRatio", "shapeStepLengthRatio", "shapeStepHeightRatio","solidModel","protectionGap","longSupport"];
+import { MAX_CSV_BYTES, MAX_CSV_ROWS, parseProductsCsv, parseOrderQuantityCsv, toCsvCell } from "./csv";
+export const SPREADSHEET_COLUMNS = ["sku", "name", "length", "width", "height", "lengthUnit", "weight", "weightUnit", "quantity", "priority", "setCode", "unitsPerSet", "rotationPolicy", "stackable", "maxStackLayers", "mustLoad", "bottomOnly", "color", "maxTopLoadKg", "topLoadLengthKg", "topLoadWidthKg", "topLoadHeightKg", "allowedAboveSkus", "cargoType", "allowedOrientations", "minimumSupportRatio", "palletBaseHeight", "cargoShape", "shapeAxis", "shapeTopRatio", "shapeWallRatio", "shapeWallHeightRatio", "shapeStepLengthRatio", "shapeStepHeightRatio","solidModel","protectionGap","longSupport","orderLineId","orderReference","orderLineReference","batch","customer","destination","unloadStop"];
 
 /** Validate ZIP directory sizes before ExcelJS inflates any entry. */
 export function validateSpreadsheetZip(buffer: ArrayBuffer) {
@@ -42,7 +42,7 @@ export async function createSpreadsheetTemplate() {
   ]); help.getColumn(1).width = 110;
   return new Uint8Array(await book.xlsx.writeBuffer());
 }
-export async function parseSpreadsheet(source: ArrayBuffer | Uint8Array, colors: readonly string[]) {
+async function spreadsheetText(source: ArrayBuffer | Uint8Array) {
   const buffer = source instanceof ArrayBuffer ? source : source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength) as ArrayBuffer;
   validateSpreadsheetZip(buffer); const book = new ExcelJS.Workbook();
   await book.xlsx.load(buffer);
@@ -56,5 +56,8 @@ export async function parseSpreadsheet(source: ArrayBuffer | Uint8Array, colors:
       if ("richText" in value) cells.push(value.richText.map(v => v.text).join("")); else if ("text" in value) cells.push(String(value.text)); else throw new Error("Excel 含不支持的单元格类型。");
     } else cells.push(value == null ? "" : String(value));
   } rows.push(cells); });
-  return parseProductsCsv(rows.map(row => row.map(toCsvCell).join(",")).join("\n"), colors);
+  return rows.map(row => row.map(toCsvCell).join(",")).join("\n");
 }
+
+export async function parseSpreadsheet(source:ArrayBuffer|Uint8Array,colors:readonly string[]){return parseProductsCsv(await spreadsheetText(source),colors);}
+export async function parseSpreadsheetQuantities(source:ArrayBuffer|Uint8Array){return parseOrderQuantityCsv(await spreadsheetText(source));}

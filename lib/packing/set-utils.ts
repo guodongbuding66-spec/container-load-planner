@@ -59,6 +59,7 @@ export function selectProductsForMode(products: ProductInput[], mode: PackingMod
  * shown complete sets instead of being asked for a mixed-order carton demand.
  */
 export function inferImportedPackingMode(products: ProductInput[]): PackingMode {
+  if(products.some(p=>p.orderLine))return "mixed";
   if (!products.length) return "mixed";
   const firstCode = normalizedSetCode(products[0]);
   return firstCode && products.every((product) => normalizedSetCode(product) === firstCode)

@@ -1,4 +1,4 @@
-import {parseDelivery} from "./access";
+import {orderDelivery} from "./order-lines";
 import {parseAccessConfig} from "./maneuver";
 import {assertValidRequest,restorePackingSnapshot} from "./engine";
 import {auditPackingResult} from "./result-audit";
@@ -29,7 +29,7 @@ export function validateFleet(request:PackingRequest,result:FleetResult,options:
    counts.set(o.container.id,(counts.get(o.container.id)??0)+1);if(counts.get(o.container.id)!>o.available)throw Error("跨柜柜型库存超限 / Vehicle availability exceeded");
    const pool=fleetPool(request,prefix),local={...pool.request,container:o.container};
    const restored=restorePackingSnapshot(local,l.plan);
-   if(fleetCanonical(l.plan.delivery)!==fleetCanonical(parseDelivery(request.delivery,new Set(request.products.map(p=>p.id))))||fleetCanonical(l.plan.accessConfig)!==fleetCanonical(parseAccessConfig(request.accessConfig)))throw Error("站次或路径输入不一致 / Delivery or access inputs disagree");
+   if(fleetCanonical(l.plan.delivery)!==fleetCanonical(orderDelivery(request.products,request.delivery))||fleetCanonical(l.plan.accessConfig)!==fleetCanonical(parseAccessConfig(request.accessConfig)))throw Error("站次或路径输入不一致 / Delivery or access inputs disagree");
    if(restored.metrics.loadedCount<1||restored.workflow!==pool.request.workflow||request.strategy!==undefined&&restored.strategy!==request.strategy||!l.plan.validation.valid||auditPackingResult(l.plan,local.products).hasErrors)throw Error("单柜方案未通过同源校验 / A container failed source-bound validation");
    if(restored.metrics.loadedCount!==l.plan.metrics.loadedCount||Math.abs(restored.metrics.grossWeight-l.plan.metrics.grossWeight)>.0001)throw Error("单柜数量或重量不一致 / Container counts or weight disagree");
    prefix.push(l);
