@@ -1,0 +1,8 @@
+记录类型,柜号,标识,需求或库存,已装或已用,未装或剩余,运费,包装费,已知费用小计,完整合计,币种
+container,1,Small QA,,6,,100,,,,CNY
+container,2,Small QA,,4,,100,,,,CNY
+container,3,Small QA,,2,,100,,,,CNY
+packaging-stock,,primary,3,3,0
+loose-reservation,,SHED-BOX,2,2,0
+unloaded,,SHED-BOX,,,0
+freight-and-packaging,,,,,,300,15,315,315,CNY

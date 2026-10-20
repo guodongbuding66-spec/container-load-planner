@@ -19,4 +19,28 @@
 
 ## 发布与实际验收
 
-源代码已完成本地验证，GitHub、Pages、Vercel 发布及实际浏览器验收进行中；结果补齐后再标记阶段软件交付。
+功能提交 `84a8cdbb78289decb4121e3f7c6bc2b11cf4f5d1`，源树 `45fa1c8ea7c6adc9f9cf24a94dd4cab1bc4a5c94`。GitHub verify `39350790221`（job `118394222364`）成功，Pages `d624a68d-848e-47d7-9e5c-c0e697dcd0e1` 成功，Vercel `dpl_6JBn6cVqAGGb3UZsURRQRUY5etxK` READY、production，灰色正式域名已关联。后续仅更新本轮证据及文档，最终提交检查以 main 最新发布为准。
+
+正式地址：[Pages](https://container-load-planner.pages.dev/)／[Vercel](https://container-load-planner-gray.vercel.app/)。
+
+## 正式站实际操作
+
+合成软件订单：SHED-BOX 12 箱，每箱 500×500×200 mm、10 kg、固定 LWH；包装底座 1000×1000×100 mm、自重 20 kg、货物限高 200 mm、全单最多 3 托，指定 2 箱散装。柜内 1500×1000×300 mm、门 1000×300 mm、总重上限 1000 kg；3 柜可用、间隙 0；每柜运费 100 CNY、每托包装 5 CNY。数据仅作软件边界验证，不作为现场结构额定资料。
+
+| 实际操作 | 观察结果 |
+| --- | --- |
+| Pages 分配整单 | 3 柜分别 6、4、2 箱；仅第一柜使用 2 箱散装，后两柜没有重复预留；实际共 3 托、12 箱、180 kg，余货 0 |
+| 不填写包装报价 | 可按柜数分配，但完整合计未知；费用优先明确拒绝未报价包装。英文错误提示仅为英文 |
+| 明确勾选包装已报价且单价 0 | 包装费 0，运费加包装合计 300；明确免费与未知分开 |
+| 包装报价 5，比较完整候选及尾柜 | 当前唯一可用柜型的混合候选与同柜型候选均为 3 柜、12 箱、余货 0；总费 315、每单位 26.25。不同柜型费用取舍另有核心回归 |
+| 修改订单为 13 箱，或修改包装总上限 | 原多柜备份与当前来源不符，恢复被拒绝；不会静默覆盖原订单 |
+| 包装总上限降为 2 后重新分配 | 仅 2 柜、10 箱、2 托、余货 2 箱；散装仍只使用 2 箱。未知包装报价仍保持未知，实际下载的余货备份重新校验通过 |
+| 实际下载整单备份及两份 CSV | 15 条实物坐标：12 货物、3 包装，重量合计 180 kg；费用 300＋15＝315。两份 CSV 从同一备份逐字重建一致 |
+| Vercel 英文跨站恢复 | 先恢复同源工作区，再导入 Pages 实际下载的多柜文件；3 柜、库存 3／3／0、散装 2／2／0、费用 315 一致；再导出的全部数据与原文件一致 |
+| 双站默认回归 | 恢复验收前默认工作区，直接装柜、40HQ、间隙 10 mm、3 个默认 SKU；两套算法各 116 箱、3,842 kg，引擎 0.47.0，无临时订单／包装报价残留 |
+
+双站最近 200 条错误日志即时抽查未见应用错误，扩展单独排除；不等于持续监控。验收浏览器 WebGL 未启用，实际使用同源坐标回退，不能计作 GPU 验收。站次未填写与运输固定仍各自未核验。
+
+证据：[中文库存与费用](field-upgrades/evidence/v0.47.0-fleet-pages.jpg)、[英文跨站恢复](field-upgrades/evidence/v0.47.0-fleet-english.jpg)、[实际完整备份](field-upgrades/evidence/v0.47.0-fleet-backup.json)、[实际余货备份](field-upgrades/evidence/v0.47.0-fleet-partial.json)、[实物坐标 CSV](field-upgrades/evidence/v0.47.0-fleet-coordinates.csv)、[库存费用 CSV](field-upgrades/evidence/v0.47.0-fleet-summary.csv)、[下载独立核对](field-upgrades/evidence/v0.47.0-download-review.json)。
+
+下一阶段按 [014 稳定身份与现场交付](field-upgrades/014-identity-and-delivery.md) 推进。拆托／重打代价、更完整交付总成本和其他深化项目继续保留在[未完成台账](field-upgrades/unfinished-roadmap.md)。
