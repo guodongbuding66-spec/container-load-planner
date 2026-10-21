@@ -1,0 +1,73 @@
+{
+  "runtimeCommit": "03433751be613a17ade25c83431343c9fe5454d5",
+  "testedTree": "d70ba5992034bc6305d4486ed77147e1ff64bd71",
+  "version": "0.51.2",
+  "unitTests": 1360,
+  "unitFiles": 102,
+  "focusedTests": 36,
+  "htmlChecks": 21,
+  "lintErrors": 0,
+  "existingLintWarnings": 3,
+  "recovery": {
+    "productionPages": true,
+    "productionVercel": true,
+    "panelCloseReopen": true,
+    "categorySwitch": true,
+    "chineseAndEnglishRetainedNotice": true,
+    "loadedCartons": 1,
+    "damagedCartons": 1,
+    "confirmedPlannedKg": 10,
+    "handovers": 2,
+    "currentEvents": 1,
+    "completeRecordFile": "v0.51.1-v4-records.json",
+    "sameBytesOnBothSitesAfterRemount": true,
+    "sha256": "9ff6dea7834a184dcbd5410a9a614706e97609802897ba3ee23e5c2653294329"
+  },
+  "failureTests": "Missing, denied, stale and corrupt storage are simulated in unit/component regressions. Live browser tests use normal local storage and verify retained-record wiring; live quota exhaustion is not claimed.",
+  "productionDefaultsAndLogs": [
+    {
+      "url": "https://container-load-planner.pages.dev/",
+      "plans": [
+        {
+          "strategy": "高密度参考",
+          "version": "0.51.2",
+          "cartons": 116,
+          "plannedKg": 3842
+        },
+        {
+          "strategy": "现场易执行",
+          "version": "0.51.2",
+          "cartons": 116,
+          "plannedKg": 3842
+        }
+      ],
+      "applicationErrors": 0,
+      "applicationWarnings": 0
+    },
+    {
+      "url": "https://container-load-planner-gray.vercel.app/",
+      "plans": [
+        {
+          "strategy": "高密度参考",
+          "version": "0.51.2",
+          "cartons": 116,
+          "plannedKg": 3842
+        },
+        {
+          "strategy": "现场易执行",
+          "version": "0.51.2",
+          "cartons": 116,
+          "plannedKg": 3842
+        }
+      ],
+      "applicationErrors": 0,
+      "applicationWarnings": 0
+    }
+  ],
+  "pending": [
+    "Native download capture",
+    "Real GPU and multiple browsers",
+    "Physical scanning and loading trials",
+    "Remaining roadmap software"
+  ]
+}
