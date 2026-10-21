@@ -1,0 +1,14 @@
+import {afterEach,it,expect,vi} from "vitest";
+import {renderToStaticMarkup} from "react-dom/server";
+import {FieldJournalPanel,FieldJournalWorkspace} from "./field-journal-panel";
+import {setAppLanguage} from "./language";
+import {pack} from "../lib/packing/engine";
+import {issueDeliveryIdentity} from "../lib/packing/delivery-identity";
+const raw=pack({mode:"mixed",strategy:"maximum",clearance:0,container:{id:"c",name:"C",length:1000,width:1000,height:1000,doorWidth:1000,doorHeight:1000,maxWeight:1000},products:[{id:"a",sku:"A",name:"A",length:200,width:200,height:200,weight:10,quantity:2,priority:50,rotationPolicy:"any",stackable:true,maxStackLayers:0,color:"#336677"}]});
+const plan=issueDeliveryIdentity(raw);
+afterEach(()=>{vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("zh");vi.unstubAllGlobals();});
+it("explains separate persistence and blocks unissued plans",()=>{const h=renderToStaticMarkup(<FieldJournalPanel plan={raw} disabled={false}/>);expect(h).toContain("现场事件单独下载");expect(h).toContain("不能写入现场记录");expect(h).not.toContain("确认已装");});
+it("shows the plan revision, empty counts and unit selection before confirmation",()=>{const h=renderToStaticMarkup(<FieldJournalWorkspace plan={plan} disabled={false}/>);expect(h).toContain(plan.deliveryIdentity!.revisionId);expect(h).toContain('aria-label="现场单元"');expect(h).not.toContain(">确认已装<");expect(h).toContain("不是称重结果");expect(h).toContain("扫描只选择单元");expect(h).toContain("导入并合并事件");expect(h).not.toContain('type="file" accept="image/*"');});
+it("provides a recovery download instead of overwriting corrupted local records",()=>{vi.stubGlobal("localStorage",{getItem:()=>"broken JSON"});const h=renderToStaticMarkup(<FieldJournalWorkspace plan={plan} disabled={false}/>);expect(h).toContain("本机旧记录无法读取，尚未覆盖");expect(h).toMatch(/disabled=""[^>]*>导入并合并事件/);expect(h).toContain("下载原始数据并开始空白记录");});
+it("handles storage access denial without throwing during initialization",()=>{vi.stubGlobal("localStorage",{getItem:()=>{throw new Error("Storage denied");}});expect(()=>renderToStaticMarkup(<FieldJournalWorkspace plan={plan} disabled={false}/>)).not.toThrow();});
+it("renders English controls and persistence boundaries",()=>{vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");const h=renderToStaticMarkup(<FieldJournalWorkspace plan={plan} disabled={false}/>);expect(h).toContain("Verify QR");expect(h).toContain("Download field-event JSON");expect(h).not.toMatch(/[\u3400-\u9fff]/u);});

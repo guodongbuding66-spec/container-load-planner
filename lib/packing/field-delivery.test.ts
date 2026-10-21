@@ -1,0 +1,16 @@
+import {it,expect} from "vitest";
+import {pack} from "./engine";
+import {packLoadingWorkflow} from "./pack-loading";
+import {DEFAULT_PALLET_BUILD} from "./loading-workflow";
+import {issueDeliveryIdentity} from "./delivery-identity";
+import {appendFieldEvent,emptyFieldJournal} from "./field-journal";
+import {fieldEventsCsv,fieldManifest,fieldUnitHtml} from "./field-delivery";
+import {parseCsvRecords} from "./csv";
+const p={id:"row-a",sku:'<script>alert("X")</script>',name:"A",length:400,width:300,height:200,weight:10,quantity:4,priority:50,rotationPolicy:"upright" as const,stackable:true,maxStackLayers:0,maxTopLoadKg:1000,color:"#338877"};
+const req={mode:"mixed" as const,strategy:"maximum" as const,clearance:0,products:[p],container:{id:"c",name:"C",length:5000,width:2500,height:2500,doorWidth:2500,doorHeight:2500,maxWeight:10000}};
+const plan=()=>issueDeliveryIdentity(pack(req));
+it("keeps the full manifest and stable IDs in an offline escaped QR label",async()=>{const a=plan(),j=emptyFieldJournal(a),id=j.context.atoms[0].id,h=await fieldUnitHtml(a,j,id,"https://example.org");expect(h).toContain('<svg');expect(h).toContain(id);expect(h).toContain(a.deliveryIdentity!.revisionId);expect(h).toContain('&lt;script&gt;');expect(h).not.toContain('<script>');expect(h).toContain('400 × 300 × 200');expect(h).toContain('10 kg');});
+it("renders the label in English without Chinese UI text",async()=>{const a=plan(),j=emptyFieldJournal(a),h=await fieldUnitHtml(a,j,j.context.atoms[0].id,"https://example.org",true);expect(h).toContain('Layer');expect(h).not.toMatch(/[\u3400-\u9fff]/u);});
+it("exports immutable causal event rows and protects formula-like notes",()=>{const a=plan(),j=emptyFieldJournal(a),id=j.context.atoms[0].id,b=appendFieldEvent(a,j,id,"load",{deviceId:"d",id:"event-a",note:'=HYPERLINK("evil")'}).journal,rows=parseCsvRecords(fieldEventsCsv(a,b));expect(rows).toHaveLength(2);expect(rows[1][3]).toBe("event-a");expect(rows[1][8]).toBe(id);expect(rows[1][9]).toBe("1");expect(rows[1][12]).toBe('\'=HYPERLINK("evil")');});
+it("groups a prebuilt unit by layers without confusing other pallets",()=>{const a=issueDeliveryIdentity(packLoadingWorkflow({...req,workflow:"pallet-only",products:[{...p,quantity:20}],palletBuild:{...DEFAULT_PALLET_BUILD,maxPallets:2,config:{...DEFAULT_PALLET_BUILD.config,length:800,width:600,height:100,maxCargoHeight:400,weight:25}}})),j=emptyFieldJournal(a),id=j.context.atoms.find(a=>a.kind==="pallet")!.id,m=fieldManifest(a,j,id);expect(m.rows).toHaveLength(8);expect(m.rows.map(r=>r.box.layer)).toEqual([...m.rows.map(r=>r.box.layer)].sort());expect(new Set(m.rows.flatMap(r=>r.box.palletIds))).toHaveLength(1);});
+it("rejects exporting field records against a different plan",()=>{const a=plan(),j=emptyFieldJournal(a),b=issueDeliveryIdentity(a,true);expect(()=>fieldEventsCsv(b,j)).toThrow();expect(()=>fieldManifest(a,j,"unknown")).toThrow();});

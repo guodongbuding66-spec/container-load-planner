@@ -1,5 +1,6 @@
 "use client";
 import {DeliveryVersionPanel} from "./delivery-version-panel";
+import {FieldJournalPanel} from "./field-journal-panel";
 import {ContainerAccessorySettings} from "./container-accessory-settings";
 import {ContainerAccessoryManifest} from "./container-accessory-manifest";
 
@@ -2334,6 +2335,7 @@ export function PackingApp() {
           </>}
           delivery={result && !hasPendingDimensionChanges ? <>
             <DeliveryVersionPanel plan={result} disabled={!canExport} onIssue={adoptDeliveryVersion}/>
+            <FieldJournalPanel plan={result} disabled={!canExport}/>
             {canExport ? <FieldGuide key={`field-${result.id}`} result={result} products={activeProducts}/> : null}
             <CustomerReportPanel plan={result} products={activeProducts} disabled={!canExport}/>
           </> : <p className="tool-empty">{tr("先完成一次装柜计算，再生成客户报告和现场指导书。")}</p>}
