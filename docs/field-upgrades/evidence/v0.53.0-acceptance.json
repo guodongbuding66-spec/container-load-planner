@@ -1,0 +1,108 @@
+{
+  "version": "0.53.0",
+  "date": "2026-10-21",
+  "sourceCommit": "66d0e9a087b1de10d27726ae201d7722406e48f0",
+  "sourceTree": "2383d9fab9857db3446dc12bfdee403e15272cc7",
+  "tests": {
+    "unit": 1415,
+    "files": 106,
+    "html": 21,
+    "focused": 30,
+    "typecheck": "pass",
+    "lint": {
+      "errors": 0,
+      "existingWarnings": 2
+    },
+    "staticBuild": "pass",
+    "initialFailure": "Two historical fixture files were absent locally; restored byte-exact from GitHub; full build rerun passed."
+  },
+  "github": {
+    "verify": "success",
+    "url": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/39624495307/job/119306218880"
+  },
+  "deployments": {
+    "vercel": {
+      "id": "dpl_5e8EanZWJmAPE9mkstEADWN3htgB",
+      "state": "READY",
+      "target": "production",
+      "alias": "https://container-load-planner-gray.vercel.app/",
+      "commit": "66d0e9a087b1de10d27726ae201d7722406e48f0"
+    },
+    "cloudflare": {
+      "state": "PENDING",
+      "url": "https://container-load-planner.pages.dev/",
+      "observedEngine": "0.52.0",
+      "reason": "Automatic deploy did not appear for source commit. Console and Wrangler unauthenticated; secure browser login request declined. No further authentication or deployment attempted."
+    }
+  },
+  "fixture": {
+    "synthetic": true,
+    "onsiteEvidence": false,
+    "context": {
+      "planId": "delivery-53cc7c18-453f-4101-adb3-3f2f7ccf74bd",
+      "revision": 1,
+      "revisionId": "revision-ffb01a94-b6bb-417f-a3d1-2b04890233ed",
+      "signature": "85b99bc7934b94ab"
+    },
+    "cartons": 116,
+    "cargoKg": 3842,
+    "materialsKg": 4,
+    "payloadKg": 3846,
+    "materials": [
+      "QA timber: before cargo, 1 x 3 kg",
+      "QA desiccant: after cargo, 2 x 0.5 kg, depends on timber"
+    ],
+    "limitations": "Geometry validation passed. Existing access audit had door failures and bearing/securing remained unverified; operation records do not change or certify these audits."
+  },
+  "ui": {
+    "site": "https://container-load-planner-gray.vercel.app/",
+    "allLoadingChecksInitiallyPending": 7,
+    "prerequisiteBlocksConfirmation": true,
+    "afterReopenAndReconfirm": {
+      "confirmedLoadingTasks": 1,
+      "staleLoadingTasks": 6
+    },
+    "syntheticImportedParallelBranchDetected": true,
+    "explicitResolutionRequired": true,
+    "prematureTimberRemovalBlocked": true,
+    "unloadingChecksConfirmed": 5,
+    "eventsPreserved": 16,
+    "duplicateImportByteExact": true,
+    "wrongRevisionRejectedUnchanged": true,
+    "sameEventIdTamperRejectedUnchanged": true,
+    "panelReopenRetains16": true,
+    "refreshRestoreByteExact": true,
+    "nativeJsonMatchesPublicText": true,
+    "csvDataRows": 16,
+    "csvTotalRows": 17,
+    "language": [
+      "zh",
+      "en"
+    ],
+    "applicationWarningsAndErrorsInLatest200": 0,
+    "crossSiteRoundTrip": "PENDING - Cloudflare not on current release"
+  },
+  "defaultAfterCleanup": {
+    "site": "Vercel",
+    "strategies": {
+      "practical": {
+        "cartons": 116,
+        "kg": 3842
+      },
+      "maximum": {
+        "cartons": 116,
+        "kg": 3842
+      }
+    },
+    "engine": "0.53.0",
+    "active": "practical",
+    "language": "zh"
+  },
+  "recordsSha256": "4fe28618e87c600d284b3c6318bfdc50e68efe378a9c771c1944110e550205d0",
+  "pending": [
+    "Cloudflare publish and both-site acceptance",
+    "Actual GPU and multiple browsers",
+    "Physical labels, moisture calculation, staging and temporary support safety",
+    "Account, membership, server-side authorization and payments"
+  ]
+}
