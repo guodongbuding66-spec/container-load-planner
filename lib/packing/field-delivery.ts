@@ -4,10 +4,11 @@ import type {PackingResult} from "./types";
 const esc=(v:unknown)=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));
 
 /** A flat event CSV complements the lossless JSON; photos remain in JSON. */
-export function fieldEventsCsv(plan:PackingResult,journal:FieldJournal){
+export function fieldEventsCsv(plan:PackingResult,journal:FieldJournal,origins?:ReadonlyMap<string,{handoverId:string;revisionId:string;heads:string[]}>){
  assertFieldContext(plan,journal);
  const rows:unknown[][]=[["planId","revision","revisionId","eventId","time","deviceId","scannedUnitId","action","affectedUnitId","loaded","condition","parentEventIds","note","photoNames"]];
- for(const e of journal.events)for(const c of e.changes)rows.push([journal.context.planId,journal.context.revision,journal.context.revisionId,e.id,e.at,e.deviceId,e.unitId,e.action,c.id,c.state.loaded?1:0,c.state.condition,c.parents.join(" | "),e.note,e.photos.map(p=>p.name).join(" | ")]);
+ if(origins)rows[0].push("handoverId","sourceRevisionId","sourceEventHeads");
+ for(const e of journal.events)for(const c of e.changes){const row:unknown[]=[journal.context.planId,journal.context.revision,journal.context.revisionId,e.id,e.at,e.deviceId,e.unitId,e.action,c.id,c.state.loaded?1:0,c.state.condition,c.parents.join(" | "),e.note,e.photos.map(p=>p.name).join(" | ")];if(origins){const source=origins.get(e.id);row.push(source?.handoverId??"",source?.revisionId??"",source?.heads.join(" | ")??"");}rows.push(row);}
  return rows.map(row=>row.map(v=>toCsvCell(v as string|number)).join(",")).join("\r\n");
 }
 export function fieldManifest(plan:PackingResult,journal:FieldJournal,unitId:string){
