@@ -1,4 +1,6 @@
 "use client";
+import {WeighingPanel} from "./weighing-panel";
+import type {WeighingRecords} from "../lib/packing/weighing";
 import {DeliveryVersionPanel} from "./delivery-version-panel";
 import {FieldJournalPanel} from "./field-journal-panel";
 import {guardFieldRevision,lockLoadedFieldPositions,readRevisionFieldRecords,readVersionFieldRecords,rememberFieldRecords,requireKnownFieldHandover,type FieldRecords} from "../lib/packing/field-records";
@@ -104,7 +106,6 @@ import {
   type WeightUnit,
 } from "../lib/packing/units";
 import { NumericInput } from "./numeric-input";
-import { CloudWorkspace } from "./cloud-workspace";
 import { ProductCatalog, CustomerReportPanel } from "./product-catalog";
 import { CrateStackPreflight } from "./crate-stack-preflight";
 import { DimensionScenarios } from "./dimension-scenarios";
@@ -418,6 +419,9 @@ export function PackingApp() {
   const [renderPrintViews, setRenderPrintViews] = useState(false);
   const [solverSchedule, setSolverSchedule] = useState<SolverSchedule>("parallel");
   const workersRef = useRef<Partial<Record<PackingStrategy, Worker>>>({});
+  const weighingRecordsRef=useRef(new Map<string,WeighingRecords>());
+  const getWeighingRecords=useCallback((key:string)=>weighingRecordsRef.current.get(key),[]);
+  const receiveWeighingRecords=useCallback((key:string,records:WeighingRecords)=>{weighingRecordsRef.current.set(key,records);},[]);
   const fieldRecordsRef=useRef(new Map<string,FieldRecords>());
   const receiveFieldRecords=useCallback((records:FieldRecords)=>{rememberFieldRecords(fieldRecordsRef.current,records,{getItem:key=>localStorage.getItem(key)});},[]);
   const getKnownFieldRecords=useCallback((plan:PackingResult)=>{const id=plan.deliveryIdentity;return id?fieldRecordsRef.current.get(`${id.planId}/${id.revisionId}`):undefined;},[]);
@@ -1592,7 +1596,7 @@ export function PackingApp() {
   const downloadExcelTemplate = async () => { setMessage(tr("正在生成 Excel 模板…")); try { const { createSpreadsheetTemplate } = await import("../lib/packing/spreadsheet"); const bytes=await createSpreadsheetTemplate(); const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));const a=document.createElement("a");a.href=url;a.download="CargoFit_products_template.xlsx";document.body.appendChild(a);a.click();a.remove();setMessage(tr("Excel 模板已生成。"));setTimeout(()=>URL.revokeObjectURL(url),10000); } catch(e) {setMessage(e instanceof Error?e.message:"Excel export failed");} };
   const downloadPdf = async () => { if(!result?.validation.valid||resultAudit?.hasErrors||dirty||hasPendingDimensionChanges)return;setExportingPdf(true);try{const {downloadPdfGuide}=await import("../lib/packing/pdf-guide");await downloadPdfGuide(result,getAppLanguage(),activeProducts);}catch(e){setMessage(e instanceof Error?e.message:"PDF export failed");}finally{setExportingPdf(false);} };
   const loadIndustryCase = (example: IndustryCase) => {setWorkflowStep(1);palletDraftRef.current=null;rulesDraftRef.current=null;clearNumericDraftErrors();setMode("mixed");setLoadingWorkflow("direct");setContainer({...example.container});setProducts(example.products.map(p=>({...p})));setFloorPallets(undefined);setLoadingRules({...DEFAULT_LOADING_RULES});setClearance(10);setProductPage(0);setAutoCalculate(false);setPracticalTargetPercent(recommendedPracticalTarget(example.container)*100);markDirty();scrollTo("workspace");};
-  const tutorialAction = (step: string) => {if(step==="cargo"){setActiveCargo(activeProducts[0]?.id??null);return;}if(step==="rules"){setShowRules(true);return;}if(step==="calculate"){goToStep(2);return;}if(step==="viewer"){if(result)setShowViewer(true);else setMessage(tr("请先计算有效方案。","Calculate a valid plan first."));return;}if(step==="pdf"){void downloadPdf();return;}if(step==="cloud"){const el=document.getElementById("cloud-workspace");if(el instanceof HTMLDetailsElement)el.open=true;scrollTo("cloud-workspace");return;}goToStep(1);};
+  const tutorialAction = (step: string) => {if(step==="cargo"){setActiveCargo(activeProducts[0]?.id??null);return;}if(step==="rules"){setShowRules(true);return;}if(step==="calculate"){goToStep(2);return;}if(step==="viewer"){if(result)setShowViewer(true);else setMessage(tr("请先计算有效方案。","Calculate a valid plan first."));return;}if(step==="pdf"){void downloadPdf();return;}goToStep(1);};
 
   const receivePalletDraft=useCallback((value:FloorPalletConfig|undefined,invalid:boolean)=>{
     const previous=palletDraftRef.current;
@@ -2326,7 +2330,6 @@ export function PackingApp() {
           projects={<>
           <ArchiveLibrary backup={workspaceBackup} disabled={upgradesDisabled} onRestore={backup=>{void restoreWorkspace(new File([backup],tr("工作区归档.json"),{type:"application/json"}));}} onProducts={replaceProductInputs}/>
           <ProductCatalog products={activeProducts} plan={result} disabled={upgradesDisabled} onProducts={replaceProductInputs}/>
-          <CloudWorkspace backup={workspaceBackup} plan={result} products={activeProducts} disabled={upgradesDisabled} onRestore={backup=>{void restoreWorkspace(new File([backup],tr("云端归档.json"),{type:"application/json"}));}} onProducts={next=>{setMode("mixed");replaceProductInputs(next);}}/>
           </>}
           loading={<>
           {!isPalletWorkflow && <PrebuiltPalletPanel key={JSON.stringify(fleetRequest)} request={fleetRequest} disabled={upgradesDisabled} onAdopt={next=>{const build=next.palletBuild??{...DEFAULT_PALLET_BUILD,config:next.palletization!.config,mix:next.palletization!.mix};palletDraftRef.current=null;setFloorPallets(undefined);setLoadingWorkflow("palletized");setPalletBuild(build);persistDraft({workflow:"palletized",palletBuild:build,floorPallets:undefined,strategy:next.strategy});strategyRef.current=next.strategy;setStrategy(next.strategy);setWorkflowStep(3);adoptManualPlan(next);}}/>}
@@ -2341,6 +2344,7 @@ export function PackingApp() {
           </>}
           delivery={result && !hasPendingDimensionChanges ? <>
             <DeliveryVersionPanel plan={result} disabled={!canExport} onIssue={adoptDeliveryVersion} backup={workspaceBackup}/>
+            <WeighingPanel plan={result} disabled={!canExport} getRecords={getWeighingRecords} onRecords={receiveWeighingRecords}/>
             <FieldJournalPanel plan={result} disabled={!canExport} onRecords={receiveFieldRecords} onLockLoaded={adoptLoadedLocks} getRecords={getKnownFieldRecords}/>
             {canExport ? <FieldGuide key={`field-${result.id}`} result={result} products={activeProducts}/> : null}
             <CustomerReportPanel plan={result} products={activeProducts} disabled={!canExport}/>

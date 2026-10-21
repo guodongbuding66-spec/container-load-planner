@@ -16,7 +16,7 @@ export function ToolSummary({kind,title,description}:{kind:keyof typeof icons;ti
   </summary>;
 }
 
-const groups=[{id:"projects",label:"项目与资料",description:"保存方案、管理包装版本与云端资料",icon:Archive},{id:"loading",label:"装载优化",description:"设置承重、调整箱位与比较多柜方案",icon:Truck},{id:"delivery",label:"交付与现场",description:"生成客户报告与仓库装载指导",icon:ClipboardCheck}] as const;
+const groups=[{id:"projects",label:"项目与资料",description:"保存本机方案、管理包装版本与实装资料",icon:Archive},{id:"loading",label:"装载优化",description:"设置承重、调整箱位与比较多柜方案",icon:Truck},{id:"delivery",label:"交付与现场",description:"生成客户报告与仓库装载指导",icon:ClipboardCheck}] as const;
 
 export function WorkflowTools({projects,loading,delivery}:{projects:ReactNode;loading:ReactNode;delivery:ReactNode}) {
   useLanguage();

@@ -360,6 +360,7 @@ export const ENGLISH: Record<string, string> = {
   "添加 SKU": "Add SKU",
   "产品库与包装版本": "Product library and packaging versions",
   "完整方案保存与恢复": "Save and restore plans",
+  "保存本机方案、管理包装版本与实装资料": "Save local plans, packaging revisions and field records",
   "已连接外贸 OS 账号，可保存到团队云空间。": "Connected to the Trade OS team workspace.",
   "页面已关闭": "The window was closed.",
   "请在打开的窗口确认外贸 OS 登录状态。": "Confirm your Trade OS sign-in in the opened window.",

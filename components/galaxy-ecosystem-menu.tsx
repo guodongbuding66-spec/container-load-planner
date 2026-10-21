@@ -1,23 +1,11 @@
 "use client";
 
 import {tr, useLanguage} from "./language";
-import { Box, BriefcaseBusiness, ExternalLink, Newspaper, Search, Video } from "lucide-react";
+import { Box, ExternalLink, Search, Video } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 const TOOLS = [
-  {
-    href: "https://ai-foreign-trade-os.pages.dev/",
-    name: "AI 外贸工作台",
-    description: "客户、CRM、报价、产品与外贸自动化工作台",
-    icon: BriefcaseBusiness,
-  },
-  {
-    href: "https://isunor-industry-daily.pages.dev/",
-    name: "iSUNOR 决策级情报",
-    description: "行业日报、竞品、贸易政策与业务机会情报",
-    icon: Newspaper,
-  },
   {
     href: "https://soutu-pro.vercel.app/",
     name: "搜图 Pro",
