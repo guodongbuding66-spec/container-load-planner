@@ -1,14 +1,14 @@
 "use client";
 import {useMemo,useRef,useState} from "react";
 import {deliveryIdentityState} from "../lib/packing/delivery-identity";
-import {analyzeFieldJournal,appendFieldEvent,assertFieldContext,emptyFieldJournal,fieldTotals,MAX_FIELD_BYTES,mergeFieldJournals,parseFieldJournal,unitTicket,unitTicketUrl,verifyUnitTicket,type FieldAction,type FieldJournal,type FieldPhoto,type FieldState} from "../lib/packing/field-journal";
+import {analyzeFieldJournal,appendFieldEvent,assertFieldContext,emptyFieldJournal,fieldTotals,FieldEventError,MAX_FIELD_BYTES,mergeFieldJournals,parseFieldJournal,unitTicket,unitTicketUrl,verifyUnitTicket,type FieldAction,type FieldJournal,type FieldPhoto,type FieldState} from "../lib/packing/field-journal";
 import {fieldEventsCsv,fieldManifest,fieldUnitHtml} from "../lib/packing/field-delivery";
 import type {PackingResult} from "../lib/packing/types";
 import {ToolSummary} from "./workflow-tools";
 import {tr,trText,useLanguage} from "./language";
 function download(name:string,data:string,type="application/json"){const url=URL.createObjectURL(new Blob([data],{type})),a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);}
 function statusText(s:FieldState|null){return s?`${s.loaded?tr("已装","Loaded"):tr("未装","Pending")} · ${s.condition==="missing"?tr("缺箱","Missing"):s.condition==="damaged"?tr("损伤","Damaged"):tr("无异常","No exception")}`:tr("并行冲突待处理","Concurrent conflict");}
-const message=(e:unknown)=>e instanceof Error?e.message:String(e);
+const message=(e:unknown)=>e instanceof FieldEventError?tr(e.zh,e.en):e instanceof Error?e.message:String(e);
 export function FieldJournalPanel({plan,disabled}:{plan:PackingResult;disabled:boolean}){
  useLanguage();const [open,setOpen]=useState(false),ready=deliveryIdentityState(plan)==="current";
  return <details className="upgrade-panel" onToggle={e=>setOpen(e.currentTarget.open)}><ToolSummary kind="field" title={tr("扫码与实际装载登记","Scanning and field registration")} description={tr("逐箱逐托确认、异常记录与离线合并","Unit confirmations, exceptions and offline merging")}/><div className="upgrade-body">

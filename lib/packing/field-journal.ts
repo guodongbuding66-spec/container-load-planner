@@ -12,7 +12,8 @@ export type FieldJournal={format:"cargo-fit-field-events";version:1;context:Fiel
 export type UnitTicket={format:"cargo-fit-unit-v1";planId:string;revision:number;revisionId:string;signature:string;unitId:string};
 export const MAX_FIELD_BYTES=50*1024*1024;
 const initial:FieldState={loaded:false,condition:"none"};
-const fail=(zh="现场记录格式或关系无效",en="Invalid field-event data or relationships")=>new Error(`${zh} / ${en}`);
+export class FieldEventError extends Error {constructor(readonly zh:string,readonly en:string){super(`${zh} / ${en}`);this.name="FieldEventError";}}
+const fail=(zh="现场记录格式或关系无效",en="Invalid field-event data or relationships")=>new FieldEventError(zh,en);
 const rec=(v:unknown):Record<string,unknown>=>{if(!v||typeof v!=="object"||Array.isArray(v))throw fail();return v as Record<string,unknown>;};
 const txt=(v:unknown,n:number)=>{if(typeof v!=="string"||v.length>n)throw fail();return v;};
 const token=(v:unknown)=>{const s=txt(v,120);if(!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/.test(s)||["constructor","prototype","__proto__"].includes(s))throw fail();return s;};
