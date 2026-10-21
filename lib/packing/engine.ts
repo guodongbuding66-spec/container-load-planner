@@ -48,7 +48,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.50.0";
+export const ENGINE_VERSION = "0.51.0";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -2729,6 +2729,8 @@ export function improvePacking(original: PackingResult, products: ProductInput[]
   if(score(candidate)<score(baseline)||candidate.metrics.loadedCount<baseline.metrics.loadedCount)return original;
   if(score(candidate)===score(baseline)&&executionAudit(candidate).score>=executionAudit(baseline).score)return original;
   candidate.id=`optimized-${Date.now()}-${pass}`;candidate.singleCartonLimit=original.singleCartonLimit;candidate.delivery=original.delivery;candidate.accessConfig=original.accessConfig;
+  // This is a local revision. Retain the old registry as draft until explicit issue.
+  candidate.deliveryIdentity=original.deliveryIdentity;
   candidate.warnings=[`已保留 ${fixed.size} 个固定／支撑／成套箱位，其余空间完成第 ${pass+1} 轮搜索。`,...candidate.warnings];
   return candidate;
 }

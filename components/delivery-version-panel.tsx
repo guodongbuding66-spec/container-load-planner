@@ -1,6 +1,7 @@
 "use client";
 import {useMemo,useState} from "react";
 import {deliveryIdentityState,deliveryUnitBindings,issueDeliveryIdentity} from "../lib/packing/delivery-identity";
+import {FieldEventError} from "../lib/packing/field-journal";
 import type {PackingResult} from "../lib/packing/types";
 import {ToolSummary} from "./workflow-tools";
 import {tr,trText,useLanguage} from "./language";
@@ -10,7 +11,7 @@ export function DeliveryVersionPanel({plan,disabled,onIssue}:{plan:PackingResult
  const state=useMemo(()=>deliveryIdentityState(plan),[plan]);
  const units=useMemo(()=>deliveryUnitBindings(plan),[plan]);
  const id=plan.deliveryIdentity,blocked=disabled||!plan.validation.valid||plan.metrics.loadedCount!==plan.placements.length||!plan.placements.length;
- const issue=(fork:boolean)=>{try{onIssue(issueDeliveryIdentity(plan,fork));setError("");}catch(e){setError(e instanceof Error?e.message:String(e));}};
+ const issue=(fork:boolean)=>{try{onIssue(issueDeliveryIdentity(plan,fork));setError("");}catch(e){setError(e instanceof FieldEventError?tr(e.zh,e.en):e instanceof Error?e.message:String(e));}};
  return <details className="upgrade-panel"><ToolSummary kind="report" title={tr("交付版本与箱托编号","Delivery versions and unit IDs")} description={tr("登记、更新和复制交付版本","Issue, revise and copy delivery versions")}/><div className="upgrade-body">
   <p>{tr("登记当前单柜或独立打托方案，并下载含箱位和编号的版本备份。恢复备份保留编号；普通输入草稿不保存交付版本。","Register the current single-vehicle or pallet-only plan and download a version backup with positions and IDs. Restoring that backup preserves IDs; ordinary input drafts do not store delivery versions.")}</p>
   <strong role="status">{state==="unissued"?tr("尚未登记交付版本","No delivery version issued"):state==="current"?tr("当前箱位与登记版本一致","Current positions match the issued version"):tr("方案已变化，需登记下一版","Plan changed; issue the next revision")}</strong>

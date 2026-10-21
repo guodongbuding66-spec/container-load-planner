@@ -17,6 +17,7 @@ export const fieldRecordsKey=(id:Pick<DeliveryIdentity,"planId"|"revisionId">)=>
 export const legacyFieldJournalKey=(id:Pick<DeliveryIdentity,"planId"|"revisionId">)=>`cargo-fit-events-v1/${id.planId}/${id.revisionId}`;
 export const recordsFromJournal=(current:FieldJournal):FieldRecords=>({format:"cargo-fit-field-records",version:1,current,history:[],handovers:[]});
 export const emptyFieldRecords=(plan:PackingResult)=>recordsFromJournal(emptyFieldJournal(plan));
+export function fieldEventOrigins(records:FieldRecords){const h=records.handovers.at(-1);return new Map(h?.carries.map(c=>[c.eventId,{handoverId:h.id,revisionId:h.fromRevisionId,heads:c.sourceHeads}])??[]);}
 const substantive=(s:{loaded:boolean;condition:string})=>s.loaded||s.condition!=="none";
 function matchingUnit(a:FieldAtom,b:FieldAtom){
  // v0.50 witnesses are opaque canonical strings, including empty optional slots.
@@ -31,6 +32,11 @@ function checkLoaded(source:FieldJournal,target:FieldJournal["context"]){
 /** Checks the candidate after explicit issue, before publishing or downloading it. */
 export function assertLoadedUnitsUnchanged(source:FieldJournal,candidate:PackingResult){
  const target=fieldContext(candidate);if(source.context.planId!==target.planId)throw invalid();checkLoaded(source,target);
+}
+export function guardFieldRevision(original:PackingResult,candidate:PackingResult,records:FieldRecords|null){
+ const old=original.deliveryIdentity,next=candidate.deliveryIdentity;if(!old||!next||old.planId!==next.planId||!records)return;
+ const c=records.current.context;if(c.planId!==old.planId||c.revisionId!==old.revisionId||c.revision!==old.revision||c.signature!==old.signature||next.previousRevisionId!==old.revisionId||next.revision!==old.revision+1)throw invalid();
+ assertLoadedUnitsUnchanged(records.current,candidate);
 }
 function validateHandover(source:FieldJournal,target:FieldJournal,h:FieldHandover){
  if(source.context.planId!==target.context.planId||target.context.revision!==source.context.revision+1||h.fromRevisionId!==source.context.revisionId||h.toRevisionId!==target.context.revisionId)throw invalid();
@@ -52,9 +58,17 @@ export function parseFieldRecords(contents:string):FieldRecords{
 export function assertFieldRecordsContext(plan:PackingResult,records:FieldRecords){
  assertFieldContext(plan,records.current);const h=records.handovers.at(-1);if(h&&plan.deliveryIdentity!.previousRevisionId!==h.fromRevisionId)throw invalid();
 }
-export function readVersionFieldRecords(id:DeliveryIdentity,storage:Pick<Storage,"getItem">){
+export function readRevisionFieldRecords(id:Pick<DeliveryIdentity,"planId"|"revisionId">,storage:Pick<Storage,"getItem">){
  const raw=storage.getItem(fieldRecordsKey(id))??storage.getItem(legacyFieldJournalKey(id));if(raw===null)return null;
- const records=parseFieldRecords(raw),c=records.current.context;if(c.planId!==id.planId||c.revisionId!==id.revisionId||c.revision!==id.revision||c.signature!==id.signature)throw invalid();return records;
+ const records=parseFieldRecords(raw),c=records.current.context;if(c.planId!==id.planId||c.revisionId!==id.revisionId)throw invalid();return records;
+}
+export function readVersionFieldRecords(id:DeliveryIdentity,storage:Pick<Storage,"getItem">){
+ const records=readRevisionFieldRecords(id,storage);if(records&&(records.current.context.revision!==id.revision||records.current.context.signature!==id.signature))throw invalid();return records;
+}
+export function requireKnownFieldHandover(plan:PackingResult,current:FieldRecords|null,previous:FieldRecords|null){
+ const id=plan.deliveryIdentity;if(!id?.previousRevisionId||!previous)return;
+ if(previous.current.context.planId!==id.planId||previous.current.context.revisionId!==id.previousRevisionId||previous.current.context.revision!==id.revision-1)throw invalid();
+ if((previous.current.events.length||previous.history.length)&&current?.handovers.at(-1)?.fromRevisionId!==id.previousRevisionId)throw fail("本机上一版已有现场记录，请先在当前已登记版本迁移，处理冲突后再编辑或发布；已修改时请恢复该版本备份","The previous revision has known field records. Carry them over in the current issued revision and resolve conflicts before editing or publishing; restore that revision backup if already edited");
 }
 /** Migrations retain complete old event/photo history and never overwrite target events. */
 export function migrateFieldRecords(plan:PackingResult,previous:FieldRecords,current:FieldRecords,options:{reason:string;deviceId:string;at?:string;id?:string}):FieldRecords{

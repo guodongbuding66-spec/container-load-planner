@@ -1,6 +1,7 @@
 "use client";
 import {DeliveryVersionPanel} from "./delivery-version-panel";
 import {FieldJournalPanel} from "./field-journal-panel";
+import {guardFieldRevision,lockLoadedFieldPositions,readRevisionFieldRecords,readVersionFieldRecords,requireKnownFieldHandover,type FieldRecords} from "../lib/packing/field-records";
 import {ContainerAccessorySettings} from "./container-accessory-settings";
 import {ContainerAccessoryManifest} from "./container-accessory-manifest";
 
@@ -417,6 +418,8 @@ export function PackingApp() {
   const [renderPrintViews, setRenderPrintViews] = useState(false);
   const [solverSchedule, setSolverSchedule] = useState<SolverSchedule>("parallel");
   const workersRef = useRef<Partial<Record<PackingStrategy, Worker>>>({});
+  const fieldRecordsRef=useRef(new Map<string,FieldRecords>());
+  const receiveFieldRecords=useCallback((records:FieldRecords)=>{const key=`${records.current.context.planId}/${records.current.context.revisionId}`,map=fieldRecordsRef.current;map.delete(key);map.set(key,records);while(map.size>2)map.delete(map.keys().next().value!);},[]);
   const workerResultsRef = useRef<Partial<Record<PackingStrategy, PackingResult>>>({});
   const calculationTimeoutRef = useRef<number | null>(null);
   const maximumStartTimerRef = useRef<number | null>(null);
@@ -1572,6 +1575,7 @@ export function PackingApp() {
   const workspaceBackup = useMemo(() => serializeWorkspaceBackup({palletLayerTemplates,workflow,palletBuild,floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,result,resultBundle?.strategyPlans), [palletLayerTemplates,workflow,palletBuild,floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit,result,resultBundle?.strategyPlans]);
   const upgradesDisabled = hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0 || status === "working";
   const adoptDeliveryVersion=(next:PackingResult)=>{
+    if(result?.deliveryIdentity&&next.deliveryIdentity?.planId===result.deliveryIdentity.planId){const id=result.deliveryIdentity,known=fieldRecordsRef.current.get(`${id.planId}/${id.revisionId}`)??readVersionFieldRecords(id,localStorage),prior=id.previousRevisionId?(fieldRecordsRef.current.get(`${id.planId}/${id.previousRevisionId}`)??readRevisionFieldRecords({planId:id.planId,revisionId:id.previousRevisionId},localStorage)):null;requireKnownFieldHandover(result,known,prior);guardFieldRevision(result,next,known);}
     const inputs=parseWorkspaceBackup(workspaceBackup);
     const backup=serializeWorkspaceBackup(inputs,ENGINE_VERSION,next,{[next.strategy]:next});
     downloadFile(`delivery-${next.deliveryIdentity!.planId}-v${next.deliveryIdentity!.revision}.json`,backup,"application/json");
@@ -1579,6 +1583,7 @@ export function PackingApp() {
     setMessage(tr("交付版本已登记并下载；请保留备份，修改后重新发布版本。","Delivery version issued and downloaded. Keep the backup and issue a new revision after edits."));
   };
   const adoptManualPlan=(next:PackingResult)=>{const rows=adoptOrderDelivery(products,next.delivery??result?.delivery);setProducts(rows);next={...next,cargoDetails:Object.fromEntries(rows.filter(p=>next.summaries.some(s=>s.productId===p.id)).map(p=>[p.id,shapeDetails(p)])),delivery:orderDelivery(rows.filter(p=>next.summaries.some(s=>s.productId===p.id)),next.delivery??result?.delivery),accessConfig:next.accessConfig??result?.accessConfig,handlingTasks:next.handlingTasks??result?.handlingTasks};clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。"));};
+  const adoptLoadedLocks=(records:FieldRecords)=>{if(!result)return;const id=result.deliveryIdentity!,prior=id.previousRevisionId?(fieldRecordsRef.current.get(`${id.planId}/${id.previousRevisionId}`)??readRevisionFieldRecords({planId:id.planId,revisionId:id.previousRevisionId},localStorage)):null;requireKnownFieldHandover(result,records,prior);const next=lockLoadedFieldPositions(result,records,activeProducts);clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已锁定已装箱位；可调整其余货物，登记下一版后明确迁移现场记录。","Loaded positions locked. Edit the remaining cargo, issue the next revision, then explicitly carry over field records."));};
 
   const planEditor=usePlanEditor(result,activeProducts,upgradesDisabled||!result?.validation.valid||result.metrics.loadedCount!==result.placements.length,adoptManualPlan);
   const fleetRequest: PackingRequest = {delivery:orderDelivery(activeProducts,Object.fromEntries(Object.entries(result?.delivery??{}).filter(([id])=>activeProducts.some(p=>p.id===id&&!p.orderLine)))),accessConfig:result?.accessConfig, floorPallets, loadingRules, mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
@@ -2335,7 +2340,7 @@ export function PackingApp() {
           </>}
           delivery={result && !hasPendingDimensionChanges ? <>
             <DeliveryVersionPanel plan={result} disabled={!canExport} onIssue={adoptDeliveryVersion}/>
-            <FieldJournalPanel plan={result} disabled={!canExport}/>
+            <FieldJournalPanel plan={result} disabled={!canExport} onRecords={receiveFieldRecords} onLockLoaded={adoptLoadedLocks}/>
             {canExport ? <FieldGuide key={`field-${result.id}`} result={result} products={activeProducts}/> : null}
             <CustomerReportPanel plan={result} products={activeProducts} disabled={!canExport}/>
           </> : <p className="tool-empty">{tr("先完成一次装柜计算，再生成客户报告和现场指导书。")}</p>}
