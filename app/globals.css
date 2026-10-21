@@ -1466,3 +1466,19 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 .weighing-confirm input { width:18px; height:18px; min-height:18px; flex-shrink:0; }
 .weighing-history article { padding:12px 0; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
 .weighing-backup { display:block; width:100%; min-height:180px; margin-top:8px; font-family:monospace; }
+
+.operations-workspace { min-width:0; overflow-wrap:anywhere; }
+.operations-workspace select { max-width:100%; }
+.operations-task-list { list-style:none; padding:0; }
+.operations-task-list li { display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
+.operations-task-list strong { flex-shrink:0; }
+.operations-task-list [data-status="conflict"] strong,.operations-task-list [data-status="exception"] strong,.operations-task-list [data-status="stale"] strong { color:var(--danger); }
+.operations-fields { min-width:0; border:1px solid var(--line); border-radius:8px; padding:12px; margin:12px 0; }
+.operations-fields label { display:flex; flex-direction:column; gap:6px; margin:12px 0; }
+.operations-fields input,.operations-fields textarea,.operations-workspace select { width:100%; min-height:36px; border:1px solid var(--line); border-radius:4px; background:var(--surface); color:var(--ink); padding:6px 8px; }
+.operations-fields textarea { min-height:80px; }
+.operations-fields .operations-resolve { flex-direction:row; align-items:flex-start; }
+.operations-resolve input { width:18px; min-height:18px; height:18px; flex-shrink:0; }
+.operations-history li { border-bottom:1px solid var(--line); padding:10px 0; }
+.operations-backup { display:block; width:100%; min-height:180px; margin-top:8px; font-family:monospace; }
+@media(max-width:640px) { .operations-task-list li { flex-direction:column; gap:4px; } }

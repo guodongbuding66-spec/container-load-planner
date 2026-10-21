@@ -1,6 +1,8 @@
 "use client";
 import {WeighingPanel} from "./weighing-panel";
 import type {WeighingRecords} from "../lib/packing/weighing";
+import {OperationsPanel} from "./operations-panel";
+import type {OperationRecords} from "../lib/packing/operations";
 import {DeliveryVersionPanel} from "./delivery-version-panel";
 import {FieldJournalPanel} from "./field-journal-panel";
 import {guardFieldRevision,lockLoadedFieldPositions,readRevisionFieldRecords,readVersionFieldRecords,rememberFieldRecords,requireKnownFieldHandover,type FieldRecords} from "../lib/packing/field-records";
@@ -422,6 +424,9 @@ export function PackingApp() {
   const weighingRecordsRef=useRef(new Map<string,WeighingRecords>());
   const getWeighingRecords=useCallback((key:string)=>weighingRecordsRef.current.get(key),[]);
   const receiveWeighingRecords=useCallback((key:string,records:WeighingRecords)=>{weighingRecordsRef.current.set(key,records);},[]);
+  const operationRecordsRef=useRef(new Map<string,OperationRecords>());
+  const getOperationRecords=useCallback((key:string)=>operationRecordsRef.current.get(key),[]);
+  const receiveOperationRecords=useCallback((key:string,records:OperationRecords)=>{operationRecordsRef.current.set(key,records);},[]);
   const fieldRecordsRef=useRef(new Map<string,FieldRecords>());
   const receiveFieldRecords=useCallback((records:FieldRecords)=>{rememberFieldRecords(fieldRecordsRef.current,records,{getItem:key=>localStorage.getItem(key)});},[]);
   const getKnownFieldRecords=useCallback((plan:PackingResult)=>{const id=plan.deliveryIdentity;return id?fieldRecordsRef.current.get(`${id.planId}/${id.revisionId}`):undefined;},[]);
@@ -2345,6 +2350,7 @@ export function PackingApp() {
           delivery={result && !hasPendingDimensionChanges ? <>
             <DeliveryVersionPanel plan={result} disabled={!canExport} onIssue={adoptDeliveryVersion} backup={workspaceBackup}/>
             <WeighingPanel plan={result} disabled={!canExport} getRecords={getWeighingRecords} onRecords={receiveWeighingRecords}/>
+            <OperationsPanel plan={result} disabled={!canExport} getRecords={getOperationRecords} onRecords={receiveOperationRecords}/>
             <FieldJournalPanel plan={result} disabled={!canExport} onRecords={receiveFieldRecords} onLockLoaded={adoptLoadedLocks} getRecords={getKnownFieldRecords}/>
             {canExport ? <FieldGuide key={`field-${result.id}`} result={result} products={activeProducts}/> : null}
             <CustomerReportPanel plan={result} products={activeProducts} disabled={!canExport}/>
