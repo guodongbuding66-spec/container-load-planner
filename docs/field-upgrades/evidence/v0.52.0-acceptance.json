@@ -1,0 +1,113 @@
+{
+  "version": "0.52.0",
+  "testedOn": "2026-10-21",
+  "runtimeCommit": "ef44c3bbb06017210a4f4e4d1e7b4b3cff28d6ee",
+  "runtimeTree": "0ebda3d4534917c97d4375168799c7e39fd7ee26",
+  "sites": [
+    "https://container-load-planner.pages.dev/",
+    "https://container-load-planner-gray.vercel.app/"
+  ],
+  "ci": "success",
+  "pagesDeployment": "e6cfd885-4799-40fa-bf39-aa8779d43313",
+  "vercelDeployment": "dpl_34CKsuFZVFVgQpSxJWZu9it4qKcR",
+  "vercelStatus": "READY",
+  "softwareChecks": {
+    "unitTests": 1385,
+    "unitFiles": 104,
+    "htmlChecks": 21,
+    "lintErrors": 0,
+    "existingLintWarnings": 2,
+    "typecheck": "passed",
+    "staticProductionBuild": "passed",
+    "focusedChecks": 26
+  },
+  "screenshots": {
+    "modeling": "v0.52.0-modeling-fixed.jpg",
+    "weighingEnglish": "v0.52.0-weighing-en.jpg",
+    "defaultPdfPage1": "v0.52.0-pdf-page1.jpg"
+  },
+  "modeling": {
+    "beforeRuntime": "0.51.2",
+    "beforeToolbarButtonHeightPx": 470,
+    "afterButtonHeightsBothSitesPx": [
+      32,
+      32,
+      32,
+      32,
+      32,
+      32,
+      32,
+      32
+    ],
+    "frontPresetYaw": "0.0000",
+    "canceledWithoutSaving": true
+  },
+  "removedUI": [
+    "AI Trade Workspace ecosystem link",
+    "iSUNOR Intelligence ecosystem link",
+    "Trade OS cloud, authentication popup and order bridge"
+  ],
+  "membership": "planned only; no sign-in or payment service is enabled",
+  "weighing": {
+    "syntheticOnly": true,
+    "context": {
+      "planId": "delivery-fc67c1f9-85e6-41d0-9da4-5a5ae795472e",
+      "revision": 4,
+      "revisionId": "revision-5d989b50-b57f-4167-b140-c6ac0a5f4dc7",
+      "signature": "3e89f5b173f10afb"
+    },
+    "measurements": 3,
+    "grossMinusTare": {
+      "grossKg": 3112,
+      "tareKg": 3000,
+      "payloadKg": 112,
+      "differenceKg": 2
+    },
+    "directPayloadKg": 110,
+    "directDifferenceKg": 0,
+    "deliberateOverload": {
+      "payloadKg": 30000,
+      "excessKg": 1400
+    },
+    "nativeJsonMatchesTextBackup": true,
+    "crossSiteByteEquality": true,
+    "duplicateImportCount": 3,
+    "oldRevisionRejectedWithoutMutation": true,
+    "conflictingIdRejectedWithoutMutation": true,
+    "restoredAfterPageReloadCount": 3,
+    "englishUIHasNoCJK": true,
+    "sha256": "29061a173b4d367814b0b5a217d689cce5faeb4f28b3ccd35ab536a850f9e16d",
+    "csvDataRows": 3
+  },
+  "defaultRegression": {
+    "bothSitesAndBothStrategies": true,
+    "cartons": 116,
+    "plannedPayloadKg": 3842,
+    "activePlanRestoredToDefault": true,
+    "applicationConsoleErrors": 0,
+    "applicationConsoleWarnings": 0,
+    "logScanLimitPerSite": 200
+  },
+  "nativeDownloads": {
+    "weighingJson": "passed and parsed",
+    "weighingCsv": "passed; 3 rows; payloads 112/110/30000",
+    "defaultCoordinates": "passed; 116 rows; summed mass 3842 kg",
+    "defaultPdf": {
+      "status": "passed; 8 A4 pages rendered and visually reviewed",
+      "bytes": 2368016,
+      "sha256": "f3b5b9d0d6ff16a6679c671e40b1353e58870f93ad11659bdde89644d3755b7b",
+      "searchableText": false
+    }
+  },
+  "pending": [
+    "Real GPU / WebGL / multiple browser engines",
+    "Actual printed QR scan and physical load trials",
+    "Certified scale, tare and weigh-ticket verification",
+    "Remaining roadmap items; excluded forklift operations remain excluded"
+  ],
+  "notes": [
+    "Native date/time input required keyboard commit in the acceptance browser. The empty-time guard blocked recording until it was committed.",
+    "Packing geometry, counts and weights were verified. Existing path / securing / strength warnings are not a transport safety approval.",
+    "This round restores native capture evidence for the downloads listed above. It does not certify untested older field-event, offline HTML or all-browser download flows."
+  ]
+}

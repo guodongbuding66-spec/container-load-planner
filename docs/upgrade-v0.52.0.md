@@ -23,3 +23,16 @@
 本地首轮 `npm run build:pages` 通过：1,385 项单元测试（104 文件）、21 项页面结构检查、TypeScript 与静态生产构建通过。新增核重及导航专项共 26 项通过。修正新增 lint 提示后，最终构建再次全部通过，lint 0 错误、2 项既有警告。线上验收在部署后补录。
 
 真实 GPU、多浏览器、原生下载捕获、地磅及现场实装继续单独验收。当前人工核重不是设备认证、VGM 签发或少箱检查，既有未完成条目保留在[清单](field-upgrades/unfinished-roadmap.md)。
+
+## 正式站验收与发布
+
+运行提交 `ef44c3bbb06017210a4f4e4d1e7b4b3cff28d6ee`，代码树 `0ebda3d4534917c97d4375168799c7e39fd7ee26`。GitHub verify、Cloudflare Pages 均 SUCCESS，Vercel 生产部署 `dpl_34CKsuFZVFVgQpSxJWZu9it4qKcR` READY，正式别名已更新。
+
+- 两站按同样流程进入全屏建模：工具栏 8 个按钮均为 32px，旧版实际复现为 470px。主站正视相机 yaw=0，取消退出不保存测试建模；[修复截图](field-upgrades/evidence/v0.52.0-modeling-fixed.jpg)。
+- 两站生态菜单只保留原有搜图／下载工具；项目区已无外贸 OS。英文服务说明明确独立账号、会员及云同步尚未接入。
+- 使用既有 11 箱／110kg 的 v4 合成方案；录入三次模拟称重，112kg 差 2kg、110kg 差 0、30000kg 显示超方案载荷 1400kg。完整原始 [JSON](field-upgrades/evidence/v0.52.0-weighing-records.json)、[CSV](field-upgrades/evidence/v0.52.0-weighing.csv) 和[英文截图](field-upgrades/evidence/v0.52.0-weighing-en.jpg)留档。这些是软件测试数据，不是实际地磅记录。
+- 原生核重 JSON 与公开文本备份逐字节一致；Vercel 从空记录导入同一文件，再重复导入仍 3 条，跨站 JSON 字节一致。旧版本和同编号冲突文件拒绝后，原记录未改变。Pages 刷新并恢复同一方案后仍自动读取 3 条。
+- 两站恢复默认 3 SKU 并完成双策略：均 116 箱／3842kg／0.52.0；最近 200 条日志范围内应用错误、警告均 0。真实 WebGL 不可用时使用坐标俯视图，不能据此宣称真实 GPU 验收通过。
+- 本轮原生下载已成功复测核重 JSON／CSV、默认方案坐标 CSV 和 PDF；默认 CSV 为 116 条货物行、重量和 3842kg，PDF 为 8 页 A4，逐页渲染检查通过，[首页证据](field-upgrades/evidence/v0.52.0-pdf-page1.jpg)。PDF 当前为图像内容，不以文字提取作为视觉验收。未重新测试的旧现场事件、离线 HTML、实机打印和全部浏览器下载流程继续保留其验收边界。
+
+详细可追溯结果见 [验收 JSON](field-upgrades/evidence/v0.52.0-acceptance.json)。最终证据提交只更新文档与证据，不改运行代码。所有未完成功能继续保留，不将本轮交付表述为全路线完成。

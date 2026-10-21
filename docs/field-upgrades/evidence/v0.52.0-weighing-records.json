@@ -1,0 +1,51 @@
+{
+  "format": "cargo-fit-weighing",
+  "version": 1,
+  "context": {
+    "planId": "delivery-fc67c1f9-85e6-41d0-9da4-5a5ae795472e",
+    "revision": 4,
+    "revisionId": "revision-5d989b50-b57f-4167-b140-c6ac0a5f4dc7",
+    "signature": "3e89f5b173f10afb"
+  },
+  "measurements": [
+    {
+      "id": "weigh-906e9aa5-2cad-4b4f-9e44-d573c32769d8",
+      "method": "gross-minus-tare",
+      "scope": "complete-load",
+      "measuredAt": "2026-10-21T23:00:00.000Z",
+      "recordedAt": "2026-10-21T13:55:44.272Z",
+      "source": "QA synthetic scale S1",
+      "reference": "QA-WEIGH-001",
+      "note": "Synthetic UI acceptance only: gross 3112 minus tare 3000; expected payload 112 kg",
+      "readingKg": 3112,
+      "tareKg": 3000,
+      "tareSource": "QA synthetic tare for test container; not an actual scale certificate"
+    },
+    {
+      "id": "weigh-63800bda-b47c-4c26-8fd8-78602805563c",
+      "method": "payload",
+      "scope": "complete-load",
+      "measuredAt": "2026-10-21T23:00:00.000Z",
+      "recordedAt": "2026-10-21T13:56:08.789Z",
+      "source": "QA synthetic scale S1",
+      "reference": "QA-WEIGH-002",
+      "note": "Synthetic direct payload reweighing; no second tare subtraction",
+      "readingKg": 110,
+      "tareKg": null,
+      "tareSource": ""
+    },
+    {
+      "id": "weigh-93a898ab-43aa-47b5-b421-4a5ed4f71e19",
+      "method": "payload",
+      "scope": "complete-load",
+      "measuredAt": "2026-10-21T23:00:00.000Z",
+      "recordedAt": "2026-10-21T13:56:20.482Z",
+      "source": "QA synthetic scale S1",
+      "reference": "QA-WEIGH-003",
+      "note": "Deliberate synthetic overload to verify warning and retention; not an actual load",
+      "readingKg": 30000,
+      "tareKg": null,
+      "tareSource": ""
+    }
+  ]
+}
