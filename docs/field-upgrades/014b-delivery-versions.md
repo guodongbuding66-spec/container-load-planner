@@ -1,6 +1,6 @@
 # 014B1：交付版本与箱托登记编号
 
-状态：IMPLEMENTING，v0.49.0；基线 v0.48.0。014B 整体仍为 PARTIAL，具体叉车操作 EXCLUDED。
+状态：DONE（本节 B1 软件与双站验收），v0.49.0；基线 v0.48.0。014B 整体仍为 PARTIAL，具体叉车操作 EXCLUDED。
 
 ## 本轮契约
 

@@ -1,0 +1,829 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.49.0",
+  "createdAt": "2026-10-20T23:59:08.943Z",
+  "inputs": {
+    "palletLayerTemplates": [],
+    "workflow": "direct",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 1200,
+        "width": 800,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "maxPallets": 50,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "maximum",
+    "practicalTargetPercent": 88,
+    "container": {
+      "id": "40hq",
+      "name": "40HQ 高柜",
+      "length": 12032,
+      "width": 2350,
+      "height": 2700,
+      "doorWidth": 2340,
+      "doorHeight": 2597,
+      "maxWeight": 28600
+    },
+    "clearance": 10,
+    "products": [
+      {
+        "orderLine": {
+          "orderReference": "PO-A",
+          "lineReference": "10",
+          "batch": "A-01",
+          "customer": "Customer A",
+          "destination": "Port A",
+          "stop": 1
+        },
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "id": "row-a",
+        "sku": "SHED-BOX",
+        "name": "Shed carton A",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 2,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "maxTopLoadKg": 100,
+        "color": "#337788"
+      },
+      {
+        "orderLine": {
+          "orderReference": "PO-B",
+          "lineReference": "20",
+          "batch": "B-02",
+          "customer": "Customer B",
+          "destination": "Port B",
+          "stop": 2
+        },
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "id": "row-b",
+        "sku": "SHED-BOX",
+        "name": "Shed carton B",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 4,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "maxTopLoadKg": 100,
+        "color": "#c66a3d"
+      },
+      {
+        "orderLine": {
+          "orderReference": "PO-B",
+          "lineReference": "",
+          "batch": "B-02",
+          "customer": "Customer B",
+          "destination": "Port B",
+          "stop": 2
+        },
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "id": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85",
+        "sku": "SHED-BOX",
+        "name": "Shed carton B",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 4,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "maxTopLoadKg": 100,
+        "color": "#c66a3d"
+      },
+      {
+        "orderLine": {
+          "orderReference": "PO-C",
+          "lineReference": "30",
+          "batch": "C-03",
+          "customer": "Customer C",
+          "destination": "Port C",
+          "stop": 3
+        },
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "id": "4b27b06e-dea1-48d1-900a-d7eebd1e2413",
+        "sku": "SHED-BOX",
+        "name": "Shed carton C",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 1,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "maxTopLoadKg": 100,
+        "color": "#8877aa"
+      }
+    ],
+    "customContainers": [],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {
+    "maximum": {
+      "deliveryIdentity": {
+        "schema": 1,
+        "planId": "delivery-4c1663ad-b156-4e64-82b6-763f5b4360b5",
+        "revision": 1,
+        "revisionId": "revision-7341f225-26fa-4eba-8d56-5a4dd6bff4c3",
+        "issuedAt": "2026-10-20T23:59:08.942Z",
+        "signature": "02746e5a65505410",
+        "forkedFrom": {
+          "planId": "delivery-fc67c1f9-85e6-41d0-9da4-5a5ae795472e",
+          "revision": 2,
+          "revisionId": "revision-7034f4b4-5f1d-434a-bb0c-0ff92bcb2a72"
+        },
+        "units": [
+          {
+            "unitId": "carton-7faf72fc-268c-4a70-a2e0-1335d6011d1a",
+            "kind": "carton",
+            "localId": "row-a-0",
+            "fingerprint": "8b06a1d38486597b"
+          },
+          {
+            "unitId": "carton-ed01df2b-a9a4-4145-8314-dd2849abcff2",
+            "kind": "carton",
+            "localId": "row-a-1",
+            "fingerprint": "8b06a1d38486597b"
+          },
+          {
+            "unitId": "carton-84c417ca-d013-4abd-b60e-5923ffc4f4ca",
+            "kind": "carton",
+            "localId": "row-b-2",
+            "fingerprint": "57b4bb96ae6f0944"
+          },
+          {
+            "unitId": "carton-04f149c5-b3f3-4683-b311-e8669c5b54a9",
+            "kind": "carton",
+            "localId": "row-b-3",
+            "fingerprint": "57b4bb96ae6f0944"
+          },
+          {
+            "unitId": "carton-a22632a2-92c5-471f-9806-1ed40985af39",
+            "kind": "carton",
+            "localId": "row-b-4",
+            "fingerprint": "57b4bb96ae6f0944"
+          },
+          {
+            "unitId": "carton-a3784c05-d605-46b2-a70f-83fce76c5dec",
+            "kind": "carton",
+            "localId": "row-b-5",
+            "fingerprint": "57b4bb96ae6f0944"
+          },
+          {
+            "unitId": "carton-b5df7ccb-ec8b-45a2-92ee-e3f28a5f6ee9",
+            "kind": "carton",
+            "localId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-6",
+            "fingerprint": "70a43779638555db"
+          },
+          {
+            "unitId": "carton-e9de45b2-f14c-4a9f-9cf2-9af5aeacf6ad",
+            "kind": "carton",
+            "localId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-7",
+            "fingerprint": "70a43779638555db"
+          },
+          {
+            "unitId": "carton-d36b7af7-8c78-44a6-8092-906b453c5e60",
+            "kind": "carton",
+            "localId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-8",
+            "fingerprint": "70a43779638555db"
+          },
+          {
+            "unitId": "carton-c9cdd6c9-2f8f-442f-a33b-ba6c9634ccc7",
+            "kind": "carton",
+            "localId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-9",
+            "fingerprint": "70a43779638555db"
+          },
+          {
+            "unitId": "carton-137994b9-c0d0-424c-9f6e-6ed6486bc7fc",
+            "kind": "carton",
+            "localId": "4b27b06e-dea1-48d1-900a-d7eebd1e2413-10",
+            "fingerprint": "a6d6c6964771933a"
+          }
+        ],
+        "withdrawn": []
+      },
+      "workflow": "direct",
+      "palletBuild": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "length": 1200,
+          "width": 800,
+          "height": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 1000
+        },
+        "mix": "single",
+        "maxPallets": 50,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0
+      },
+      "strategy": "maximum",
+      "placements": [
+        {
+          "id": "row-a-0",
+          "productId": "row-a",
+          "sku": "SHED-BOX",
+          "name": "Shed carton A",
+          "color": "#337788",
+          "x": 0,
+          "y": 100,
+          "z": 0,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "row-a-1",
+          "productId": "row-a",
+          "sku": "SHED-BOX",
+          "name": "Shed carton A",
+          "color": "#337788",
+          "x": 500,
+          "y": 0,
+          "z": 0,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "row-b-2",
+          "productId": "row-b",
+          "sku": "SHED-BOX",
+          "name": "Shed carton B",
+          "color": "#c66a3d",
+          "x": 1000,
+          "y": 0,
+          "z": 0,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "row-b-3",
+          "productId": "row-b",
+          "sku": "SHED-BOX",
+          "name": "Shed carton B",
+          "color": "#c66a3d",
+          "x": 1500,
+          "y": 0,
+          "z": 0,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "row-b-4",
+          "productId": "row-b",
+          "sku": "SHED-BOX",
+          "name": "Shed carton B",
+          "color": "#c66a3d",
+          "x": 2000,
+          "y": 0,
+          "z": 0,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "row-b-5",
+          "productId": "row-b",
+          "sku": "SHED-BOX",
+          "name": "Shed carton B",
+          "color": "#c66a3d",
+          "x": 2500,
+          "y": 0,
+          "z": 0,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-6",
+          "productId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85",
+          "sku": "SHED-BOX",
+          "name": "Shed carton B",
+          "color": "#c66a3d",
+          "x": 3000,
+          "y": 0,
+          "z": 0,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-7",
+          "productId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85",
+          "sku": "SHED-BOX",
+          "name": "Shed carton B",
+          "color": "#c66a3d",
+          "x": 3500,
+          "y": 0,
+          "z": 0,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-8",
+          "productId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85",
+          "sku": "SHED-BOX",
+          "name": "Shed carton B",
+          "color": "#c66a3d",
+          "x": 4000,
+          "y": 0,
+          "z": 0,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-9",
+          "productId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85",
+          "sku": "SHED-BOX",
+          "name": "Shed carton B",
+          "color": "#c66a3d",
+          "x": 4500,
+          "y": 0,
+          "z": 0,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "4b27b06e-dea1-48d1-900a-d7eebd1e2413-10",
+          "productId": "4b27b06e-dea1-48d1-900a-d7eebd1e2413",
+          "sku": "SHED-BOX",
+          "name": "Shed carton C",
+          "color": "#8877aa",
+          "x": 5000,
+          "y": 0,
+          "z": 0,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        }
+      ],
+      "pallets": [],
+      "delivery": {
+        "row-a": {
+          "customer": "Customer A",
+          "destination": "Port A",
+          "stop": 1
+        },
+        "row-b": {
+          "customer": "Customer B",
+          "destination": "Port B",
+          "stop": 2
+        },
+        "63ee53d3-2a6c-4fe1-815d-80fe1088ed85": {
+          "customer": "Customer B",
+          "destination": "Port B",
+          "stop": 2
+        },
+        "4b27b06e-dea1-48d1-900a-d7eebd1e2413": {
+          "customer": "Customer C",
+          "destination": "Port C",
+          "stop": 3
+        }
+      }
+    }
+  },
+  "coordinatePlan": {
+    "deliveryIdentity": {
+      "schema": 1,
+      "planId": "delivery-4c1663ad-b156-4e64-82b6-763f5b4360b5",
+      "revision": 1,
+      "revisionId": "revision-7341f225-26fa-4eba-8d56-5a4dd6bff4c3",
+      "issuedAt": "2026-10-20T23:59:08.942Z",
+      "signature": "02746e5a65505410",
+      "forkedFrom": {
+        "planId": "delivery-fc67c1f9-85e6-41d0-9da4-5a5ae795472e",
+        "revision": 2,
+        "revisionId": "revision-7034f4b4-5f1d-434a-bb0c-0ff92bcb2a72"
+      },
+      "units": [
+        {
+          "unitId": "carton-7faf72fc-268c-4a70-a2e0-1335d6011d1a",
+          "kind": "carton",
+          "localId": "row-a-0",
+          "fingerprint": "8b06a1d38486597b"
+        },
+        {
+          "unitId": "carton-ed01df2b-a9a4-4145-8314-dd2849abcff2",
+          "kind": "carton",
+          "localId": "row-a-1",
+          "fingerprint": "8b06a1d38486597b"
+        },
+        {
+          "unitId": "carton-84c417ca-d013-4abd-b60e-5923ffc4f4ca",
+          "kind": "carton",
+          "localId": "row-b-2",
+          "fingerprint": "57b4bb96ae6f0944"
+        },
+        {
+          "unitId": "carton-04f149c5-b3f3-4683-b311-e8669c5b54a9",
+          "kind": "carton",
+          "localId": "row-b-3",
+          "fingerprint": "57b4bb96ae6f0944"
+        },
+        {
+          "unitId": "carton-a22632a2-92c5-471f-9806-1ed40985af39",
+          "kind": "carton",
+          "localId": "row-b-4",
+          "fingerprint": "57b4bb96ae6f0944"
+        },
+        {
+          "unitId": "carton-a3784c05-d605-46b2-a70f-83fce76c5dec",
+          "kind": "carton",
+          "localId": "row-b-5",
+          "fingerprint": "57b4bb96ae6f0944"
+        },
+        {
+          "unitId": "carton-b5df7ccb-ec8b-45a2-92ee-e3f28a5f6ee9",
+          "kind": "carton",
+          "localId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-6",
+          "fingerprint": "70a43779638555db"
+        },
+        {
+          "unitId": "carton-e9de45b2-f14c-4a9f-9cf2-9af5aeacf6ad",
+          "kind": "carton",
+          "localId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-7",
+          "fingerprint": "70a43779638555db"
+        },
+        {
+          "unitId": "carton-d36b7af7-8c78-44a6-8092-906b453c5e60",
+          "kind": "carton",
+          "localId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-8",
+          "fingerprint": "70a43779638555db"
+        },
+        {
+          "unitId": "carton-c9cdd6c9-2f8f-442f-a33b-ba6c9634ccc7",
+          "kind": "carton",
+          "localId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-9",
+          "fingerprint": "70a43779638555db"
+        },
+        {
+          "unitId": "carton-137994b9-c0d0-424c-9f6e-6ed6486bc7fc",
+          "kind": "carton",
+          "localId": "4b27b06e-dea1-48d1-900a-d7eebd1e2413-10",
+          "fingerprint": "a6d6c6964771933a"
+        }
+      ],
+      "withdrawn": []
+    },
+    "workflow": "direct",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 1200,
+        "width": 800,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "maxPallets": 50,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "strategy": "maximum",
+    "placements": [
+      {
+        "id": "row-a-0",
+        "productId": "row-a",
+        "sku": "SHED-BOX",
+        "name": "Shed carton A",
+        "color": "#337788",
+        "x": 0,
+        "y": 100,
+        "z": 0,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH"
+      },
+      {
+        "id": "row-a-1",
+        "productId": "row-a",
+        "sku": "SHED-BOX",
+        "name": "Shed carton A",
+        "color": "#337788",
+        "x": 500,
+        "y": 0,
+        "z": 0,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH"
+      },
+      {
+        "id": "row-b-2",
+        "productId": "row-b",
+        "sku": "SHED-BOX",
+        "name": "Shed carton B",
+        "color": "#c66a3d",
+        "x": 1000,
+        "y": 0,
+        "z": 0,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH"
+      },
+      {
+        "id": "row-b-3",
+        "productId": "row-b",
+        "sku": "SHED-BOX",
+        "name": "Shed carton B",
+        "color": "#c66a3d",
+        "x": 1500,
+        "y": 0,
+        "z": 0,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH"
+      },
+      {
+        "id": "row-b-4",
+        "productId": "row-b",
+        "sku": "SHED-BOX",
+        "name": "Shed carton B",
+        "color": "#c66a3d",
+        "x": 2000,
+        "y": 0,
+        "z": 0,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH"
+      },
+      {
+        "id": "row-b-5",
+        "productId": "row-b",
+        "sku": "SHED-BOX",
+        "name": "Shed carton B",
+        "color": "#c66a3d",
+        "x": 2500,
+        "y": 0,
+        "z": 0,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH"
+      },
+      {
+        "id": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-6",
+        "productId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85",
+        "sku": "SHED-BOX",
+        "name": "Shed carton B",
+        "color": "#c66a3d",
+        "x": 3000,
+        "y": 0,
+        "z": 0,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH"
+      },
+      {
+        "id": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-7",
+        "productId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85",
+        "sku": "SHED-BOX",
+        "name": "Shed carton B",
+        "color": "#c66a3d",
+        "x": 3500,
+        "y": 0,
+        "z": 0,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH"
+      },
+      {
+        "id": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-8",
+        "productId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85",
+        "sku": "SHED-BOX",
+        "name": "Shed carton B",
+        "color": "#c66a3d",
+        "x": 4000,
+        "y": 0,
+        "z": 0,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH"
+      },
+      {
+        "id": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85-9",
+        "productId": "63ee53d3-2a6c-4fe1-815d-80fe1088ed85",
+        "sku": "SHED-BOX",
+        "name": "Shed carton B",
+        "color": "#c66a3d",
+        "x": 4500,
+        "y": 0,
+        "z": 0,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH"
+      },
+      {
+        "id": "4b27b06e-dea1-48d1-900a-d7eebd1e2413-10",
+        "productId": "4b27b06e-dea1-48d1-900a-d7eebd1e2413",
+        "sku": "SHED-BOX",
+        "name": "Shed carton C",
+        "color": "#8877aa",
+        "x": 5000,
+        "y": 0,
+        "z": 0,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH"
+      }
+    ],
+    "pallets": [],
+    "delivery": {
+      "row-a": {
+        "customer": "Customer A",
+        "destination": "Port A",
+        "stop": 1
+      },
+      "row-b": {
+        "customer": "Customer B",
+        "destination": "Port B",
+        "stop": 2
+      },
+      "63ee53d3-2a6c-4fe1-815d-80fe1088ed85": {
+        "customer": "Customer B",
+        "destination": "Port B",
+        "stop": 2
+      },
+      "4b27b06e-dea1-48d1-900a-d7eebd1e2413": {
+        "customer": "Customer C",
+        "destination": "Port C",
+        "stop": 3
+      }
+    }
+  }
+}
