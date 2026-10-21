@@ -1,0 +1,178 @@
+{
+  "format": "cargo-fit-field-events",
+  "version": 1,
+  "context": {
+    "planId": "delivery-bc5f67a0-2195-4a82-a7c7-e471b5f7029b",
+    "revision": 1,
+    "revisionId": "revision-ddc6018b-a6b8-4837-b14c-fa5bdffab858",
+    "signature": "e7b3a9932df20e57",
+    "atoms": [
+      {
+        "id": "carton-4a7cf71d-347e-43c1-87b7-11ad3358f7d6",
+        "kind": "carton",
+        "sourceId": "row-a",
+        "weightKg": 10,
+        "witness": "[\"8b06a1d38486597b\",0,0,144,500,500,200,\"LWH\",,[\"floor-pallet-1\"]]",
+        "children": []
+      },
+      {
+        "id": "carton-25b89d16-1c32-48af-949e-1065b66a672c",
+        "kind": "carton",
+        "sourceId": "row-a",
+        "weightKg": 10,
+        "witness": "[\"8b06a1d38486597b\",0,500,144,500,500,200,\"LWH\",,[\"floor-pallet-1\"]]",
+        "children": []
+      },
+      {
+        "id": "carton-f37bdd4c-ca54-4ced-b12d-107a4d183796",
+        "kind": "carton",
+        "sourceId": "row-a",
+        "weightKg": 10,
+        "witness": "[\"8b06a1d38486597b\",0,0,344,500,500,200,\"LWH\",,[\"floor-pallet-1\"]]",
+        "children": []
+      },
+      {
+        "id": "carton-6ad6f579-0cf2-4674-a229-fb8240c1709d",
+        "kind": "carton",
+        "sourceId": "row-a",
+        "weightKg": 10,
+        "witness": "[\"8b06a1d38486597b\",0,500,344,500,500,200,\"LWH\",,[\"floor-pallet-1\"]]",
+        "children": []
+      },
+      {
+        "id": "carton-ae5893f9-a7a6-4e35-b417-fbc2aa45e094",
+        "kind": "carton",
+        "sourceId": "row-a",
+        "weightKg": 10,
+        "witness": "[\"8b06a1d38486597b\",500,0,144,500,500,200,\"LWH\",,[\"floor-pallet-1\"]]",
+        "children": []
+      },
+      {
+        "id": "carton-2c93ac76-14e5-43d8-8855-e7e2af82b1fd",
+        "kind": "carton",
+        "sourceId": "row-a",
+        "weightKg": 10,
+        "witness": "[\"8b06a1d38486597b\",500,500,144,500,500,200,\"LWH\",,[\"floor-pallet-1\"]]",
+        "children": []
+      },
+      {
+        "id": "carton-8b07a161-6b41-4f08-bc47-d9cc4497bf7b",
+        "kind": "carton",
+        "sourceId": "row-a",
+        "weightKg": 10,
+        "witness": "[\"8b06a1d38486597b\",500,0,344,500,500,200,\"LWH\",,[\"floor-pallet-1\"]]",
+        "children": []
+      },
+      {
+        "id": "carton-f1a7f44c-a2ce-4229-a196-24bd8459f025",
+        "kind": "carton",
+        "sourceId": "row-a",
+        "weightKg": 10,
+        "witness": "[\"8b06a1d38486597b\",500,500,344,500,500,200,\"LWH\",,[\"floor-pallet-1\"]]",
+        "children": []
+      },
+      {
+        "id": "pallet-e7a3199f-6506-42db-961b-959400c6a891",
+        "kind": "pallet",
+        "sourceId": "eur-1200-800",
+        "weightKg": 25,
+        "witness": "[\"abcbc0bf53a9ab69\",0,0,0,1200,1000,144,\"LWH\",null,null]",
+        "children": [
+          "carton-4a7cf71d-347e-43c1-87b7-11ad3358f7d6",
+          "carton-25b89d16-1c32-48af-949e-1065b66a672c",
+          "carton-f37bdd4c-ca54-4ced-b12d-107a4d183796",
+          "carton-6ad6f579-0cf2-4674-a229-fb8240c1709d",
+          "carton-ae5893f9-a7a6-4e35-b417-fbc2aa45e094",
+          "carton-2c93ac76-14e5-43d8-8855-e7e2af82b1fd",
+          "carton-8b07a161-6b41-4f08-bc47-d9cc4497bf7b",
+          "carton-f1a7f44c-a2ce-4229-a196-24bd8459f025"
+        ]
+      }
+    ]
+  },
+  "events": [
+    {
+      "id": "event-b02ac226-0562-4591-b0fa-dda91899dddd",
+      "at": "2026-10-21T00:27:55.058Z",
+      "deviceId": "device-6f2b6abd-5f4f-49eb-9cdf-2e7496d264b8",
+      "unitId": "pallet-e7a3199f-6506-42db-961b-959400c6a891",
+      "action": "load",
+      "changes": [
+        {
+          "id": "pallet-e7a3199f-6506-42db-961b-959400c6a891",
+          "parents": [],
+          "state": {
+            "loaded": true,
+            "condition": "none"
+          }
+        },
+        {
+          "id": "carton-4a7cf71d-347e-43c1-87b7-11ad3358f7d6",
+          "parents": [],
+          "state": {
+            "loaded": true,
+            "condition": "none"
+          }
+        },
+        {
+          "id": "carton-25b89d16-1c32-48af-949e-1065b66a672c",
+          "parents": [],
+          "state": {
+            "loaded": true,
+            "condition": "none"
+          }
+        },
+        {
+          "id": "carton-f37bdd4c-ca54-4ced-b12d-107a4d183796",
+          "parents": [],
+          "state": {
+            "loaded": true,
+            "condition": "none"
+          }
+        },
+        {
+          "id": "carton-6ad6f579-0cf2-4674-a229-fb8240c1709d",
+          "parents": [],
+          "state": {
+            "loaded": true,
+            "condition": "none"
+          }
+        },
+        {
+          "id": "carton-ae5893f9-a7a6-4e35-b417-fbc2aa45e094",
+          "parents": [],
+          "state": {
+            "loaded": true,
+            "condition": "none"
+          }
+        },
+        {
+          "id": "carton-2c93ac76-14e5-43d8-8855-e7e2af82b1fd",
+          "parents": [],
+          "state": {
+            "loaded": true,
+            "condition": "none"
+          }
+        },
+        {
+          "id": "carton-8b07a161-6b41-4f08-bc47-d9cc4497bf7b",
+          "parents": [],
+          "state": {
+            "loaded": true,
+            "condition": "none"
+          }
+        },
+        {
+          "id": "carton-f1a7f44c-a2ce-4229-a196-24bd8459f025",
+          "parents": [],
+          "state": {
+            "loaded": true,
+            "condition": "none"
+          }
+        }
+      ],
+      "note": "",
+      "photos": []
+    }
+  ]
+}

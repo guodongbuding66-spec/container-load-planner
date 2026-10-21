@@ -1,0 +1,742 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.50.0",
+  "createdAt": "2026-10-21T00:27:39.573Z",
+  "inputs": {
+    "palletLayerTemplates": [],
+    "workflow": "pallet-only",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 1200,
+        "width": 1000,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 400
+      },
+      "mix": "single",
+      "maxPallets": 1,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "maximum",
+    "practicalTargetPercent": 88,
+    "container": {
+      "id": "40hq",
+      "name": "40HQ 高柜",
+      "length": 12032,
+      "width": 2350,
+      "height": 2700,
+      "doorWidth": 2340,
+      "doorHeight": 2597,
+      "maxWeight": 28600
+    },
+    "clearance": 10,
+    "products": [
+      {
+        "orderLine": {
+          "orderReference": "PO-A",
+          "lineReference": "10",
+          "batch": "A-01",
+          "customer": "Customer A",
+          "destination": "Port A",
+          "stop": 1
+        },
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "id": "row-a",
+        "sku": "SHED-BOX",
+        "name": "Shed carton A",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 8,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "maxTopLoadKg": 100,
+        "color": "#337788"
+      }
+    ],
+    "customContainers": [],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {
+    "maximum": {
+      "deliveryIdentity": {
+        "schema": 1,
+        "planId": "delivery-bc5f67a0-2195-4a82-a7c7-e471b5f7029b",
+        "revision": 1,
+        "revisionId": "revision-ddc6018b-a6b8-4837-b14c-fa5bdffab858",
+        "issuedAt": "2026-10-21T00:27:39.569Z",
+        "signature": "e7b3a9932df20e57",
+        "units": [
+          {
+            "unitId": "carton-4a7cf71d-347e-43c1-87b7-11ad3358f7d6",
+            "kind": "carton",
+            "localId": "prebuilt-1",
+            "fingerprint": "8b06a1d38486597b"
+          },
+          {
+            "unitId": "carton-25b89d16-1c32-48af-949e-1065b66a672c",
+            "kind": "carton",
+            "localId": "prebuilt-2",
+            "fingerprint": "8b06a1d38486597b"
+          },
+          {
+            "unitId": "carton-f37bdd4c-ca54-4ced-b12d-107a4d183796",
+            "kind": "carton",
+            "localId": "prebuilt-3",
+            "fingerprint": "8b06a1d38486597b"
+          },
+          {
+            "unitId": "carton-6ad6f579-0cf2-4674-a229-fb8240c1709d",
+            "kind": "carton",
+            "localId": "prebuilt-4",
+            "fingerprint": "8b06a1d38486597b"
+          },
+          {
+            "unitId": "carton-ae5893f9-a7a6-4e35-b417-fbc2aa45e094",
+            "kind": "carton",
+            "localId": "prebuilt-5",
+            "fingerprint": "8b06a1d38486597b"
+          },
+          {
+            "unitId": "carton-2c93ac76-14e5-43d8-8855-e7e2af82b1fd",
+            "kind": "carton",
+            "localId": "prebuilt-6",
+            "fingerprint": "8b06a1d38486597b"
+          },
+          {
+            "unitId": "carton-8b07a161-6b41-4f08-bc47-d9cc4497bf7b",
+            "kind": "carton",
+            "localId": "prebuilt-7",
+            "fingerprint": "8b06a1d38486597b"
+          },
+          {
+            "unitId": "carton-f1a7f44c-a2ce-4229-a196-24bd8459f025",
+            "kind": "carton",
+            "localId": "prebuilt-8",
+            "fingerprint": "8b06a1d38486597b"
+          },
+          {
+            "unitId": "pallet-e7a3199f-6506-42db-961b-959400c6a891",
+            "kind": "pallet",
+            "localId": "floor-pallet-1",
+            "fingerprint": "abcbc0bf53a9ab69"
+          }
+        ],
+        "withdrawn": []
+      },
+      "workflow": "pallet-only",
+      "palletBuild": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "length": 1200,
+          "width": 1000,
+          "height": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 400
+        },
+        "mix": "single",
+        "maxPallets": 1,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0
+      },
+      "strategy": "maximum",
+      "placements": [
+        {
+          "id": "prebuilt-1",
+          "productId": "row-a",
+          "sku": "SHED-BOX",
+          "name": "Shed carton A",
+          "color": "#337788",
+          "x": 0,
+          "y": 0,
+          "z": 144,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-2",
+          "productId": "row-a",
+          "sku": "SHED-BOX",
+          "name": "Shed carton A",
+          "color": "#337788",
+          "x": 0,
+          "y": 500,
+          "z": 144,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-3",
+          "productId": "row-a",
+          "sku": "SHED-BOX",
+          "name": "Shed carton A",
+          "color": "#337788",
+          "x": 0,
+          "y": 0,
+          "z": 344,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-4",
+          "productId": "row-a",
+          "sku": "SHED-BOX",
+          "name": "Shed carton A",
+          "color": "#337788",
+          "x": 0,
+          "y": 500,
+          "z": 344,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-5",
+          "productId": "row-a",
+          "sku": "SHED-BOX",
+          "name": "Shed carton A",
+          "color": "#337788",
+          "x": 500,
+          "y": 0,
+          "z": 144,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-6",
+          "productId": "row-a",
+          "sku": "SHED-BOX",
+          "name": "Shed carton A",
+          "color": "#337788",
+          "x": 500,
+          "y": 500,
+          "z": 144,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-7",
+          "productId": "row-a",
+          "sku": "SHED-BOX",
+          "name": "Shed carton A",
+          "color": "#337788",
+          "x": 500,
+          "y": 0,
+          "z": 344,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-8",
+          "productId": "row-a",
+          "sku": "SHED-BOX",
+          "name": "Shed carton A",
+          "color": "#337788",
+          "x": 500,
+          "y": 500,
+          "z": 344,
+          "dx": 500,
+          "dy": 500,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        }
+      ],
+      "pallets": [
+        {
+          "id": "floor-pallet-1",
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 1200,
+          "dy": 1000,
+          "dz": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          }
+        }
+      ],
+      "palletization": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "length": 1200,
+          "width": 1000,
+          "height": 144,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 400
+        },
+        "mix": "single",
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "preparedCount": 1,
+        "bounded": false,
+        "only": true
+      },
+      "delivery": {
+        "row-a": {
+          "customer": "Customer A",
+          "destination": "Port A",
+          "stop": 1
+        }
+      }
+    }
+  },
+  "coordinatePlan": {
+    "deliveryIdentity": {
+      "schema": 1,
+      "planId": "delivery-bc5f67a0-2195-4a82-a7c7-e471b5f7029b",
+      "revision": 1,
+      "revisionId": "revision-ddc6018b-a6b8-4837-b14c-fa5bdffab858",
+      "issuedAt": "2026-10-21T00:27:39.569Z",
+      "signature": "e7b3a9932df20e57",
+      "units": [
+        {
+          "unitId": "carton-4a7cf71d-347e-43c1-87b7-11ad3358f7d6",
+          "kind": "carton",
+          "localId": "prebuilt-1",
+          "fingerprint": "8b06a1d38486597b"
+        },
+        {
+          "unitId": "carton-25b89d16-1c32-48af-949e-1065b66a672c",
+          "kind": "carton",
+          "localId": "prebuilt-2",
+          "fingerprint": "8b06a1d38486597b"
+        },
+        {
+          "unitId": "carton-f37bdd4c-ca54-4ced-b12d-107a4d183796",
+          "kind": "carton",
+          "localId": "prebuilt-3",
+          "fingerprint": "8b06a1d38486597b"
+        },
+        {
+          "unitId": "carton-6ad6f579-0cf2-4674-a229-fb8240c1709d",
+          "kind": "carton",
+          "localId": "prebuilt-4",
+          "fingerprint": "8b06a1d38486597b"
+        },
+        {
+          "unitId": "carton-ae5893f9-a7a6-4e35-b417-fbc2aa45e094",
+          "kind": "carton",
+          "localId": "prebuilt-5",
+          "fingerprint": "8b06a1d38486597b"
+        },
+        {
+          "unitId": "carton-2c93ac76-14e5-43d8-8855-e7e2af82b1fd",
+          "kind": "carton",
+          "localId": "prebuilt-6",
+          "fingerprint": "8b06a1d38486597b"
+        },
+        {
+          "unitId": "carton-8b07a161-6b41-4f08-bc47-d9cc4497bf7b",
+          "kind": "carton",
+          "localId": "prebuilt-7",
+          "fingerprint": "8b06a1d38486597b"
+        },
+        {
+          "unitId": "carton-f1a7f44c-a2ce-4229-a196-24bd8459f025",
+          "kind": "carton",
+          "localId": "prebuilt-8",
+          "fingerprint": "8b06a1d38486597b"
+        },
+        {
+          "unitId": "pallet-e7a3199f-6506-42db-961b-959400c6a891",
+          "kind": "pallet",
+          "localId": "floor-pallet-1",
+          "fingerprint": "abcbc0bf53a9ab69"
+        }
+      ],
+      "withdrawn": []
+    },
+    "workflow": "pallet-only",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 1200,
+        "width": 1000,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 400
+      },
+      "mix": "single",
+      "maxPallets": 1,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "strategy": "maximum",
+    "placements": [
+      {
+        "id": "prebuilt-1",
+        "productId": "row-a",
+        "sku": "SHED-BOX",
+        "name": "Shed carton A",
+        "color": "#337788",
+        "x": 0,
+        "y": 0,
+        "z": 144,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-2",
+        "productId": "row-a",
+        "sku": "SHED-BOX",
+        "name": "Shed carton A",
+        "color": "#337788",
+        "x": 0,
+        "y": 500,
+        "z": 144,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-3",
+        "productId": "row-a",
+        "sku": "SHED-BOX",
+        "name": "Shed carton A",
+        "color": "#337788",
+        "x": 0,
+        "y": 0,
+        "z": 344,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-4",
+        "productId": "row-a",
+        "sku": "SHED-BOX",
+        "name": "Shed carton A",
+        "color": "#337788",
+        "x": 0,
+        "y": 500,
+        "z": 344,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-5",
+        "productId": "row-a",
+        "sku": "SHED-BOX",
+        "name": "Shed carton A",
+        "color": "#337788",
+        "x": 500,
+        "y": 0,
+        "z": 144,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-6",
+        "productId": "row-a",
+        "sku": "SHED-BOX",
+        "name": "Shed carton A",
+        "color": "#337788",
+        "x": 500,
+        "y": 500,
+        "z": 144,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-7",
+        "productId": "row-a",
+        "sku": "SHED-BOX",
+        "name": "Shed carton A",
+        "color": "#337788",
+        "x": 500,
+        "y": 0,
+        "z": 344,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-8",
+        "productId": "row-a",
+        "sku": "SHED-BOX",
+        "name": "Shed carton A",
+        "color": "#337788",
+        "x": 500,
+        "y": 500,
+        "z": 344,
+        "dx": 500,
+        "dy": 500,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      }
+    ],
+    "pallets": [
+      {
+        "id": "floor-pallet-1",
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "dx": 1200,
+        "dy": 1000,
+        "dz": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "orientation": "LWH",
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        }
+      }
+    ],
+    "palletization": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 1200,
+        "width": 1000,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 400
+      },
+      "mix": "single",
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "preparedCount": 1,
+      "bounded": false,
+      "only": true
+    },
+    "delivery": {
+      "row-a": {
+        "customer": "Customer A",
+        "destination": "Port A",
+        "stop": 1
+      }
+    }
+  }
+}
