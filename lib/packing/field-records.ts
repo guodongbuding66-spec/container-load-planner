@@ -83,6 +83,10 @@ export function migrateFieldRecords(plan:PackingResult,previous:FieldRecords,cur
 }
 export function mergeFieldRecords(plan:PackingResult,a:FieldRecords,b:FieldRecords){
  assertFieldRecordsContext(plan,a);assertFieldRecordsContext(plan,b);
+ // A new device may receive the complete provenance before any local history.
+ // Retain its current events as a parallel branch instead of replacing them.
+ if(!a.history.length&&b.history.length)return parseFieldRecords(JSON.stringify({...b,current:mergeFieldJournals(plan,a.current,b.current)}));
+ if(!b.history.length&&a.history.length)return parseFieldRecords(JSON.stringify({...a,current:mergeFieldJournals(plan,a.current,b.current)}));
  const normalizedHistory=(r:FieldRecords)=>r.history.map(j=>({...j,events:[...j.events].sort((a,b)=>a.id.localeCompare(b.id))}));
  if(!equal(normalizedHistory(a),normalizedHistory(b))||!equal(a.handovers,b.handovers))throw fail("迁移来源历史不同，不能自动合并；请先使用同一份迁移备份","Handover provenance differs and cannot be merged automatically; start from the same handover backup");
  return parseFieldRecords(JSON.stringify({...a,current:mergeFieldJournals(plan,a.current,b.current)}));
