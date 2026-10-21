@@ -1580,7 +1580,7 @@ export function PackingApp() {
     const backup=serializeWorkspaceBackup(inputs,ENGINE_VERSION,next,{[next.strategy]:next});
     downloadFile(`delivery-${next.deliveryIdentity!.planId}-v${next.deliveryIdentity!.revision}.json`,backup,"application/json");
     clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");
-    setMessage(tr("交付版本已登记并下载；请保留备份，修改后重新发布版本。","Delivery version issued and downloaded. Keep the backup and issue a new revision after edits."));
+    setMessage(tr("交付版本已登记并发起下载；请确认文件已保存，或显示版本备份文本。修改后重新发布版本。","Delivery version issued and download started. Confirm the file was saved, or show the version backup text. Issue a new revision after edits."));
   };
   const adoptManualPlan=(next:PackingResult)=>{const rows=adoptOrderDelivery(products,next.delivery??result?.delivery);setProducts(rows);next={...next,cargoDetails:Object.fromEntries(rows.filter(p=>next.summaries.some(s=>s.productId===p.id)).map(p=>[p.id,shapeDetails(p)])),delivery:orderDelivery(rows.filter(p=>next.summaries.some(s=>s.productId===p.id)),next.delivery??result?.delivery),accessConfig:next.accessConfig??result?.accessConfig,handlingTasks:next.handlingTasks??result?.handlingTasks};clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已采用手动方案，三维、指标和导出已同步；自动重算已暂停。"));};
   const adoptLoadedLocks=(records:FieldRecords)=>{if(!result)return;const id=result.deliveryIdentity!,prior=id.previousRevisionId?(fieldRecordsRef.current.get(`${id.planId}/${id.previousRevisionId}`)??readRevisionFieldRecords({planId:id.planId,revisionId:id.previousRevisionId},localStorage)):null;requireKnownFieldHandover(result,records,prior);const next=lockLoadedFieldPositions(result,records,activeProducts);clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已锁定已装箱位；可调整其余货物，登记下一版后明确迁移现场记录。","Loaded positions locked. Edit the remaining cargo, issue the next revision, then explicitly carry over field records."));};
@@ -2339,7 +2339,7 @@ export function PackingApp() {
             </> : <p className="tool-empty">{tr("计算方案后，可诊断余货并手动调整箱位。")}</p>}
           </>}
           delivery={result && !hasPendingDimensionChanges ? <>
-            <DeliveryVersionPanel plan={result} disabled={!canExport} onIssue={adoptDeliveryVersion}/>
+            <DeliveryVersionPanel plan={result} disabled={!canExport} onIssue={adoptDeliveryVersion} backup={workspaceBackup}/>
             <FieldJournalPanel plan={result} disabled={!canExport} onRecords={receiveFieldRecords} onLockLoaded={adoptLoadedLocks}/>
             {canExport ? <FieldGuide key={`field-${result.id}`} result={result} products={activeProducts}/> : null}
             <CustomerReportPanel plan={result} products={activeProducts} disabled={!canExport}/>
