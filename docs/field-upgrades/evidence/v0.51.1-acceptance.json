@@ -1,0 +1,106 @@
+{
+  "runtimeCommit": "b349449d63acab021ed9e5f0fe864a8a2fefa2c4",
+  "testedTree": "6226bfa302353e96ad019286fb1f362990e86052",
+  "unitTests": 1355,
+  "unitFiles": 102,
+  "htmlChecks": 21,
+  "lint": {
+    "errors": 0,
+    "existingWarnings": 3
+  },
+  "backupMethod": "Actual visible read-only JSON text from the production UI, saved to JSON and restored/imported through the normal file choosers. Native download capture failed and is not claimed as passed.",
+  "direct": {
+    "planId": "delivery-fc67c1f9-85e6-41d0-9da4-5a5ae795472e",
+    "revision": 4,
+    "revisionId": "revision-5d989b50-b57f-4167-b140-c6ac0a5f4dc7",
+    "cartons": 11,
+    "plannedKg": 110,
+    "loadedCartons": 1,
+    "damagedCartons": 1,
+    "conflicts": 0,
+    "confirmedPlannedKg": 10,
+    "handovers": 2,
+    "oldEvents": 4,
+    "oldPhotos": 1,
+    "stableUnitIDs": true,
+    "loadedPosition": [
+      0,
+      100,
+      0
+    ],
+    "loadedLocked": true,
+    "pendingSecondPosition": [
+      500,
+      100,
+      0
+    ],
+    "crossSiteExactRecords": true,
+    "duplicateImportNoNewEvents": true,
+    "oldQRRejected": true
+  },
+  "pallet": {
+    "planId": "delivery-bc5f67a0-2195-4a82-a7c7-e471b5f7029b",
+    "revision": 2,
+    "revisionId": "revision-48cf5109-e40f-4459-8467-54c318778fc7",
+    "loadedCartons": 8,
+    "loadedPackaging": 1,
+    "confirmedPlannedKg": 105,
+    "sourceEvents": 1,
+    "sourceChanges": 9,
+    "carryEvents": 9,
+    "lockedCartons": 8,
+    "lockedPallets": 1
+  },
+  "sha256": {
+    "v3-plan": "46efbc18e70ff0b4d35fc9de8457d53bd1b50120ff7449d5e2a0ed6b459615af",
+    "v3-records": "df7fc0f685b26cc6c0e84fa1035abf25bfdf661524872e83c418fea24f27571b",
+    "v4-plan": "aea325caac925dbe9decb4d3b45273a49498149847f0453389791b1c721f5bc1",
+    "v4-records": "9ff6dea7834a184dcbd5410a9a614706e97609802897ba3ee23e5c2653294329",
+    "vercel-v4-records": "9ff6dea7834a184dcbd5410a9a614706e97609802897ba3ee23e5c2653294329",
+    "pallet-v2-plan": "0ea45efefefefc1522a20aff4245638b83a76cd60c7c5719a65ae833989b04c6",
+    "pallet-v2-records": "7e04daf89efe9b100d6f29c0ea8ee3081a2f06cf5a20db39ea3238745ab94513"
+  },
+  "production": {
+    "version": "0.51.1",
+    "defaults": [
+      {
+        "url": "https://container-load-planner.pages.dev/",
+        "version": "算法 0.51.1",
+        "cartons": 116,
+        "plannedKg": 3842,
+        "solvers": "现场易执行\n116 箱\n高密度参考\n116 箱"
+      },
+      {
+        "url": "https://container-load-planner-gray.vercel.app/",
+        "version": "算法 0.51.1",
+        "cartons": 116,
+        "plannedKg": 3842,
+        "solvers": "现场易执行\n116 箱\n高密度参考\n116 箱"
+      }
+    ],
+    "logs": [
+      {
+        "url": "https://container-load-planner.pages.dev/",
+        "captured": 125,
+        "applicationErrors": 0,
+        "applicationWarnings": 0
+      },
+      {
+        "url": "https://container-load-planner-gray.vercel.app/",
+        "captured": 47,
+        "applicationErrors": 0,
+        "applicationWarnings": 0
+      }
+    ],
+    "downloadCapture": {
+      "status": "PENDING",
+      "error": "Download failed in current browser; complete JSON text backups were saved and restored through the normal UI"
+    }
+  },
+  "pending": [
+    "Native browser download capture",
+    "Real GPU and multiple browsers",
+    "Physical print/scan and representative cargo trials",
+    "Rated structural and vehicle data"
+  ]
+}

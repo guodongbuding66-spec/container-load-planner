@@ -1,6 +1,6 @@
 # v0.51.1 已装箱位锁定与现场版本迁移
 
-状态：IMPLEMENTING，发布验收中。日期：2026-10-21。基线 main `0c973d7375bfb30bec19173cfd01ec527a49f997`（v0.50.0 已完成双站验收）。范围见 [014D/E 深化](field-upgrades/014d-loaded-handover.md)。
+状态：DONE（已装锁定、相邻版本迁移及完整 JSON 文本备份的首阶段软件）；原生下载捕获和实机验收 PENDING。日期：2026-10-21。基线 main `0c973d7375bfb30bec19173cfd01ec527a49f997`（v0.50.0 已完成双站验收）。范围见 [014D/E 深化](field-upgrades/014d-loaded-handover.md)。
 
 - 现场已装箱位可先下载完整事件，再接入现有箱位锁定。预打托中的已装箱会锁定整托及其内容；未知冲突先处理，原有手工锁保留。
 - 同一计划发布下一版前检查本机或本页已知现场状态，拒绝已装单元的位置、朝向、归属、规格或托内组成变化；先在原版真实撤回并填写原因。若已知上一版记录尚未迁移，也不能直接继续编辑或发布后续版本。
@@ -20,4 +20,18 @@
 
 验收浏览器连续报告下载失败，因此不能仅凭“发起下载”宣称文件已保存。补充有效已登记版本和完整现场记录的只读 JSON 文本，用户可在下载失败时复制全文保存为 `.json`，再走相同的恢复与导入校验。现场文本包含全部历史与照片，不截断；旧缓存损坏时禁止用空白记录文本替代原始恢复资料。提示改为明确“发起下载，请确认保存”。
 
-最终双站操作、原始文本备份往返、数量重量核对和完整迁移链验收进行中，通过后补充提交号与证据。
+## 正式站验收与证据
+
+运行代码 main `b349449d63acab021ed9e5f0fe864a8a2fefa2c4`，树 `6226bfa302353e96ad019286fb1f362990e86052`，与完整测试代码一致。GitHub verify、Cloudflare Pages 已成功；Vercel 正式部署 `dpl_HnpkeBD3WChhoxgChKWHfqN6ibiD` READY，两个正式根域均实际运行 0.51.1。
+
+- Pages：旧版 4 条事件、1 张照片恢复。移动已装第一箱 100 mm，几何通过仍拒绝发布；在已知旧记录未迁移时连续发布也被拒绝。两个发布保护的运行代码为 0.51.0；补丁保留相同核心，完整回归重新通过。
+- Pages 0.51.1：保存完整现场文本为 JSON，锁定第一箱后发布 v3，明确迁移 v2；再只移动未装第二箱 100 mm，发布 v4 并迁移 v3。计划始终 11 箱、110 kg；所有实物编号保留，第一箱坐标 0/100/0 且锁定，第二箱 500/100/0。v4 保留两次迁移、原始 4 条事件和 1 张照片，当前已装 1 箱、损伤 1 箱、冲突 0、已确认计划重量 10 kg。
+- Vercel 英文界面：无本版旧历史时导入完整 v4 文件成功；重复导入不加事件。重新保存的现场 JSON 与 Pages 文件逐字节一致；旧 v2 二维码明确拒绝，未自动改动实装计数。
+- 整托：恢复 v0.50 原始托盘备份与事件，在 Pages 锁定并发布 v2，再明确迁移。八箱及一托全部锁定，已装仍为 8 箱、1 包装、105 kg；历史原事件 1 条、9 个状态，当前 9 条有来源的承接事件，无重复计重。
+- 两站均恢复默认 3 SKU，双算法各 116 箱、3,842 kg，界面显示 0.51.1。最近捕获的 125／47 条告警中，排除浏览器扩展信息后，两站应用自身 error 与 warning 均为 0。
+
+原始数据与截图：[机器可读验收](field-upgrades/evidence/v0.51.1-acceptance.json)、[v3 版本](field-upgrades/evidence/v0.51.1-v3-plan.json)、[v3 完整现场](field-upgrades/evidence/v0.51.1-v3-records.json)、[v4 版本](field-upgrades/evidence/v0.51.1-v4-plan.json)、[v4 完整现场](field-upgrades/evidence/v0.51.1-v4-records.json)、[Vercel 往返](field-upgrades/evidence/v0.51.1-vercel-v4-records.json)、[整托版本](field-upgrades/evidence/v0.51.1-pallet-v2-plan.json)、[整托现场](field-upgrades/evidence/v0.51.1-pallet-v2-records.json)、[发布拦截](field-upgrades/evidence/v0.51.0-loaded-guard.jpg)、[双次迁移英文界面](field-upgrades/evidence/v0.51.1-handover-en.jpg)。这些是合成验收订单，不是现场安全证明。
+
+## 尚未通过的项目
+
+当前验收浏览器的原生 JSON／CSV 下载捕获报 `Download failed`，不能宣称原生下载已保存；本轮备份往返使用正式 UI 提供的完整 JSON 文本，未读取隐藏应用状态。CSV 来源列有软件回归，但本轮原生 CSV 文件捕获仍 PENDING。真实 WebGL 不可用，使用坐标俯视图，未冒充 GPU 通过。实机扫码、承重额定资料、现场试装、跨柜身份、源实物库存及包装替换等继续见 [未完成台账](field-upgrades/unfinished-roadmap.md)。
