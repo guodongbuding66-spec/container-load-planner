@@ -65,6 +65,13 @@ export function readRevisionFieldRecords(id:Pick<DeliveryIdentity,"planId"|"revi
 export function readVersionFieldRecords(id:DeliveryIdentity,storage:Pick<Storage,"getItem">){
  const records=readRevisionFieldRecords(id,storage);if(records&&(records.current.context.revision!==id.revision||records.current.context.signature!==id.signature))throw invalid();return records;
 }
+/** Retain unsaved records for this page; only evict older entries proven saved verbatim. */
+export function rememberFieldRecords(memory:Map<string,FieldRecords>,records:FieldRecords,storage:Pick<Storage,"getItem">){
+ const context=records.current.context,key=`${context.planId}/${context.revisionId}`;memory.delete(key);memory.set(key,records);
+ for(const [oldKey,old] of memory){if(memory.size<=2)break;if(oldKey===key)continue;
+  try{const raw=storage.getItem(fieldRecordsKey(old.current.context));if(raw===JSON.stringify(old)||raw===null&&!old.history.length&&storage.getItem(legacyFieldJournalKey(old.current.context))===JSON.stringify(old.current))memory.delete(oldKey);}catch{/* Failed storage must never discard the only known copy. */}
+ }
+}
 export function requireKnownFieldHandover(plan:PackingResult,current:FieldRecords|null,previous:FieldRecords|null){
  const id=plan.deliveryIdentity;if(!id?.previousRevisionId||!previous)return;
  if(previous.current.context.planId!==id.planId||previous.current.context.revisionId!==id.previousRevisionId||previous.current.context.revision!==id.revision-1)throw invalid();

@@ -1,7 +1,7 @@
 "use client";
 import {DeliveryVersionPanel} from "./delivery-version-panel";
 import {FieldJournalPanel} from "./field-journal-panel";
-import {guardFieldRevision,lockLoadedFieldPositions,readRevisionFieldRecords,readVersionFieldRecords,requireKnownFieldHandover,type FieldRecords} from "../lib/packing/field-records";
+import {guardFieldRevision,lockLoadedFieldPositions,readRevisionFieldRecords,readVersionFieldRecords,rememberFieldRecords,requireKnownFieldHandover,type FieldRecords} from "../lib/packing/field-records";
 import {ContainerAccessorySettings} from "./container-accessory-settings";
 import {ContainerAccessoryManifest} from "./container-accessory-manifest";
 
@@ -419,7 +419,8 @@ export function PackingApp() {
   const [solverSchedule, setSolverSchedule] = useState<SolverSchedule>("parallel");
   const workersRef = useRef<Partial<Record<PackingStrategy, Worker>>>({});
   const fieldRecordsRef=useRef(new Map<string,FieldRecords>());
-  const receiveFieldRecords=useCallback((records:FieldRecords)=>{const key=`${records.current.context.planId}/${records.current.context.revisionId}`,map=fieldRecordsRef.current;map.delete(key);map.set(key,records);while(map.size>2)map.delete(map.keys().next().value!);},[]);
+  const receiveFieldRecords=useCallback((records:FieldRecords)=>{rememberFieldRecords(fieldRecordsRef.current,records,{getItem:key=>localStorage.getItem(key)});},[]);
+  const getKnownFieldRecords=useCallback((plan:PackingResult)=>{const id=plan.deliveryIdentity;return id?fieldRecordsRef.current.get(`${id.planId}/${id.revisionId}`):undefined;},[]);
   const workerResultsRef = useRef<Partial<Record<PackingStrategy, PackingResult>>>({});
   const calculationTimeoutRef = useRef<number | null>(null);
   const maximumStartTimerRef = useRef<number | null>(null);
@@ -2340,7 +2341,7 @@ export function PackingApp() {
           </>}
           delivery={result && !hasPendingDimensionChanges ? <>
             <DeliveryVersionPanel plan={result} disabled={!canExport} onIssue={adoptDeliveryVersion} backup={workspaceBackup}/>
-            <FieldJournalPanel plan={result} disabled={!canExport} onRecords={receiveFieldRecords} onLockLoaded={adoptLoadedLocks}/>
+            <FieldJournalPanel plan={result} disabled={!canExport} onRecords={receiveFieldRecords} onLockLoaded={adoptLoadedLocks} getRecords={getKnownFieldRecords}/>
             {canExport ? <FieldGuide key={`field-${result.id}`} result={result} products={activeProducts}/> : null}
             <CustomerReportPanel plan={result} products={activeProducts} disabled={!canExport}/>
           </> : <p className="tool-empty">{tr("先完成一次装柜计算，再生成客户报告和现场指导书。")}</p>}
