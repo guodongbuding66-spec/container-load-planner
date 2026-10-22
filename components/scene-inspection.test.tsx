@@ -15,6 +15,7 @@ afterEach(()=>{vi.unstubAllGlobals();updateViewPreferences(DEFAULT_VIEW_PREFEREN
 it("mounts clipped geometry and real measurement overlays, preserves the plan, locks picks and clears obsolete measures",async()=>{
   const result=pack({mode:"mixed",strategy:"practical",container:CONTAINER_PRESETS[0],clearance:20,products:[{id:"p",sku:"TEST",name:"test",length:600,width:400,height:200,quantity:4,weight:10,color:"#4488aa",priority:1,rotationPolicy:"upright",stackable:true,maxStackLayers:10}]});
   const original=JSON.stringify(result),box=result.placements[0];
+  const storage=new Map<string,string>();vi.stubGlobal("localStorage",{getItem:(key:string)=>storage.get(key)??null,setItem:(key:string,value:string)=>storage.set(key,value)});
   extend({Group:THREE.Group,Mesh:THREE.Mesh,InstancedMesh:THREE.InstancedMesh,BoxGeometry:THREE.BoxGeometry,PlaneGeometry:THREE.PlaneGeometry,SphereGeometry:THREE.SphereGeometry,MeshBasicMaterial:THREE.MeshBasicMaterial,MeshStandardMaterial:THREE.MeshStandardMaterial,GridHelper:THREE.GridHelper});
   const context={font:"",fillStyle:"",strokeStyle:"",fillRect(){},strokeRect(){},measureText(s:string){return {width:s.length*20};},fillText(){},strokeText(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},setTransform(){},clearRect(){}};
   vi.stubGlobal("document",{createElement:()=>({width:1,height:1,getContext:()=>context})});vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT",true);
@@ -25,7 +26,7 @@ it("mounts clipped geometry and real measurement overlays, preserves the plan, l
   function Scene(){
     const [plan,changePlan]=useState(result);appearance=useTransportAppearance();inspection=useSceneInspection(plan,new Set(["p"]),plan.placements.length);
     useLayoutEffect(()=>{setPlan=changePlan;},[]);
-    return <ContainerModel result={plan} visibleProducts={new Set(["p"])} visibleCount={plan.placements.length} reducedRendering modelMode="wireframe" transparency={65} labels={false} selected={null} onSelect={inspection.pick} section={inspection.value.section} manualMeasurement={inspection.measurement}/>;
+    return <ContainerModel result={plan} visibleProducts={new Set(["p"])} visibleCount={plan.placements.length} reducedRendering modelMode="wireframe" transparency={65} labels={false} selected={null} onSelect={inspection.pick} section={inspection.value.section} manualMeasurement={inspection.measurement} manualMeasurements={inspection.savedOverlays}/>;
   }
   const store=_roots.get(canvas)!.store,scene=()=>store.getState().scene;
   try{
@@ -57,6 +58,9 @@ it("mounts clipped geometry and real measurement overlays, preserves the plan, l
     await act(async()=>inspection.update({section:{...EMPTY_SECTION}}));expect(inspection.measurement).toEqual(locked);
     await act(async()=>appearance.setDimensions(false));expect(scene().getObjectByName("scene-measurement")).toBeUndefined();expect(scene().getObjectByName("scene-dimensions")).toBeUndefined();
     await act(async()=>appearance.setDimensions(true));expect(scene().getObjectByName("scene-measurement")).toBeDefined();
+    await act(async()=>{expect(inspection.saveMeasurement("Diagonal")).toBe(true);});expect(inspection.saved.items).toHaveLength(1);expect(inspection.savedOverlays).toHaveLength(1);expect(scene().getObjectByName("scene-measurement")).toBeDefined();
+    await act(async()=>appearance.setDimensions(false));expect(scene().getObjectByName("scene-measurement")).toBeUndefined();await act(async()=>appearance.setDimensions(true));
     await act(async()=>setPlan({...result,placements:result.placements.map(b=>({...b,x:b.x+1}))}));expect(inspection.measurement).toBeNull();expect(inspection.value.mode).toBe("off");
+    expect(inspection.saved.items).toHaveLength(1);expect(inspection.savedOverlays).toHaveLength(0);expect(scene().getObjectByName("scene-measurement")).toBeUndefined();
   }finally{await act(async()=>root.unmount());_roots.delete(canvas);}
 });

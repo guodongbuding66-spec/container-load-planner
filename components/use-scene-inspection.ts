@@ -1,12 +1,16 @@
 "use client";
 import { useMemo, useState } from "react";
-import { EMPTY_SECTION, inspectBoxes, measureBoxGap, measurePoints, measureWall, sectionBox, snapBoxPoint, type MeasureMode, type Point3, type Section, type WallSide } from "../lib/packing/inspection";
+import { EMPTY_SECTION, inspectBoxes, measureBoxGap, measurePoints, measureWall, sectionBox, snapBoxPoint, type BoundsBox, type MeasureMode, type Point3, type Section, type SnapMode, type WallSide } from "../lib/packing/inspection";
 import type { PackingResult, PlacedBox } from "../lib/packing/types";
 import { useTransportAppearance } from "./transport-appearance";
-type Inspection={mode:MeasureMode;wall:WallSide;points:Point3[];boxes:PlacedBox[];locked:boolean;section:Section};
-const empty=():Inspection=>({mode:"off",wall:"x-",points:[],boxes:[],locked:false,section:{...EMPTY_SECTION}});
+import {captureMeasurement,savedMeasureOverlays} from "../lib/packing/saved-measurements";
+import {useSavedMeasurements} from "./use-saved-measurements";
+import {deliveryPlanSignature} from "../lib/packing/delivery-identity";
+type Inspection={mode:MeasureMode;wall:WallSide;points:Point3[];snaps:SnapMode[];captures:BoundsBox[];boxes:PlacedBox[];locked:boolean;section:Section};
+const empty=():Inspection=>({mode:"off",wall:"x-",points:[],snaps:[],captures:[],boxes:[],locked:false,section:{...EMPTY_SECTION}});
 export function useSceneInspection(result:PackingResult|null,visibleProducts:Set<string>,visibleCount:number){
   const appearance=useTransportAppearance();
+  const saved=useSavedMeasurements();
   const [state,setState]=useState<{plan:PackingResult|null;value:Inspection}>(()=>({plan:result,value:empty()}));
   const value=useMemo(()=>state.plan===result?state.value:empty(),[state,result]);
   const update=(patch:Partial<Inspection>)=>setState(previous=>({plan:result,value:{...(previous.plan===result?previous.value:empty()),...patch}}));
@@ -25,8 +29,12 @@ export function useSceneInspection(result:PackingResult|null,visibleProducts:Set
     }
     if(!point)return;
     const start=validPoints.length===1?validPoints:[],boxes=validPoints.length===1?validBoxes:[];
-    update({points:[...start,snapBoxPoint(box,point,appearance.measureSnap)],boxes:[...boxes,original]});
+    update({points:[...start,snapBoxPoint(box,point,appearance.measureSnap)],snaps:[...(start.length?value.snaps:[]),appearance.measureSnap],captures:[...(start.length?value.captures:[]),box],boxes:[...boxes,original]});
   };
-  return {value,measurement,displayBoxes,pickedCount:value.mode==="points"?validPoints.length:validBoxes.length,update,pick,setMode:(mode:MeasureMode)=>update({mode,points:[],boxes:[],locked:false}),clear:()=>update({points:[],boxes:[],locked:false})};
+  const scope=useMemo(()=>result?deliveryPlanSignature(result):undefined,[result]);
+  const savedOverlays=useMemo(()=>result?savedMeasureOverlays(saved.items,result,displayBoxes,value.section,visibleCount,scope):[],[saved.items,result,displayBoxes,value.section,visibleCount,scope]);
+  const clear=()=>update({points:[],snaps:[],captures:[],boxes:[],locked:false});
+  const saveMeasurement=(name:string)=>{if(!result||!measurement||value.mode==="off"||!saved.ready)return false;try{const ok=saved.add(captureMeasurement(result,value.mode,validBoxes,validPoints,value.snaps,value.wall,value.section,name,undefined,undefined,value.captures));if(ok)clear();return ok;}catch{saved.reject();return false;}};
+  return {value,measurement,displayBoxes,saved,savedOverlays,saveMeasurement,pickedCount:value.mode==="points"?validPoints.length:validBoxes.length,update,pick,setMode:(mode:MeasureMode)=>update({mode,points:[],snaps:[],captures:[],boxes:[],locked:false}),clear};
 }
 export type SceneInspection=ReturnType<typeof useSceneInspection>;

@@ -7,6 +7,7 @@ import type { SceneInspection } from "./use-scene-inspection";
 import { useTransportAppearance } from "./transport-appearance";
 import { tr, useLanguage } from "./language";
 import { cargoShapeOf, isRectilinearShape, SHAPE_LABELS } from "../lib/packing/cargo-shape";
+import {SavedMeasurementsPanel} from "./saved-measurements-panel";
 
 const MODES:[MeasureMode,string,string][]=[["off","关闭测量","Off"],["points","两点距离","Point distance"],["gap","两箱间距","Carton gap"],["wall","柜壁距离","Wall clearance"]];
 const WALLS:[WallSide,string,string][]=[["x-","柜头","Rear wall"],["x+","箱门","Door plane"],["y-","左侧","Left wall"],["y+","右侧","Right wall"],["z-","柜底","Floor"],["z+","柜顶","Ceiling"]];
@@ -40,6 +41,7 @@ export function SceneInspector({result,selected,inspection,onClearSelection,onFo
         <div className="scene-inspector-actions"><button disabled={!measurement&&!value.locked} aria-pressed={value.locked} onClick={()=>update({locked:!value.locked})}>{value.locked?<UnlockKeyhole size={14}/>:<LockKeyhole size={14}/>} {tr(value.locked?"解锁测量":"锁定测量",value.locked?"Unlock":"Lock")}</button><button onClick={inspection.clear}>{tr("清除测量","Clear")}</button></div>
       </>}
     </section>
+    <SavedMeasurementsPanel result={result} inspection={inspection}/>
     <section className="scene-inspector-section"><h3><Scissors size={16}/>{tr("剖切与隔离","Section & isolate")}</h3>
       {selected&&value.section.axis!=="off"&&<p>{tr("选中尺寸为完整外箱；剖切显示局部。","Selection dimensions describe the full outer box; sectioning shows only part of it.")}</p>}
       <label>{tr("剖切方向","Section axis")}<select aria-label={tr("剖切方向","Section axis")} value={value.section.axis} onChange={e=>section({axis:e.target.value as Section["axis"]})}>{[["off","关闭剖切","Off"],["x","沿柜长 X","Length X"],["y","沿柜宽 Y","Width Y"],["z","沿柜高 Z","Height Z"]].map(([id,zh,en])=><option key={id} value={id}>{tr(zh,en)}</option>)}</select></label>

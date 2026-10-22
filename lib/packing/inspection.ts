@@ -40,7 +40,7 @@ export function measureBoxGap(first:BoundsBox,second:BoundsBox):Measurement {
   }
   return measurePoints(a,b);
 }
-export function measureWall(box:BoundsBox,result:Pick<PackingResult,"container"|"clearance">,side:WallSide):Measurement {
+export function measureWall(box:BoundsBox,result:{container:Pick<PackingResult["container"],"length"|"width"|"height">;clearance:number},side:WallSide):Measurement {
   const [lo,hi]=boxBounds(box),axis="xyz".indexOf(side[0]),upper=side[1]==="+";
   const limits=[result.container.length-result.clearance,result.container.width-result.clearance,result.container.height];
   const a=lo.map((v,i)=>(v+hi[i])/2) as Point3;a[axis]=upper?hi[axis]:lo[axis];

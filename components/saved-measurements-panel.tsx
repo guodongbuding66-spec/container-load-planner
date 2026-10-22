@@ -1,0 +1,34 @@
+"use client";
+import {useMemo,useRef,useState} from "react";
+import {deliveryPlanSignature} from "../lib/packing/delivery-identity";
+import {formatMeasure} from "../lib/packing/inspection";
+import {MEASUREMENT_LIMIT,savedMeasureCurrent,savedMeasureValue,sectionedMeasurement,serializeMeasurements} from "../lib/packing/saved-measurements";
+import type {PackingResult} from "../lib/packing/types";
+import type {SceneInspection} from "./use-scene-inspection";
+import {tr,useLanguage} from "./language";
+import {useTransportAppearance} from "./transport-appearance";
+function download(name:string,contents:string){const url=URL.createObjectURL(new Blob([contents],{type:"application/json"})),a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+export function SavedMeasurementsPanel({result,inspection}:{result:PackingResult;inspection:SceneInspection}){
+  useLanguage();const a=useTransportAppearance(),{saved,saveMeasurement}=inspection,[name,setName]=useState("");
+  const input=useRef<HTMLInputElement>(null),scope=useMemo(()=>deliveryPlanSignature(result),[result]);
+  return <section className="scene-inspector-section" aria-label={tr("已保存测量","Saved measurements")}>
+    <h3>{tr("已保存测量","Saved measurements")} · {saved.items.length} / {MEASUREMENT_LIMIT}</h3>
+    <p>{tr("按外包络取点；剖切取点另作标记。记录绑定方案与箱号，方案变化后保留旧值并要求重测；不代表实体曲面或凹槽净距。","Measurements use envelope features; section picks are marked separately. Records bind to the plan and box IDs. Changed plans retain historical values and require remeasurement. They do not measure solid curves or recess clearances.")}</p>
+    <label>{tr("新测量名称（可选）","New measurement name (optional)")}<input aria-label={tr("新测量名称","New measurement name")} maxLength={80} value={name} onChange={e=>setName(e.target.value)}/></label>
+    <div className="scene-inspector-actions"><button disabled={!saved.ready||!inspection.measurement||saved.items.length>=MEASUREMENT_LIMIT} onClick={()=>{if(saveMeasurement(name))setName("");}}>{tr("保存当前测量","Save current measurement")}</button><button disabled={!saved.ready||saved.importing} onClick={()=>input.current?.click()}>{tr("导入测量备份","Import measurements")}</button><button disabled={!saved.items.length} onClick={()=>download("saved-measurements.json",serializeMeasurements(saved.items))}>{tr("下载测量备份","Download measurements")}</button>{saved.removed&&<button onClick={saved.undo}>{tr("撤销删除测量","Undo measurement removal")}</button>}</div>
+    <input ref={input} hidden type="file" accept="application/json,.json" onChange={e=>{const file=e.target.files?.[0];e.target.value="";if(file)void saved.importFile(file);}}/>
+    <p>{tr("最多保存 20 条，不自动移除旧记录。独立保存在当前浏览器；工作区备份、PDF 和装柜清单不包含这些测量，跨站请使用测量备份。","Keeps up to 20 records without automatic eviction. Stored separately in this browser; workspace backups, PDFs and cargo lists do not include them. Use the measurement backup to transfer between sites.")}</p>
+    {saved.mode!=="saved"&&<p role="status">{saved.mode==="corrupt"?tr("本机测量记录无法读取；原内容未覆盖，本页新记录请下载。","Local measurement data cannot be read. The original is protected; download new records from this page."):saved.mode==="conflict"?tr("其他页面已修改本机记录，本次未覆盖。请先下载本页备份，再刷新并核对。","Another page changed the local records. This action did not overwrite them. Download this page's backup before refreshing and reconciling."):tr("本机存储不可用或额度不足；记录仅保留本页，刷新前请下载。","Local storage is unavailable or full. Records stay on this page; download before refreshing.")}</p>}
+    {saved.mode==="corrupt"&&<button onClick={()=>download("unreadable-measurements.json",saved.raw)}>{tr("下载原始测量记录","Download original measurement data")}</button>}
+    {saved.message&&saved.message!=="conflict"&&<p role="status">{saved.message==="saved"?tr("测量记录已保存。","Measurement records saved."):saved.message==="invalid"?tr("未采用：文件格式、记录内容、编号冲突或数量限制不符合要求；现有记录保留。","Not applied: invalid file or records, conflicting IDs, or too many records. Existing records are preserved."):tr("记录仍保留本页；请下载备份。","Records remain on this page; download a backup.")}</p>}
+    {!saved.items.length&&<p>{tr("完成一次测量后，点击“保存当前测量”。","Complete a measurement, then select Save current measurement.")}</p>}
+    {saved.items.map((m,i)=>{const valid=savedMeasureCurrent(m,result,scope),value=savedMeasureValue(m),label=m.name||`${tr("测量","Measurement")} ${i+1}`;return <details key={m.id} className="scene-saved-measurement"><summary>{label} · {formatMeasure(value.distance,a.dimensionUnit,a.measurePrecision)} · {valid?tr("当前有效","Current"):tr("方案已变化，需重新测量","Plan changed; remeasure")}</summary>
+      <label>{tr("名称","Name")}<input maxLength={80} aria-label={`${tr("测量名称","Measurement name")} ${i+1}`} value={m.name} onChange={e=>saved.patch(m.id,{name:e.target.value})}/></label>
+      <label className="scene-inspector-check"><input type="checkbox" checked={m.visible} aria-label={`${tr("显示测量","Show measurement")} ${i+1}`} onChange={e=>saved.patch(m.id,{visible:e.target.checked})}/>{tr("显示有效测量线","Show current measurement line")}</label>
+      <p>{m.mode==="points"?tr("两点距离","Point distance"):m.mode==="gap"?tr("两箱间距","Carton gap"):tr("柜壁距离","Wall clearance")} · {sectionedMeasurement(m)?tr("剖切外包络","Section envelope"):tr("完整外包络","Full envelope")}{m.snaps?` · ${m.snaps.join(" / ")}`:""}{m.wall?` · ${m.wall}`:""}</p>
+      <small>{m.createdAt} · {m.targets.map(t=>t.id).join(" / ")}</small>
+      <output className="scene-measure-result"><span>A {value.a.map(n=>formatMeasure(n,a.dimensionUnit,a.measurePrecision)).join(" / ")}</span><span>B {value.b.map(n=>formatMeasure(n,a.dimensionUnit,a.measurePrecision)).join(" / ")}</span><span>ΔX {formatMeasure(value.deltas[0],a.dimensionUnit,a.measurePrecision)} · ΔY {formatMeasure(value.deltas[1],a.dimensionUnit,a.measurePrecision)} · ΔZ {formatMeasure(value.deltas[2],a.dimensionUnit,a.measurePrecision)}</span></output>
+      <button onClick={()=>saved.remove(m.id)}>{tr("删除此测量","Remove this measurement")}</button>
+    </details>;})}
+  </section>;
+}

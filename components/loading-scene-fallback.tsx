@@ -29,7 +29,7 @@ export function topViewFootprints(placements:PlacedBox[],visibleProducts:Set<str
   }
   return [...map.values()].sort((a,b)=>a.z+a.dz-b.z-b.dz);
 }
-export function LoadingSceneFallback({result,visibleProducts,visibleCount,selected,onSelect,section=EMPTY_SECTION,manualMeasurement,editor,regions=[],heatColors}:{result:PackingResult;visibleProducts:Set<string>;visibleCount:number;selected:PlacedBox|null;onSelect:(box:PlacedBox,point?:Point3,add?:boolean)=>void;section?:Section;manualMeasurement?:Measurement|null;editor?:PlanEditor;regions?:AnalysisRegion[];heatColors?:Map<string,string>}) {
+export function LoadingSceneFallback({result,visibleProducts,visibleCount,selected,onSelect,section=EMPTY_SECTION,manualMeasurement,manualMeasurements=[],editor,regions=[],heatColors}:{result:PackingResult;visibleProducts:Set<string>;visibleCount:number;selected:PlacedBox|null;onSelect:(box:PlacedBox,point?:Point3,add?:boolean)=>void;section?:Section;manualMeasurement?:Measurement|null;manualMeasurements?:Array<Measurement&{label?:string}>;editor?:PlanEditor;regions?:AnalysisRegion[];heatColors?:Map<string,string>}) {
   useLanguage();
   const drag=useRef<{x:number;y:number;rectangle:boolean;add:boolean}|null>(null),suppressClick=useRef(false);
   const appearance=useTransportAppearance(),{host,viewport}=useModelViewport({width:720,height:340});
@@ -51,10 +51,12 @@ export function LoadingSceneFallback({result,visibleProducts,visibleCount,select
   };
   const measurement=sceneMeasurement(space,result.clearance,selected??undefined),dimensions=appearance.dimensions?projectDimensions(measurement.bounds,measurement.values,project,viewport,{unit:appearance.dimensionUnit,fontSize:appearance.dimensionFontSize,style:appearance.dimensionStyle,bottomInset:12}):[];
   const occupied:LabelRect[]=dimensions.flatMap(d=>[d.label,...d.ticks.map(t=>t.label)]),seen=new Set<string>();
-  const measured=manualMeasurement?{a:project([manualMeasurement.a[0]*scale+offset[0],manualMeasurement.a[2]*scale+offset[1],manualMeasurement.a[1]*scale+offset[2]]),b:project([manualMeasurement.b[0]*scale+offset[0],manualMeasurement.b[2]*scale+offset[1],manualMeasurement.b[1]*scale+offset[2]])}:null;
-  const measuredText=manualMeasurement?formatMeasure(manualMeasurement.distance,appearance.dimensionUnit,appearance.measurePrecision):"";
-  const measuredLabel=measured?layoutSceneLabel({x:(measured.a.x+measured.b.x)/2-measuredText.length*4.5,y:(measured.a.y+measured.b.y)/2-30,width:measuredText.length*9+12,height:24},viewport,occupied):null;
-  if(measuredLabel&&appearance.dimensions)occupied.push(measuredLabel);
+  const measuredItems=[...(manualMeasurement?[manualMeasurement]:[]),...manualMeasurements].map(m=>{
+    const measured={a:project([m.a[0]*scale+offset[0],m.a[2]*scale+offset[1],m.a[1]*scale+offset[2]]),b:project([m.b[0]*scale+offset[0],m.b[2]*scale+offset[1],m.b[1]*scale+offset[2]])};
+    const label="label" in m&&typeof m.label==="string"&&m.label?m.label.slice(0,40)+" · ":"",text=label+formatMeasure(m.distance,appearance.dimensionUnit,appearance.measurePrecision);
+    const rect=layoutSceneLabel({x:(measured.a.x+measured.b.x)/2-text.length*4.5,y:(measured.a.y+measured.b.y)/2-30,width:text.length*9+12,height:24},viewport,occupied);
+    if(rect&&appearance.dimensions)occupied.push(rect);return {measured,text,rect};
+  });
   const labelBoxes=appearance.labels?footprints:appearance.skuSummaries?footprints.filter(b=>{if(seen.has(b.productId))return false;seen.add(b.productId);return true;}):[];
   const labelLimit=Math.max(16,Math.floor(viewport.width*viewport.height/(108*30)));
   const labels=[...labelBoxes].sort((a,b)=>Number(b.id===selected?.id)-Number(a.id===selected?.id)).slice(0,labelLimit).flatMap(b=>{const r=rectFor(b),points=silhouettes.get(`${b.productId}/${b.orientation}/${b.orientationSigns?.join("/")??""}`)??[[[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]]],ratio=(b.sku.length*7+12)/20,label=appearance.labels?cargoFootprintLabel(points,rectFor(originalBoxes.get(b.id)??b),ratio):layoutSceneLabel({x:r.x+r.width/2-b.sku.length*3.5,y:r.y+r.height/2-9,width:b.sku.length*7+12,height:20},viewport,occupied);if(!label||appearance.labels&&(label.x<r.x||label.y<r.y||label.x+label.width>r.x+r.width||label.y+label.height>r.y+r.height)||occupied.some(other=>labelsOverlap(label,other,appearance.labels?0:4)))return [];occupied.push(label);return [{id:b.id,sku:b.sku,label}];});
@@ -69,6 +71,6 @@ export function LoadingSceneFallback({result,visibleProducts,visibleCount,select
     <g className="fallback-analysis-overlay" pointerEvents="none">{regions.map(b=><rect key={b.id} {...rectFor(b)} fill={b.color} fillOpacity={.16} stroke={b.color} strokeDasharray="6 4" strokeWidth={2}><title>{b.id} · {b.dx.toFixed(1)} × {b.dy.toFixed(1)} × {b.dz.toFixed(1)} mm · Z {b.z.toFixed(1)}</title></rect>)}</g>
     <g className="fallback-sku-labels" pointerEvents="none">{labels.map(({id,sku,label})=><g key={id}><rect {...label} rx={Math.min(3,label.height/8)} fill="#fffffa"/><text x={label.x+label.width/2} y={label.y+label.height*.7} textAnchor="middle" fill="#376272" fontSize={label.height*.65} fontFamily="Arial, sans-serif">{sku}</text></g>)}</g>
     {appearance.dimensions&&<DimensionSvg dimensions={dimensions} fontSize={appearance.dimensionFontSize} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}
-    {appearance.dimensions&&measured&&measuredLabel&&<g className="manual-measurement" pointerEvents="none"><line x1={measured.a.x} y1={measured.a.y} x2={measured.b.x} y2={measured.b.y} stroke={appearance.dimensionLineColor} strokeWidth={2}/>{[measured.a,measured.b].map((p,i)=><circle key={i} cx={p.x} cy={p.y} r={4} fill={appearance.dimensionLineColor}/>)}<rect {...measuredLabel} rx={4} fill="#f7fbfbef"/><text x={measuredLabel.x+measuredLabel.width/2} y={measuredLabel.y+17} fontSize={16} textAnchor="middle" fill={appearance.dimensionTextColor}>{measuredText}</text></g>}
+    {appearance.dimensions&&measuredItems.map(({measured,text,rect},i)=><g key={i} className="manual-measurement" pointerEvents="none"><title>{text}</title><line x1={measured.a.x} y1={measured.a.y} x2={measured.b.x} y2={measured.b.y} stroke={appearance.dimensionLineColor} strokeWidth={2}/>{[measured.a,measured.b].map((p,i)=><circle key={i} cx={p.x} cy={p.y} r={4} fill={appearance.dimensionLineColor}/>)}{rect&&<><rect {...rect} rx={4} fill="#f7fbfbef"/><text x={rect.x+rect.width/2} y={rect.y+17} fontSize={16} textAnchor="middle" fill={appearance.dimensionTextColor}>{text}</text></>}</g>)}
   </svg></div><strong>{tr("当前浏览器未启用 WebGL")}</strong><span>{tr("已切换为真实坐标俯视图；装柜计算、校验与导出不受影响。")}</span></div>;
 }

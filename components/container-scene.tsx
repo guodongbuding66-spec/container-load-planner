@@ -142,7 +142,7 @@ function normalizedSceneSize(result: PackingResult): SceneSize {
   return [effectiveLength * scale, effectiveHeight * scale, effectiveWidth * scale];
 }
 
-export function ContainerModel({ result, visibleProducts, visibleCount, reducedRendering, presentation, modelMode, transparency, labels, selected, onSelect, section=EMPTY_SECTION, manualMeasurement,editor,regions=[],heatColors,onDragging }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number; reducedRendering: boolean; presentation?: boolean; modelMode:TransportDisplayMode; transparency:number; labels:boolean; selected:PlacedBox|null;onSelect:(b:PlacedBox,point?:Point3,add?:boolean)=>void;section?:Section;manualMeasurement?:Measurement|null;editor?:PlanEditor;regions?:AnalysisRegion[];heatColors?:Map<string,string>;onDragging?:(v:boolean)=>void }) {
+export function ContainerModel({ result, visibleProducts, visibleCount, reducedRendering, presentation, modelMode, transparency, labels, selected, onSelect, section=EMPTY_SECTION, manualMeasurement,manualMeasurements=[],editor,regions=[],heatColors,onDragging }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number; reducedRendering: boolean; presentation?: boolean; modelMode:TransportDisplayMode; transparency:number; labels:boolean; selected:PlacedBox|null;onSelect:(b:PlacedBox,point?:Point3,add?:boolean)=>void;section?:Section;manualMeasurement?:Measurement|null;manualMeasurements?:Array<Measurement&{label?:string}>;editor?:PlanEditor;regions?:AnalysisRegion[];heatColors?:Map<string,string>;onDragging?:(v:boolean)=>void }) {
   useLanguage();
   const appearance=useTransportAppearance();
   const measurement=useMemo(()=>sceneMeasurement(result.container,result.clearance,selected??undefined),[result.container,result.clearance,selected]);
@@ -199,7 +199,7 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
       {siteExclusionBoxes(result.container,result.clearance).flatMap(b=>{const clipped=sectionBox(b,result,section);return clipped?[<MetricLabel key={b.id} text={`${tr("禁占区","Site exclusion")} · ${b.name}`} size={.11} position={[(clipped.x+clipped.dx/2)*scale+offset.x,(clipped.z+clipped.dz)*scale+offset.y+.08,(clipped.y+clipped.dy/2)*scale+offset.z]}/>]:[];})}
       {appearance.skuSummaries && annotations.map(([id,a])=><MetricLabel key={id} text={a.sku} size={.12} position={[(a.minX+a.maxX)/2*scale+offset.x,a.maxY*scale+offset.y+.15,(a.minZ+a.maxZ)/2*scale+offset.z]}/>)}
       {appearance.dimensions&&<SceneDimensions bounds={measurement.bounds} values={measurement.values} unit={appearance.dimensionUnit} fontSize={appearance.dimensionFontSize} style={appearance.dimensionStyle} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}
-      {appearance.dimensions&&manualMeasurement&&<SceneMeasurement measurement={manualMeasurement} scale={scale} offset={offset}/>}
+      {appearance.dimensions&&[...(manualMeasurement?[manualMeasurement]:[]),...manualMeasurements].map((m,i)=><SceneMeasurement key={i} measurement={m} scale={scale} offset={offset}/>)}
       <SceneAnalysisOverlay regions={regions} scale={scale} offset={offset}/>
       {editor?.enabled&&!editor.disabled&&onDragging&&<SceneEditHandles editor={editor} boxes={inspectBoxes(result,visibleProducts,visibleCount,section)} scale={scale} offset={offset} onDragging={onDragging}/>}
       {!presentation && modelMode === "wireframe" && <gridHelper args={[Math.max(size[0], size[2]) * 1.25, 16, "#91a6ab", "#d9e1e3"]} position={[0, -0.02, 0]} />}
@@ -289,7 +289,7 @@ export function ContainerScene({
       ) : webglSupported === null ? (
         <div className="scene-loading">{tr("正在检测三维图形能力…")}</div>
       ) : !webglSupported ? (
-        <LoadingSceneFallback editor={editor?.enabled?editor:undefined} regions={regions} heatColors={heatColors} result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} selected={selected} onSelect={selectBox} section={inspection.value.section} manualMeasurement={inspection.measurement}/>
+        <LoadingSceneFallback editor={editor?.enabled?editor:undefined} regions={regions} heatColors={heatColors} result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} selected={selected} onSelect={selectBox} section={inspection.value.section} manualMeasurement={inspection.measurement} manualMeasurements={inspection.savedOverlays}/>
       ) : (
         <>
           <div className="scene-canvas">
@@ -303,7 +303,7 @@ export function ContainerScene({
               <ambientLight intensity={.8} />
               <hemisphereLight args={["#ffffff", "#61747a", .8]} />
               <directionalLight castShadow={!reducedRendering} position={[5, 9, 4]} intensity={2.1} shadow-mapSize-width={reducedRendering ? 256 : 1024} shadow-mapSize-height={reducedRendering ? 256 : 1024} />
-              <ContainerModel editor={editor} onDragging={setDragging} regions={regions} heatColors={heatColors} result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} reducedRendering={reducedRendering} presentation={presentation} modelMode={appearance.mode} transparency={appearance.transparency} labels={labels} selected={selected} onSelect={selectBox} section={inspection.value.section} manualMeasurement={inspection.measurement}/>
+              <ContainerModel editor={editor} onDragging={setDragging} regions={regions} heatColors={heatColors} result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} reducedRendering={reducedRendering} presentation={presentation} modelMode={appearance.mode} transparency={appearance.transparency} labels={labels} selected={selected} onSelect={selectBox} section={inspection.value.section} manualMeasurement={inspection.measurement} manualMeasurements={inspection.savedOverlays}/>
               <SceneCapture register={registerCapture}/>
               <SceneCameraRig
                 enabled={!dragging&&!editor?.rectangle}
