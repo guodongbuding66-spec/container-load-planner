@@ -1,0 +1,5 @@
+import {expect,it} from "vitest";
+import {qualityCases,runQualityCase,qualityReport,BENCHMARK_VERSION} from "./quality-benchmarks";
+it.each(qualityCases().filter(c=>c.exactCount!==null))("meets proved maximum bound for $id",c=>{const r=runQualityCase(c.id,"maximum");expect(r.valid,r.errors.join()).toBe(true);expect(r.loaded).toBe(c.exactCount);expect(r.gapToProof).toBe(0);});
+it.each(qualityCases())("checks practical constraints independently for $id",c=>{const r=runQualityCase(c.id,"practical");expect(r.valid,r.errors.join()).toBe(true);expect(Number.isFinite(r.elapsedMs)).toBe(true);if(c.exactCount!==null)expect(r.loaded).toBeLessThanOrEqual(c.exactCount);else{expect(r.loaded).toBeGreaterThan(0);expect(r.gapToProof).toBeNull();}});
+it("requires all distinct case/strategy pairs and isolates fixture mutations",()=>{const r=runQualityCase("door","maximum");expect(qualityReport(Array(12).fill(r)).complete).toBe(false);expect(qualityReport([]).caseVersion).toBe(BENCHMARK_VERSION);const cases=qualityCases();cases[0].request.products[0].quantity=0;expect(qualityCases()[0].request.products[0].quantity).toBe(100);});

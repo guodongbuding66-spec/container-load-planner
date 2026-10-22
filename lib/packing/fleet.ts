@@ -78,7 +78,10 @@ export function fleetEconomics(result:FleetResult){
    if(!cargo.length)for(const s of l.plan.summaries.filter(s=>s.loaded>0)){const a=allocations.get(groups.get(s.productId)??`SKU:${s.sku}`)!;if(price==null)a.known=false;else a.cost+=price*s.loadedVolume/Math.max(Number.EPSILON,totalVolume);}
    for(const b of cargo){const key=groups.get(b.productId)??`SKU:${b.sku}`,a=allocations.get(key)!;if(price==null)a.known=false;else a.cost+=price*(volumes.get(b.productId)??0)/Math.max(Number.EPSILON,volume);}
   }
- }return [...allocations.values()].map(a=>({...a,costPerSet:a.known&&a.sets?a.cost/a.sets:null}));
+ }
+ const extra=result.costs?.knownAdditionalSubtotal??0,totalVolume=[...allocations.values()].reduce((n,a)=>n+a.volume,0);
+ for(const a of allocations.values()){a.cost+=extra*a.volume/Math.max(Number.EPSILON,totalVolume);if(result.costs?.lines?.some(l=>l.subtotal===null))a.known=false;}
+ return [...allocations.values()].map(a=>({...a,costPerSet:a.known&&a.sets?a.cost/a.sets:null}));
 }
 export function compareFleets(request:PackingRequest,options:FleetOption[],limit:number,objective:"count"|"cost",onProgress?:(results:FleetComparison[])=>void,pricing?:FleetPricing){
  assertFleetSettings(request,options,limit,objective,pricing);
