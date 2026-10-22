@@ -1,4 +1,6 @@
 export const ENGLISH: Record<string, string> = {
+  "高密度整托搜索原候选 {0} 箱；采用重新校验的现场完整候选 {1} 箱，每个 SKU 均未减量。有限搜索不代表全局最优": "Maximum pallet search found {0} cartons; adopted the revalidated {1}-carton practical candidate without reducing any order row. Bounded search is not a global optimum proof.",
+  "补充整托候选未完成或未通过独立复核，保留原高密度合法候选": "Additional pallet candidate was unavailable or failed independent review; retained the original valid maximum candidate.",
   "订单行资料无效 / Invalid order-line details": "Invalid order-line details",
   "卸货站次须为 0–999 / Unload stop must be 0–999": "Unload stop must be 0–999",
   "订单行 ID（产品 ID）不能为空、重复或超过 120 字符 / Order-line IDs must be unique, nonempty and at most 120 characters": "Order-line IDs must be unique, nonempty and at most 120 characters",

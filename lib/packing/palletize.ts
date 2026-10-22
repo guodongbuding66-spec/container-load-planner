@@ -194,9 +194,9 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
     }
   }
   const note=summary.selected==="practical-lower-bound"
-    ? `高密度整托搜索原候选 ${summary.maximumCount} 箱；采用重新校验的现场完整候选 ${summary.practicalCount} 箱，每个 SKU 均未减量。有限搜索不代表全局最优 / Maximum pallet search found ${summary.maximumCount} cartons; adopted the revalidated ${summary.practicalCount}-carton practical candidate without reducing any SKU. Bounded search is not a global optimum proof`
+    ? `高密度整托搜索原候选 ${summary.maximumCount} 箱；采用重新校验的现场完整候选 ${summary.practicalCount} 箱，每个 SKU 均未减量。有限搜索不代表全局最优`
     : summary.comparison==="rejected"||summary.comparison==="unavailable"
-    ? "补充整托候选未完成或未通过独立复核，保留原高密度合法候选 / Additional pallet candidate was unavailable or failed independent review; retained the original valid maximum candidate"
+    ? "补充整托候选未完成或未通过独立复核，保留原高密度合法候选"
     : undefined;
   const plan={...chosen.plan,palletSearch:summary,metrics:{...chosen.plan.metrics,solveTimeMs:performance.now()-started},warnings:[...chosen.plan.warnings,...(note?[note]:[])]};
   return {...chosen,plan};
