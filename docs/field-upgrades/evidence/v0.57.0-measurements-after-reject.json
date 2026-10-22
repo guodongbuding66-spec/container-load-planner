@@ -1,0 +1,171 @@
+{
+  "format": "cargo-fit-measurements",
+  "version": 1,
+  "measurements": [
+    {
+      "id": "0870b0b6-24df-4402-a555-9e6333776a47",
+      "name": "Rear gap",
+      "createdAt": "2026-10-22T09:20:05.840Z",
+      "visible": true,
+      "scope": "4d8f4668c7df0660",
+      "space": {
+        "length": 12032,
+        "width": 2350,
+        "height": 2700,
+        "clearance": 10
+      },
+      "targets": [
+        {
+          "id": "shed-101-0",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          },
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          }
+        }
+      ],
+      "mode": "wall",
+      "wall": "x-"
+    },
+    {
+      "id": "c5b6e766-08da-4393-a72a-749b6758ca12",
+      "name": "Carton diagonal",
+      "createdAt": "2026-10-22T09:20:26.146Z",
+      "visible": true,
+      "scope": "4d8f4668c7df0660",
+      "space": {
+        "length": 12032,
+        "width": 2350,
+        "height": 2700,
+        "clearance": 10
+      },
+      "targets": [
+        {
+          "id": "shed-101-0",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          },
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          }
+        },
+        {
+          "id": "shed-101-0",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          },
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          }
+        }
+      ],
+      "mode": "points",
+      "points": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          2200,
+          620,
+          180
+        ]
+      ],
+      "snaps": [
+        "vertex",
+        "vertex"
+      ]
+    },
+    {
+      "id": "a496d262-4402-47ec-960e-34ef455d73cd",
+      "name": "Adjacent gap",
+      "createdAt": "2026-10-22T09:20:29.209Z",
+      "visible": true,
+      "scope": "4d8f4668c7df0660",
+      "space": {
+        "length": 12032,
+        "width": 2350,
+        "height": 2700,
+        "clearance": 10
+      },
+      "targets": [
+        {
+          "id": "shed-101-0",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          },
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          }
+        },
+        {
+          "id": "shed-101-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 620,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          },
+          "bounds": {
+            "x": 0,
+            "y": 620,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          }
+        }
+      ],
+      "mode": "gap"
+    }
+  ]
+}

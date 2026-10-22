@@ -1,0 +1,138 @@
+{
+  "version": "0.57.0",
+  "date": "2026-10-22",
+  "runtimeCommit": "0e03b34e0f3438a89d48a533515667929c48a1af",
+  "runtimeTree": "4b57e815319641746f3ebcd0d4937975b74fd0fc",
+  "software": {
+    "command": "npm run build:pages",
+    "unitTests": 1552,
+    "testFiles": 117,
+    "newTests": 36,
+    "htmlTests": 21,
+    "typescript": "PASS",
+    "productionBuild": "PASS",
+    "lintErrors": 0,
+    "existingLintWarnings": 2
+  },
+  "githubCI": {
+    "status": "SUCCESS",
+    "url": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/39753921268/job/119741026449"
+  },
+  "deployments": {
+    "cloudflare": {
+      "status": "SUCCESS",
+      "id": "9f452103-068e-47fd-8c96-f1e80563f3f6",
+      "url": "https://container-load-planner.pages.dev/"
+    },
+    "vercel": {
+      "status": "READY",
+      "id": "dpl_2Kdf7zpNbbgMoZwLPecBtamGmfhk",
+      "url": "https://container-load-planner-gray.vercel.app/"
+    }
+  },
+  "browserQA": {
+    "environment": "Cloud Chrome; no available WebGL",
+    "records": 3,
+    "valuesMm": {
+      "wall": 10,
+      "pointDiagonal": 2292.7712489474393,
+      "adjacentCartons": 0
+    },
+    "renameAndRestore": true,
+    "overlays": {
+      "initial": 3,
+      "hideOne": 2,
+      "dimensionsOff": 0,
+      "removeOne": 2,
+      "undoRemoval": 3,
+      "switchedStrategy": 0,
+      "restoredStrategy": 3,
+      "bothSitesAfterRefresh": 3
+    },
+    "nativeMeasurementBackups": {
+      "exactBytesAfterUndo": true,
+      "exactBytesAfterBadAndConflictingImportRejection": true,
+      "exactBytesAfterRefreshAndCrossSiteMigration": true,
+      "finalBothSitesCurrent": true
+    },
+    "englishSavedMeasurementRegionNoCJK": true,
+    "englishStaleStateNoCJK": true,
+    "legacyWorkspaceRestore": {
+      "sourceEngine": "0.56.0",
+      "currentEngine": "0.57.0",
+      "bothSitesRevalidated": true
+    },
+    "defaultWorkspace": {
+      "bothSiteDOM": "Chinese, practical, 40HQ, 3 SKUs, both strategies 116 cartons / 3842 kg",
+      "finalNativeWorkspaceDownloads": "triggered, but neither artifact synchronized; not counted as verified downloads",
+      "temporaryQAContainersAdded": false
+    },
+    "fixedBenchmarksPerSite": 12,
+    "fixedBenchmarksCompleteAndValid": true,
+    "fixedBenchmarkCountsInputsAndProvenanceEqualAcrossSites": true,
+    "consoleApplicationErrors": {
+      "cloudflare": 0,
+      "vercel": 0
+    },
+    "consoleApplicationWarnings": {
+      "cloudflare": 0,
+      "vercel": 0
+    },
+    "vercelRuntimeErrorFatalLast30m": "no logs found"
+  },
+  "limitations": [
+    "Outer-envelope and explicitly marked section-envelope features only; no solid curve or recess clearances.",
+    "Changed plans invalidate old measurements; no automatic following of solid features.",
+    "Measurements are backed up separately; workspace files, PDFs and cargo lists do not include them.",
+    "20-entry boundary, quota write failure, corrupt-cache protection, stale-page conflict and late-read cancellation are software tests; production browser fault injection and 20 manual saves not performed.",
+    "Plan checksum is a change detector, not authentication or a digital signature; cross-tab check is not atomic.",
+    "Actual GPU, multiple browsers, real phone scanning, material strength and field loading remain pending.",
+    "Specific forklift operations excluded; accounts, membership and payment not enabled."
+  ],
+  "files": {
+    "v0.57.0-benchmarks-cloudflare.json": {
+      "bytes": 25616,
+      "sha256": "af1d55efe7a1fc1a36f6ff21c9145ec007be9bd3c5b3e4dd4d785fe7c094e6de"
+    },
+    "v0.57.0-benchmarks-vercel.json": {
+      "bytes": 25617,
+      "sha256": "110f156971267e95cbb7c827a92c6e31512855da3ef818fb8b4e81d7627cc011"
+    },
+    "v0.57.0-legacy-workspace.json": {
+      "bytes": 133828,
+      "sha256": "3d3febc54366dfb73517772b3975224c1a5827af30e9237405a615a0e3fdf00f"
+    },
+    "v0.57.0-measurements-after-reject.json": {
+      "bytes": 3456,
+      "sha256": "ed2826cda661b97631f9b2fa1d6ffaa74a2027890b0f2db683c4c4280a366d40"
+    },
+    "v0.57.0-measurements-cloudflare.json": {
+      "bytes": 3456,
+      "sha256": "ed2826cda661b97631f9b2fa1d6ffaa74a2027890b0f2db683c4c4280a366d40"
+    },
+    "v0.57.0-measurements-final-cloudflare.json": {
+      "bytes": 3456,
+      "sha256": "ed2826cda661b97631f9b2fa1d6ffaa74a2027890b0f2db683c4c4280a366d40"
+    },
+    "v0.57.0-measurements-final-vercel.json": {
+      "bytes": 3456,
+      "sha256": "ed2826cda661b97631f9b2fa1d6ffaa74a2027890b0f2db683c4c4280a366d40"
+    },
+    "v0.57.0-measurements-migrated-vercel.json": {
+      "bytes": 3456,
+      "sha256": "ed2826cda661b97631f9b2fa1d6ffaa74a2027890b0f2db683c4c4280a366d40"
+    },
+    "v0.57.0-measurements-refreshed-cloudflare.json": {
+      "bytes": 3456,
+      "sha256": "ed2826cda661b97631f9b2fa1d6ffaa74a2027890b0f2db683c4c4280a366d40"
+    },
+    "v0.57.0-measurements-undo.json": {
+      "bytes": 3456,
+      "sha256": "ed2826cda661b97631f9b2fa1d6ffaa74a2027890b0f2db683c4c4280a366d40"
+    },
+    "v0.57.0-measurements-zh.jpg": {
+      "bytes": 125913,
+      "sha256": "053bee73c082bedc70682e7a5fa211388809447e8c890cf21ec5646a6c140424"
+    }
+  }
+}
