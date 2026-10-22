@@ -1,0 +1,7 @@
+记录类型,柜号,标识,需求或库存,已装或已用,未装或剩余,运费,包装费,已知费用小计,完整合计,币种
+container,1,QA54 vehicle,,8,,100,,,,CNY
+packaging-stock,,primary,2,2,0
+unloaded,,QA54-A,,,0
+charge:labor,charge-fdf1b29d-383f-4b90-8fb0-c6cd906cbb09 / QA54 labor / USD 10 / FX 7 / Synthetic labor quote,,1,,,,70,,,CNY
+quoted-exchange-rate,USD / 2026-10-22 / Synthetic treasury quote,,,,,7,,,,CNY
+freight-and-packaging,,,,,,100,10,180,180,CNY

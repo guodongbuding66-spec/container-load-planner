@@ -1,0 +1,616 @@
+{
+  "format": "cargo-fit-fleet-v1",
+  "version": 1,
+  "request": {
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "maximum",
+    "practicalTargetUtilization": 0.845,
+    "container": {
+      "id": "qa54",
+      "name": "QA54 vehicle",
+      "length": 1000,
+      "width": 500,
+      "height": 400,
+      "doorWidth": 500,
+      "doorHeight": 400,
+      "maxWeight": 1000
+    },
+    "clearance": 0,
+    "products": [
+      {
+        "id": "qa54-a",
+        "sku": "QA54-A",
+        "name": "Synthetic acceptance",
+        "length": 200,
+        "width": 200,
+        "height": 200,
+        "weight": 10,
+        "quantity": 8,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.01,
+        "color": "#338877",
+        "maxTopLoadKg": 1000
+      }
+    ],
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "QA54 pallet",
+        "length": 500,
+        "width": 500,
+        "height": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 200
+      },
+      "mix": "single",
+      "maxPallets": 2,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    }
+  },
+  "options": [
+    {
+      "container": {
+        "id": "qa54",
+        "name": "QA54 vehicle",
+        "length": 1000,
+        "width": 500,
+        "height": 400,
+        "doorWidth": 500,
+        "doorHeight": 400,
+        "maxWeight": 1000
+      },
+      "cost": 100,
+      "available": 10
+    }
+  ],
+  "limit": 10,
+  "objective": "count",
+  "pricing": {
+    "currency": "CNY",
+    "packaging": {
+      "primary": 5
+    },
+    "charges": [
+      {
+        "id": "charge-fdf1b29d-383f-4b90-8fb0-c6cd906cbb09",
+        "label": "QA54 labor",
+        "category": "labor",
+        "basis": "container",
+        "amount": 10,
+        "currency": "USD",
+        "source": "Synthetic labor quote"
+      }
+    ],
+    "exchangeRates": [
+      {
+        "currency": "USD",
+        "rate": 7,
+        "source": "Synthetic treasury quote",
+        "date": "2026-10-22"
+      }
+    ]
+  },
+  "result": {
+    "loads": [
+      {
+        "plan": {
+          "workflow": "palletized",
+          "palletBuild": {
+            "config": {
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "QA54 pallet",
+              "length": 500,
+              "width": 500,
+              "height": 100,
+              "weight": 20,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 200
+            },
+            "mix": "single",
+            "maxPallets": 2,
+            "stackLayers": 1,
+            "maxTopLoadKg": 0,
+            "primaryRule": {
+              "maxPallets": 2
+            }
+          },
+          "id": "fleet-1-qa54-restored-1792633640221",
+          "mode": "mixed",
+          "strategy": "maximum",
+          "practicalTargetUtilization": 0.845,
+          "engineVersion": "0.54.0",
+          "palletization": {
+            "config": {
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "QA54 pallet",
+              "length": 500,
+              "width": 500,
+              "height": 100,
+              "weight": 20,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 200
+            },
+            "mix": "single",
+            "stackLayers": 1,
+            "maxTopLoadKg": 0,
+            "preparedCount": 2,
+            "bounded": false,
+            "only": false,
+            "specifications": [
+              {
+                "id": "primary",
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "QA54 pallet",
+                  "length": 500,
+                  "width": 500,
+                  "height": 100,
+                  "weight": 20,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 200
+                },
+                "maxPallets": 2,
+                "stackLayers": 1,
+                "maxTopLoadKg": 0
+              }
+            ],
+            "preparedBySpecification": {
+              "primary": 2
+            }
+          },
+          "pallets": [
+            {
+              "id": "floor-pallet-1",
+              "presetId": "eur-1200-800",
+              "name": "QA54 pallet",
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "dx": 500,
+              "dy": 500,
+              "dz": 100,
+              "weight": 20,
+              "maxLoad": 1000,
+              "orientation": "LWH",
+              "specificationId": "primary",
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              }
+            },
+            {
+              "id": "floor-pallet-2",
+              "presetId": "eur-1200-800",
+              "name": "QA54 pallet",
+              "x": 500,
+              "y": 0,
+              "z": 0,
+              "dx": 500,
+              "dy": 500,
+              "dz": 100,
+              "weight": 20,
+              "maxLoad": 1000,
+              "orientation": "LWH",
+              "specificationId": "primary",
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              }
+            }
+          ],
+          "container": {
+            "id": "qa54",
+            "name": "QA54 vehicle",
+            "length": 1000,
+            "width": 500,
+            "height": 400,
+            "doorWidth": 500,
+            "doorHeight": 400,
+            "maxWeight": 1000
+          },
+          "clearance": 0,
+          "placements": [
+            {
+              "id": "prebuilt-1",
+              "productId": "qa54-a",
+              "sku": "QA54-A",
+              "name": "Synthetic acceptance",
+              "color": "#338877",
+              "x": 0,
+              "y": 0,
+              "z": 100,
+              "dx": 200,
+              "dy": 200,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "palletIds": [
+                "floor-pallet-1"
+              ]
+            },
+            {
+              "id": "prebuilt-2",
+              "productId": "qa54-a",
+              "sku": "QA54-A",
+              "name": "Synthetic acceptance",
+              "color": "#338877",
+              "x": 0,
+              "y": 200,
+              "z": 100,
+              "dx": 200,
+              "dy": 200,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "palletIds": [
+                "floor-pallet-1"
+              ]
+            },
+            {
+              "id": "prebuilt-3",
+              "productId": "qa54-a",
+              "sku": "QA54-A",
+              "name": "Synthetic acceptance",
+              "color": "#338877",
+              "x": 200,
+              "y": 0,
+              "z": 100,
+              "dx": 200,
+              "dy": 200,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "palletIds": [
+                "floor-pallet-1"
+              ]
+            },
+            {
+              "id": "prebuilt-4",
+              "productId": "qa54-a",
+              "sku": "QA54-A",
+              "name": "Synthetic acceptance",
+              "color": "#338877",
+              "x": 200,
+              "y": 200,
+              "z": 100,
+              "dx": 200,
+              "dy": 200,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "palletIds": [
+                "floor-pallet-1"
+              ]
+            },
+            {
+              "id": "prebuilt-5",
+              "productId": "qa54-a",
+              "sku": "QA54-A",
+              "name": "Synthetic acceptance",
+              "color": "#338877",
+              "x": 500,
+              "y": 0,
+              "z": 100,
+              "dx": 200,
+              "dy": 200,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "palletIds": [
+                "floor-pallet-2"
+              ]
+            },
+            {
+              "id": "prebuilt-6",
+              "productId": "qa54-a",
+              "sku": "QA54-A",
+              "name": "Synthetic acceptance",
+              "color": "#338877",
+              "x": 500,
+              "y": 200,
+              "z": 100,
+              "dx": 200,
+              "dy": 200,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "palletIds": [
+                "floor-pallet-2"
+              ]
+            },
+            {
+              "id": "prebuilt-7",
+              "productId": "qa54-a",
+              "sku": "QA54-A",
+              "name": "Synthetic acceptance",
+              "color": "#338877",
+              "x": 700,
+              "y": 0,
+              "z": 100,
+              "dx": 200,
+              "dy": 200,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "palletIds": [
+                "floor-pallet-2"
+              ]
+            },
+            {
+              "id": "prebuilt-8",
+              "productId": "qa54-a",
+              "sku": "QA54-A",
+              "name": "Synthetic acceptance",
+              "color": "#338877",
+              "x": 700,
+              "y": 200,
+              "z": 100,
+              "dx": 200,
+              "dy": 200,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "palletIds": [
+                "floor-pallet-2"
+              ]
+            }
+          ],
+          "summaries": [
+            {
+              "productId": "qa54-a",
+              "sku": "QA54-A",
+              "name": "Synthetic acceptance",
+              "color": "#338877",
+              "requested": 8,
+              "loaded": 8,
+              "unloaded": 0,
+              "loadedWeight": 80,
+              "loadedVolume": 64000000
+            }
+          ],
+          "setSummaries": [],
+          "validation": {
+            "valid": true,
+            "errors": []
+          },
+          "metrics": {
+            "loadedCount": 8,
+            "requestedCount": 8,
+            "loadedVolume": 114000000,
+            "grossWeight": 120,
+            "effectiveVolume": 200000000,
+            "volumeUtilization": 0.57,
+            "weightUtilization": 0.12,
+            "centerOfGravity": {
+              "x": 466.6666666666667,
+              "y": 216.66666666666666,
+              "z": 153.62490349082134,
+              "longitudinalRatio": 0.4666666666666667,
+              "lateralRatio": 0.4333333333333333,
+              "heightRatio": 0.38406225872705335,
+              "balanced": true
+            },
+            "executionComplexity": {
+              "orientationVariants": 1,
+              "maxOrientationsPerSku": 1,
+              "partialSupportCount": 0,
+              "tippedCartonCount": 0
+            },
+            "solveTimeMs": 12.5
+          },
+          "loadingRules": {
+            "layout": "auto",
+            "search": "smart",
+            "cargoOrder": "auto"
+          },
+          "cargoDetails": {
+            "qa54-a": {}
+          },
+          "warnings": [
+            "货物打托与整托坐标已通过独立校验",
+            "多种包装按列表顺序和适用 SKU 尝试；每种可用数量独立限制，不推定全局最少包装数。"
+          ],
+          "createdAt": "2026-10-22T01:47:20.222Z"
+        },
+        "cost": 100
+      }
+    ],
+    "remaining": [
+      {
+        "id": "qa54-a",
+        "sku": "QA54-A",
+        "name": "Synthetic acceptance",
+        "length": 200,
+        "width": 200,
+        "height": 200,
+        "weight": 10,
+        "quantity": 0,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.01,
+        "color": "#338877",
+        "maxTopLoadKg": 1000
+      }
+    ],
+    "totalCost": 100,
+    "complete": true,
+    "reason": "订单已全部分配",
+    "pricing": {
+      "currency": "CNY",
+      "packaging": {
+        "primary": 5
+      },
+      "charges": [
+        {
+          "id": "charge-fdf1b29d-383f-4b90-8fb0-c6cd906cbb09",
+          "label": "QA54 labor",
+          "category": "labor",
+          "basis": "container",
+          "amount": 10,
+          "currency": "USD",
+          "source": "Synthetic labor quote"
+        }
+      ],
+      "exchangeRates": [
+        {
+          "currency": "USD",
+          "rate": 7,
+          "source": "Synthetic treasury quote",
+          "date": "2026-10-22"
+        }
+      ]
+    },
+    "costs": {
+      "currency": "CNY",
+      "freight": 100,
+      "packaging": 10,
+      "knownPackagingSubtotal": 10,
+      "total": 180,
+      "knownSubtotal": 180,
+      "complete": true,
+      "missing": [],
+      "scope": "quoted-delivery-charges",
+      "lines": [
+        {
+          "id": "charge-fdf1b29d-383f-4b90-8fb0-c6cd906cbb09",
+          "label": "QA54 labor",
+          "category": "labor",
+          "basis": "container",
+          "amount": 10,
+          "currency": "USD",
+          "source": "Synthetic labor quote",
+          "quantity": 1,
+          "exchangeRate": 7,
+          "subtotal": 70
+        }
+      ],
+      "knownAdditionalSubtotal": 70,
+      "additional": 70
+    },
+    "inventory": {
+      "packages": [
+        {
+          "id": "primary",
+          "name": "QA54 pallet",
+          "available": 2,
+          "used": 2,
+          "remaining": 0
+        }
+      ],
+      "totalLimit": 2,
+      "totalUsed": 2,
+      "loose": [
+        {
+          "productId": "qa54-a",
+          "sku": "QA54-A",
+          "reserved": 0,
+          "used": 0,
+          "remaining": 0
+        }
+      ]
+    }
+  }
+}

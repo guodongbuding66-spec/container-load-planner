@@ -1,0 +1,137 @@
+{
+  "version": "0.54.0",
+  "date": "2026-10-22",
+  "runtimeCommit": "7409f0ca294d6214c933cced3829ee0fe5940b6f",
+  "runtimeTree": "6d3081b798d938f118688b635ccadbc9ddf0c37e",
+  "checks": {
+    "unitTests": 1462,
+    "unitFiles": 110,
+    "htmlTests": 21,
+    "typecheck": "pass",
+    "productionBuild": "pass",
+    "lintErrors": 0,
+    "preExistingLintWarnings": 2,
+    "githubCI": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/39706423513/job/119587410962"
+  },
+  "deployments": {
+    "vercel": {
+      "id": "dpl_Bcr4QGr2VnkKJc47z64o41bJYoZj",
+      "state": "READY",
+      "url": "https://container-load-planner-gray.vercel.app/"
+    },
+    "cloudflare": {
+      "id": "87767317-32bf-4ed7-be5a-a44743fd4d7c",
+      "state": "success",
+      "url": "https://container-load-planner.pages.dev/",
+      "authenticationRequested": false
+    }
+  },
+  "syntheticFixture": {
+    "cartons": 8,
+    "units": 2,
+    "cargoKg": 80,
+    "packagingKg": 40,
+    "payloadKg": 120,
+    "frontEmptyKg": 100,
+    "rearEmptyKg": 200,
+    "fullPayloadCGFromNoseMm": 250,
+    "staticFrontKg": 190,
+    "staticRearKg": 230,
+    "staticGrossKg": 420
+  },
+  "engineering": {
+    "unknownRatingsUnverified": true,
+    "frontLimit180ExcessKg": 10,
+    "unitLength501CollisionWith": "floor-pallet-2",
+    "restoredNominalBothUnits": "pass within conservative model",
+    "wrongRevisionRejected": true,
+    "nativeDownloadMatchesPublicJSON": true,
+    "crossSiteJSONByteEqual": true,
+    "refreshMatchingRevisionByteEqual": true,
+    "sha256": "fd47725833c685d38d15b9af96cf1433ff201b40ae87c49fd7d9155cbcf93847"
+  },
+  "costs": {
+    "base": "CNY",
+    "freight": 100,
+    "twoPackagingUnits": 10,
+    "laborUSD": 10,
+    "quotedUSDToCNY": 7,
+    "laborBase": 70,
+    "total": 180,
+    "costPerCarton": 22.5,
+    "missingRateTotalUnknown": true,
+    "changingBaseClearsFreightPackagingRates": true,
+    "crossSiteNativeJSONByteEqual": true,
+    "csvRowsWithHeader": 7,
+    "sha256": "431dfc0353660c55ddc3fefc825cef7262bd0c327ec95a37e487a24ad2879ce6"
+  },
+  "benchmarks": {
+    "caseVersion": "business-2026-10-v1",
+    "runsPerSite": 12,
+    "allModelValid": true,
+    "countsSetsMassAndGapsEqualAcrossSites": true,
+    "palletLoosePractical": 32,
+    "palletLooseMaximum": 31,
+    "globalOptimumBusinessCases": null,
+    "performanceIsDeviceSpecific": true
+  },
+  "cleanup": {
+    "bothSites": {
+      "cartonsPractical": 116,
+      "cartonsMaximum": 116,
+      "grossWeightKg": 3842,
+      "engineVersion": "0.54.0",
+      "strategy": "practical",
+      "language": "zh",
+      "syntheticCatalogRemoved": true
+    },
+    "applicationErrorsWarningsLatest200": 0
+  },
+  "limits": [
+    "Actual hardware WebGL/GPU and multi-browser validation remain pending",
+    "Static two-support reactions are not articulated-vehicle, dynamic or regulatory certification",
+    "Measured unit envelope trials are not adopted to main plan and do not certify bearing strength",
+    "Configured cost coverage is not full actual accounting or payment settlement",
+    "Physical-strength, advanced geometry, cross-fleet identity and other roadmap items remain incomplete",
+    "Forklift operation simulation remains excluded",
+    "Accounts, memberships and payment are not enabled"
+  ],
+  "artifacts": {
+    "v0.54.0-benchmarks-cloudflare.json": {
+      "bytes": 5067,
+      "sha256": "03376bb8feb45069cde68d099cfc8cb453170bcd329e9846f359691537da8956"
+    },
+    "v0.54.0-benchmarks-zh.jpg": {
+      "bytes": 87752,
+      "sha256": "19b85b9d9f3b60cd6754711ff837c019a83b6740e7070fa936b62c6130d2ed73"
+    },
+    "v0.54.0-benchmarks.json": {
+      "bytes": 5118,
+      "sha256": "e1aed43287cbfbfb080b770c04104e38b6f360bc236ddf93123e5bfa2dfb27ea"
+    },
+    "v0.54.0-costs-en.jpg": {
+      "bytes": 99932,
+      "sha256": "66fcb7a852b3386aa2208b0f0ad97a50cb59a52f07db066252a2d357ee6598a1"
+    },
+    "v0.54.0-costs.csv": {
+      "bytes": 477,
+      "sha256": "42a84a01e2d459492df6d4820dbf513874bb939bbc6e89cfe02289d270686542"
+    },
+    "v0.54.0-engineering-zh.jpg": {
+      "bytes": 99450,
+      "sha256": "bc0400dcb5607fdaed2b5f82c1ba563f1a7677e45f62367924940b25032d5048"
+    },
+    "v0.54.0-engineering.json": {
+      "bytes": 1244,
+      "sha256": "fd47725833c685d38d15b9af96cf1433ff201b40ae87c49fd7d9155cbcf93847"
+    },
+    "v0.54.0-fleet.json": {
+      "bytes": 16535,
+      "sha256": "431dfc0353660c55ddc3fefc825cef7262bd0c327ec95a37e487a24ad2879ce6"
+    },
+    "v0.54.0-workspace.json": {
+      "bytes": 19557,
+      "sha256": "ad1ae6debf15d8e1c646ab6e2d3c9e4fee01b910117b743a8c4b6a6eaf523b2a"
+    }
+  }
+}

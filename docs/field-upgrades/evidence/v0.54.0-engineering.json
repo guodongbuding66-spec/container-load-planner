@@ -1,0 +1,49 @@
+{
+  "format": "cargo-fit-engineering",
+  "version": 1,
+  "context": {
+    "planId": "delivery-34bed835-28d0-4e27-a032-19f1a95f54ed",
+    "revisionId": "revision-ec9e7023-6194-4db3-a186-63a1a6ec834a",
+    "signature": "51135b1daaa03857"
+  },
+  "units": [
+    {
+      "palletId": "floor-pallet-1",
+      "length": 500,
+      "width": 500,
+      "height": 300,
+      "noseProtrusion": 0,
+      "leftProtrusion": 0,
+      "extraWeightKg": 0,
+      "weightIncluded": true,
+      "source": "Synthetic tape fixture, nominal envelope",
+      "date": "2026-10-22"
+    },
+    {
+      "palletId": "floor-pallet-2",
+      "length": 500,
+      "width": 500,
+      "height": 300,
+      "noseProtrusion": 0,
+      "leftProtrusion": 0,
+      "extraWeightKg": 0,
+      "weightIncluded": true,
+      "source": "Synthetic second unit",
+      "date": "2026-10-22"
+    }
+  ],
+  "axle": {
+    "model": "rigid-two-supports",
+    "name": "QA54 rigid test",
+    "wheelbaseMm": 1000,
+    "containerNoseMm": 0,
+    "frontEmptyKg": 100,
+    "rearEmptyKg": 200,
+    "frontLimitKg": 1000,
+    "rearLimitKg": 1000,
+    "grossLimitKg": 2000,
+    "payloadCenterFromNoseMm": 250,
+    "source": "Synthetic acceptance profile, not a vehicle rating",
+    "date": "2026-10-22"
+  }
+}

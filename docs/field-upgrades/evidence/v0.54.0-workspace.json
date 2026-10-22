@@ -1,0 +1,780 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "Synthetic v054 UI acceptance",
+  "createdAt": "2026-10-22T01:35:05.839Z",
+  "inputs": {
+    "mode": "mixed",
+    "strategy": "maximum",
+    "workflow": "palletized",
+    "clearance": 0,
+    "container": {
+      "id": "qa54",
+      "name": "QA54 vehicle",
+      "length": 1000,
+      "width": 500,
+      "height": 400,
+      "doorWidth": 500,
+      "doorHeight": 400,
+      "maxWeight": 1000
+    },
+    "products": [
+      {
+        "id": "qa54-a",
+        "sku": "QA54-A",
+        "name": "Synthetic acceptance",
+        "length": 200,
+        "width": 200,
+        "height": 200,
+        "weight": 10,
+        "quantity": 8,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "maxTopLoadKg": 1000,
+        "color": "#338877"
+      }
+    ],
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "QA54 pallet",
+        "length": 500,
+        "width": 500,
+        "height": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 200
+      },
+      "mix": "single",
+      "maxPallets": 2,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "practicalTargetPercent": 84.5,
+    "customContainers": [
+      {
+        "id": "qa54",
+        "name": "QA54 vehicle",
+        "length": 1000,
+        "width": 500,
+        "height": 400,
+        "doorWidth": 500,
+        "doorHeight": 400,
+        "maxWeight": 1000
+      }
+    ],
+    "targetVolumePercent": 90,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {
+    "maximum": {
+      "deliveryIdentity": {
+        "schema": 1,
+        "planId": "delivery-34bed835-28d0-4e27-a032-19f1a95f54ed",
+        "revision": 1,
+        "revisionId": "revision-ec9e7023-6194-4db3-a186-63a1a6ec834a",
+        "issuedAt": "2026-10-22T01:35:05.836Z",
+        "signature": "51135b1daaa03857",
+        "units": [
+          {
+            "unitId": "carton-5885d07c-c471-44d8-87fc-5cf54bed1276",
+            "kind": "carton",
+            "localId": "prebuilt-1",
+            "fingerprint": "066649344e477b86"
+          },
+          {
+            "unitId": "carton-38c38a31-4299-484a-aba0-f40721e43bd0",
+            "kind": "carton",
+            "localId": "prebuilt-2",
+            "fingerprint": "066649344e477b86"
+          },
+          {
+            "unitId": "carton-f95c41c1-c18a-4033-b7ee-ce36bbe67f34",
+            "kind": "carton",
+            "localId": "prebuilt-3",
+            "fingerprint": "066649344e477b86"
+          },
+          {
+            "unitId": "carton-b277d283-41c8-4d16-9323-8c1cef681690",
+            "kind": "carton",
+            "localId": "prebuilt-4",
+            "fingerprint": "066649344e477b86"
+          },
+          {
+            "unitId": "carton-ee4523f7-d652-4f9b-aef0-e70cdeec45d2",
+            "kind": "carton",
+            "localId": "prebuilt-5",
+            "fingerprint": "066649344e477b86"
+          },
+          {
+            "unitId": "carton-34922617-18a4-4ae6-9449-5cd9f4f87cea",
+            "kind": "carton",
+            "localId": "prebuilt-6",
+            "fingerprint": "066649344e477b86"
+          },
+          {
+            "unitId": "carton-c54c76c7-b80c-492c-a116-311abf734d95",
+            "kind": "carton",
+            "localId": "prebuilt-7",
+            "fingerprint": "066649344e477b86"
+          },
+          {
+            "unitId": "carton-14aa2df1-4939-422b-9111-8d32017ede26",
+            "kind": "carton",
+            "localId": "prebuilt-8",
+            "fingerprint": "066649344e477b86"
+          },
+          {
+            "unitId": "pallet-d990a35e-f900-426f-b555-20225c634698",
+            "kind": "pallet",
+            "localId": "floor-pallet-1",
+            "fingerprint": "0399d76e5598242a"
+          },
+          {
+            "unitId": "pallet-25a56fdf-9c1a-44ad-be61-6051988e5c0e",
+            "kind": "pallet",
+            "localId": "floor-pallet-2",
+            "fingerprint": "0399d76e5598242a"
+          }
+        ],
+        "withdrawn": []
+      },
+      "workflow": "palletized",
+      "palletBuild": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "QA54 pallet",
+          "length": 500,
+          "width": 500,
+          "height": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 200
+        },
+        "mix": "single",
+        "maxPallets": 2,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0
+      },
+      "strategy": "maximum",
+      "placements": [
+        {
+          "id": "prebuilt-1",
+          "productId": "qa54-a",
+          "sku": "QA54-A",
+          "name": "Synthetic acceptance",
+          "color": "#338877",
+          "x": 0,
+          "y": 0,
+          "z": 100,
+          "dx": 200,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-2",
+          "productId": "qa54-a",
+          "sku": "QA54-A",
+          "name": "Synthetic acceptance",
+          "color": "#338877",
+          "x": 0,
+          "y": 200,
+          "z": 100,
+          "dx": 200,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-3",
+          "productId": "qa54-a",
+          "sku": "QA54-A",
+          "name": "Synthetic acceptance",
+          "color": "#338877",
+          "x": 200,
+          "y": 0,
+          "z": 100,
+          "dx": 200,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-4",
+          "productId": "qa54-a",
+          "sku": "QA54-A",
+          "name": "Synthetic acceptance",
+          "color": "#338877",
+          "x": 200,
+          "y": 200,
+          "z": 100,
+          "dx": 200,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-5",
+          "productId": "qa54-a",
+          "sku": "QA54-A",
+          "name": "Synthetic acceptance",
+          "color": "#338877",
+          "x": 500,
+          "y": 0,
+          "z": 100,
+          "dx": 200,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-6",
+          "productId": "qa54-a",
+          "sku": "QA54-A",
+          "name": "Synthetic acceptance",
+          "color": "#338877",
+          "x": 500,
+          "y": 200,
+          "z": 100,
+          "dx": 200,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-7",
+          "productId": "qa54-a",
+          "sku": "QA54-A",
+          "name": "Synthetic acceptance",
+          "color": "#338877",
+          "x": 700,
+          "y": 0,
+          "z": 100,
+          "dx": 200,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-8",
+          "productId": "qa54-a",
+          "sku": "QA54-A",
+          "name": "Synthetic acceptance",
+          "color": "#338877",
+          "x": 700,
+          "y": 200,
+          "z": 100,
+          "dx": 200,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        }
+      ],
+      "pallets": [
+        {
+          "id": "floor-pallet-1",
+          "presetId": "eur-1200-800",
+          "name": "QA54 pallet",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 500,
+          "dy": 500,
+          "dz": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          }
+        },
+        {
+          "id": "floor-pallet-2",
+          "presetId": "eur-1200-800",
+          "name": "QA54 pallet",
+          "x": 500,
+          "y": 0,
+          "z": 0,
+          "dx": 500,
+          "dy": 500,
+          "dz": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          }
+        }
+      ],
+      "palletization": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "QA54 pallet",
+          "length": 500,
+          "width": 500,
+          "height": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 200
+        },
+        "mix": "single",
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "preparedCount": 2,
+        "bounded": false,
+        "only": false
+      }
+    }
+  },
+  "coordinatePlan": {
+    "deliveryIdentity": {
+      "schema": 1,
+      "planId": "delivery-34bed835-28d0-4e27-a032-19f1a95f54ed",
+      "revision": 1,
+      "revisionId": "revision-ec9e7023-6194-4db3-a186-63a1a6ec834a",
+      "issuedAt": "2026-10-22T01:35:05.836Z",
+      "signature": "51135b1daaa03857",
+      "units": [
+        {
+          "unitId": "carton-5885d07c-c471-44d8-87fc-5cf54bed1276",
+          "kind": "carton",
+          "localId": "prebuilt-1",
+          "fingerprint": "066649344e477b86"
+        },
+        {
+          "unitId": "carton-38c38a31-4299-484a-aba0-f40721e43bd0",
+          "kind": "carton",
+          "localId": "prebuilt-2",
+          "fingerprint": "066649344e477b86"
+        },
+        {
+          "unitId": "carton-f95c41c1-c18a-4033-b7ee-ce36bbe67f34",
+          "kind": "carton",
+          "localId": "prebuilt-3",
+          "fingerprint": "066649344e477b86"
+        },
+        {
+          "unitId": "carton-b277d283-41c8-4d16-9323-8c1cef681690",
+          "kind": "carton",
+          "localId": "prebuilt-4",
+          "fingerprint": "066649344e477b86"
+        },
+        {
+          "unitId": "carton-ee4523f7-d652-4f9b-aef0-e70cdeec45d2",
+          "kind": "carton",
+          "localId": "prebuilt-5",
+          "fingerprint": "066649344e477b86"
+        },
+        {
+          "unitId": "carton-34922617-18a4-4ae6-9449-5cd9f4f87cea",
+          "kind": "carton",
+          "localId": "prebuilt-6",
+          "fingerprint": "066649344e477b86"
+        },
+        {
+          "unitId": "carton-c54c76c7-b80c-492c-a116-311abf734d95",
+          "kind": "carton",
+          "localId": "prebuilt-7",
+          "fingerprint": "066649344e477b86"
+        },
+        {
+          "unitId": "carton-14aa2df1-4939-422b-9111-8d32017ede26",
+          "kind": "carton",
+          "localId": "prebuilt-8",
+          "fingerprint": "066649344e477b86"
+        },
+        {
+          "unitId": "pallet-d990a35e-f900-426f-b555-20225c634698",
+          "kind": "pallet",
+          "localId": "floor-pallet-1",
+          "fingerprint": "0399d76e5598242a"
+        },
+        {
+          "unitId": "pallet-25a56fdf-9c1a-44ad-be61-6051988e5c0e",
+          "kind": "pallet",
+          "localId": "floor-pallet-2",
+          "fingerprint": "0399d76e5598242a"
+        }
+      ],
+      "withdrawn": []
+    },
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "QA54 pallet",
+        "length": 500,
+        "width": 500,
+        "height": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 200
+      },
+      "mix": "single",
+      "maxPallets": 2,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "strategy": "maximum",
+    "placements": [
+      {
+        "id": "prebuilt-1",
+        "productId": "qa54-a",
+        "sku": "QA54-A",
+        "name": "Synthetic acceptance",
+        "color": "#338877",
+        "x": 0,
+        "y": 0,
+        "z": 100,
+        "dx": 200,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-2",
+        "productId": "qa54-a",
+        "sku": "QA54-A",
+        "name": "Synthetic acceptance",
+        "color": "#338877",
+        "x": 0,
+        "y": 200,
+        "z": 100,
+        "dx": 200,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-3",
+        "productId": "qa54-a",
+        "sku": "QA54-A",
+        "name": "Synthetic acceptance",
+        "color": "#338877",
+        "x": 200,
+        "y": 0,
+        "z": 100,
+        "dx": 200,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-4",
+        "productId": "qa54-a",
+        "sku": "QA54-A",
+        "name": "Synthetic acceptance",
+        "color": "#338877",
+        "x": 200,
+        "y": 200,
+        "z": 100,
+        "dx": 200,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-5",
+        "productId": "qa54-a",
+        "sku": "QA54-A",
+        "name": "Synthetic acceptance",
+        "color": "#338877",
+        "x": 500,
+        "y": 0,
+        "z": 100,
+        "dx": 200,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-6",
+        "productId": "qa54-a",
+        "sku": "QA54-A",
+        "name": "Synthetic acceptance",
+        "color": "#338877",
+        "x": 500,
+        "y": 200,
+        "z": 100,
+        "dx": 200,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-7",
+        "productId": "qa54-a",
+        "sku": "QA54-A",
+        "name": "Synthetic acceptance",
+        "color": "#338877",
+        "x": 700,
+        "y": 0,
+        "z": 100,
+        "dx": 200,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-8",
+        "productId": "qa54-a",
+        "sku": "QA54-A",
+        "name": "Synthetic acceptance",
+        "color": "#338877",
+        "x": 700,
+        "y": 200,
+        "z": 100,
+        "dx": 200,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      }
+    ],
+    "pallets": [
+      {
+        "id": "floor-pallet-1",
+        "presetId": "eur-1200-800",
+        "name": "QA54 pallet",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "dx": 500,
+        "dy": 500,
+        "dz": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "orientation": "LWH",
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        }
+      },
+      {
+        "id": "floor-pallet-2",
+        "presetId": "eur-1200-800",
+        "name": "QA54 pallet",
+        "x": 500,
+        "y": 0,
+        "z": 0,
+        "dx": 500,
+        "dy": 500,
+        "dz": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "orientation": "LWH",
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        }
+      }
+    ],
+    "palletization": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "QA54 pallet",
+        "length": 500,
+        "width": 500,
+        "height": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 200
+      },
+      "mix": "single",
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "preparedCount": 2,
+      "bounded": false,
+      "only": false
+    }
+  }
+}
