@@ -314,6 +314,8 @@ export type StrategyComparison = {
   gainRatio: number;
   sameQuantity: boolean;
   practicalUsesTheoreticalGuide: boolean;
+  /** This run reused a valid practical candidate; equal counts need not mean independent convergence. */
+  maximumUsesPracticalLowerBound?: boolean;
   guidance: StrategyGuidance[];
 };
 
@@ -350,6 +352,8 @@ export type QuoteEstimate = {
 };
 
 export type PackingResult = {
+  /** Generation evidence only; never authority for restoring or validating coordinates. */
+  palletSearch?: import("./pallet-search").PalletSearchSummary;
   deliveryIdentity?: import("./delivery-identity").DeliveryIdentity;
   /** Independent handling tasks; never packing authorization or cached check conclusions. */
   handlingTasks?: import("./handling-sequence").HandlingTask[];

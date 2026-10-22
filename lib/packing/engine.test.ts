@@ -771,7 +771,7 @@ describe("packing engine", () => {
     expect(fullTargetPlan.warnings.join(" ")).toContain("当前计划上限 529 个完整套");
     expect(fullTargetPlan.strategyComparison?.guidance).toContainEqual(expect.objectContaining({
       title: "现场方案已达到当前极限搜索结果",
-      detail: expect.stringContaining("两套求解器分别运行"),
+      detail: expect.stringContaining("当前两个有效方案数量相同"),
     }));
   }, 45_000);
 

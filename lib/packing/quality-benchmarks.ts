@@ -18,14 +18,14 @@ export function qualityCases():QualityCase[]{
  {id:"pallet-loose",name:["整托与尾数散箱","Pallets and loose tails"],proof:"feasible reference; global optimum unknown",exactCount:null,request:{...r,workflow:"palletized",container:{...r.container,length:1400,width:1000,height:800,doorWidth:1000,doorHeight:800},products:[{...p,length:250,width:250,height:200,quantity:30},{...p,id:"b",sku:"B",length:400,width:200,height:200,quantity:20}],palletBuild:{...DEFAULT_PALLET_BUILD,maxPallets:4,mix:"mixed",looseQuantities:{a:2,b:2},config:{...DEFAULT_PALLET_BUILD.config,length:1000,width:1000,height:100,weight:20,maxCargoHeight:600}}}}
  ];
 }
-export type QualityRow={caseId:string;name:[string,string];strategy:"practical"|"maximum";proof:string;exactCount:number|null;loaded:number;sets:number;payloadKg:number;elapsedMs:number;valid:boolean;gapToProof:number|null;errors:string[]};
+export type QualityRow={caseId:string;name:[string,string];strategy:"practical"|"maximum";proof:string;exactCount:number|null;loaded:number;sets:number;payloadKg:number;elapsedMs:number;valid:boolean;gapToProof:number|null;errors:string[];palletSearch?:import("./pallet-search").PalletSearchSummary};
 export type QualityReport={format:"cargo-fit-quality-benchmarks";version:1;caseVersion:string;engineVersion:string;createdAt:string;complete:boolean;rows:QualityRow[]};
 export function runQualityCase(id:string,strategy:"practical"|"maximum"):QualityRow{
  const c=qualityCases().find(c=>c.id===id);if(!c||!["practical","maximum"].includes(strategy))throw Error("Unknown benchmark case or strategy");
  const start=performance.now(),p=packLoadingWorkflow({...structuredClone(c.request),strategy}),elapsedMs=performance.now()-start,a=auditPackingResult(p,c.request.products),w=plannedWeightBreakdown(p),errors:string[]=[];
  if(!p.validation.valid||a.hasErrors||!a.completeCoordinates||!w.consistent)errors.push("Plan validation failed");
  if(c.exactCount!==null&&p.metrics.loadedCount>c.exactCount)errors.push("Proved physical upper bound exceeded");
- return {caseId:id,name:c.name,strategy,proof:c.proof,exactCount:c.exactCount,loaded:p.metrics.loadedCount,sets:p.setSummaries.reduce((n,s)=>n+s.loadedSets,0),payloadKg:w.payloadKg,elapsedMs,valid:!errors.length,gapToProof:c.exactCount===null?null:c.exactCount-p.metrics.loadedCount,errors};
+ return {caseId:id,name:c.name,strategy,proof:c.proof,exactCount:c.exactCount,loaded:p.metrics.loadedCount,sets:p.setSummaries.reduce((n,s)=>n+s.loadedSets,0),payloadKg:w.payloadKg,elapsedMs,valid:!errors.length,...(p.palletSearch?{palletSearch:p.palletSearch}:{}),gapToProof:c.exactCount===null?null:c.exactCount-p.metrics.loadedCount,errors};
 }
 export function qualityReport(rows:QualityRow[]):QualityReport{
  const expected=new Set(qualityCases().flatMap(c=>[`${c.id}/practical`,`${c.id}/maximum`])),actual=new Set(rows.map(r=>`${r.caseId}/${r.strategy}`));

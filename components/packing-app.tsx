@@ -770,8 +770,10 @@ export function PackingApp() {
   const selectedFeasibleRecommendation = feasibleRecommendation(reversePlan, selectedCachedPlan);
   const selectedPlanCartons = selectedCachedPlan?.metrics.loadedCount ?? selectedFeasibleRecommendation.totalCartons;
   const theoreticalGainDisplay = practicalPredictionDisplay !== null && maximumPredictionDisplay !== null
-    ? Math.max(0, maximumPredictionDisplay - practicalPredictionDisplay)
+    ? maximumPredictionDisplay - practicalPredictionDisplay
     : null;
+  const usesPracticalLowerBound = !!cachedMaximumPlan?.strategyComparison?.maximumUsesPracticalLowerBound;
+  const comparisonNeedsSkuReview = !!result?.strategyComparison && result.strategyComparison.maximum.displayQuantity < result.strategyComparison.practical.displayQuantity;
   const resultPlanningDelta = result && result.mode === "single"
     ? resultLoadedDisplay - selectedFeasibleRecommendation.displayQuantity
     : 0;
@@ -2144,8 +2146,8 @@ export function PackingApp() {
                 <section className="viewer-decision-grid" aria-label={tr("现场与极限方案统一对比")}>
                   <article className="current"><span>{tr("当前可视方案")}</span><strong>{formatNumber(resultLoadedDisplay)} {resultDisplayUnit === "set" ? tr("套") : tr("箱")}</strong><small>{formatNumber(result.metrics.loadedCount)}{tr(" 箱 · 体积 ")}{formatPercent(result.metrics.volumeUtilization)}</small></article>
                   <article><span>{tr("现场易执行")}</span><strong>{practicalPredictionDisplay === null ? "—" : `${formatNumber(practicalPredictionDisplay)} ${reversePlan.displayUnit === "set" ? tr("套") : tr("箱")}`}</strong><small>{tr("经验率 ")}{practicalTargetPercent.toFixed(1)}{tr("% · 完整承托")}</small></article>
-                  <article className="maximum"><span>{tr("高密度参考")}</span><strong>{maximumPredictionDisplay === null ? "—" : `${formatNumber(maximumPredictionDisplay)} ${reversePlan.displayUnit === "set" ? tr("套") : tr("箱")}`}</strong><small>{tr("启发式独立搜索 · 非全局最优证明")}</small></article>
-                  <article className="delta"><span>{tr("搜索增量")}</span><strong>{theoreticalGainDisplay === null ? "—" : `+${formatNumber(theoreticalGainDisplay)} ${reversePlan.displayUnit === "set" ? tr("套") : tr("箱")}`}</strong><small>{theoreticalGainDisplay ? tr("用于反向优化现场分区") : tr("当前两套算法数量一致，继续比较复杂度")}</small></article>
+                  <article className="maximum"><span>{tr("高密度参考")}</span><strong>{maximumPredictionDisplay === null ? "—" : `${formatNumber(maximumPredictionDisplay)} ${reversePlan.displayUnit === "set" ? tr("套") : tr("箱")}`}</strong><small>{usesPracticalLowerBound ? tr("采用已复核的现场候选 · 非全局最优证明", "Reviewed practical candidate · no global optimum proof") : tr("启发式独立搜索 · 非全局最优证明")}</small></article>
+                  <article className="delta"><span>{tr("搜索增量")}</span><strong>{theoreticalGainDisplay === null ? "—" : `${theoreticalGainDisplay >= 0 ? "+" : ""}${formatNumber(theoreticalGainDisplay)} ${reversePlan.displayUnit === "set" ? tr("套") : tr("箱")}`}</strong><small>{theoreticalGainDisplay === null ? tr("等待另一算法完成", "Waiting for the other solver") : theoreticalGainDisplay < 0 ? tr("货物组合不同，请逐 SKU 复核", "Different cargo mixes; review each SKU") : theoreticalGainDisplay > 0 ? tr("用于反向优化现场分区") : usesPracticalLowerBound ? tr("采用已复核的现场候选", "Reviewed practical candidate adopted") : tr("当前两套算法数量一致，继续比较复杂度")}</small></article>
                 </section>
               </>
             ) : null}
@@ -2195,10 +2197,10 @@ export function PackingApp() {
             {result.strategyComparison && !dirty ? (
               <section className="strategy-comparison" aria-label={tr("现场与极限算法对比")}>
                 <div className="strategy-comparison-head">
-                  <div><span className="section-kicker">TWO INDEPENDENT SOLVERS</span><strong>{tr("现场算法 × 高密度参考算法")}</strong><small>{tr("同一份输入分别计算；高密度结果只把安全子集反向下放到现场方案。")}</small></div>
+                  <div><span className="section-kicker">TWO INDEPENDENT SOLVERS</span><strong>{tr("现场算法 × 高密度参考算法")}</strong><small>{usesPracticalLowerBound ? tr("同源输入分别搜索；高密度方案已采用通过校验且逐订单行数量不减少的现场候选。", "Both searches use the same inputs. The high-density plan adopted a validated practical candidate without reducing any order row.") : tr("同一份输入分别计算；高密度结果只把安全子集反向下放到现场方案。")}</small></div>
                   <b className={result.strategyComparison.sameQuantity ? "matched" : "gain"}>{result.strategyComparison.sameQuantity
                     ? tr("当前数量一致")
-                    : tt`理论多 ${formatNumber(result.strategyComparison.gainQuantity)} ${result.strategyComparison.displayUnit === "set" ? tr("套") : tr("箱")}`}</b>
+                    : comparisonNeedsSkuReview ? tr("货物组合不同，需复核", "Different cargo mixes; review required") : tt`理论多 ${formatNumber(result.strategyComparison.gainQuantity)} ${result.strategyComparison.displayUnit === "set" ? tr("套") : tr("箱")}`}</b>
                 </div>
                 <div className="strategy-comparison-grid">
                   <article className={result.strategy === "practical" ? "selected" : ""}>
@@ -2213,8 +2215,8 @@ export function PackingApp() {
                   </article>
                   <article className="delta">
                     <span>{tr("可研究增量")}</span>
-                    <strong>{result.strategyComparison.sameQuantity ? tr("已追平") : `+${formatPercent(result.strategyComparison.gainRatio)}`}</strong>
-                    <small>{result.strategyComparison.sameQuantity ? tr("复杂摆法未增加数量") : tr("先看方向、侧翻与承托来源")}</small>
+                    <strong>{comparisonNeedsSkuReview ? tr("组合待复核", "Cargo mix needs review") : result.strategyComparison.sameQuantity ? usesPracticalLowerBound ? tr("采用合法下界", "Valid lower bound adopted") : tr("已追平") : `+${formatPercent(result.strategyComparison.gainRatio)}`}</strong>
+                    <small>{comparisonNeedsSkuReview ? tr("总箱数不能替代逐 SKU 的装载要求", "Total cartons cannot replace per-SKU loading requirements") : usesPracticalLowerBound ? tr("候选复用，不代表两次搜索自然收敛", "Candidate reuse does not mean independent convergence") : result.strategyComparison.sameQuantity ? tr("复杂摆法未增加数量") : tr("先看方向、侧翻与承托来源")}</small>
                   </article>
                 </div>
                 <div className="strategy-guidance-list">

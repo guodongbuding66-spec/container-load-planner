@@ -1,3 +1,4 @@
+import {reviewPalletLowerBound,type PalletSearchSummary} from "./pallet-search";
 import {looseReservationErrors,looseOutsideUnit} from "./loose-cargo";
 import {applyTypeSupport} from "./loading-rules";
 import {crateAutoEnabled,crateTopCapacity,crateCandidateAllowed,isCrate} from "./crate-auto-stack";
@@ -38,7 +39,7 @@ function topCapacity(cargo: PlacedBox[], request: PackingRequest, config: FloorP
 }
 
 /** Pack cargo with stock-limited specifications, then load rigid units. */
-export function palletizeThenPack(request: PackingRequest, input: FloorPalletConfig, mix: "single" | "mixed", maxPallets = 20, build?: PalletBuildOptions) {
+function buildPalletCandidate(request: PackingRequest, input: FloorPalletConfig, mix: "single" | "mixed", maxPallets = 20, build?: PalletBuildOptions) {
   const started = performance.now();
   assertAccessorySupportWorkflow({...request,workflow:"palletized"});
   const config = parseFloorPalletConfig(input);
@@ -168,4 +169,35 @@ export function palletizeThenPack(request: PackingRequest, input: FloorPalletCon
   if(!only&&specifications.some(s=>s.stackLayers>1))plan.warnings.unshift("整托堆叠按声明的整托上压和已提供的箱体承重核验；缺少箱体承重资料时不能视为逐箱承重已核验");
   plan.metrics.solveTimeMs=performance.now()-started;
   return {plan,prepared,loadedPallets:pallets.length,unloadedPallets:prepared.length-pallets.length,remaining:plan.summaries.filter(s=>s.unloaded>0),bounded};
+}
+
+
+/** Bounded portfolio shared by Workers, fleet allocation and benchmark callers.
+ * The native maximum candidate stays intact until a complete practical candidate
+ * is revalidated under maximum rules and improves every retained source row.
+ */
+export function palletizeThenPack(request: PackingRequest, input: FloorPalletConfig, mix: "single" | "mixed", maxPallets = 20, build?: PalletBuildOptions) {
+  const started=performance.now(),native=buildPalletCandidate(request,input,mix,maxPallets,build);
+  if((request.strategy??"practical")!=="maximum")return native;
+  const summary:PalletSearchSummary={maximumCount:native.plan.placements.length,practicalCount:null,selected:"maximum",comparison:"not-needed"};
+  let chosen=native;
+  if(native.plan.summaries.some(s=>s.unloaded>0)){
+    let reference:ReturnType<typeof buildPalletCandidate>|undefined;
+    try{reference=buildPalletCandidate({...request,strategy:"practical"},input,mix,maxPallets,build);summary.practicalCount=reference.plan.placements.length;}
+    catch{summary.comparison="unavailable";}
+    if(reference){
+      try{
+        const reviewed=reviewPalletLowerBound({...request,floorPallets:undefined,workflow:native.plan.workflow,palletBuild:native.plan.palletBuild,container:native.plan.container,strategy:"maximum"},native.plan,reference.plan);
+        summary.comparison=reviewed?"adopted-lower-bound":"kept-maximum";
+        if(reviewed){chosen={...reference,plan:reviewed,remaining:reviewed.summaries.filter(s=>s.unloaded>0)};summary.selected="practical-lower-bound";}
+      }catch{summary.comparison="rejected";}
+    }
+  }
+  const note=summary.selected==="practical-lower-bound"
+    ? `高密度整托搜索原候选 ${summary.maximumCount} 箱；采用重新校验的现场完整候选 ${summary.practicalCount} 箱，每个 SKU 均未减量。有限搜索不代表全局最优 / Maximum pallet search found ${summary.maximumCount} cartons; adopted the revalidated ${summary.practicalCount}-carton practical candidate without reducing any SKU. Bounded search is not a global optimum proof`
+    : summary.comparison==="rejected"||summary.comparison==="unavailable"
+    ? "补充整托候选未完成或未通过独立复核，保留原高密度合法候选 / Additional pallet candidate was unavailable or failed independent review; retained the original valid maximum candidate"
+    : undefined;
+  const plan={...chosen.plan,palletSearch:summary,metrics:{...chosen.plan.metrics,solveTimeMs:performance.now()-started},warnings:[...chosen.plan.warnings,...(note?[note]:[])]};
+  return {...chosen,plan};
 }

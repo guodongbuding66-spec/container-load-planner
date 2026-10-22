@@ -43,12 +43,13 @@ import {
   collectSetGroups,
   normalizedSetCode as setCode,
   normalizedUnitsPerSet as unitsPerSet,
+  retainsLoadedRows,
   selectProductsForMode,
 } from "./set-utils";
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.54.0";
+export const ENGINE_VERSION = "0.55.0";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -2361,7 +2362,7 @@ function comparisonSnapshot(result: PackingResult): StrategyComparison["practica
   };
 }
 
-function buildStrategyComparison(practical: PackingResult, maximum: PackingResult): StrategyComparison {
+function buildStrategyComparison(practical: PackingResult, maximum: PackingResult, maximumUsesPracticalLowerBound = false): StrategyComparison {
   const displayUnit = practical.mode === "single" && practical.setSummaries.length ? "set" : "carton";
   const practicalSnapshot = comparisonSnapshot(practical);
   const maximumSnapshot = comparisonSnapshot(maximum);
@@ -2393,11 +2394,23 @@ function buildStrategyComparison(practical: PackingResult, maximum: PackingResul
         detail: "现场求解器会采用理论搜索发现的多种 SKU 排序线索，但每个候选都会按不侧翻、最多两种水平朝向和 99.5% 承托重新摆放与校验，不直接复制理论坐标。",
       });
 
-  if (gainQuantity === 0) {
+  if (maximumSnapshot.displayQuantity < practicalSnapshot.displayQuantity) {
+    guidance.push({
+      level: "review",
+      title: "货物组合不同，不能只按总箱数替换",
+      detail: "现场候选未能保留高密度候选的每个订单行数量，已保留原方案；请逐 SKU 检查必装货物和套装完整性，当前有限搜索未证明全局最优。",
+    });
+  } else if (gainQuantity === 0 && maximumUsesPracticalLowerBound) {
+    guidance.push({
+      level: "adopted",
+      title: "已采用合法现场候选作为搜索下界",
+      detail: "高密度原始候选数量较少，已采用通过校验且每个订单行数量均不减少的现场方案。当前数量一致来自候选复用，不代表两套搜索自然收敛，也不证明全局最优。",
+    });
+  } else if (gainQuantity === 0) {
     guidance.push({
       level: "matched",
       title: "现场方案已达到当前极限搜索结果",
-      detail: "数量相同不是共用算法：两套求解器分别运行后收敛到同一数量，增加侧翻或碎片补位也没有带来有效增量。",
+      detail: "当前两个有效方案数量相同；这不证明全局最优，仍需比较货物构成、承托与执行复杂度。",
     });
   } else {
     guidance.push({
@@ -2458,16 +2471,17 @@ function buildStrategyComparison(practical: PackingResult, maximum: PackingResul
     maximum: maximumSnapshot,
     gainQuantity,
     gainRatio,
-    sameQuantity: gainQuantity === 0,
+    sameQuantity: maximumSnapshot.displayQuantity === practicalSnapshot.displayQuantity,
     practicalUsesTheoreticalGuide: true,
+    maximumUsesPracticalLowerBound,
     guidance,
   };
 }
 
 /**
  * UI/Worker entry point: both independent solvers run for the same immutable
- * input. The theoretical solver treats the practical result as a valid lower
- * bound, so a heuristic search can never report a worse "maximum" result.
+ * input. A larger practical result can be reused as a lower bound only when it
+ * retains every loaded order row. Different cargo mixes require human review.
  */
 export function combineStrategyResults(
   practical: PackingResult,
@@ -2475,7 +2489,9 @@ export function combineStrategyResults(
   selectedStrategy: PackingStrategy = "practical",
 ): PackingResult {
   let maximumCapacity = maximum;
-  if (strategyDisplayQuantity(maximumCapacity) < strategyDisplayQuantity(practical)) {
+  let maximumUsesPracticalLowerBound = maximum.palletSearch?.selected === "practical-lower-bound";
+  if (strategyDisplayQuantity(maximumCapacity) < strategyDisplayQuantity(practical) &&
+      retainsLoadedRows(practical.placements, maximumCapacity.placements)) {
     const attemptedMaximum = maximumCapacity;
     maximumCapacity = {
       ...practical,
@@ -2497,8 +2513,9 @@ export function combineStrategyResults(
         "高密度搜索未超过现场合法解，已将现场方案作为搜索下界；不会把较差的启发式结果伪装成理论上限。",
       ],
     };
+    maximumUsesPracticalLowerBound = true;
   }
-  const comparison = buildStrategyComparison(practical, maximumCapacity);
+  const comparison = buildStrategyComparison(practical, maximumCapacity, maximumUsesPracticalLowerBound);
   const practicalPlan = { ...practical, strategyComparison: comparison };
   const maximumPlan = { ...maximumCapacity, strategyComparison: comparison };
   const strategyPlans: NonNullable<PackingResult["strategyPlans"]> = {

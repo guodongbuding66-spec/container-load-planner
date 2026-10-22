@@ -1,5 +1,20 @@
 import type { PackingMode, ProductInput } from "./types";
 
+/** A larger total is not an improvement if it displaces any source order row. */
+export function retainsLoadedRows(
+  candidate: readonly { productId: string }[],
+  baseline: readonly { productId: string }[],
+) {
+  const counts = new Map<string, number>();
+  for (const box of candidate) counts.set(box.productId, (counts.get(box.productId) ?? 0) + 1);
+  for (const box of baseline) {
+    const remaining = counts.get(box.productId) ?? 0;
+    if (remaining === 0) return false;
+    counts.set(box.productId, remaining - 1);
+  }
+  return true;
+}
+
 export type SetInputItem = {
   productId: string;
   sku: string;
