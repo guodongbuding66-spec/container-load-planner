@@ -1,0 +1,15 @@
+import {afterEach,expect,it,vi} from "vitest";
+import {renderToStaticMarkup} from "react-dom/server";
+import {AxleForm,EngineeringChecks,EngineeringWorkspace} from "./engineering-checks";
+import {QualityBenchmarks} from "./quality-benchmarks";
+import {FleetAdditionalPrices} from "./fleet-additional-prices";
+import {issueDeliveryIdentity} from "../lib/packing/delivery-identity";
+import {pack} from "../lib/packing/engine";
+import {emptyEngineeringDocument} from "../lib/packing/engineering-checks";
+import {setAppLanguage} from "./language";
+const req={mode:"mixed" as const,strategy:"maximum" as const,clearance:0,container:{id:"c",name:"C",length:1000,width:1000,height:1000,doorWidth:1000,doorHeight:1000,maxWeight:1000},products:[{id:"a",sku:"A",name:"A",length:100,width:100,height:100,weight:10,quantity:2,priority:50,rotationPolicy:"fixed" as const,stackable:false,maxStackLayers:0,color:"#338877"}]},raw=pack(req),plan=issueDeliveryIdentity(raw);
+afterEach(()=>{vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("zh");vi.unstubAllGlobals();});
+it("requires a current issued version and keeps independent backup scope visible",()=>{const h=renderToStaticMarkup(<EngineeringChecks plan={raw} disabled={false}/>);expect(h).toContain("请先登记");expect(h).toContain("不包含在工作区");expect(h).not.toContain("复核并保存静态轴荷");});
+it("does not prefill unknown ratings, empty weights or CG with invented zero",()=>{const h=renderToStaticMarkup(<AxleForm disabled={false} onApply={()=>{}}/>);expect(h.match(/value=""/g)?.length).toBe(11);expect(h).toContain("未知留空");});
+it("blocks damaged and stale records and permits a valid page copy when storage is denied",()=>{vi.stubGlobal("localStorage",{getItem:()=>"broken"});let h=renderToStaticMarkup(<EngineeringWorkspace plan={plan} disabled={false}/>);expect(h).toContain("已阻止覆盖");expect(h).toContain("下载无法读取的原始记录");expect(h).toMatch(/disabled=""[^>]*>导入工程复核备份/);vi.stubGlobal("localStorage",{getItem:()=>{throw Error("denied");}});h=renderToStaticMarkup(<EngineeringWorkspace plan={plan} disabled={false} getDocument={()=>emptyEngineeringDocument(plan)}/>);expect(h).toContain("浏览器保存不可用");expect(h).not.toContain("已阻止覆盖");});
+it("keeps all new empty states and benchmark constraints in English",()=>{vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");vi.stubGlobal("localStorage",{getItem:()=>null});const h=renderToStaticMarkup(<><EngineeringWorkspace plan={plan} disabled={false}/><QualityBenchmarks/><FleetAdditionalPrices request={req} value={{currency:"CNY",packaging:{}}} onChange={()=>{}} onValidity={()=>{}} disabled={false}/></>);expect(h).toContain("95% utilization ceiling");expect(h).toContain("No vehicle data supplied");expect(h).not.toMatch(/[\u3400-\u9fff]/u);});

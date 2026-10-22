@@ -1482,3 +1482,14 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 .operations-history li { border-bottom:1px solid var(--line); padding:10px 0; }
 .operations-backup { display:block; width:100%; min-height:180px; margin-top:8px; font-family:monospace; }
 @media(max-width:640px) { .operations-task-list li { flex-direction:column; gap:4px; } }
+
+/* Engineering and quote forms reuse workspace surfaces and native form controls. */
+.engineering-fields {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px;margin:16px 0;padding:16px;border:1px solid var(--line);border-radius:12px;min-width:0;}
+.engineering-fields legend {font-weight:600;padding:0 6px;}
+.engineering-fields label {display:flex;flex-direction:column;gap:6px;min-width:0;font-size:13px;line-height:1.5;}
+.engineering-fields input,.engineering-fields select {width:100%;min-height:36px;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--ink);font:inherit;font-variant-numeric:tabular-nums;}
+.engineering-fields input[type=checkbox] {width:18px;min-height:18px;align-self:flex-start;}
+.engineering-fields fieldset {min-width:0;border:0;padding:0;margin:0;}
+.engineering-fields button {align-self:end;}
+.engineering-workspace,.engineering-report {overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
+.engineering-workspace textarea,.upgrade-body>textarea {width:100%;min-height:180px;font:12px/1.6 monospace;}

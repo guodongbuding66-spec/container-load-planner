@@ -1,4 +1,7 @@
 "use client";
+import {EngineeringChecks} from "./engineering-checks";
+import type {EngineeringDocument} from "../lib/packing/engineering-checks";
+import {QualityBenchmarks} from "./quality-benchmarks";
 import {WeighingPanel} from "./weighing-panel";
 import type {WeighingRecords} from "../lib/packing/weighing";
 import {OperationsPanel} from "./operations-panel";
@@ -421,6 +424,9 @@ export function PackingApp() {
   const [renderPrintViews, setRenderPrintViews] = useState(false);
   const [solverSchedule, setSolverSchedule] = useState<SolverSchedule>("parallel");
   const workersRef = useRef<Partial<Record<PackingStrategy, Worker>>>({});
+  const engineeringDocumentsRef=useRef(new Map<string,EngineeringDocument>());
+  const getEngineeringDocument=useCallback((key:string)=>engineeringDocumentsRef.current.get(key),[]);
+  const receiveEngineeringDocument=useCallback((key:string,doc:EngineeringDocument)=>{engineeringDocumentsRef.current.set(key,doc);},[]);
   const weighingRecordsRef=useRef(new Map<string,WeighingRecords>());
   const getWeighingRecords=useCallback((key:string)=>weighingRecordsRef.current.get(key),[]);
   const receiveWeighingRecords=useCallback((key:string,records:WeighingRecords)=>{weighingRecordsRef.current.set(key,records);},[]);
@@ -2334,6 +2340,7 @@ export function PackingApp() {
         <WorkflowTools
           projects={<>
           <ArchiveLibrary backup={workspaceBackup} disabled={upgradesDisabled} onRestore={backup=>{void restoreWorkspace(new File([backup],tr("工作区归档.json"),{type:"application/json"}));}} onProducts={replaceProductInputs}/>
+          <QualityBenchmarks/>
           <ProductCatalog products={activeProducts} plan={result} disabled={upgradesDisabled} onProducts={replaceProductInputs}/>
           </>}
           loading={<>
@@ -2350,6 +2357,7 @@ export function PackingApp() {
           delivery={result && !hasPendingDimensionChanges ? <>
             <DeliveryVersionPanel plan={result} disabled={!canExport} onIssue={adoptDeliveryVersion} backup={workspaceBackup}/>
             <WeighingPanel plan={result} disabled={!canExport} getRecords={getWeighingRecords} onRecords={receiveWeighingRecords}/>
+            <EngineeringChecks plan={result} disabled={!canExport} getDocument={getEngineeringDocument} onDocument={receiveEngineeringDocument}/>
             <OperationsPanel plan={result} disabled={!canExport} getRecords={getOperationRecords} onRecords={receiveOperationRecords}/>
             <FieldJournalPanel plan={result} disabled={!canExport} onRecords={receiveFieldRecords} onLockLoaded={adoptLoadedLocks} getRecords={getKnownFieldRecords}/>
             {canExport ? <FieldGuide key={`field-${result.id}`} result={result} products={activeProducts}/> : null}

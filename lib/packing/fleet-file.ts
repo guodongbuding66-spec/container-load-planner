@@ -31,6 +31,8 @@ export function buildFleetSummary(result:FleetResult){
  result.inventory?.packages.forEach(p=>rows.push(["packaging-stock","",p.id,p.available,p.used,p.remaining]));
  result.inventory?.loose.filter(p=>p.reserved>0).forEach(p=>rows.push(["loose-reservation","",p.sku,p.reserved,p.used,p.remaining]));
  result.remaining.forEach(p=>rows.push(["unloaded","",p.sku,"","",p.quantity]));
+ for(const c of result.costs?.lines??[])rows.push([`charge:${c.category}`,`${c.id} / ${c.label} / ${c.currency} ${c.amount??"unquoted"} / FX ${c.exchangeRate??"unknown"} / ${c.source}`,"",c.quantity,"","","",c.subtotal,"","",result.costs?.currency??""]);
+ for(const r of result.pricing?.exchangeRates??[])rows.push(["quoted-exchange-rate",`${r.currency} / ${r.date} / ${r.source}`,"","","","",r.rate,"","","",result.costs?.currency??""]);
  if(result.costs)rows.push(["freight-and-packaging","","","","","",result.costs.freight,result.costs.packaging,result.costs.knownSubtotal,result.costs.total,result.costs.currency]);
  return rows.map(row=>row.map(toCsvCell).join(",")).join("\r\n");
 }
