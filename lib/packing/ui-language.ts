@@ -1,4 +1,13 @@
 export const ENGLISH: Record<string, string> = {
+  "固定案例运行完成。": "Fixed cases completed.",
+  "线程异常，保留已完成案例。": "Worker failed; completed cases are retained.",
+  "达到 120 秒时限，保留部分结果。": "Reached the 120-second limit; partial results retained.",
+  "无法启动基准线程，请使用支持 Worker 的浏览器。": "Cannot start the benchmark worker; use a browser with Worker support.",
+  "已停止，保留部分结果。": "Stopped; partial results retained.",
+  "本页已接收报告；原损坏历史未覆盖，请下载当前报告和原始记录。": "Reports are available on this page. The corrupt original was preserved; download the current report and original records.",
+  "基准历史已保存。": "Benchmark history saved.",
+  "本机存储未写入，本页报告仍保留；请下载备份。": "Local storage was not written. Reports remain on this page; download a backup.",
+  "导入未采用，现有历史保留。 {0}": "Import was not adopted; existing history is preserved. {0}",
   "已达到柜数上限": "Container limit reached",
   "订单已全部分配": "The entire order has been allocated",
   "正在分配后续柜": "Allocating the remaining containers",

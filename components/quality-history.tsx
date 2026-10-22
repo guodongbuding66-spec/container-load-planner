@@ -52,8 +52,8 @@ export function QualityHistory({report,running}:{report:QualityReport|null;runni
     }
     const next=mergeQualityHistory(base,incoming),serialized=serializeQualityHistory(next);
     history.current=next;setReports(next);setSelected(incoming[0]?qualityReportKey(incoming[0]):"");
-    if(blocked.current){setMessage(tr("本页已接收报告；原损坏历史未覆盖，请下载当前报告和原始记录。","Reports are available on this page. The corrupt original was preserved; download the current report and original records."));return;}
-    try{localStorage.setItem(QUALITY_HISTORY_KEY,serialized);setMode("saved");setMessage(tr("基准历史已保存。","Benchmark history saved."));}catch{setMode("session");setMessage(tr("本机存储未写入，本页报告仍保留；请下载备份。","Local storage was not written. Reports remain on this page; download a backup."));}
+    if(blocked.current){setMessage("本页已接收报告；原损坏历史未覆盖，请下载当前报告和原始记录。");return;}
+    try{localStorage.setItem(QUALITY_HISTORY_KEY,serialized);setMode("saved");setMessage("基准历史已保存。");}catch{setMode("session");setMessage("本机存储未写入，本页报告仍保留；请下载备份。");}
   };
   const baseline=reports.find(r=>qualityReportKey(r)===selected);
   return <section aria-label={tr("基准历史与版本比较","Benchmark history and version comparison")}>
@@ -61,14 +61,14 @@ export function QualityHistory({report,running}:{report:QualityReport|null;runni
     <p>{tr("最多保留最近保存的 8 份报告，超过后移出最早保存的一份；重要记录请下载。历史保存在当前浏览器，不会修改订单。","Keeps the last eight saved reports, removing the oldest saved entry when full. Download important records. History stays in this browser and does not change the order.")}</p>
     {mode==="corrupt"?<><p role="status">{tr("本机基准历史无法读取；已阻止覆盖原始内容，新报告仅保留在本页。","Local benchmark history cannot be read. Its original contents are protected; new reports stay on this page only.")}</p><button className="button" onClick={()=>download("benchmark-history-unreadable.json",raw)}>{tr("下载无法读取的原始基准历史","Download unreadable original benchmark history")}</button></>:mode==="session"?<p role="status">{tr("本机存储不可用或额度不足；本页仍可比较和下载，刷新前请备份。","Local storage is unavailable or full. You can compare and download on this page; back up before refreshing.")}</p>:null}
     <div className="upgrade-actions">
-      <button className="button" disabled={!ready||running||!report?.rows.length} onClick={()=>{try{commit([report!]);}catch(e){setMessage(trText(e instanceof Error?e.message:String(e)));}}}>{tr("保存本次基准报告","Save current benchmark report")}</button>
+      <button className="button" disabled={!ready||running||!report?.rows.length} onClick={()=>{try{commit([report!]);}catch(e){setMessage(e instanceof Error?e.message:String(e));}}}>{tr("保存本次基准报告","Save current benchmark report")}</button>
       <button className="button" disabled={!report} onClick={()=>download("quality-benchmark-report.json",JSON.stringify(report,null,2))}>{tr("下载本次基准报告","Download current benchmark report")}</button>
       <button className="button" disabled={!ready||importing} onClick={()=>input.current?.click()}>{tr("导入历史基准报告","Import historical benchmark report")}</button>
       <button className="button" disabled={!ready||!reports.length} onClick={()=>download("quality-benchmark-history.json",serializeQualityHistory(history.current))}>{tr("下载基准历史备份","Download benchmark history backup")}</button>
       <span>{reports.length} / {QUALITY_HISTORY_LIMIT}</span>
     </div>
-    <input ref={input} type="file" accept="application/json,.json" hidden onChange={async e=>{const file=e.target.files?.[0];e.target.value="";if(!file)return;const seq=++lifecycle.current.sequence;setImporting(true);try{if(file.size>QUALITY_ARCHIVE_BYTES)throw new Error(tr("基准文件超过大小限制 / Benchmark file exceeds the size limit","Benchmark file exceeds the size limit"));const contents=await file.text();if(seq!==lifecycle.current.sequence||!lifecycle.current.mounted)return;commit(parseQualityArchive(contents));}catch(error){if(seq===lifecycle.current.sequence&&lifecycle.current.mounted)setMessage(tr("导入未采用，现有历史保留。","Import was not adopted; existing history is preserved.")+" "+trText(error instanceof Error?error.message:String(error)));}finally{if(seq===lifecycle.current.sequence&&lifecycle.current.mounted)setImporting(false);}}}/>
+    <input ref={input} type="file" accept="application/json,.json" hidden onChange={async e=>{const file=e.target.files?.[0];e.target.value="";if(!file)return;const seq=++lifecycle.current.sequence;setImporting(true);try{if(file.size>QUALITY_ARCHIVE_BYTES)throw new Error("基准文件超过大小限制 / Benchmark file exceeds the size limit");const contents=await file.text();if(seq!==lifecycle.current.sequence||!lifecycle.current.mounted)return;commit(parseQualityArchive(contents));}catch(error){if(seq===lifecycle.current.sequence&&lifecycle.current.mounted)setMessage("导入未采用，现有历史保留。 "+(error instanceof Error?error.message:String(error)));}finally{if(seq===lifecycle.current.sequence&&lifecycle.current.mounted)setImporting(false);}}}/>
     {reports.length?<label>{tr("选择比较基准","Select comparison baseline")}<select aria-label={tr("选择比较基准","Select comparison baseline")} value={selected} onChange={e=>setSelected(e.target.value)}><option value="">{tr("请选择历史报告","Choose a historical report")}</option>{reports.map(r=><option key={qualityReportKey(r)} value={qualityReportKey(r)}>{r.engineVersion} · {r.createdAt} · {r.rows.length} {tr("组运行","runs")} · {r.complete?tr("完整报告","Complete report"):tr("部分报告","Partial report")}</option>)}</select></label>:<p>{tr("运行基准后保存本次报告，或导入以前下载的报告开始比较。","Run benchmarks and save the report, or import a previously downloaded report to start comparing.")}</p>}
-    {baseline&&report?<QualityComparison baseline={baseline} current={report}/>:null}<p role="status">{message}</p>
+    {baseline&&report?<QualityComparison baseline={baseline} current={report}/>:null}<p role="status">{trText(message)}</p>
   </section>;
 }
