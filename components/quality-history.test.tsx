@@ -1,0 +1,11 @@
+import {afterEach,expect,it,vi} from "vitest";
+import {renderToStaticMarkup} from "react-dom/server";
+import {QualityComparison,QualityHistory} from "./quality-history";
+import {qualityReport,runQualityCase} from "../lib/packing/quality-benchmarks";
+import {setAppLanguage} from "./language";
+const current=()=>qualityReport([runQualityCase("grid","maximum")]);
+afterEach(()=>{vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("zh");vi.unstubAllGlobals();});
+it("keeps legacy values visible without claiming an input-matched gain or performance result",()=>{const a=current(),b=current();delete a.rows[0].input;a.rows[0].loaded=23;a.rows[0].gapToProof=1;const h=renderToStaticMarkup(<QualityComparison baseline={a} current={b}/>);expect(h).toContain("旧报告缺少输入记录");expect(h).toContain("23 → 24");expect(h).toContain("不据此判断性能优劣");expect(h).toContain("不等于重新核验箱位");expect(h).not.toContain(" · +1");});
+it("labels missing runs explicitly and reports new failure flags without declaring geometry certified",()=>{const a=current(),b=current();b.rows[0].valid=false;b.rows[0].errors=["reported failure"];b.rows.push(runQualityCase("door","maximum"));const h=renderToStaticMarkup(<QualityComparison baseline={a} current={b}/>);expect(h).toContain("新增失败标记");expect(h).toContain("缺少对应运行结果");expect(h).toContain("— → 0");});
+it("renders an accessible empty history without reading storage during server render",()=>{vi.stubGlobal("localStorage",{getItem:()=>{throw Error("must wait for hydration");}});const h=renderToStaticMarkup(<QualityHistory report={null} running={false}/>);expect(h).toContain("导入历史基准报告");expect(h).toContain("当前浏览器");expect(h).toContain("最多保留最近保存的 8 份");expect(h).toMatch(/disabled=""[^>]*>保存本次基准报告/);});
+it("localizes comparison scope, timing caveats and history controls in English",()=>{vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");const a=current(),b=current();delete a.rows[0].input;const h=renderToStaticMarkup(<><QualityComparison baseline={a} current={b}/><QualityHistory report={b} running={false}/></>);expect(h).toContain("Legacy report has no input record");expect(h).toContain("do not imply an improvement for every SKU");expect(h).toContain("Import historical benchmark report");expect(h).not.toMatch(/[\u3400-\u9fff]/u);});

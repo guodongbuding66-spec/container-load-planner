@@ -1,4 +1,11 @@
 export const ENGLISH: Record<string, string> = {
+  "已达到柜数上限": "Container limit reached",
+  "订单已全部分配": "The entire order has been allocated",
+  "正在分配后续柜": "Allocating the remaining containers",
+  "尾柜已复核，仍有余货": "Final container reviewed; cargo remains",
+  "基准报告格式或数据无效 / Invalid benchmark report format or data": "Invalid benchmark report format or data",
+  "基准文件超过大小限制 / Benchmark file exceeds the size limit": "Benchmark file exceeds the size limit",
+  "相同基准时间标识的内容冲突 / Conflicting benchmark contents share the same time identifier": "Conflicting benchmark contents share the same time identifier",
   "高密度整托搜索原候选 {0} 箱；采用重新校验的现场完整候选 {1} 箱，每个 SKU 均未减量。有限搜索不代表全局最优": "Maximum pallet search found {0} cartons; adopted the revalidated {1}-carton practical candidate without reducing any order row. Bounded search is not a global optimum proof.",
   "补充整托候选未完成或未通过独立复核，保留原高密度合法候选": "Additional pallet candidate was unavailable or failed independent review; retained the original valid maximum candidate.",
   "订单行资料无效 / Invalid order-line details": "Invalid order-line details",
