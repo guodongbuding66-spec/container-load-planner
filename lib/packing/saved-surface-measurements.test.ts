@@ -1,0 +1,13 @@
+import {expect,it} from "vitest";
+import {pack} from "./engine";
+import {CONTAINER_PRESETS,SAMPLE_PRODUCTS} from "./presets";
+import {EMPTY_SECTION} from "./inspection";
+import {regularSurfaceFeatures,regularSurfaceSpec} from "./surface-inspection";
+import {captureMeasurement,parseMeasurements,savedMeasureCurrent,savedMeasureValue,serializeMeasurements} from "./saved-measurements";
+const plan=pack({mode:"mixed",strategy:"practical",products:[{...SAMPLE_PRODUCTS[0],id:"u",sku:"U-PROFILE",quantity:1,length:1000,width:100,height:1000,cargoShape:"u-profile",rotationPolicy:"fixed"}],container:CONTAINER_PRESETS[2],clearance:10}),box=plan.placements[0],spec=regularSurfaceSpec(box,plan.cargoDetails?.u)!,vertices=regularSurfaceFeatures(box,spec,"vertex");
+const measure=()=>captureMeasurement(plan,"points",[box,box],[vertices[3],vertices[6]],"vertex","x-",EMPTY_SECTION,"U slot","slot","2026-10-22T09:00:00.000Z",[box,box],[spec,spec]);
+it("archives and restores real U opening in v2 with precise solid parameters",()=>{const m=measure(),raw=serializeMeasurements([m]);expect(JSON.parse(raw).version).toBe(2);expect(parseMeasurements(raw)).toEqual([m]);expect(savedMeasureValue(m).distance).toBe(500);expect(savedMeasureCurrent(m,plan)).toBe(true);});
+it("keeps genuine v1 records as envelope records",()=>{const b=box,m=captureMeasurement(plan,"wall",[b],[],"face","x-",EMPTY_SECTION,"Wall","wall","2026-10-22T09:00:00.000Z"),raw=JSON.stringify({format:"cargo-fit-measurements",version:1,measurements:[m]});expect(parseMeasurements(raw)).toEqual([m]);expect(parseMeasurements(raw)[0].surface).toBeUndefined();});
+it("rejects a solid archive disguised as v1, points in empty space and artificial clipping",()=>{const m=measure();expect(()=>parseMeasurements(serializeMeasurements([m]).replace('"version": 2','"version": 1'))).toThrow();expect(()=>serializeMeasurements([{...m,points:[[box.x+500,box.y+50,box.z+900],vertices[6]]}])).toThrow();expect(()=>serializeMeasurements([{...m,targets:m.targets.map(t=>({...t,bounds:{...t.bounds,dz:900}}))}])).toThrow();});
+it("checks profile metadata independently from a copied current plan signature",()=>{const m=measure();m.surface![0].profile.shapeWallRatio=.2;expect(savedMeasureCurrent(m,plan)).toBe(false);});
+it("forbids solid tags on envelope gaps or wall records",()=>{const m=captureMeasurement(plan,"wall",[box],[],"face","x-",EMPTY_SECTION,"Wall","wall","2026-10-22T09:00:00.000Z");expect(()=>serializeMeasurements([{...m,surface:[spec,spec]}])).toThrow();});

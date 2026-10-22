@@ -1,4 +1,5 @@
 "use client";
+import type {MeasurementOverlay} from "../lib/packing/saved-measurements";
 import {siteExclusionBoxes} from "../lib/packing/site-exclusions";
 import { packagingReservations } from "../lib/packing/packaging";
 import { visiblePlanPallets } from "../lib/packing/prebuilt-pallets";
@@ -18,7 +19,7 @@ import { DimensionSvg } from "./dimension-svg";
 import { useModelViewport } from "./use-model-viewport";
 import { useTransportAppearance } from "./transport-appearance";
 import { tr, useLanguage } from "./language";
-import { EMPTY_SECTION, formatMeasure, inspectBoxes, sectionBox, type Measurement, type Point3, type Section } from "../lib/packing/inspection";
+import { EMPTY_SECTION, formatMeasure, inspectBoxes, sectionBox, type Point3, type Section } from "../lib/packing/inspection";
 
 /** All visible footprints are retained; exact stacked duplicates collapse to their top box. */
 export function topViewFootprints(placements:PlacedBox[],visibleProducts:Set<string>,visibleCount:number) {
@@ -29,7 +30,7 @@ export function topViewFootprints(placements:PlacedBox[],visibleProducts:Set<str
   }
   return [...map.values()].sort((a,b)=>a.z+a.dz-b.z-b.dz);
 }
-export function LoadingSceneFallback({result,visibleProducts,visibleCount,selected,onSelect,section=EMPTY_SECTION,manualMeasurement,manualMeasurements=[],editor,regions=[],heatColors}:{result:PackingResult;visibleProducts:Set<string>;visibleCount:number;selected:PlacedBox|null;onSelect:(box:PlacedBox,point?:Point3,add?:boolean)=>void;section?:Section;manualMeasurement?:Measurement|null;manualMeasurements?:Array<Measurement&{label?:string}>;editor?:PlanEditor;regions?:AnalysisRegion[];heatColors?:Map<string,string>}) {
+export function LoadingSceneFallback({result,visibleProducts,visibleCount,selected,onSelect,section=EMPTY_SECTION,manualMeasurement,manualMeasurements=[],editor,regions=[],heatColors}:{result:PackingResult;visibleProducts:Set<string>;visibleCount:number;selected:PlacedBox|null;onSelect:(box:PlacedBox,point?:Point3,add?:boolean)=>void;section?:Section;manualMeasurement?:MeasurementOverlay|null;manualMeasurements?:MeasurementOverlay[];editor?:PlanEditor;regions?:AnalysisRegion[];heatColors?:Map<string,string>}) {
   useLanguage();
   const drag=useRef<{x:number;y:number;rectangle:boolean;add:boolean}|null>(null),suppressClick=useRef(false);
   const appearance=useTransportAppearance(),{host,viewport}=useModelViewport({width:720,height:340});
@@ -53,7 +54,7 @@ export function LoadingSceneFallback({result,visibleProducts,visibleCount,select
   const occupied:LabelRect[]=dimensions.flatMap(d=>[d.label,...d.ticks.map(t=>t.label)]),seen=new Set<string>();
   const measuredItems=[...(manualMeasurement?[manualMeasurement]:[]),...manualMeasurements].map(m=>{
     const measured={a:project([m.a[0]*scale+offset[0],m.a[2]*scale+offset[1],m.a[1]*scale+offset[2]]),b:project([m.b[0]*scale+offset[0],m.b[2]*scale+offset[1],m.b[1]*scale+offset[2]])};
-    const label="label" in m&&typeof m.label==="string"&&m.label?m.label.slice(0,40)+" · ":"",text=label+formatMeasure(m.distance,appearance.dimensionUnit,appearance.measurePrecision);
+    const label="label" in m&&typeof m.label==="string"&&m.label?m.label.slice(0,40)+" · ":"",text=label+(m.basis==="surface"?tr("实体直线距 · ","Solid point distance · "):"")+formatMeasure(m.distance,appearance.dimensionUnit,appearance.measurePrecision);
     const rect=layoutSceneLabel({x:(measured.a.x+measured.b.x)/2-text.length*4.5,y:(measured.a.y+measured.b.y)/2-30,width:text.length*9+12,height:24},viewport,occupied);
     if(rect&&appearance.dimensions)occupied.push(rect);return {measured,text,rect};
   });

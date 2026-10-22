@@ -1,3 +1,4 @@
+import {cargoSectionOutline} from "./cargo-profile";
 import {convexHull2,polygonArea,unionPolygons,type V2} from "./solid-math";
 import * as THREE from "three";
 import { ADVANCED_SHAPES, cargoShapeOf, cylinderAxisOf, isRectilinearShape, type ShapeFields } from "./cargo-shape";
@@ -23,14 +24,7 @@ export function cargoShapeGeometry(p: ShapeFields, orientation: OrientationCode 
     if (axis === "W") geometry.rotateX(Math.PI / 2);
   } else if (shape === "wedge" || shape === "trapezoid" || isRectilinearShape(p)) {
     const outline = new THREE.Shape();
-    const t=p.shapeWallRatio??.25,h=p.shapeWallHeightRatio??.25;
-    let points:number[][];
-    if(shape==="l-profile")points=[[0,0],[1,0],[1,h],[t,h],[t,1],[0,1]];
-    else if(shape==="u-profile")points=[[0,0],[1,0],[1,1],[1-t,1],[1-t,h],[t,h],[t,1],[0,1]];
-    else if(shape==="t-profile")points=[[(1-t)/2,0],[(1+t)/2,0],[(1+t)/2,1-h],[1,1-h],[1,1],[0,1],[0,1-h],[(1-t)/2,1-h]];
-    else if(shape==="step"){const l=p.shapeStepLengthRatio??.5,z=p.shapeStepHeightRatio??.5;points=[[0,0],[1,0],[1,z],[l,z],[l,1],[0,1]];}
-    else if(shape==="wedge")points=[[0,0],[1,0],[0,1]];
-    else {const ratio=p.shapeTopRatio??.5;points=[[0,0],[1,0],[(1+ratio)/2,1],[(1-ratio)/2,1]];}
+    const points=cargoSectionOutline(p)!;
     points.forEach(([x,y],i)=>i?outline.lineTo(x-.5,y-.5):outline.moveTo(x-.5,y-.5));
     outline.closePath();
     geometry = new THREE.ExtrudeGeometry(outline, { depth: 1, bevelEnabled: false, steps: 1 });

@@ -1,4 +1,5 @@
 "use client";
+import type {MeasurementOverlay} from "../lib/packing/saved-measurements";
 import {siteExclusionBoxes} from "../lib/packing/site-exclusions";
 
 import { visiblePlanPallets } from "../lib/packing/prebuilt-pallets";
@@ -39,7 +40,7 @@ import { SceneEditHandles } from "./scene-edit-handles";
 import { SceneAnalysisOverlay, type AnalysisRegion } from "./scene-analysis-overlay";
 import type { PlanEditor } from "./use-plan-editor";
 import type { PackingResult, ProductInput, PlacedBox, OrientationCode } from "../lib/packing/types";
-import { EMPTY_SECTION, inspectBoxes, sectionBox, type Measurement, type Point3, type Section } from "../lib/packing/inspection";
+import { EMPTY_SECTION, inspectBoxes, sectionBox, type Point3, type Section } from "../lib/packing/inspection";
 import { useSceneInspection } from "./use-scene-inspection";
 import { SceneInspector } from "./scene-inspector";
 import { SceneWorkbench } from "./scene-workbench";
@@ -142,7 +143,7 @@ function normalizedSceneSize(result: PackingResult): SceneSize {
   return [effectiveLength * scale, effectiveHeight * scale, effectiveWidth * scale];
 }
 
-export function ContainerModel({ result, visibleProducts, visibleCount, reducedRendering, presentation, modelMode, transparency, labels, selected, onSelect, section=EMPTY_SECTION, manualMeasurement,manualMeasurements=[],editor,regions=[],heatColors,onDragging }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number; reducedRendering: boolean; presentation?: boolean; modelMode:TransportDisplayMode; transparency:number; labels:boolean; selected:PlacedBox|null;onSelect:(b:PlacedBox,point?:Point3,add?:boolean)=>void;section?:Section;manualMeasurement?:Measurement|null;manualMeasurements?:Array<Measurement&{label?:string}>;editor?:PlanEditor;regions?:AnalysisRegion[];heatColors?:Map<string,string>;onDragging?:(v:boolean)=>void }) {
+export function ContainerModel({ result, visibleProducts, visibleCount, reducedRendering, presentation, modelMode, transparency, labels, selected, onSelect, section=EMPTY_SECTION, manualMeasurement,manualMeasurements=[],editor,regions=[],heatColors,onDragging }: { result: PackingResult; visibleProducts: Set<string>; visibleCount: number; reducedRendering: boolean; presentation?: boolean; modelMode:TransportDisplayMode; transparency:number; labels:boolean; selected:PlacedBox|null;onSelect:(b:PlacedBox,point?:Point3,add?:boolean)=>void;section?:Section;manualMeasurement?:MeasurementOverlay|null;manualMeasurements?:MeasurementOverlay[];editor?:PlanEditor;regions?:AnalysisRegion[];heatColors?:Map<string,string>;onDragging?:(v:boolean)=>void }) {
   useLanguage();
   const appearance=useTransportAppearance();
   const measurement=useMemo(()=>sceneMeasurement(result.container,result.clearance,selected??undefined),[result.container,result.clearance,selected]);
