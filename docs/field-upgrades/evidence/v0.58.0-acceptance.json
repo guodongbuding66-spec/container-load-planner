@@ -1,0 +1,234 @@
+{
+  "version": "0.58.0",
+  "date": "2026-10-22",
+  "runtimeCommit": "c26f393928de387396a29c33763344ecc59ebd65",
+  "runtimeTree": "c54c5dc1094c7ce30b2fd30add19af75df8b3363",
+  "checks": [
+    {
+      "name": "Cloudflare Pages",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/guodongbuding66-spec/container-load-planner/runs/119834016304",
+      "external_id": "94b91c3d-b5aa-4552-89bd-2b3f0c29fdc9"
+    },
+    {
+      "name": "verify",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/39781056573/job/119832106863",
+      "external_id": "b56286a1-f23d-58b3-80c0-620995b4a382"
+    }
+  ],
+  "deployments": {
+    "cloudflare": {
+      "id": "94b91c3d-b5aa-4552-89bd-2b3f0c29fdc9",
+      "url": "https://container-load-planner.pages.dev/",
+      "status": "success"
+    },
+    "vercel": {
+      "id": "dpl_3bPZTJu7VsUJZyBorkX43WMkoxt3",
+      "url": "https://container-load-planner-gray.vercel.app/",
+      "status": "READY",
+      "aliases": [
+        "container-load-planner-gray.vercel.app",
+        "container-load-planner-guodongbuding66-4957.vercel.app",
+        "container-load-planner-git-main-guodongbuding66-4957.vercel.app"
+      ]
+    }
+  },
+  "software": {
+    "unitTests": 1620,
+    "testFiles": 121,
+    "htmlChecks": 21,
+    "newTests": 68,
+    "buildPages": "passed",
+    "typecheck": "passed",
+    "finalLint": {
+      "errors": 0,
+      "warnings": 2
+    },
+    "focusedUpdatedGeometry": 57
+  },
+  "observations": {
+    "solidVertex": {
+      "distanceMm": 500,
+      "a": [
+        750,
+        500,
+        1000
+      ],
+      "b": [
+        250,
+        500,
+        1000
+      ]
+    },
+    "solidEdge": {
+      "distanceMm": 500,
+      "a": [
+        750,
+        550,
+        1000
+      ],
+      "b": [
+        250,
+        550,
+        1000
+      ]
+    },
+    "solidFace": {
+      "distanceMm": 100,
+      "a": [
+        916.6666666666666,
+        500,
+        666.6666666666666
+      ],
+      "b": [
+        916.6666666666666,
+        600,
+        666.6666666666666
+      ]
+    },
+    "envelopeDiagonalDisplayMm": "1417.745",
+    "unsupportedCylinder": "refused with no feature picker",
+    "section": "refused with no feature picker",
+    "basisSwitch": "clears unfinished picks",
+    "invalidImports": {
+      "downgradedSolidV1": "rejected",
+      "pointInURecessVoid": "rejected",
+      "nativeBytesPreserved": true
+    },
+    "legacyV1": "3 records remain envelopes; no solid promotion",
+    "strategySwitch": {
+      "savedLines": 3,
+      "changedStrategyLines": 0,
+      "restoredStrategyLines": 3
+    },
+    "crossSiteSixRecordBytesEqual": true,
+    "refresh": {
+      "initialSyntheticFixture": "UI adds explicit search defaults, so original scope becomes stale",
+      "canonicalUiPlan": "Current-U-opening remains current after both sites reload and recompute",
+      "currentLinesPerSite": 1,
+      "recordCount": 7,
+      "nativeExportsByteIdentical": true
+    },
+    "englishInspector": {
+      "site": "vercel",
+      "untranslatedChinese": false
+    },
+    "benchmarks": {
+      "cloudflare": {
+        "complete": true,
+        "cases": 12,
+        "allModelValid": true
+      },
+      "vercel": {
+        "complete": true,
+        "cases": 12,
+        "allModelValid": true
+      }
+    },
+    "cleanup": {
+      "products": 3,
+      "container": "40HQ",
+      "loaded": 116,
+      "kg": 3842,
+      "bothStrategies": true,
+      "language": "zh",
+      "temporaryMeasurementsPerSite": 0
+    },
+    "browserConsole": {
+      "applicationDomainFilter": "no error/warn entries",
+      "extensionErrors": "browser extension metadata sending errors observed; excluded from app evidence"
+    },
+    "vercelRuntimeErrorFatal": "No logs found in last 30 minutes"
+  },
+  "limitations": {
+    "webgl": "unavailable; actual-coordinate top view tested, no hardware GPU acceptance",
+    "syntheticFixture": "geometry-valid; existing door/unload checks fail or are unassigned; not an executable field plan",
+    "remaining": [
+      "curved and other-model surface measurement",
+      "global solid clearance",
+      "automatic feature following",
+      "measurement PDF",
+      "hardware GPU and multiple browsers",
+      "engineering ratings and field acceptance"
+    ],
+    "forkliftOperations": "excluded by user",
+    "accountsMembershipPayments": "not enabled"
+  },
+  "artifacts": [
+    {
+      "file": "v0.58.0-benchmarks-cloudflare.json",
+      "bytes": 25630,
+      "sha256": "37458ab72f4bc7b72fb40002cc2d69b7f4f98e9596cef907e67305407f6242fe",
+      "provenance": "native browser download"
+    },
+    {
+      "file": "v0.58.0-benchmarks-vercel.json",
+      "bytes": 25631,
+      "sha256": "4dfa517f83738cd936c7dc7667d50eeb1fb96a278e3b49fb5682c588a5ae9c2c",
+      "provenance": "native browser download"
+    },
+    {
+      "file": "v0.58.0-current-workspace.json",
+      "bytes": 5066,
+      "sha256": "3d041d67425f1acdc948c55e49bff5c5246ed15c141ce9a25239c3ed202dfb2a",
+      "provenance": "native browser download"
+    },
+    {
+      "file": "v0.58.0-measurements-after-reject.json",
+      "bytes": 5208,
+      "sha256": "b4f25ac13b038ba4b5c2c561bf36c1ab00db1017958add4ff8bd13ff0636e751",
+      "provenance": "native browser download"
+    },
+    {
+      "file": "v0.58.0-measurements-current.json",
+      "bytes": 10425,
+      "sha256": "aec21e40caf7fa34f9e3413f26e7293fac9c16f9e8e27cfcf7b1c140244f0dda",
+      "provenance": "native browser download"
+    },
+    {
+      "file": "v0.58.0-measurements-merged-cloudflare.json",
+      "bytes": 8584,
+      "sha256": "188673b5f940d8561004b39e72447023ddee2b3c70aaa23fb5bb31e7f5984704",
+      "provenance": "native browser download"
+    },
+    {
+      "file": "v0.58.0-measurements-refreshed-cloudflare.json",
+      "bytes": 10425,
+      "sha256": "aec21e40caf7fa34f9e3413f26e7293fac9c16f9e8e27cfcf7b1c140244f0dda",
+      "provenance": "native browser download"
+    },
+    {
+      "file": "v0.58.0-measurements-refreshed-vercel.json",
+      "bytes": 10425,
+      "sha256": "aec21e40caf7fa34f9e3413f26e7293fac9c16f9e8e27cfcf7b1c140244f0dda",
+      "provenance": "native browser download"
+    },
+    {
+      "file": "v0.58.0-measurements-solid.json",
+      "bytes": 5208,
+      "sha256": "b4f25ac13b038ba4b5c2c561bf36c1ab00db1017958add4ff8bd13ff0636e751",
+      "provenance": "native browser download"
+    },
+    {
+      "file": "v0.58.0-measurements-vercel.json",
+      "bytes": 8584,
+      "sha256": "188673b5f940d8561004b39e72447023ddee2b3c70aaa23fb5bb31e7f5984704",
+      "provenance": "native browser download"
+    },
+    {
+      "file": "v0.58.0-solid-fixture.json",
+      "bytes": 3806,
+      "sha256": "b233b1551ea7e9c2bb52e9c495c008f265276980b295e746553eb3dca34739be",
+      "provenance": "generated test input"
+    },
+    {
+      "file": "v0.58.0-solid-measurement.jpg",
+      "bytes": 110058,
+      "sha256": "bcae0b320109733e8fc8a29bba77ccab4739ffac4128c70c60adfcaa9d00abff",
+      "provenance": "browser screenshot"
+    }
+  ]
+}

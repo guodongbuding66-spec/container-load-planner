@@ -1,0 +1,258 @@
+{
+  "format": "cargo-fit-measurements",
+  "version": 2,
+  "measurements": [
+    {
+      "id": "65fd1516-ac71-43c3-8d27-626c6f2095e4",
+      "name": "U-opening-vertex",
+      "createdAt": "2026-10-22T12:51:25.370Z",
+      "visible": true,
+      "scope": "dee328471f8cca2f",
+      "space": {
+        "length": 12032,
+        "width": 2350,
+        "height": 2700,
+        "clearance": 10
+      },
+      "targets": [
+        {
+          "id": "u-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          },
+          "bounds": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          }
+        },
+        {
+          "id": "u-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          },
+          "bounds": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          }
+        }
+      ],
+      "mode": "points",
+      "points": [
+        [
+          750,
+          500,
+          1000
+        ],
+        [
+          250,
+          500,
+          1000
+        ]
+      ],
+      "snaps": [
+        "vertex",
+        "vertex"
+      ],
+      "surface": [
+        {
+          "profile": {
+            "cargoShape": "u-profile",
+            "shapeWallRatio": 0.25,
+            "shapeWallHeightRatio": 0.25
+          },
+          "orientation": "LWH"
+        },
+        {
+          "profile": {
+            "cargoShape": "u-profile",
+            "shapeWallRatio": 0.25,
+            "shapeWallHeightRatio": 0.25
+          },
+          "orientation": "LWH"
+        }
+      ]
+    },
+    {
+      "id": "9d12faac-c4c5-41f3-9cf9-bcb079ff57eb",
+      "name": "U-width-face",
+      "createdAt": "2026-10-22T12:51:43.364Z",
+      "visible": true,
+      "scope": "dee328471f8cca2f",
+      "space": {
+        "length": 12032,
+        "width": 2350,
+        "height": 2700,
+        "clearance": 10
+      },
+      "targets": [
+        {
+          "id": "u-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          },
+          "bounds": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          }
+        },
+        {
+          "id": "u-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          },
+          "bounds": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          }
+        }
+      ],
+      "mode": "points",
+      "points": [
+        [
+          916.6666666666666,
+          500,
+          666.6666666666666
+        ],
+        [
+          916.6666666666666,
+          600,
+          666.6666666666666
+        ]
+      ],
+      "snaps": [
+        "face",
+        "face"
+      ],
+      "surface": [
+        {
+          "profile": {
+            "cargoShape": "u-profile",
+            "shapeWallRatio": 0.25,
+            "shapeWallHeightRatio": 0.25
+          },
+          "orientation": "LWH"
+        },
+        {
+          "profile": {
+            "cargoShape": "u-profile",
+            "shapeWallRatio": 0.25,
+            "shapeWallHeightRatio": 0.25
+          },
+          "orientation": "LWH"
+        }
+      ]
+    },
+    {
+      "id": "b0415af2-e5cf-4db5-b153-10f4282e30b2",
+      "name": "Envelope-diagonal",
+      "createdAt": "2026-10-22T12:52:02.968Z",
+      "visible": true,
+      "scope": "dee328471f8cca2f",
+      "space": {
+        "length": 12032,
+        "width": 2350,
+        "height": 2700,
+        "clearance": 10
+      },
+      "targets": [
+        {
+          "id": "u-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          },
+          "bounds": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          }
+        },
+        {
+          "id": "u-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          },
+          "bounds": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          }
+        }
+      ],
+      "mode": "points",
+      "points": [
+        [
+          0,
+          500,
+          0
+        ],
+        [
+          1000,
+          600,
+          1000
+        ]
+      ],
+      "snaps": [
+        "vertex",
+        "vertex"
+      ]
+    }
+  ]
+}

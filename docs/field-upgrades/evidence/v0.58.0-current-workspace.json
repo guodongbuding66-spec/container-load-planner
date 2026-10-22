@@ -1,0 +1,228 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.58.0",
+  "createdAt": "2026-10-22T12:58:38.570Z",
+  "inputs": {
+    "palletLayerTemplates": [],
+    "workflow": "direct",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 1200,
+        "width": 800,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "maxPallets": 50,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "practical",
+    "practicalTargetPercent": 88,
+    "container": {
+      "id": "40hq",
+      "name": "40HQ 高柜",
+      "length": 12032,
+      "width": 2350,
+      "height": 2700,
+      "doorWidth": 2340,
+      "doorHeight": 2597,
+      "maxWeight": 28600
+    },
+    "clearance": 10,
+    "products": [
+      {
+        "id": "u",
+        "sku": "U-PROFILE",
+        "name": "U profile",
+        "length": 1000,
+        "width": 100,
+        "height": 1000,
+        "weight": 10,
+        "quantity": 1,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.1,
+        "color": "#2f7f89",
+        "cargoShape": "u-profile"
+      },
+      {
+        "id": "drum",
+        "sku": "DRUM",
+        "name": "Drum",
+        "length": 500,
+        "width": 500,
+        "height": 600,
+        "weight": 20,
+        "quantity": 1,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": false,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.15,
+        "color": "#2f7f89",
+        "cargoShape": "cylinder"
+      }
+    ],
+    "customContainers": [],
+    "targetVolumePercent": 100,
+    "targetWeightPercent": 100,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {
+    "practical": {
+      "workflow": "direct",
+      "strategy": "practical",
+      "placements": [
+        {
+          "id": "drum-0",
+          "productId": "drum",
+          "sku": "DRUM",
+          "name": "Drum",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 500,
+          "dy": 500,
+          "dz": 600,
+          "weight": 20,
+          "orientation": "LWH",
+          "layer": 1
+        },
+        {
+          "id": "u-1",
+          "productId": "u",
+          "sku": "U-PROFILE",
+          "name": "U profile",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 500,
+          "z": 0,
+          "dx": 1000,
+          "dy": 100,
+          "dz": 1000,
+          "weight": 10,
+          "orientation": "LWH",
+          "layer": 1
+        }
+      ],
+      "pallets": []
+    },
+    "maximum": {
+      "workflow": "direct",
+      "strategy": "maximum",
+      "placements": [
+        {
+          "id": "drum-0",
+          "productId": "drum",
+          "sku": "DRUM",
+          "name": "Drum",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 500,
+          "dy": 500,
+          "dz": 600,
+          "weight": 20,
+          "orientation": "LWH",
+          "layer": 1
+        },
+        {
+          "id": "u-1",
+          "productId": "u",
+          "sku": "U-PROFILE",
+          "name": "U profile",
+          "color": "#2f7f89",
+          "x": 500,
+          "y": 0,
+          "z": 0,
+          "dx": 1000,
+          "dy": 100,
+          "dz": 1000,
+          "weight": 10,
+          "orientation": "LWH",
+          "layer": 1
+        }
+      ],
+      "pallets": []
+    }
+  },
+  "coordinatePlan": {
+    "workflow": "direct",
+    "strategy": "practical",
+    "placements": [
+      {
+        "id": "drum-0",
+        "productId": "drum",
+        "sku": "DRUM",
+        "name": "Drum",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "dx": 500,
+        "dy": 500,
+        "dz": 600,
+        "weight": 20,
+        "orientation": "LWH",
+        "layer": 1
+      },
+      {
+        "id": "u-1",
+        "productId": "u",
+        "sku": "U-PROFILE",
+        "name": "U profile",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 500,
+        "z": 0,
+        "dx": 1000,
+        "dy": 100,
+        "dz": 1000,
+        "weight": 10,
+        "orientation": "LWH",
+        "layer": 1
+      }
+    ],
+    "pallets": []
+  }
+}
