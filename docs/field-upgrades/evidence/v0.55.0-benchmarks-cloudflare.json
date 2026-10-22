@@ -1,0 +1,220 @@
+{
+  "format": "cargo-fit-quality-benchmarks",
+  "version": 1,
+  "caseVersion": "business-2026-10-v1",
+  "engineVersion": "0.55.0",
+  "createdAt": "2026-10-22T02:41:39.117Z",
+  "complete": true,
+  "rows": [
+    {
+      "caseId": "grid",
+      "name": [
+        "整格体积上界",
+        "Volume grid bound"
+      ],
+      "strategy": "practical",
+      "proof": "24 cubes fill the volume; 24 is constructive and volume-optimal",
+      "exactCount": 24,
+      "loaded": 22,
+      "sets": 0,
+      "payloadKg": 220,
+      "elapsedMs": 14.300000000745058,
+      "valid": true,
+      "gapToProof": 2,
+      "errors": []
+    },
+    {
+      "caseId": "grid",
+      "name": [
+        "整格体积上界",
+        "Volume grid bound"
+      ],
+      "strategy": "maximum",
+      "proof": "24 cubes fill the volume; 24 is constructive and volume-optimal",
+      "exactCount": 24,
+      "loaded": 24,
+      "sets": 0,
+      "payloadKg": 240,
+      "elapsedMs": 10.799999999813735,
+      "valid": true,
+      "gapToProof": 0,
+      "errors": []
+    },
+    {
+      "caseId": "payload",
+      "name": [
+        "重量上界",
+        "Payload bound"
+      ],
+      "strategy": "practical",
+      "proof": "120 kg / 10 kg = 12 cubes, with a feasible grid witness",
+      "exactCount": 12,
+      "loaded": 12,
+      "sets": 0,
+      "payloadKg": 120,
+      "elapsedMs": 4,
+      "valid": true,
+      "gapToProof": 0,
+      "errors": []
+    },
+    {
+      "caseId": "payload",
+      "name": [
+        "重量上界",
+        "Payload bound"
+      ],
+      "strategy": "maximum",
+      "proof": "120 kg / 10 kg = 12 cubes, with a feasible grid witness",
+      "exactCount": 12,
+      "loaded": 12,
+      "sets": 0,
+      "payloadKg": 120,
+      "elapsedMs": 1.5,
+      "valid": true,
+      "gapToProof": 0,
+      "errors": []
+    },
+    {
+      "caseId": "door",
+      "name": [
+        "固定朝向门洞",
+        "Fixed-orientation door"
+      ],
+      "strategy": "practical",
+      "proof": "90 mm door cannot pass the fixed 100 mm carton",
+      "exactCount": 0,
+      "loaded": 0,
+      "sets": 0,
+      "payloadKg": 0,
+      "elapsedMs": 0.8000000007450581,
+      "valid": true,
+      "gapToProof": 0,
+      "errors": []
+    },
+    {
+      "caseId": "door",
+      "name": [
+        "固定朝向门洞",
+        "Fixed-orientation door"
+      ],
+      "strategy": "maximum",
+      "proof": "90 mm door cannot pass the fixed 100 mm carton",
+      "exactCount": 0,
+      "loaded": 0,
+      "sets": 0,
+      "payloadKg": 0,
+      "elapsedMs": 0.40000000037252903,
+      "valid": true,
+      "gapToProof": 0,
+      "errors": []
+    },
+    {
+      "caseId": "kits",
+      "name": [
+        "两箱加一箱套装",
+        "Two-plus-one kits"
+      ],
+      "strategy": "practical",
+      "proof": "24 volume slots / 3 cartons = 8 whole kits",
+      "exactCount": 24,
+      "loaded": 21,
+      "sets": 7,
+      "payloadKg": 210,
+      "elapsedMs": 8.800000000745058,
+      "valid": true,
+      "gapToProof": 3,
+      "errors": []
+    },
+    {
+      "caseId": "kits",
+      "name": [
+        "两箱加一箱套装",
+        "Two-plus-one kits"
+      ],
+      "strategy": "maximum",
+      "proof": "24 volume slots / 3 cartons = 8 whole kits",
+      "exactCount": 24,
+      "loaded": 24,
+      "sets": 8,
+      "payloadKg": 240,
+      "elapsedMs": 4,
+      "valid": true,
+      "gapToProof": 0,
+      "errors": []
+    },
+    {
+      "caseId": "long-business",
+      "name": [
+        "工具房长条箱混装",
+        "Long shed carton mix"
+      ],
+      "strategy": "practical",
+      "proof": "feasible reference; global optimum unknown",
+      "exactCount": null,
+      "loaded": 116,
+      "sets": 0,
+      "payloadKg": 3842,
+      "elapsedMs": 107.5,
+      "valid": true,
+      "gapToProof": null,
+      "errors": []
+    },
+    {
+      "caseId": "long-business",
+      "name": [
+        "工具房长条箱混装",
+        "Long shed carton mix"
+      ],
+      "strategy": "maximum",
+      "proof": "feasible reference; global optimum unknown",
+      "exactCount": null,
+      "loaded": 116,
+      "sets": 0,
+      "payloadKg": 3842,
+      "elapsedMs": 96.70000000018626,
+      "valid": true,
+      "gapToProof": null,
+      "errors": []
+    },
+    {
+      "caseId": "pallet-loose",
+      "name": [
+        "整托与尾数散箱",
+        "Pallets and loose tails"
+      ],
+      "strategy": "practical",
+      "proof": "feasible reference; global optimum unknown",
+      "exactCount": null,
+      "loaded": 32,
+      "sets": 0,
+      "payloadKg": 340,
+      "elapsedMs": 19.09999999962747,
+      "valid": true,
+      "gapToProof": null,
+      "errors": []
+    },
+    {
+      "caseId": "pallet-loose",
+      "name": [
+        "整托与尾数散箱",
+        "Pallets and loose tails"
+      ],
+      "strategy": "maximum",
+      "proof": "feasible reference; global optimum unknown",
+      "exactCount": null,
+      "loaded": 32,
+      "sets": 0,
+      "payloadKg": 340,
+      "elapsedMs": 27.5,
+      "valid": true,
+      "palletSearch": {
+        "maximumCount": 31,
+        "practicalCount": 32,
+        "selected": "practical-lower-bound",
+        "comparison": "adopted-lower-bound"
+      },
+      "gapToProof": null,
+      "errors": []
+    }
+  ]
+}

@@ -1,0 +1,2235 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.55.0",
+  "createdAt": "2026-10-22T02:43:27.401Z",
+  "inputs": {
+    "palletLayerTemplates": [],
+    "workflow": "palletized",
+    "palletBuild": {
+      "looseQuantities": {
+        "a": 2,
+        "b": 2
+      },
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 1000,
+        "width": 1000,
+        "height": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 600
+      },
+      "mix": "mixed",
+      "maxPallets": 4,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "maximum",
+    "practicalTargetPercent": 95,
+    "container": {
+      "id": "qa",
+      "name": "QA",
+      "length": 1400,
+      "width": 1000,
+      "height": 800,
+      "doorWidth": 1000,
+      "doorHeight": 800,
+      "maxWeight": 100000
+    },
+    "clearance": 0,
+    "products": [
+      {
+        "id": "a",
+        "sku": "A",
+        "name": "A",
+        "length": 250,
+        "width": 250,
+        "height": 200,
+        "weight": 10,
+        "quantity": 30,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.01,
+        "color": "#338877",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100000
+      },
+      {
+        "id": "b",
+        "sku": "B",
+        "name": "A",
+        "length": 400,
+        "width": 200,
+        "height": 200,
+        "weight": 10,
+        "quantity": 20,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.02,
+        "color": "#338877",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100000
+      }
+    ],
+    "customContainers": [
+      {
+        "id": "qa",
+        "name": "QA",
+        "length": 1400,
+        "width": 1000,
+        "height": 800,
+        "doorWidth": 1000,
+        "doorHeight": 800,
+        "maxWeight": 100000
+      }
+    ],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {
+    "practical": {
+      "workflow": "palletized",
+      "palletBuild": {
+        "looseQuantities": {
+          "a": 2,
+          "b": 2
+        },
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "length": 1000,
+          "width": 1000,
+          "height": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 600
+        },
+        "mix": "mixed",
+        "maxPallets": 4,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0
+      },
+      "strategy": "practical",
+      "placements": [
+        {
+          "id": "prebuilt-1",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 0,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-2",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 200,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-3",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 400,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-4",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 600,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-5",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 800,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-6",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 0,
+          "z": 300,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-7",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 200,
+          "z": 300,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-8",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 400,
+          "z": 300,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-9",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 600,
+          "z": 300,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-10",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 800,
+          "z": 300,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-11",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 0,
+          "z": 500,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-12",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 200,
+          "z": 500,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-13",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 400,
+          "z": 500,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-14",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 600,
+          "z": 500,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-15",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 800,
+          "z": 500,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-16",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 0,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-17",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 200,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-18",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 400,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-19",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 600,
+          "z": 100,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-20",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 0,
+          "z": 300,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-21",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 250,
+          "z": 300,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-22",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 500,
+          "z": 300,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-23",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 0,
+          "z": 500,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-24",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 250,
+          "z": 500,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-25",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 500,
+          "z": 500,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-26",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 650,
+          "y": 600,
+          "z": 100,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-27",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 650,
+          "y": 600,
+          "z": 300,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-28",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 650,
+          "y": 600,
+          "z": 500,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-29",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 1000,
+          "y": 0,
+          "z": 0,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "prebuilt-30",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 1000,
+          "y": 200,
+          "z": 0,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "prebuilt-31",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 1000,
+          "y": 400,
+          "z": 0,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "prebuilt-32",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 1000,
+          "y": 650,
+          "z": 0,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        }
+      ],
+      "pallets": [
+        {
+          "id": "floor-pallet-1",
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 1000,
+          "dy": 1000,
+          "dz": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          }
+        }
+      ],
+      "palletization": {
+        "looseQuantities": {
+          "a": 2,
+          "b": 2
+        },
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "length": 1000,
+          "width": 1000,
+          "height": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 600
+        },
+        "mix": "mixed",
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "preparedCount": 2,
+        "bounded": false,
+        "only": false
+      }
+    },
+    "maximum": {
+      "workflow": "palletized",
+      "palletBuild": {
+        "looseQuantities": {
+          "a": 2,
+          "b": 2
+        },
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "length": 1000,
+          "width": 1000,
+          "height": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 600
+        },
+        "mix": "mixed",
+        "maxPallets": 4,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0
+      },
+      "strategy": "maximum",
+      "placements": [
+        {
+          "id": "prebuilt-1",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 0,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-2",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 200,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-3",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 400,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-4",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 600,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-5",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 800,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-6",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 0,
+          "z": 300,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-7",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 200,
+          "z": 300,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-8",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 400,
+          "z": 300,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-9",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 600,
+          "z": 300,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-10",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 800,
+          "z": 300,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-11",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 0,
+          "z": 500,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-12",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 200,
+          "z": 500,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-13",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 400,
+          "z": 500,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-14",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 600,
+          "z": 500,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-15",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 0,
+          "y": 800,
+          "z": 500,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-16",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 0,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-17",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 200,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-18",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 400,
+          "z": 100,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-19",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 600,
+          "z": 100,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-20",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 0,
+          "z": 300,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-21",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 250,
+          "z": 300,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-22",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 500,
+          "z": 300,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-23",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 0,
+          "z": 500,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-24",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 250,
+          "z": 500,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-25",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 400,
+          "y": 500,
+          "z": 500,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-26",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 650,
+          "y": 600,
+          "z": 100,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-27",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 650,
+          "y": 600,
+          "z": 300,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-28",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 650,
+          "y": 600,
+          "z": 500,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 3,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-29",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 1000,
+          "y": 0,
+          "z": 0,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "prebuilt-30",
+          "productId": "b",
+          "sku": "B",
+          "name": "A",
+          "color": "#338877",
+          "x": 1000,
+          "y": 200,
+          "z": 0,
+          "dx": 400,
+          "dy": 200,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "prebuilt-31",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 1000,
+          "y": 400,
+          "z": 0,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        },
+        {
+          "id": "prebuilt-32",
+          "productId": "a",
+          "sku": "A",
+          "name": "A",
+          "color": "#338877",
+          "x": 1000,
+          "y": 650,
+          "z": 0,
+          "dx": 250,
+          "dy": 250,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH"
+        }
+      ],
+      "pallets": [
+        {
+          "id": "floor-pallet-1",
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 1000,
+          "dy": 1000,
+          "dz": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          }
+        }
+      ],
+      "palletization": {
+        "looseQuantities": {
+          "a": 2,
+          "b": 2
+        },
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "EUR",
+          "length": 1000,
+          "width": 1000,
+          "height": 100,
+          "weight": 20,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 600
+        },
+        "mix": "mixed",
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "preparedCount": 2,
+        "bounded": false,
+        "only": false
+      }
+    }
+  },
+  "coordinatePlan": {
+    "workflow": "palletized",
+    "palletBuild": {
+      "looseQuantities": {
+        "a": 2,
+        "b": 2
+      },
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 1000,
+        "width": 1000,
+        "height": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 600
+      },
+      "mix": "mixed",
+      "maxPallets": 4,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "strategy": "maximum",
+    "placements": [
+      {
+        "id": "prebuilt-1",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 0,
+        "y": 0,
+        "z": 100,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-2",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 0,
+        "y": 200,
+        "z": 100,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-3",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 0,
+        "y": 400,
+        "z": 100,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-4",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 0,
+        "y": 600,
+        "z": 100,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-5",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 0,
+        "y": 800,
+        "z": 100,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-6",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 0,
+        "y": 0,
+        "z": 300,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-7",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 0,
+        "y": 200,
+        "z": 300,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-8",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 0,
+        "y": 400,
+        "z": 300,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-9",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 0,
+        "y": 600,
+        "z": 300,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-10",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 0,
+        "y": 800,
+        "z": 300,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-11",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 0,
+        "y": 0,
+        "z": 500,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-12",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 0,
+        "y": 200,
+        "z": 500,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-13",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 0,
+        "y": 400,
+        "z": 500,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-14",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 0,
+        "y": 600,
+        "z": 500,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-15",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 0,
+        "y": 800,
+        "z": 500,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-16",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 400,
+        "y": 0,
+        "z": 100,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-17",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 400,
+        "y": 200,
+        "z": 100,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-18",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 400,
+        "y": 400,
+        "z": 100,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-19",
+        "productId": "a",
+        "sku": "A",
+        "name": "A",
+        "color": "#338877",
+        "x": 400,
+        "y": 600,
+        "z": 100,
+        "dx": 250,
+        "dy": 250,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-20",
+        "productId": "a",
+        "sku": "A",
+        "name": "A",
+        "color": "#338877",
+        "x": 400,
+        "y": 0,
+        "z": 300,
+        "dx": 250,
+        "dy": 250,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-21",
+        "productId": "a",
+        "sku": "A",
+        "name": "A",
+        "color": "#338877",
+        "x": 400,
+        "y": 250,
+        "z": 300,
+        "dx": 250,
+        "dy": 250,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-22",
+        "productId": "a",
+        "sku": "A",
+        "name": "A",
+        "color": "#338877",
+        "x": 400,
+        "y": 500,
+        "z": 300,
+        "dx": 250,
+        "dy": 250,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-23",
+        "productId": "a",
+        "sku": "A",
+        "name": "A",
+        "color": "#338877",
+        "x": 400,
+        "y": 0,
+        "z": 500,
+        "dx": 250,
+        "dy": 250,
+        "dz": 200,
+        "weight": 10,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-24",
+        "productId": "a",
+        "sku": "A",
+        "name": "A",
+        "color": "#338877",
+        "x": 400,
+        "y": 250,
+        "z": 500,
+        "dx": 250,
+        "dy": 250,
+        "dz": 200,
+        "weight": 10,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-25",
+        "productId": "a",
+        "sku": "A",
+        "name": "A",
+        "color": "#338877",
+        "x": 400,
+        "y": 500,
+        "z": 500,
+        "dx": 250,
+        "dy": 250,
+        "dz": 200,
+        "weight": 10,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-26",
+        "productId": "a",
+        "sku": "A",
+        "name": "A",
+        "color": "#338877",
+        "x": 650,
+        "y": 600,
+        "z": 100,
+        "dx": 250,
+        "dy": 250,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-27",
+        "productId": "a",
+        "sku": "A",
+        "name": "A",
+        "color": "#338877",
+        "x": 650,
+        "y": 600,
+        "z": 300,
+        "dx": 250,
+        "dy": 250,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-28",
+        "productId": "a",
+        "sku": "A",
+        "name": "A",
+        "color": "#338877",
+        "x": 650,
+        "y": 600,
+        "z": 500,
+        "dx": 250,
+        "dy": 250,
+        "dz": 200,
+        "weight": 10,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-29",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 1000,
+        "y": 0,
+        "z": 0,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH"
+      },
+      {
+        "id": "prebuilt-30",
+        "productId": "b",
+        "sku": "B",
+        "name": "A",
+        "color": "#338877",
+        "x": 1000,
+        "y": 200,
+        "z": 0,
+        "dx": 400,
+        "dy": 200,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH"
+      },
+      {
+        "id": "prebuilt-31",
+        "productId": "a",
+        "sku": "A",
+        "name": "A",
+        "color": "#338877",
+        "x": 1000,
+        "y": 400,
+        "z": 0,
+        "dx": 250,
+        "dy": 250,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH"
+      },
+      {
+        "id": "prebuilt-32",
+        "productId": "a",
+        "sku": "A",
+        "name": "A",
+        "color": "#338877",
+        "x": 1000,
+        "y": 650,
+        "z": 0,
+        "dx": 250,
+        "dy": 250,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH"
+      }
+    ],
+    "pallets": [
+      {
+        "id": "floor-pallet-1",
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "dx": 1000,
+        "dy": 1000,
+        "dz": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "orientation": "LWH",
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        }
+      }
+    ],
+    "palletization": {
+      "looseQuantities": {
+        "a": 2,
+        "b": 2
+      },
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 1000,
+        "width": 1000,
+        "height": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 600
+      },
+      "mix": "mixed",
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "preparedCount": 2,
+      "bounded": false,
+      "only": false
+    }
+  }
+}

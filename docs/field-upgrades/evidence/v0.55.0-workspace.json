@@ -1,0 +1,117 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.55.0",
+  "createdAt": "2026-10-22T02:30:25.262Z",
+  "inputs": {
+    "mode": "mixed",
+    "workflow": "palletized",
+    "strategy": "maximum",
+    "clearance": 0,
+    "practicalTargetUtilization": 0.95,
+    "products": [
+      {
+        "id": "a",
+        "sku": "A",
+        "name": "A",
+        "length": 250,
+        "width": 250,
+        "height": 200,
+        "weight": 10,
+        "quantity": 30,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "stackable": true,
+        "maxStackLayers": 0,
+        "maxTopLoadKg": 100000,
+        "color": "#338877"
+      },
+      {
+        "id": "b",
+        "sku": "B",
+        "name": "A",
+        "length": 400,
+        "width": 200,
+        "height": 200,
+        "weight": 10,
+        "quantity": 20,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "stackable": true,
+        "maxStackLayers": 0,
+        "maxTopLoadKg": 100000,
+        "color": "#338877"
+      }
+    ],
+    "container": {
+      "id": "qa",
+      "name": "QA",
+      "length": 1400,
+      "width": 1000,
+      "height": 800,
+      "doorWidth": 1000,
+      "doorHeight": 800,
+      "maxWeight": 100000
+    },
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 1000,
+        "width": 1000,
+        "height": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 600
+      },
+      "mix": "mixed",
+      "maxPallets": 4,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "looseQuantities": {
+        "a": 2,
+        "b": 2
+      }
+    },
+    "practicalTargetPercent": 95,
+    "customContainers": [
+      {
+        "id": "qa",
+        "name": "QA",
+        "length": 1400,
+        "width": 1000,
+        "height": 800,
+        "doorWidth": 1000,
+        "doorHeight": 800,
+        "maxWeight": 100000
+      }
+    ],
+    "palletLayerTemplates": [],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {}
+}

@@ -1,0 +1,146 @@
+{
+  "version": "0.55.0",
+  "date": "2026-10-22",
+  "runtimeCommit": "f8b4152e14d42f9fec2485f10c62535e9363ca52",
+  "runtimeTree": "b5da2da1c780b472841211ccb41fdaf419f7595e",
+  "checks": {
+    "unitTests": 1484,
+    "unitFiles": 112,
+    "addedRegressionTests": 22,
+    "htmlTests": 21,
+    "typecheck": "pass",
+    "productionBuild": "pass",
+    "lintErrors": 0,
+    "preExistingLintWarnings": 2,
+    "githubCI": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/39712418939/job/119606603607"
+  },
+  "deployments": {
+    "vercel": {
+      "id": "dpl_55K5HeHZAkk7ss8w2c7EteTM3DaT",
+      "state": "READY",
+      "url": "https://container-load-planner-gray.vercel.app/"
+    },
+    "cloudflare": {
+      "id": "2444a8fa-b889-4934-bd2e-6ce58d450f73",
+      "state": "success",
+      "url": "https://container-load-planner.pages.dev/",
+      "authenticationRequested": false
+    }
+  },
+  "benchmarks": {
+    "caseVersion": "business-2026-10-v1",
+    "fixtureUnchanged": true,
+    "runsPerSite": 12,
+    "allModelValid": true,
+    "countsKitsMassGapsAndProvenanceEqualAcrossSites": true,
+    "palletLoosePractical": 32,
+    "palletLooseNativeMaximum": 31,
+    "palletLooseAdoptedMaximum": 32,
+    "businessGlobalOptimum": null
+  },
+  "nativeFiles": {
+    "allCargoAndPalletCoordinatesEqualAcrossSitesAndRestore": true,
+    "csvByteEqualAcrossBothSitesAndRestoration": true,
+    "cargoRows": 32,
+    "palletRows": 1,
+    "payloadKg": 340,
+    "loadedA": 12,
+    "loadedB": 20,
+    "remainingA": 18,
+    "restoredSearchEvidenceDiscarded": true
+  },
+  "fleetActualUI": {
+    "site": "vercel",
+    "cartons": 32,
+    "payloadKg": 340,
+    "freightCNY": 100,
+    "packagingCNY": 5,
+    "totalCNY": 105,
+    "committedPackaging": 1,
+    "availablePackaging": 4,
+    "remainingPackaging": 3,
+    "looseLoadedA": 2,
+    "looseLoadedB": 2,
+    "remainingA": 18
+  },
+  "cleanup": {
+    "bothSites": {
+      "cartonsPractical": 116,
+      "cartonsMaximum": 116,
+      "grossWeightKg": 3842,
+      "engineVersion": "0.55.0",
+      "workflow": "direct",
+      "strategy": "practical",
+      "language": "zh",
+      "syntheticCatalogRemoved": true
+    },
+    "applicationErrorsWarningsLatest200": 0,
+    "vercelRuntimeErrorFatalLast30m": 0
+  },
+  "limits": [
+    "Bounded complete-candidate comparison does not prove global optimality",
+    "Automatic tail selection, depalletization, joint fleet repacking and hidden benchmarks remain incomplete",
+    "Existing fleet container-limit stop reason still appears in Chinese in the English interface; follow-up recorded",
+    "Actual GPU, multi-browser and site trials remain pending",
+    "Forklift operation simulation remains excluded",
+    "Accounts, memberships and payment are not enabled"
+  ],
+  "artifacts": {
+    "v0.55.0-benchmarks-cloudflare.json": {
+      "bytes": 5252,
+      "sha256": "ce3645af924cd45f4e390969418ed8be42146835eb90823df5d31e28b18f7478"
+    },
+    "v0.55.0-benchmarks-vercel.json": {
+      "bytes": 5311,
+      "sha256": "d570df2fe1115f00f0a7a54daa702357ed6f49a99b57c2d5d7104db7ce256368"
+    },
+    "v0.55.0-benchmarks-zh.jpg": {
+      "bytes": 84140,
+      "sha256": "5f774e8abc615b66dae8d5f419455297915a7557175851b7c5d0864110513566"
+    },
+    "v0.55.0-comparison-en.jpg": {
+      "bytes": 122190,
+      "sha256": "8d97c164942a667cf55cf06fecbcd4b1851b71b1b8bf07e2c3894988a0bb31a7"
+    },
+    "v0.55.0-fleet-costs.csv": {
+      "bytes": 331,
+      "sha256": "3e1844031f9a9385163ea53c0d8c22ff4074ec614f60ba270a011da7dac2b194"
+    },
+    "v0.55.0-fleet.json": {
+      "bytes": 28282,
+      "sha256": "93f2de9da36cf76ddc4e1293655624137db392be281af835b366dee95d2b2807"
+    },
+    "v0.55.0-placements-cloudflare.csv": {
+      "bytes": 4589,
+      "sha256": "824731646ca58004ab061e80d37f6fb6213c3715faa32b755bc503a72aeedca6"
+    },
+    "v0.55.0-placements-restored.csv": {
+      "bytes": 4589,
+      "sha256": "824731646ca58004ab061e80d37f6fb6213c3715faa32b755bc503a72aeedca6"
+    },
+    "v0.55.0-placements-vercel.csv": {
+      "bytes": 4589,
+      "sha256": "824731646ca58004ab061e80d37f6fb6213c3715faa32b755bc503a72aeedca6"
+    },
+    "v0.55.0-plan-cloudflare.json": {
+      "bytes": 17114,
+      "sha256": "41246af2a38d69ae9f599dcb7323b1bf67443bd49ee874ba54c9fd55e8a14f00"
+    },
+    "v0.55.0-plan-restored.json": {
+      "bytes": 14833,
+      "sha256": "a6e1b574dbbe133f7186a9b92c0d62cee496d586344c24b7e1633af968f5ea1f"
+    },
+    "v0.55.0-plan-vercel.json": {
+      "bytes": 17130,
+      "sha256": "2ea52ca261f8e782ae326faf6b804f9b287833a8564d556ba4f8978bc684bc7a"
+    },
+    "v0.55.0-workspace-native.json": {
+      "bytes": 48785,
+      "sha256": "b6396f4b5c5cd3256c6b4b2157ad8059fe2c835fff4684c8076e1b542394acd7"
+    },
+    "v0.55.0-workspace.json": {
+      "bytes": 2605,
+      "sha256": "78106fd675fc9ba5449a17fa43d62f5f4396454978fff35db1d815eeb4a31f20"
+    }
+  }
+}
