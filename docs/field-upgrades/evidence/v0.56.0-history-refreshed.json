@@ -1,0 +1,2118 @@
+{
+  "format": "cargo-fit-quality-history",
+  "version": 1,
+  "reports": [
+    {
+      "format": "cargo-fit-quality-benchmarks",
+      "version": 1,
+      "engineVersion": "0.56.0",
+      "caseVersion": "business-2026-10-v1",
+      "createdAt": "2026-10-22T07:39:33.159Z",
+      "complete": true,
+      "rows": [
+        {
+          "caseId": "grid",
+          "strategy": "practical",
+          "name": [
+            "整格体积上界",
+            "Volume grid bound"
+          ],
+          "proof": "24 cubes fill the volume; 24 is constructive and volume-optimal",
+          "exactCount": 24,
+          "loaded": 22,
+          "sets": 0,
+          "payloadKg": 220,
+          "elapsedMs": 12.199999999720603,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 2,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "practical",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 100,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 300,
+                "doorHeight": 200,
+                "maxWeight": 100000
+              }
+            },
+            "exactCount": 24,
+            "proof": "24 cubes fill the volume; 24 is constructive and volume-optimal"
+          }
+        },
+        {
+          "caseId": "grid",
+          "strategy": "maximum",
+          "name": [
+            "整格体积上界",
+            "Volume grid bound"
+          ],
+          "proof": "24 cubes fill the volume; 24 is constructive and volume-optimal",
+          "exactCount": 24,
+          "loaded": 24,
+          "sets": 0,
+          "payloadKg": 240,
+          "elapsedMs": 3.3999999999068677,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "maximum",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 100,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 300,
+                "doorHeight": 200,
+                "maxWeight": 100000
+              }
+            },
+            "exactCount": 24,
+            "proof": "24 cubes fill the volume; 24 is constructive and volume-optimal"
+          }
+        },
+        {
+          "caseId": "payload",
+          "strategy": "practical",
+          "name": [
+            "重量上界",
+            "Payload bound"
+          ],
+          "proof": "120 kg / 10 kg = 12 cubes, with a feasible grid witness",
+          "exactCount": 12,
+          "loaded": 12,
+          "sets": 0,
+          "payloadKg": 120,
+          "elapsedMs": 2.6000000000931323,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "practical",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 100,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 300,
+                "doorHeight": 200,
+                "maxWeight": 120
+              }
+            },
+            "exactCount": 12,
+            "proof": "120 kg / 10 kg = 12 cubes, with a feasible grid witness"
+          }
+        },
+        {
+          "caseId": "payload",
+          "strategy": "maximum",
+          "name": [
+            "重量上界",
+            "Payload bound"
+          ],
+          "proof": "120 kg / 10 kg = 12 cubes, with a feasible grid witness",
+          "exactCount": 12,
+          "loaded": 12,
+          "sets": 0,
+          "payloadKg": 120,
+          "elapsedMs": 1.3000000002793968,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "maximum",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 100,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 300,
+                "doorHeight": 200,
+                "maxWeight": 120
+              }
+            },
+            "exactCount": 12,
+            "proof": "120 kg / 10 kg = 12 cubes, with a feasible grid witness"
+          }
+        },
+        {
+          "caseId": "door",
+          "strategy": "practical",
+          "name": [
+            "固定朝向门洞",
+            "Fixed-orientation door"
+          ],
+          "proof": "90 mm door cannot pass the fixed 100 mm carton",
+          "exactCount": 0,
+          "loaded": 0,
+          "sets": 0,
+          "payloadKg": 0,
+          "elapsedMs": 0.7000000001862645,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "practical",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 100,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 90,
+                "doorHeight": 200,
+                "maxWeight": 100000
+              }
+            },
+            "exactCount": 0,
+            "proof": "90 mm door cannot pass the fixed 100 mm carton"
+          }
+        },
+        {
+          "caseId": "door",
+          "strategy": "maximum",
+          "name": [
+            "固定朝向门洞",
+            "Fixed-orientation door"
+          ],
+          "proof": "90 mm door cannot pass the fixed 100 mm carton",
+          "exactCount": 0,
+          "loaded": 0,
+          "sets": 0,
+          "payloadKg": 0,
+          "elapsedMs": 1.3000000002793968,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "maximum",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 100,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 90,
+                "doorHeight": 200,
+                "maxWeight": 100000
+              }
+            },
+            "exactCount": 0,
+            "proof": "90 mm door cannot pass the fixed 100 mm carton"
+          }
+        },
+        {
+          "caseId": "kits",
+          "strategy": "practical",
+          "name": [
+            "两箱加一箱套装",
+            "Two-plus-one kits"
+          ],
+          "proof": "24 volume slots / 3 cartons = 8 whole kits",
+          "exactCount": 24,
+          "loaded": 21,
+          "sets": 7,
+          "payloadKg": 210,
+          "elapsedMs": 5.5,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 3,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "practical",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 20,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877",
+                  "setCode": "KIT",
+                  "unitsPerSet": 2
+                },
+                {
+                  "id": "b",
+                  "sku": "B",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 10,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877",
+                  "setCode": "KIT",
+                  "unitsPerSet": 1
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 300,
+                "doorHeight": 200,
+                "maxWeight": 100000
+              }
+            },
+            "exactCount": 24,
+            "proof": "24 volume slots / 3 cartons = 8 whole kits"
+          }
+        },
+        {
+          "caseId": "kits",
+          "strategy": "maximum",
+          "name": [
+            "两箱加一箱套装",
+            "Two-plus-one kits"
+          ],
+          "proof": "24 volume slots / 3 cartons = 8 whole kits",
+          "exactCount": 24,
+          "loaded": 24,
+          "sets": 8,
+          "payloadKg": 240,
+          "elapsedMs": 4.100000000093132,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "maximum",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 20,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877",
+                  "setCode": "KIT",
+                  "unitsPerSet": 2
+                },
+                {
+                  "id": "b",
+                  "sku": "B",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 10,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877",
+                  "setCode": "KIT",
+                  "unitsPerSet": 1
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 300,
+                "doorHeight": 200,
+                "maxWeight": 100000
+              }
+            },
+            "exactCount": 24,
+            "proof": "24 volume slots / 3 cartons = 8 whole kits"
+          }
+        },
+        {
+          "caseId": "long-business",
+          "strategy": "practical",
+          "name": [
+            "工具房长条箱混装",
+            "Long shed carton mix"
+          ],
+          "proof": "feasible reference; global optimum unknown",
+          "exactCount": null,
+          "loaded": 116,
+          "sets": 0,
+          "payloadKg": 3842,
+          "elapsedMs": 96.70000000018626,
+          "valid": true,
+          "errors": [],
+          "gapToProof": null,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "practical",
+              "clearance": 10,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "SHED",
+                  "name": "A",
+                  "length": 2200,
+                  "width": 620,
+                  "height": 180,
+                  "weight": 42.5,
+                  "quantity": 36,
+                  "priority": 50,
+                  "rotationPolicy": "upright",
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                },
+                {
+                  "id": "b",
+                  "sku": "BED",
+                  "name": "A",
+                  "length": 1180,
+                  "width": 680,
+                  "height": 160,
+                  "weight": 28,
+                  "quantity": 56,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                },
+                {
+                  "id": "c",
+                  "sku": "PARCEL",
+                  "name": "A",
+                  "length": 1060,
+                  "width": 570,
+                  "height": 450,
+                  "weight": 31,
+                  "quantity": 24,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "40hq",
+                "name": "40HQ",
+                "length": 12032,
+                "width": 2350,
+                "height": 2700,
+                "doorWidth": 2340,
+                "doorHeight": 2597,
+                "maxWeight": 28600
+              }
+            },
+            "exactCount": null,
+            "proof": "feasible reference; global optimum unknown"
+          }
+        },
+        {
+          "caseId": "long-business",
+          "strategy": "maximum",
+          "name": [
+            "工具房长条箱混装",
+            "Long shed carton mix"
+          ],
+          "proof": "feasible reference; global optimum unknown",
+          "exactCount": null,
+          "loaded": 116,
+          "sets": 0,
+          "payloadKg": 3842,
+          "elapsedMs": 109.20000000018626,
+          "valid": true,
+          "errors": [],
+          "gapToProof": null,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "maximum",
+              "clearance": 10,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "SHED",
+                  "name": "A",
+                  "length": 2200,
+                  "width": 620,
+                  "height": 180,
+                  "weight": 42.5,
+                  "quantity": 36,
+                  "priority": 50,
+                  "rotationPolicy": "upright",
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                },
+                {
+                  "id": "b",
+                  "sku": "BED",
+                  "name": "A",
+                  "length": 1180,
+                  "width": 680,
+                  "height": 160,
+                  "weight": 28,
+                  "quantity": 56,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                },
+                {
+                  "id": "c",
+                  "sku": "PARCEL",
+                  "name": "A",
+                  "length": 1060,
+                  "width": 570,
+                  "height": 450,
+                  "weight": 31,
+                  "quantity": 24,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "40hq",
+                "name": "40HQ",
+                "length": 12032,
+                "width": 2350,
+                "height": 2700,
+                "doorWidth": 2340,
+                "doorHeight": 2597,
+                "maxWeight": 28600
+              }
+            },
+            "exactCount": null,
+            "proof": "feasible reference; global optimum unknown"
+          }
+        },
+        {
+          "caseId": "pallet-loose",
+          "strategy": "practical",
+          "name": [
+            "整托与尾数散箱",
+            "Pallets and loose tails"
+          ],
+          "proof": "feasible reference; global optimum unknown",
+          "exactCount": null,
+          "loaded": 32,
+          "sets": 0,
+          "payloadKg": 340,
+          "elapsedMs": 23.600000000093132,
+          "valid": true,
+          "errors": [],
+          "gapToProof": null,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "palletized",
+              "strategy": "practical",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 250,
+                  "width": 250,
+                  "height": 200,
+                  "weight": 10,
+                  "quantity": 30,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                },
+                {
+                  "id": "b",
+                  "sku": "B",
+                  "name": "A",
+                  "length": 400,
+                  "width": 200,
+                  "height": 200,
+                  "weight": 10,
+                  "quantity": 20,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 1400,
+                "width": 1000,
+                "height": 800,
+                "doorWidth": 1000,
+                "doorHeight": 800,
+                "maxWeight": 100000
+              },
+              "palletBuild": {
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "EUR",
+                  "length": 1000,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 20,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 600
+                },
+                "mix": "mixed",
+                "maxPallets": 4,
+                "stackLayers": 1,
+                "maxTopLoadKg": 0,
+                "looseQuantities": {
+                  "a": 2,
+                  "b": 2
+                }
+              }
+            },
+            "exactCount": null,
+            "proof": "feasible reference; global optimum unknown"
+          }
+        },
+        {
+          "caseId": "pallet-loose",
+          "strategy": "maximum",
+          "name": [
+            "整托与尾数散箱",
+            "Pallets and loose tails"
+          ],
+          "proof": "feasible reference; global optimum unknown",
+          "exactCount": null,
+          "loaded": 32,
+          "sets": 0,
+          "payloadKg": 340,
+          "elapsedMs": 19.899999999906868,
+          "valid": true,
+          "errors": [],
+          "gapToProof": null,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "palletized",
+              "strategy": "maximum",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 250,
+                  "width": 250,
+                  "height": 200,
+                  "weight": 10,
+                  "quantity": 30,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                },
+                {
+                  "id": "b",
+                  "sku": "B",
+                  "name": "A",
+                  "length": 400,
+                  "width": 200,
+                  "height": 200,
+                  "weight": 10,
+                  "quantity": 20,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 1400,
+                "width": 1000,
+                "height": 800,
+                "doorWidth": 1000,
+                "doorHeight": 800,
+                "maxWeight": 100000
+              },
+              "palletBuild": {
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "EUR",
+                  "length": 1000,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 20,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 600
+                },
+                "mix": "mixed",
+                "maxPallets": 4,
+                "stackLayers": 1,
+                "maxTopLoadKg": 0,
+                "looseQuantities": {
+                  "a": 2,
+                  "b": 2
+                }
+              }
+            },
+            "exactCount": null,
+            "proof": "feasible reference; global optimum unknown"
+          },
+          "palletSearch": {
+            "maximumCount": 31,
+            "practicalCount": 32,
+            "selected": "practical-lower-bound",
+            "comparison": "adopted-lower-bound"
+          }
+        }
+      ],
+      "environment": "Cloud Chrome QA second tab"
+    },
+    {
+      "format": "cargo-fit-quality-benchmarks",
+      "version": 1,
+      "engineVersion": "0.54.0",
+      "caseVersion": "business-2026-10-v1",
+      "createdAt": "2026-10-22T01:43:31.258Z",
+      "complete": true,
+      "rows": [
+        {
+          "caseId": "grid",
+          "strategy": "practical",
+          "name": [
+            "整格体积上界",
+            "Volume grid bound"
+          ],
+          "proof": "24 cubes fill the volume; 24 is constructive and volume-optimal",
+          "exactCount": 24,
+          "loaded": 22,
+          "sets": 0,
+          "payloadKg": 220,
+          "elapsedMs": 11.5,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 2
+        },
+        {
+          "caseId": "grid",
+          "strategy": "maximum",
+          "name": [
+            "整格体积上界",
+            "Volume grid bound"
+          ],
+          "proof": "24 cubes fill the volume; 24 is constructive and volume-optimal",
+          "exactCount": 24,
+          "loaded": 24,
+          "sets": 0,
+          "payloadKg": 240,
+          "elapsedMs": 3.1000000000931323,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0
+        },
+        {
+          "caseId": "payload",
+          "strategy": "practical",
+          "name": [
+            "重量上界",
+            "Payload bound"
+          ],
+          "proof": "120 kg / 10 kg = 12 cubes, with a feasible grid witness",
+          "exactCount": 12,
+          "loaded": 12,
+          "sets": 0,
+          "payloadKg": 120,
+          "elapsedMs": 1.6999999999534339,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0
+        },
+        {
+          "caseId": "payload",
+          "strategy": "maximum",
+          "name": [
+            "重量上界",
+            "Payload bound"
+          ],
+          "proof": "120 kg / 10 kg = 12 cubes, with a feasible grid witness",
+          "exactCount": 12,
+          "loaded": 12,
+          "sets": 0,
+          "payloadKg": 120,
+          "elapsedMs": 1.1000000000931323,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0
+        },
+        {
+          "caseId": "door",
+          "strategy": "practical",
+          "name": [
+            "固定朝向门洞",
+            "Fixed-orientation door"
+          ],
+          "proof": "90 mm door cannot pass the fixed 100 mm carton",
+          "exactCount": 0,
+          "loaded": 0,
+          "sets": 0,
+          "payloadKg": 0,
+          "elapsedMs": 0.5,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0
+        },
+        {
+          "caseId": "door",
+          "strategy": "maximum",
+          "name": [
+            "固定朝向门洞",
+            "Fixed-orientation door"
+          ],
+          "proof": "90 mm door cannot pass the fixed 100 mm carton",
+          "exactCount": 0,
+          "loaded": 0,
+          "sets": 0,
+          "payloadKg": 0,
+          "elapsedMs": 0.30000000004656613,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0
+        },
+        {
+          "caseId": "kits",
+          "strategy": "practical",
+          "name": [
+            "两箱加一箱套装",
+            "Two-plus-one kits"
+          ],
+          "proof": "24 volume slots / 3 cartons = 8 whole kits",
+          "exactCount": 24,
+          "loaded": 21,
+          "sets": 7,
+          "payloadKg": 210,
+          "elapsedMs": 3.3999999999068677,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 3
+        },
+        {
+          "caseId": "kits",
+          "strategy": "maximum",
+          "name": [
+            "两箱加一箱套装",
+            "Two-plus-one kits"
+          ],
+          "proof": "24 volume slots / 3 cartons = 8 whole kits",
+          "exactCount": 24,
+          "loaded": 24,
+          "sets": 8,
+          "payloadKg": 240,
+          "elapsedMs": 2.699999999953434,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0
+        },
+        {
+          "caseId": "long-business",
+          "strategy": "practical",
+          "name": [
+            "工具房长条箱混装",
+            "Long shed carton mix"
+          ],
+          "proof": "feasible reference; global optimum unknown",
+          "exactCount": null,
+          "loaded": 116,
+          "sets": 0,
+          "payloadKg": 3842,
+          "elapsedMs": 82.69999999995343,
+          "valid": true,
+          "errors": [],
+          "gapToProof": null
+        },
+        {
+          "caseId": "long-business",
+          "strategy": "maximum",
+          "name": [
+            "工具房长条箱混装",
+            "Long shed carton mix"
+          ],
+          "proof": "feasible reference; global optimum unknown",
+          "exactCount": null,
+          "loaded": 116,
+          "sets": 0,
+          "payloadKg": 3842,
+          "elapsedMs": 78.80000000004657,
+          "valid": true,
+          "errors": [],
+          "gapToProof": null
+        },
+        {
+          "caseId": "pallet-loose",
+          "strategy": "practical",
+          "name": [
+            "整托与尾数散箱",
+            "Pallets and loose tails"
+          ],
+          "proof": "feasible reference; global optimum unknown",
+          "exactCount": null,
+          "loaded": 32,
+          "sets": 0,
+          "payloadKg": 340,
+          "elapsedMs": 20.300000000046566,
+          "valid": true,
+          "errors": [],
+          "gapToProof": null
+        },
+        {
+          "caseId": "pallet-loose",
+          "strategy": "maximum",
+          "name": [
+            "整托与尾数散箱",
+            "Pallets and loose tails"
+          ],
+          "proof": "feasible reference; global optimum unknown",
+          "exactCount": null,
+          "loaded": 31,
+          "sets": 0,
+          "payloadKg": 330,
+          "elapsedMs": 9.699999999953434,
+          "valid": true,
+          "errors": [],
+          "gapToProof": null
+        }
+      ]
+    },
+    {
+      "format": "cargo-fit-quality-benchmarks",
+      "version": 1,
+      "engineVersion": "0.56.0",
+      "caseVersion": "business-2026-10-v1",
+      "createdAt": "2026-10-22T07:37:29.406Z",
+      "complete": true,
+      "rows": [
+        {
+          "caseId": "grid",
+          "strategy": "practical",
+          "name": [
+            "整格体积上界",
+            "Volume grid bound"
+          ],
+          "proof": "24 cubes fill the volume; 24 is constructive and volume-optimal",
+          "exactCount": 24,
+          "loaded": 22,
+          "sets": 0,
+          "payloadKg": 220,
+          "elapsedMs": 22.299999999813735,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 2,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "practical",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 100,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 300,
+                "doorHeight": 200,
+                "maxWeight": 100000
+              }
+            },
+            "exactCount": 24,
+            "proof": "24 cubes fill the volume; 24 is constructive and volume-optimal"
+          }
+        },
+        {
+          "caseId": "grid",
+          "strategy": "maximum",
+          "name": [
+            "整格体积上界",
+            "Volume grid bound"
+          ],
+          "proof": "24 cubes fill the volume; 24 is constructive and volume-optimal",
+          "exactCount": 24,
+          "loaded": 24,
+          "sets": 0,
+          "payloadKg": 240,
+          "elapsedMs": 5.699999999720603,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "maximum",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 100,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 300,
+                "doorHeight": 200,
+                "maxWeight": 100000
+              }
+            },
+            "exactCount": 24,
+            "proof": "24 cubes fill the volume; 24 is constructive and volume-optimal"
+          }
+        },
+        {
+          "caseId": "payload",
+          "strategy": "practical",
+          "name": [
+            "重量上界",
+            "Payload bound"
+          ],
+          "proof": "120 kg / 10 kg = 12 cubes, with a feasible grid witness",
+          "exactCount": 12,
+          "loaded": 12,
+          "sets": 0,
+          "payloadKg": 120,
+          "elapsedMs": 2,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "practical",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 100,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 300,
+                "doorHeight": 200,
+                "maxWeight": 120
+              }
+            },
+            "exactCount": 12,
+            "proof": "120 kg / 10 kg = 12 cubes, with a feasible grid witness"
+          }
+        },
+        {
+          "caseId": "payload",
+          "strategy": "maximum",
+          "name": [
+            "重量上界",
+            "Payload bound"
+          ],
+          "proof": "120 kg / 10 kg = 12 cubes, with a feasible grid witness",
+          "exactCount": 12,
+          "loaded": 12,
+          "sets": 0,
+          "payloadKg": 120,
+          "elapsedMs": 1.3999999999068677,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "maximum",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 100,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 300,
+                "doorHeight": 200,
+                "maxWeight": 120
+              }
+            },
+            "exactCount": 12,
+            "proof": "120 kg / 10 kg = 12 cubes, with a feasible grid witness"
+          }
+        },
+        {
+          "caseId": "door",
+          "strategy": "practical",
+          "name": [
+            "固定朝向门洞",
+            "Fixed-orientation door"
+          ],
+          "proof": "90 mm door cannot pass the fixed 100 mm carton",
+          "exactCount": 0,
+          "loaded": 0,
+          "sets": 0,
+          "payloadKg": 0,
+          "elapsedMs": 0.8000000002793968,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "practical",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 100,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 90,
+                "doorHeight": 200,
+                "maxWeight": 100000
+              }
+            },
+            "exactCount": 0,
+            "proof": "90 mm door cannot pass the fixed 100 mm carton"
+          }
+        },
+        {
+          "caseId": "door",
+          "strategy": "maximum",
+          "name": [
+            "固定朝向门洞",
+            "Fixed-orientation door"
+          ],
+          "proof": "90 mm door cannot pass the fixed 100 mm carton",
+          "exactCount": 0,
+          "loaded": 0,
+          "sets": 0,
+          "payloadKg": 0,
+          "elapsedMs": 2,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "maximum",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 100,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 90,
+                "doorHeight": 200,
+                "maxWeight": 100000
+              }
+            },
+            "exactCount": 0,
+            "proof": "90 mm door cannot pass the fixed 100 mm carton"
+          }
+        },
+        {
+          "caseId": "kits",
+          "strategy": "practical",
+          "name": [
+            "两箱加一箱套装",
+            "Two-plus-one kits"
+          ],
+          "proof": "24 volume slots / 3 cartons = 8 whole kits",
+          "exactCount": 24,
+          "loaded": 21,
+          "sets": 7,
+          "payloadKg": 210,
+          "elapsedMs": 9.199999999720603,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 3,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "practical",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 20,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877",
+                  "setCode": "KIT",
+                  "unitsPerSet": 2
+                },
+                {
+                  "id": "b",
+                  "sku": "B",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 10,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877",
+                  "setCode": "KIT",
+                  "unitsPerSet": 1
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 300,
+                "doorHeight": 200,
+                "maxWeight": 100000
+              }
+            },
+            "exactCount": 24,
+            "proof": "24 volume slots / 3 cartons = 8 whole kits"
+          }
+        },
+        {
+          "caseId": "kits",
+          "strategy": "maximum",
+          "name": [
+            "两箱加一箱套装",
+            "Two-plus-one kits"
+          ],
+          "proof": "24 volume slots / 3 cartons = 8 whole kits",
+          "exactCount": 24,
+          "loaded": 24,
+          "sets": 8,
+          "payloadKg": 240,
+          "elapsedMs": 7.099999999627471,
+          "valid": true,
+          "errors": [],
+          "gapToProof": 0,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "maximum",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 20,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877",
+                  "setCode": "KIT",
+                  "unitsPerSet": 2
+                },
+                {
+                  "id": "b",
+                  "sku": "B",
+                  "name": "A",
+                  "length": 100,
+                  "width": 100,
+                  "height": 100,
+                  "weight": 10,
+                  "quantity": 10,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877",
+                  "setCode": "KIT",
+                  "unitsPerSet": 1
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 400,
+                "width": 300,
+                "height": 200,
+                "doorWidth": 300,
+                "doorHeight": 200,
+                "maxWeight": 100000
+              }
+            },
+            "exactCount": 24,
+            "proof": "24 volume slots / 3 cartons = 8 whole kits"
+          }
+        },
+        {
+          "caseId": "long-business",
+          "strategy": "practical",
+          "name": [
+            "工具房长条箱混装",
+            "Long shed carton mix"
+          ],
+          "proof": "feasible reference; global optimum unknown",
+          "exactCount": null,
+          "loaded": 116,
+          "sets": 0,
+          "payloadKg": 3842,
+          "elapsedMs": 133.89999999990687,
+          "valid": true,
+          "errors": [],
+          "gapToProof": null,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "practical",
+              "clearance": 10,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "SHED",
+                  "name": "A",
+                  "length": 2200,
+                  "width": 620,
+                  "height": 180,
+                  "weight": 42.5,
+                  "quantity": 36,
+                  "priority": 50,
+                  "rotationPolicy": "upright",
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                },
+                {
+                  "id": "b",
+                  "sku": "BED",
+                  "name": "A",
+                  "length": 1180,
+                  "width": 680,
+                  "height": 160,
+                  "weight": 28,
+                  "quantity": 56,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                },
+                {
+                  "id": "c",
+                  "sku": "PARCEL",
+                  "name": "A",
+                  "length": 1060,
+                  "width": 570,
+                  "height": 450,
+                  "weight": 31,
+                  "quantity": 24,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "40hq",
+                "name": "40HQ",
+                "length": 12032,
+                "width": 2350,
+                "height": 2700,
+                "doorWidth": 2340,
+                "doorHeight": 2597,
+                "maxWeight": 28600
+              }
+            },
+            "exactCount": null,
+            "proof": "feasible reference; global optimum unknown"
+          }
+        },
+        {
+          "caseId": "long-business",
+          "strategy": "maximum",
+          "name": [
+            "工具房长条箱混装",
+            "Long shed carton mix"
+          ],
+          "proof": "feasible reference; global optimum unknown",
+          "exactCount": null,
+          "loaded": 116,
+          "sets": 0,
+          "payloadKg": 3842,
+          "elapsedMs": 108.20000000018626,
+          "valid": true,
+          "errors": [],
+          "gapToProof": null,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "direct",
+              "strategy": "maximum",
+              "clearance": 10,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "SHED",
+                  "name": "A",
+                  "length": 2200,
+                  "width": 620,
+                  "height": 180,
+                  "weight": 42.5,
+                  "quantity": 36,
+                  "priority": 50,
+                  "rotationPolicy": "upright",
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                },
+                {
+                  "id": "b",
+                  "sku": "BED",
+                  "name": "A",
+                  "length": 1180,
+                  "width": 680,
+                  "height": 160,
+                  "weight": 28,
+                  "quantity": 56,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                },
+                {
+                  "id": "c",
+                  "sku": "PARCEL",
+                  "name": "A",
+                  "length": 1060,
+                  "width": 570,
+                  "height": 450,
+                  "weight": 31,
+                  "quantity": 24,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "40hq",
+                "name": "40HQ",
+                "length": 12032,
+                "width": 2350,
+                "height": 2700,
+                "doorWidth": 2340,
+                "doorHeight": 2597,
+                "maxWeight": 28600
+              }
+            },
+            "exactCount": null,
+            "proof": "feasible reference; global optimum unknown"
+          }
+        },
+        {
+          "caseId": "pallet-loose",
+          "strategy": "practical",
+          "name": [
+            "整托与尾数散箱",
+            "Pallets and loose tails"
+          ],
+          "proof": "feasible reference; global optimum unknown",
+          "exactCount": null,
+          "loaded": 32,
+          "sets": 0,
+          "payloadKg": 340,
+          "elapsedMs": 28.200000000186265,
+          "valid": true,
+          "errors": [],
+          "gapToProof": null,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "palletized",
+              "strategy": "practical",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 250,
+                  "width": 250,
+                  "height": 200,
+                  "weight": 10,
+                  "quantity": 30,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                },
+                {
+                  "id": "b",
+                  "sku": "B",
+                  "name": "A",
+                  "length": 400,
+                  "width": 200,
+                  "height": 200,
+                  "weight": 10,
+                  "quantity": 20,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 1400,
+                "width": 1000,
+                "height": 800,
+                "doorWidth": 1000,
+                "doorHeight": 800,
+                "maxWeight": 100000
+              },
+              "palletBuild": {
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "EUR",
+                  "length": 1000,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 20,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 600
+                },
+                "mix": "mixed",
+                "maxPallets": 4,
+                "stackLayers": 1,
+                "maxTopLoadKg": 0,
+                "looseQuantities": {
+                  "a": 2,
+                  "b": 2
+                }
+              }
+            },
+            "exactCount": null,
+            "proof": "feasible reference; global optimum unknown"
+          }
+        },
+        {
+          "caseId": "pallet-loose",
+          "strategy": "maximum",
+          "name": [
+            "整托与尾数散箱",
+            "Pallets and loose tails"
+          ],
+          "proof": "feasible reference; global optimum unknown",
+          "exactCount": null,
+          "loaded": 32,
+          "sets": 0,
+          "payloadKg": 340,
+          "elapsedMs": 34.59999999962747,
+          "valid": true,
+          "errors": [],
+          "gapToProof": null,
+          "input": {
+            "request": {
+              "mode": "mixed",
+              "workflow": "palletized",
+              "strategy": "maximum",
+              "clearance": 0,
+              "practicalTargetUtilization": 0.95,
+              "products": [
+                {
+                  "id": "a",
+                  "sku": "A",
+                  "name": "A",
+                  "length": 250,
+                  "width": 250,
+                  "height": 200,
+                  "weight": 10,
+                  "quantity": 30,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                },
+                {
+                  "id": "b",
+                  "sku": "B",
+                  "name": "A",
+                  "length": 400,
+                  "width": 200,
+                  "height": 200,
+                  "weight": 10,
+                  "quantity": 20,
+                  "priority": 50,
+                  "rotationPolicy": "fixed",
+                  "allowedOrientations": [
+                    "LWH"
+                  ],
+                  "stackable": true,
+                  "maxStackLayers": 0,
+                  "maxTopLoadKg": 100000,
+                  "color": "#338877"
+                }
+              ],
+              "container": {
+                "id": "qa",
+                "name": "QA",
+                "length": 1400,
+                "width": 1000,
+                "height": 800,
+                "doorWidth": 1000,
+                "doorHeight": 800,
+                "maxWeight": 100000
+              },
+              "palletBuild": {
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "EUR",
+                  "length": 1000,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 20,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 600
+                },
+                "mix": "mixed",
+                "maxPallets": 4,
+                "stackLayers": 1,
+                "maxTopLoadKg": 0,
+                "looseQuantities": {
+                  "a": 2,
+                  "b": 2
+                }
+              }
+            },
+            "exactCount": null,
+            "proof": "feasible reference; global optimum unknown"
+          },
+          "palletSearch": {
+            "maximumCount": 31,
+            "practicalCount": 32,
+            "selected": "practical-lower-bound",
+            "comparison": "adopted-lower-bound"
+          }
+        }
+      ],
+      "environment": "Cloud Chrome QA 2026-10-22"
+    }
+  ]
+}
