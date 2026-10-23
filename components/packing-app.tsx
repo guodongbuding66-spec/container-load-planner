@@ -1,4 +1,5 @@
 "use client";
+import {issueDeliveryIdentity} from "../lib/packing/delivery-identity";
 import {EngineeringChecks} from "./engineering-checks";
 import type {EngineeringDocument} from "../lib/packing/engineering-checks";
 import {QualityBenchmarks} from "./quality-benchmarks";
@@ -2359,7 +2360,7 @@ export function PackingApp() {
           delivery={result && !hasPendingDimensionChanges ? <>
             <DeliveryVersionPanel plan={result} disabled={!canExport} onIssue={adoptDeliveryVersion} backup={workspaceBackup}/>
             <WeighingPanel plan={result} disabled={!canExport} getRecords={getWeighingRecords} onRecords={receiveWeighingRecords}/>
-            <EngineeringChecks plan={result} disabled={!canExport} getDocument={getEngineeringDocument} onDocument={receiveEngineeringDocument}/>
+            <EngineeringChecks plan={result} products={activeProducts} onAdopt={next=>adoptDeliveryVersion(issueDeliveryIdentity(next))} disabled={!canExport} getDocument={getEngineeringDocument} onDocument={receiveEngineeringDocument}/>
             <OperationsPanel plan={result} disabled={!canExport} getRecords={getOperationRecords} onRecords={receiveOperationRecords}/>
             <FieldJournalPanel plan={result} disabled={!canExport} onRecords={receiveFieldRecords} onLockLoaded={adoptLoadedLocks} getRecords={getKnownFieldRecords}/>
             {canExport ? <FieldGuide key={`field-${result.id}`} result={result} products={activeProducts}/> : null}

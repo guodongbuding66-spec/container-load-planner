@@ -1,3 +1,4 @@
+import {palletLoadEnvelope} from "./unit-envelope";
 import {deliveryIdentityState,deliveryUnitBindings} from "./delivery-identity";
 import {planOrderRows} from "./order-lines";
 import {looseManifest} from "./loose-cargo";
@@ -84,6 +85,16 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
     looseRows.slice(from,from+25).forEach((r,i)=>{const y=460+i*70;text(ellipsis(r.sku,410),100,y,25);[r.reserved,r.loose,r.palletized,r.unloaded,r.weightKg.toFixed(1)].forEach((v,j)=>text(String(v),[540,790,1040,1260,1460][j],y,25));});await finish();
   }
   for(let startAt=0;startAt<(result.pallets?.length??0);startAt+=28){start(result.workflow==="pallet-only"?t("独立托盘清单与自重","Independent pallet manifest and tare"):result.palletization?t("整托入柜与自重","Complete pallet placement and tare"):t("底层托盘铺设与自重","Floor pallet layout and tare"));text(result.workflow==="pallet-only"?t("按关联清单独立打托，货物限高不含底座，总重含托盘自重。","Build each listed pallet independently. Cargo height excludes decks; gross weight includes tare."):result.palletization?t("按托盘关联清单在柜外打托，再整托入柜；货物 Z 已包含底座。","Build associated cargo on each pallet outside, then load complete pallets; Z includes decks."):t("先铺设托盘；货物 Z 已包含底座高度，勿再次加高。","Place pallets first. Cargo Z already includes the base height."),100,310,27,true);result.pallets!.slice(startAt,startAt+28).forEach((p,i)=>{const y=390+i*64;text(`${p.id} · ${p.name}`,100,y,25);text(`${p.x} / ${p.y} / ${p.z}`,700,y,25);text(`${p.dx} × ${p.dy} × ${Math.max(p.enclosureHeight??p.dz,p.dz+deckSupportHeight(p))}`,1100,y,25);text(`${p.weight} kg`,1530,y,25);});await finish();}
+  const measuredUnits=(result.pallets??[]).filter(p=>p.measuredEnvelope);
+  for(let from=0;from<measuredUnits.length;from+=12){
+    start(t("已采用实测保守装载包络","Adopted measured conservative loading envelopes"));
+    text(t("底座与托内货物不变；下列空间参与碰撞、空隙及路径复核。","Bases and local cargo stay unchanged; these envelopes participate in collision, free-space and access checks."),100,310,24);
+    measuredUnits.slice(from,from+12).forEach((p,i)=>{const e=palletLoadEnvelope(p,result.placements.filter(b=>b.palletIds?.includes(p.id))),y=410+i*155;
+      text(ellipsis(p.id,1450),100,y,27,true);text(`${e.dx} × ${e.dy} × ${e.dz} mm · XYZ ${e.x} / ${e.y} / ${e.z}`,100,y+42,25);
+      text(ellipsis(`${p.measuredEnvelope!.date} · ${p.measuredEnvelope!.source}`,1560),100,y+82,23);
+    });
+    await finish();
+  }
   if(result.container.exclusions?.length){
     start(t("柜内障碍与禁占区","Obstacles and keep-clear regions"));
     text(hasAccessorySupports(result.container)?t("绿色实心支承件以实际顶面承托；其他区域不承托；附件重量单列。","Green solid supports contact at the real top; other regions do not support. Accessory mass is separate."):t("坐标 mm 从实际柜内柜头、左壁、地板起算；区域不承托、不计货物；附件计划重量单列。","Physical inner nose/left/floor coordinates in mm; regions provide no support or cargo; accessory planned mass is separate."),100,310,25);

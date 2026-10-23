@@ -1,4 +1,5 @@
 import {siteExclusionBoxes} from "./site-exclusions";
+import {palletLoadEnvelope} from "./unit-envelope";
 import { certifiedModelGaps } from "./solid-space";
 import { cargoBodyParts, bodyContactArea } from "./cargo-body";
 import { applyTypeSupport } from "./loading-rules";
@@ -33,6 +34,7 @@ export function analyzeEmptySpaces(plan:PackingResult,limit=600){
   let spaces:BoundsBox[]=[{x:0,y:0,z:0,dx:plan.container.length-2*plan.clearance,dy:plan.container.width-2*plan.clearance,dz:plan.container.height-plan.clearance}],truncated=false;
   for(const b of siteExclusionBoxes(plan.container,plan.clearance))spaces=spaces.flatMap(s=>subtractSpace(s,b));
   let approximate=false;
+  for(const p of plan.pallets??[])if(p.measuredEnvelope){const envelope=palletLoadEnvelope(p,plan.placements.filter(b=>b.palletIds?.includes(p.id)));spaces=spaces.flatMap(s=>subtractSpace(s,envelope));}
   for(const p of plan.pallets??[])for(const b of packagingReservations(p))spaces=spaces.flatMap(s=>subtractSpace(s,b));
   for(const b of plan.placements){
     const p=plan.cargoDetails?.[b.productId];

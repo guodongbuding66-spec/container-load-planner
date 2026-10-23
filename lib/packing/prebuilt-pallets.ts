@@ -1,4 +1,5 @@
 import {parseLooseQuantities,looseReservationErrors,looseOutsideUnit,type LooseQuantities} from "./loose-cargo";
+import {palletLoadEnvelope} from "./unit-envelope";
 import {crateAutoEnabled,inspectCrateStacks,isCrate} from "./crate-auto-stack";
 import {completePackagingTare,palletEnvelopeTop,assertDeckSupportStacking} from "./deck-support";
 import {siteExclusionBoxes} from "./site-exclusions";
@@ -65,6 +66,7 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
   for(const b of boxes){const counts=b.palletIds?.length?unitCounts:looseCounts;counts.set(b.productId,(counts.get(b.productId)??0)+1);}
   if([...looseCounts].some(([id,n])=>n>(value.looseQuantities?.[id]??0))||products.some(p=>(unitCounts.get(p.id)??0)>p.quantity-(value.looseQuantities?.[p.id]??0)))errors.push("Cargo exceeds its loose or palletized allocation / 箱数超过散装或打托分配");
   const cargoByPallet = new Map(pallets.map(p => [p.id, boxes.filter(b => b.palletIds?.length === 1 && b.palletIds[0] === p.id)]));
+  if(pallets.some(p=>p.measuredEnvelope)&&pallets.some(p=>p.z!==0))errors.push("Measured loading envelopes require floor-only complete units / 实测装载包络仅支持整托底置");
   for (const b of boxes) {
     if(!b.palletIds?.length){if(!((value.looseQuantities?.[b.productId]??0)>0))errors.push(`${b.sku}: loose cargo was not reserved / 未预留散装`);continue;}
     const p = b.palletIds?.length === 1 ? pallets.find(p => p.id === b.palletIds![0]) : undefined;
@@ -87,7 +89,9 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
     const top = Math.max(cargoTop,p.z+(p.enclosureHeight??0)), height = top - p.z;
     if (config.maxCargoHeight && height > packagingHeight(config) + EPS || !value.only && height > Math.min(container.height, container.loadingAccess === "open" ? container.height : container.doorHeight) - clearance + EPS) errors.push("Loaded pallet exceeds door or cargo height limit");
     if (value.mix === "single" && new Set(cargo.map(b => b.setCode ? `set:${b.setCode}` : `sku:${b.productId}`)).size > 1) errors.push("Single-product pallet contains mixed cargo");
-    envelopes.push({ ...p, dz: height, weight: p.weight + cargo.reduce((n, b) => n + b.weight, 0), productId: p.id, sku: p.id, color: "#997947", layer: 1, orientation: p.orientation });
+    const envelope=palletLoadEnvelope(p,cargo);
+    if(p.measuredEnvelope&&(envelope.x< -EPS||envelope.y< -EPS||envelope.x+envelope.dx>container.length-2*clearance+EPS||envelope.y+envelope.dy>container.width-2*clearance+EPS||envelope.z+envelope.dz>container.height-clearance+EPS||container.loadingAccess!=="open"&&(envelope.dy>container.doorWidth-2*clearance+EPS||envelope.dz>container.doorHeight-clearance+EPS)))errors.push("Measured unit envelope exceeds container or door / 实测整托包络超过柜内或门洞限制");
+    envelopes.push({ ...p, ...envelope, weight: p.weight + cargo.reduce((n, b) => n + b.weight, 0), productId: p.id, sku: p.id, color: "#997947", layer: 1, orientation: p.orientation });
   }
   if(value.selectionChoices){const groups=packagingPriorityGroups(products),groupKeys=groups.map(g=>packagingGroupKey(g[0]));
     for(const choice of value.selectionChoices){

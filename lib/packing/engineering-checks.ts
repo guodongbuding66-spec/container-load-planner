@@ -1,6 +1,6 @@
+import {palletLoadEnvelope} from "./unit-envelope";
 import {deliveryIdentityState} from "./delivery-identity";
 import {plannedWeightBreakdown} from "./weighing";
-import {palletEnvelopeTop} from "./deck-support";
 import {siteExclusionBoxes} from "./site-exclusions";
 import {intersects} from "./free-space";
 import {modelMassCenter} from "./model-body";
@@ -42,8 +42,9 @@ export function parseUnitMeasurement(plan:PackingResult,value:unknown):UnitMeasu
 export function reviewUnitMeasurements(plan:PackingResult,values:unknown[]){
  complete(plan);if(!plan.palletization||values.length>200)throw fail();
  const readings=values.map(v=>parseUnitMeasurement(plan,v));if(new Set(readings.map(r=>r.palletId)).size!==readings.length)throw fail();
- const units=(plan.pallets??[]).map(p=>{const r=readings.find(v=>v.palletId===p.id),x=p.x-(r?.noseProtrusion??0),y=p.y-(r?.leftProtrusion??0),nominalHeight=palletEnvelopeTop(p,plan.placements.filter(b=>b.palletIds?.includes(p.id)))-p.z;
-  return {id:p.id,x,y,z:p.z,dx:Math.max(p.x+p.dx,x+(r?.length??p.dx))-x,dy:Math.max(p.y+p.dy,y+(r?.width??p.dy))-y,dz:Math.max(nominalHeight,r?.height??0),reading:r,gap:plan.palletization?(plan.palletization.specifications?.find(s=>s.id===(p.specificationId??"primary"))?.config??plan.palletization.config).gap??0:0};
+ const units=(plan.pallets??[]).map(p=>{const r=readings.find(v=>v.palletId===p.id),base=palletLoadEnvelope(p,plan.placements.filter(b=>b.palletIds?.includes(p.id))),x=Math.min(base.x,p.x-(r?.noseProtrusion??0)),y=Math.min(base.y,p.y-(r?.leftProtrusion??0));
+  const adopted=p.measuredEnvelope?{...p.measuredEnvelope,palletId:p.id,extraWeightKg:0,weightIncluded:true}:undefined;
+  return {id:p.id,x,y,z:p.z,dx:Math.max(base.x+base.dx,p.x-(r?.noseProtrusion??0)+(r?.length??p.dx))-x,dy:Math.max(base.y+base.dy,p.y-(r?.leftProtrusion??0)+(r?.width??p.dy))-y,dz:Math.max(base.dz,r?.height??0),reading:r??adopted,gap:plan.palletization?(plan.palletization.specifications?.find(s=>s.id===(p.specificationId??"primary"))?.config??plan.palletization.config).gap??0:0};
  });
  const margins=(u:typeof units[number])=>({nose:u.x,left:u.y,far:plan.container.length-2*plan.clearance-u.x-u.dx,right:plan.container.width-2*plan.clearance-u.y-u.dy,top:plan.container.height-plan.clearance-u.z-u.dz,doorWidth:plan.container.loadingAccess==="open"?Infinity:plan.container.doorWidth-2*plan.clearance-u.dy,doorHeight:plan.container.loadingAccess==="open"?Infinity:plan.container.doorHeight-plan.clearance-u.dz});
  const report=units.map(u=>{const reasons:string[]=[],m=margins(u);if(Object.values(m).some(n=>n< -EPS))reasons.push("boundary-or-door");

@@ -1,4 +1,5 @@
 "use client";
+import {palletLoadEnvelope} from "../lib/packing/unit-envelope";
 import { palletEnvelopeTop } from "../lib/packing/deck-support";
 import { formatMeasure } from "../lib/packing/inspection";
 import type { PackingResult, PlacedPallet } from "../lib/packing/types";
@@ -9,6 +10,7 @@ export function PalletBaseDetails({ result, pallet, unit = "mm", precision = 1 }
 }) {
   useLanguage();
   const cargo = result.placements.filter(b => b.palletIds?.includes(pallet.id));
+  const envelope=pallet.measuredEnvelope?palletLoadEnvelope(pallet,cargo):null;
   const fmt = (n: number) => formatMeasure(n, unit, precision);
   return <section className="pallet-base-details" aria-label={tr("本托底座与完整外形", "Unit base and complete exterior")}>
     <dl className="scene-properties">
@@ -19,6 +21,7 @@ export function PalletBaseDetails({ result, pallet, unit = "mm", precision = 1 }
       <dt>{tr("包装自重", "Packaging tare")}</dt><dd>{pallet.weight} kg</dd>
       <dt>{tr("整托总重", "Unit gross weight")}</dt><dd>{Number((pallet.weight + cargo.reduce((n, b) => n + b.weight, 0)).toFixed(4))} kg</dd>
       <dt>{tr("本托箱数", "Cartons on this unit")}</dt><dd>{cargo.length}</dd>
+      {envelope&&<><dt>{tr("实测装载包络","Measured loading envelope")}</dt><dd>{[envelope.dx,envelope.dy,envelope.dz].map(fmt).join(" × ")}</dd><dt>{tr("包络 XYZ","Envelope XYZ")}</dt><dd>{[envelope.x,envelope.y,envelope.z].map(fmt).join(" / ")}</dd><dt>{tr("实测来源","Measured source")}</dt><dd>{pallet.measuredEnvelope!.source} · {pallet.measuredEnvelope!.date}</dd></>}
     </dl>
     <p className="helper-text">{tr("本托独立包含一个底座。上层整托也保留自己的底座；货物坐标已计入底座高度。", "This unit includes its own base. Elevated units also retain their bases; cargo coordinates already include base height.")}</p>
   </section>;

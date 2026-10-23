@@ -1,3 +1,4 @@
+import {palletLoadEnvelope} from "./unit-envelope";
 import {deliveryIdentityState,deliveryUnitBindings} from "./delivery-identity";
 import {parseOrderLine,assertOrderLineIds} from "./order-lines";
 import {planCrateStackReview} from "./crate-auto-stack";
@@ -136,9 +137,10 @@ function placementCsvCore(result: PackingResult): string {
 
   const palletRows=(result.pallets??[]).map(p=>[0,p.id,p.name,"","","",p.x,p.y,p.z,p.dx,p.dy,p.dz,p.orientation,0,p.weight,"pallet",p.id,"","","","box","","","","","","",""].concat(["","",workflow,frame]).map(toCsvCell).join(","));
   const structure=result.pallets?.some(p=>p.packaging);
-  const header=PLACEMENT_CSV_HEADER+(structure?",包装结构JSON,包装总高(mm)":"");
-  const packagingRows=palletRows.map((row,i)=>row+(structure?","+toCsvCell(JSON.stringify(result.pallets![i].packaging??null))+","+toCsvCell(Math.max(result.pallets![i].enclosureHeight??result.pallets![i].dz,result.pallets![i].dz+deckSupportHeight(result.pallets![i]))):""));
-  const cargoRows=rows.map(row=>row+(structure?",,":""));
+  const measured=result.pallets?.some(p=>p.measuredEnvelope);
+  const header=PLACEMENT_CSV_HEADER+(structure?",包装结构JSON,包装总高(mm)":"")+(measured?",实测保守装载包络JSON":"");
+  const packagingRows=palletRows.map((row,i)=>row+(structure?","+toCsvCell(JSON.stringify(result.pallets![i].packaging??null))+","+toCsvCell(Math.max(result.pallets![i].enclosureHeight??result.pallets![i].dz,result.pallets![i].dz+deckSupportHeight(result.pallets![i]))):"")+(measured?","+(result.pallets![i].measuredEnvelope?toCsvCell(JSON.stringify({...result.pallets![i].measuredEnvelope,...palletLoadEnvelope(result.pallets![i],result.placements.filter(b=>b.palletIds?.includes(result.pallets![i].id)))})):""):""));
+  const cargoRows=rows.map(row=>row+(structure?",,":"")+(measured?",":""));
   if(result.palletization?.specifications){
     const byId=new Map((result.pallets??[]).map(p=>[p.id,p]));
     const suffix=(p:PlacedPallet|undefined)=>","+toCsvCell(p?.specificationId??"")+","+toCsvCell(p?.name??"");

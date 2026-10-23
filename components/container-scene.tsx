@@ -1,4 +1,5 @@
 "use client";
+import {palletLoadEnvelope} from "../lib/packing/unit-envelope";
 import type {MeasurementOverlay} from "../lib/packing/saved-measurements";
 import {siteExclusionBoxes} from "../lib/packing/site-exclusions";
 
@@ -201,6 +202,7 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
       {appearance.skuSummaries && annotations.map(([id,a])=><MetricLabel key={id} text={a.sku} size={.12} position={[(a.minX+a.maxX)/2*scale+offset.x,a.maxY*scale+offset.y+.15,(a.minZ+a.maxZ)/2*scale+offset.z]}/>)}
       {appearance.dimensions&&<SceneDimensions bounds={measurement.bounds} values={measurement.values} unit={appearance.dimensionUnit} fontSize={appearance.dimensionFontSize} style={appearance.dimensionStyle} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}
       {appearance.dimensions&&[...(manualMeasurement?[manualMeasurement]:[]),...manualMeasurements].map((m,i)=><SceneMeasurement key={i} measurement={m} scale={scale} offset={offset}/>)}
+      <SceneAnalysisOverlay regions={visiblePlanPallets(result,visibleCount).filter(p=>p.measuredEnvelope&&(section.isolation!=="pallet"||section.target===p.id)).flatMap(p=>{const e=sectionBox({...palletLoadEnvelope(p,result.placements.filter(b=>b.palletIds?.includes(p.id))),id:p.id},result,section);return e?[{...e,id:`measured-envelope/${p.id}`,color:"#b87522"}]:[];})} scale={scale} offset={offset}/>
       <SceneAnalysisOverlay regions={regions} scale={scale} offset={offset}/>
       {editor?.enabled&&!editor.disabled&&onDragging&&<SceneEditHandles editor={editor} boxes={inspectBoxes(result,visibleProducts,visibleCount,section)} scale={scale} offset={offset} onDragging={onDragging}/>}
       {!presentation && modelMode === "wireframe" && <gridHelper args={[Math.max(size[0], size[2]) * 1.25, 16, "#91a6ab", "#d9e1e3"]} position={[0, -0.02, 0]} />}

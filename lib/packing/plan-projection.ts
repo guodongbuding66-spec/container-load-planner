@@ -1,3 +1,4 @@
+import {palletLoadEnvelope} from "./unit-envelope";
 import {siteExclusionBoxes} from "./site-exclusions";
 import { cargoShapeProjections, type CargoProjectionView } from "./cargo-shape-geometry";
 import { placedPackagingParts } from "./packaging";
@@ -18,7 +19,7 @@ export function shapePolygons(box: PlacedBox, view: CargoProjectionView, details
 
 /** Visual packaging parts have zero mass here; accounting always uses the original pallet tare once. */
 export function projectionBoxes(pallets: PlacedPallet[], cargo: PlacedBox[]): PlacedBox[] {
-  return [...pallets.flatMap(p => placedPackagingParts(p).map((b, i): PlacedBox => ({ ...b,
+  return [...pallets.filter(p=>p.measuredEnvelope).map((p):PlacedBox=>({...p,...palletLoadEnvelope(p,cargo.filter(b=>b.palletIds?.includes(p.id))),id:`measured-envelope/${p.id}`,productId:p.id,sku:p.name,name:p.name,color:"#b87522",orientation:"LWH",weight:0,layer:1,supportOnly:true,palletIds:[p.id]})),...pallets.flatMap(p => placedPackagingParts(p).map((b, i): PlacedBox => ({ ...b,
     id: `${p.id}:part:${i}`, productId: p.id, sku: p.name, name: p.name, color: p.packaging?.color ?? "#b49b79",
     orientation: "LWH", weight: 0, layer: 1, supportOnly: true, palletIds: [p.id],
   }))), ...cargo];

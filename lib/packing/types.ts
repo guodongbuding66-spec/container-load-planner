@@ -53,6 +53,8 @@ export type FloorPalletConfig = {
   maxCargoHeight?: number;
 };
 export type PlacedPallet = {
+  /** Adopted conservative loading envelope; physical base and cargo geometry stay unchanged. */
+  measuredEnvelope?: import("./unit-envelope").MeasuredUnitEnvelope;
   /** Full horizontal rotation for asymmetric attached packaging; legacy omission uses orientation. */
   quarterTurns?:0|1|2|3;
   /** Prevent movement and contents edits until explicitly unlocked. */

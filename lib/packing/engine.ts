@@ -49,7 +49,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.60.0";
+export const ENGINE_VERSION = "0.61.0";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -1848,6 +1848,7 @@ export function validatePacking(
     placements = orderForLoading([...palletAnchors(pallets), ...cargo],products);
     products = [...products, ...palletSupportProducts(pallets)];
   }
+  if(!palletization&&pallets.some(p=>p.measuredEnvelope))return {valid:false,errors:["Measured unit envelopes require prebuilt pallets / 实测整托包络需要预打托方案"]};
   const supportIds = new Set(pallets.map(p => p.id));
   const containerError = validateContainerInput(container, clearance);
   if (containerError) return { valid: false, errors: [containerError] };
@@ -2558,6 +2559,7 @@ export function rebuildPlacementLayers(placements:PlacedBox[],pallets:PlacedPall
 export function revisePackingResult(original: PackingResult, placements: PlacedBox[], products: ProductInput[], pallets:PlacedPallet[]=original.pallets??[]): PackingResult {
   if(original.metrics.loadedCount!==original.placements.length)throw new Error("A complete coordinate plan is required for editing.");
   if(pallets.length!==(original.pallets??[]).length||pallets.some(p=>{const old=original.pallets?.find(q=>q.id===p.id);return !old||p.weight!==old.weight||p.maxLoad!==old.maxLoad||p.presetId!==old.presetId||p.dz!==old.dz||p.specificationId!==old.specificationId;}))throw new Error("Pallet identity or specification cannot change during editing.");
+  if(pallets.some(p=>JSON.stringify(p.measuredEnvelope)!==JSON.stringify(original.pallets?.find(q=>q.id===p.id)?.measuredEnvelope)))throw Error("编辑不能删除或改写实测占位，请恢复原备份并重新测量 / Editing cannot remove or rewrite measured space; restore the original backup and measure again");
   for(const old of original.pallets??[])if(old.locked){const next=pallets.find(p=>p.id===old.id);if(!next||["x","y","z","dx","dy","dz","orientation"].some(k=>old[k as keyof PlacedPallet]!==next[k as keyof PlacedPallet]))throw new Error("请先解除整托锁定 / Unlock the complete pallet first");}
   if(!original.palletization&&JSON.stringify(pallets)!==JSON.stringify(original.pallets??[]))throw new Error("Floor pallet layout is fixed; edit its configuration instead.");
   products = applyTypeSupport(products, original.loadingRules);
