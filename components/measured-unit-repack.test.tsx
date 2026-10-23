@@ -38,6 +38,21 @@ it("does not start a worker with incomplete records and surfaces a rejected adop
  function Hook(){task=useMeasuredUnitRepack({plan:f.plan,document,products:f.request.products,disabled:false,onAdopt});return <group/>;}
  const root=await mount(Hook);try{await act(async()=>task.run());expect(FakeWorker.instances).toHaveLength(0);expect(task.preview?.message).toMatch(/every current unit/);document=f.document;await root.render();await act(async()=>task.run());const candidate=repackMeasuredUnits(f.plan,document,f.request.products);await act(async()=>FakeWorker.instances.at(-1)!.deliver({plan:candidate}));await act(async()=>task.adopt());expect(task.candidate).toBe(candidate);expect(task.preview?.message).toMatch(/Loaded-record/);}finally{await root.close();}
 });
+it("updates a retained cancellation, deadline or worker-error message when language changes",async()=>{
+ const {plan,document,request}=measuredUnitFixture();let task!:ReturnType<typeof useMeasuredUnitRepack>;
+ function Hook(){task=useMeasuredUnitRepack({plan,document,products:request.products,disabled:false,onAdopt:vi.fn()});return <group/>;}
+ const root=await mount(Hook);try{
+  vi.stubGlobal("document",{documentElement:{lang:""}});vi.useFakeTimers();
+  for(const kind of ["cancel","deadline","error"]){
+   await act(async()=>setAppLanguage("zh"));await act(async()=>task.run());
+   if(kind==="cancel")await act(async()=>task.cancel());
+   else if(kind==="deadline")await act(async()=>vi.advanceTimersByTime(15001));
+   else await act(async()=>FakeWorker.instances.at(-1)!.onerror?.());
+   expect(task.status).toMatch(/[\u3400-\u9fff]/u);
+   await act(async()=>setAppLanguage("en"));expect(task.status).not.toMatch(/[\u3400-\u9fff]/u);expect(task.status).toContain("original plan is retained");expect(task.candidate).toBeNull();
+  }
+ }finally{await root.close();}
+});
 it("states bounded scope, backup, mass and revision behavior in both languages",()=>{
  const {plan,document,request}=measuredUnitFixture();const props={plan,document,products:request.products,disabled:false,onAdopt:vi.fn()},zh=renderToStaticMarkup(<MeasuredUnitRepack {...props}/>);expect(zh).toContain("最多 60 托");expect(zh).toContain("未计入计划的附件增重");vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");const en=renderToStaticMarkup(<MeasuredUnitRepack {...props}/>);expect(en).toContain("15-second budget");expect(en).toContain("Preview measured-unit repacking");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
 });
