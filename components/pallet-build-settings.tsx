@@ -38,7 +38,7 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,onChange,on
   const fields=[
     ["length",tr("托盘长","Pallet length"),"mm",1],["width",tr("托盘宽","Pallet width"),"mm",1],
     ["height",tr("底座高","Deck height"),"mm",1],["weight",current.config.packaging?.deckSupports?.length?tr("原包装自重（不含新增支承）","Base tare (excludes added supports)"):crate?tr("包装总自重","Complete packaging tare"):tr("托盘自重","Pallet tare"),"kg",0],
-    ["maxLoad",tr("每托承重","Pallet payload"),"kg",1],["maxCargoHeight",tr("货物限高","Cargo height limit"),"mm",only?1:0],
+    ["maxLoad",tr("每托承重","Pallet payload"),"kg",1],["maxCargoHeight",crate?tr("木箱内部净高","Crate interior height"):tr("货物限高","Cargo height limit"),"mm",only?1:0],
     ["gap",tr("整托保护间隙","Pallet protection gap"),"mm",0],
   ] as const;
   return <article className="panel pallet-build-settings" aria-label={tr("打托配置","Pallet-building settings")}>

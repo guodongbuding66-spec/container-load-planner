@@ -1,0 +1,88 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.60.0",
+  "createdAt": "2026-10-23T02:20:00.000Z",
+  "inputs": {
+    "palletLayerTemplates": [],
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "corner-feet",
+          "enclosure": "slatted",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "QA long crate",
+        "length": 1700,
+        "width": 560,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "maxPallets": 2,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "practical",
+    "practicalTargetPercent": 88,
+    "container": {
+      "id": "40hq",
+      "name": "40HQ 高柜",
+      "length": 12032,
+      "width": 2350,
+      "height": 2700,
+      "doorWidth": 2340,
+      "doorHeight": 2597,
+      "maxWeight": 28600
+    },
+    "clearance": 10,
+    "products": [
+      {
+        "id": "qa-long",
+        "sku": "LONG-CTN",
+        "name": "Synthetic long carton",
+        "length": 1600,
+        "width": 450,
+        "height": 500,
+        "weight": 10,
+        "quantity": 4,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "maxTopLoadKg": 100,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "color": "#2f7f89",
+        "cargoShape": "box"
+      }
+    ],
+    "customContainers": [],
+    "targetVolumePercent": 100,
+    "targetWeightPercent": 100,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  }
+}

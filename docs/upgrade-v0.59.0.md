@@ -1,6 +1,6 @@
 # v0.59.0 独立测量复核 PDF
 
-日期：2026-10-23（Asia/Shanghai）。功能代码已发布，双站原生导出已实际操作；证据原件归档及最后的测试草稿恢复尚待执行环境恢复。
+日期：2026-10-23（Asia/Shanghai）。功能代码已发布，双站原生导出已实际操作；原件于同日环境恢复后归档，最后的默认方案与基准检查随 v0.60.0 继续，版本分别记录。
 
 ## 已完成的功能
 
@@ -70,3 +70,8 @@
 U18 仍 PARTIAL：曲面／其他模型测量、全局实体净距、自动追随特征、可选择文本／搜索／无障碍标签 PDF、指导书整合继续未完成。当前 PDF 是图像页面，无法恢复或合并记录；跨站迁移仍用测量 JSON。
 
 其他复杂承托、跨柜实物台账、整套／整托补货、局部地板载荷、防潮和唛头等继续保留在[未完成台账](field-upgrades/unfinished-roadmap.md)，不能用本轮阶段交付表述为全部完成。具体叉车操作 EXCLUDED；真实 GPU、多浏览器、额定结构资料和现场试装继续 PENDING。账号、会员和支付尚未启用。
+
+
+## 同日环境恢复后的补充
+
+原有四份最终原件已找回并再次检查 A4 页框、每页 1800 × 2546 图像及页数，SHA-256 见验收状态 JSON。已归档：[Cloudflare 中文](field-upgrades/evidence/v0.59.0-measurements-cloudflare-zh.pdf)、[Vercel 中文](field-upgrades/evidence/v0.59.0-measurements-vercel-zh.pdf)、[Cloudflare 英文](field-upgrades/evidence/v0.59.0-measurements-cloudflare-en.pdf)、[Vercel 20 条英文压力报告](field-upgrades/evidence/v0.59.0-measurements-vercel-stress-en.pdf)、[入口截图](field-upgrades/evidence/v0.59.0-measurement-pdf-ui.jpg)及原生测量 JSON。压力报告 21 页另已渲染缩略总览检查，未宣称每页均完成全文精读。Vercel 的二十条已知测试测量已通过正常界面删除，两站观察均为零条。最后的默认草稿、固定基准和控制台检查随 [v0.60.0](upgrade-v0.60.0.md)继续，不追记为 v0.59.0 的基准结果。前面的中断记录保留为当时事实。

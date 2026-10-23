@@ -1,0 +1,513 @@
+{
+  "format": "cargo-fit-measurements",
+  "version": 2,
+  "measurements": [
+    {
+      "id": "65fd1516-ac71-43c3-8d27-626c6f2095e4",
+      "name": "U-opening-vertex",
+      "createdAt": "2026-10-22T12:51:25.370Z",
+      "visible": true,
+      "scope": "dee328471f8cca2f",
+      "space": {
+        "length": 12032,
+        "width": 2350,
+        "height": 2700,
+        "clearance": 10
+      },
+      "targets": [
+        {
+          "id": "u-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          },
+          "bounds": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          }
+        },
+        {
+          "id": "u-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          },
+          "bounds": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          }
+        }
+      ],
+      "mode": "points",
+      "points": [
+        [
+          750,
+          500,
+          1000
+        ],
+        [
+          250,
+          500,
+          1000
+        ]
+      ],
+      "snaps": [
+        "vertex",
+        "vertex"
+      ],
+      "surface": [
+        {
+          "profile": {
+            "cargoShape": "u-profile",
+            "shapeWallRatio": 0.25,
+            "shapeWallHeightRatio": 0.25
+          },
+          "orientation": "LWH"
+        },
+        {
+          "profile": {
+            "cargoShape": "u-profile",
+            "shapeWallRatio": 0.25,
+            "shapeWallHeightRatio": 0.25
+          },
+          "orientation": "LWH"
+        }
+      ]
+    },
+    {
+      "id": "9d12faac-c4c5-41f3-9cf9-bcb079ff57eb",
+      "name": "U-width-face",
+      "createdAt": "2026-10-22T12:51:43.364Z",
+      "visible": true,
+      "scope": "dee328471f8cca2f",
+      "space": {
+        "length": 12032,
+        "width": 2350,
+        "height": 2700,
+        "clearance": 10
+      },
+      "targets": [
+        {
+          "id": "u-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          },
+          "bounds": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          }
+        },
+        {
+          "id": "u-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          },
+          "bounds": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          }
+        }
+      ],
+      "mode": "points",
+      "points": [
+        [
+          916.6666666666666,
+          500,
+          666.6666666666666
+        ],
+        [
+          916.6666666666666,
+          600,
+          666.6666666666666
+        ]
+      ],
+      "snaps": [
+        "face",
+        "face"
+      ],
+      "surface": [
+        {
+          "profile": {
+            "cargoShape": "u-profile",
+            "shapeWallRatio": 0.25,
+            "shapeWallHeightRatio": 0.25
+          },
+          "orientation": "LWH"
+        },
+        {
+          "profile": {
+            "cargoShape": "u-profile",
+            "shapeWallRatio": 0.25,
+            "shapeWallHeightRatio": 0.25
+          },
+          "orientation": "LWH"
+        }
+      ]
+    },
+    {
+      "id": "b0415af2-e5cf-4db5-b153-10f4282e30b2",
+      "name": "Envelope-diagonal",
+      "createdAt": "2026-10-22T12:52:02.968Z",
+      "visible": true,
+      "scope": "dee328471f8cca2f",
+      "space": {
+        "length": 12032,
+        "width": 2350,
+        "height": 2700,
+        "clearance": 10
+      },
+      "targets": [
+        {
+          "id": "u-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          },
+          "bounds": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          }
+        },
+        {
+          "id": "u-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          },
+          "bounds": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          }
+        }
+      ],
+      "mode": "points",
+      "points": [
+        [
+          0,
+          500,
+          0
+        ],
+        [
+          1000,
+          600,
+          1000
+        ]
+      ],
+      "snaps": [
+        "vertex",
+        "vertex"
+      ]
+    },
+    {
+      "id": "0870b0b6-24df-4402-a555-9e6333776a47",
+      "name": "Rear gap",
+      "createdAt": "2026-10-22T09:20:05.840Z",
+      "visible": true,
+      "scope": "4d8f4668c7df0660",
+      "space": {
+        "length": 12032,
+        "width": 2350,
+        "height": 2700,
+        "clearance": 10
+      },
+      "targets": [
+        {
+          "id": "shed-101-0",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          },
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          }
+        }
+      ],
+      "mode": "wall",
+      "wall": "x-"
+    },
+    {
+      "id": "c5b6e766-08da-4393-a72a-749b6758ca12",
+      "name": "Carton diagonal",
+      "createdAt": "2026-10-22T09:20:26.146Z",
+      "visible": true,
+      "scope": "4d8f4668c7df0660",
+      "space": {
+        "length": 12032,
+        "width": 2350,
+        "height": 2700,
+        "clearance": 10
+      },
+      "targets": [
+        {
+          "id": "shed-101-0",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          },
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          }
+        },
+        {
+          "id": "shed-101-0",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          },
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          }
+        }
+      ],
+      "mode": "points",
+      "points": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          2200,
+          620,
+          180
+        ]
+      ],
+      "snaps": [
+        "vertex",
+        "vertex"
+      ]
+    },
+    {
+      "id": "a496d262-4402-47ec-960e-34ef455d73cd",
+      "name": "Adjacent gap",
+      "createdAt": "2026-10-22T09:20:29.209Z",
+      "visible": true,
+      "scope": "4d8f4668c7df0660",
+      "space": {
+        "length": 12032,
+        "width": 2350,
+        "height": 2700,
+        "clearance": 10
+      },
+      "targets": [
+        {
+          "id": "shed-101-0",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          },
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          }
+        },
+        {
+          "id": "shed-101-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 620,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          },
+          "bounds": {
+            "x": 0,
+            "y": 620,
+            "z": 0,
+            "dx": 2200,
+            "dy": 620,
+            "dz": 180
+          }
+        }
+      ],
+      "mode": "gap"
+    },
+    {
+      "id": "091a4cf5-6659-4bdc-83e3-e44c3858c438",
+      "name": "Current-U-opening",
+      "createdAt": "2026-10-22T12:57:11.005Z",
+      "visible": false,
+      "scope": "40e2ad9f954c256b",
+      "space": {
+        "length": 12032,
+        "width": 2350,
+        "height": 2700,
+        "clearance": 10
+      },
+      "targets": [
+        {
+          "id": "u-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          },
+          "bounds": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          }
+        },
+        {
+          "id": "u-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          },
+          "bounds": {
+            "x": 0,
+            "y": 500,
+            "z": 0,
+            "dx": 1000,
+            "dy": 100,
+            "dz": 1000
+          }
+        }
+      ],
+      "mode": "points",
+      "points": [
+        [
+          750,
+          500,
+          1000
+        ],
+        [
+          250,
+          500,
+          1000
+        ]
+      ],
+      "snaps": [
+        "vertex",
+        "vertex"
+      ],
+      "surface": [
+        {
+          "profile": {
+            "cargoShape": "u-profile",
+            "shapeWallRatio": 0.25,
+            "shapeWallHeightRatio": 0.25
+          },
+          "orientation": "LWH"
+        },
+        {
+          "profile": {
+            "cargoShape": "u-profile",
+            "shapeWallRatio": 0.25,
+            "shapeWallHeightRatio": 0.25
+          },
+          "orientation": "LWH"
+        }
+      ]
+    }
+  ]
+}

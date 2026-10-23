@@ -1385,6 +1385,9 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 /* Packaging editor shares dimensions and geometry with complete unit loads. */
 .packaging-editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,.7fr);gap:16px;margin-bottom:14px;align-items:start}
 .packaging-fields,.packaging-preview{min-width:0}
+.crate-exterior-height{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);min-width:0}
+.crate-exterior-height>label{display:block;font-weight:600}
+.crate-exterior-height .pallet-build-number{margin-top:6px;max-width:420px}
 .packaging-fields .pallet-build-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
 .packaging-preview{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);padding:8px;background:#f5f8f8;border:1px solid #d9e5e5;border-radius:10px}
 .packaging-preview .space-model-preview{height:240px;min-height:200px}

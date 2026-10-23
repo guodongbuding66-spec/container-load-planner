@@ -6,7 +6,7 @@
   "featureCommit": "441e16840629dd4b830effab45c718f599fd3d47",
   "featureTree": "21e2e8efecbd67d31967fe32d8e1f4a8bca9534e",
   "featureStatus": "published",
-  "closeoutStatus": "partial_environment_unavailable",
+  "closeoutStatus": "originals_archived_in_v060_followup_acceptance_in_progress",
   "checks": {
     "unitTests": 1653,
     "testFiles": 126,
@@ -81,9 +81,9 @@
   "pdfVisualReview": {
     "allExportsRendered": true,
     "totalRenderedPages": 45,
-    "reviewed": "24-page contact sheet for three 7-record reports; English overview, current hidden record, stale record; stress overview and final long-content page",
-    "remaining": "Detailed review of every stress page",
-    "originalArchive": "pending_environment_unavailable"
+    "reviewed": "24-page contact sheet for three 7-record reports; English overview, current hidden record, stale record; stress overview and final long-content page; all 21 stress pages reviewed in a full contact sheet after recovery",
+    "remaining": "Detailed full-resolution review of each stress page is not claimed",
+    "originalArchive": "recovered_and_archived_with_v0.60.0"
   },
   "readOnlyExport": {
     "nativeJsonBeforeAfterByteIdentical": true,
@@ -102,7 +102,7 @@
   },
   "cleanup": {
     "cloudflareSavedMeasurements": 0,
-    "vercelSavedMeasurements": 20,
+    "vercelSavedMeasurements": 0,
     "defaultCargoRestored": false,
     "vercelLastObservedUnit": "m",
     "scope": "dedicated QA browser local drafts only"
@@ -118,7 +118,7 @@
     "doesNotProveBrowserErrorAbsence": true
   },
   "gpu": "pending_webgl_unavailable",
-  "binaryEvidenceCommitted": false,
+  "binaryEvidenceCommitted": true,
   "accountsMembershipPayments": "not_enabled",
   "specificForkliftOperations": "excluded",
   "continuation": [
@@ -130,5 +130,35 @@
     "review final browser console and every stress PDF page",
     "continue remaining roadmap items"
   ],
-  "provenance": "Observed in the preceding uninterrupted work session; infrastructure and branch state rechecked using connected service APIs on 2026-10-23. Local binary files became inaccessible before repository archival."
+  "provenance": "Observed in the preceding uninterrupted work session; infrastructure and branch state rechecked using connected service APIs on 2026-10-23. Local binary files became inaccessible before repository archival. Execution environment recovered later on 2026-10-23; original files and hashes were rechecked, and the 20 known QA measurement records were removed through the UI. New version verification is recorded separately.",
+  "archiveManifest": [
+    {
+      "path": "docs/field-upgrades/evidence/v0.59.0-measurements-cloudflare-en.pdf",
+      "bytes": 2846376,
+      "pages": 8,
+      "sha256": "af7f94400c37d254ad8eb7e4b652897393d14cc0091b73c98c3b28e1be017134",
+      "blobSha": "30f6381c2a4eb0d3fa92a87e9b6d58a0f758c3ca"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.59.0-measurements-cloudflare-zh.pdf",
+      "bytes": 2698606,
+      "pages": 8,
+      "sha256": "7de4cb4c225b71ee2ef151ed7ef5b9a6d7d07c724f9f58d0849e801e3fbb214b",
+      "blobSha": "a5e386b0a20b5dacc4a0e2df6af4936d15ebb1cd"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.59.0-measurements-vercel-stress-en.pdf",
+      "bytes": 7750271,
+      "pages": 21,
+      "sha256": "61d7331e89e9e3fc2c94956ed894a634870858cea91e48cb26ebd79196b9767b",
+      "blobSha": "f0e80ea7afe1cca43ab4e7e1905d967d2a533165"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.59.0-measurements-vercel-zh.pdf",
+      "bytes": 2698383,
+      "pages": 8,
+      "sha256": "6e8002ad713dfc0547ba288bebc77a856ba3c51e3360f1ca58c2cc45df7557e7",
+      "blobSha": "7725f20d9cc8b54d57293754d0996bf0684a2ac7"
+    }
+  ]
 }
