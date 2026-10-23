@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "version": "0.59.0",
+  "date": "2026-10-23",
+  "timezone": "Asia/Shanghai",
+  "featureCommit": "441e16840629dd4b830effab45c718f599fd3d47",
+  "featureTree": "21e2e8efecbd67d31967fe32d8e1f4a8bca9534e",
+  "featureStatus": "published",
+  "closeoutStatus": "partial_environment_unavailable",
+  "checks": {
+    "unitTests": 1653,
+    "testFiles": 126,
+    "newFocusedTests": 33,
+    "htmlChecks": 21,
+    "typecheck": "passed",
+    "productionBuild": "passed",
+    "lint": {
+      "errors": 0,
+      "existingWarnings": 2
+    }
+  },
+  "deployments": {
+    "cloudflare": {
+      "status": "success",
+      "id": "423e8d8f-1df0-45a3-ab7e-083276fe05e5",
+      "url": "https://container-load-planner.pages.dev/"
+    },
+    "vercel": {
+      "status": "READY",
+      "id": "dpl_8sdDavfWDo4ZZPxahfazh5mXHDon",
+      "url": "https://container-load-planner-gray.vercel.app/"
+    }
+  },
+  "nativeExports": [
+    {
+      "site": "cloudflare",
+      "language": "zh",
+      "unit": "mm",
+      "precision": 3,
+      "records": 7,
+      "current": 1,
+      "historical": 6,
+      "pages": 8,
+      "bytes": 2698606
+    },
+    {
+      "site": "vercel",
+      "language": "zh",
+      "unit": "mm",
+      "precision": 3,
+      "records": 7,
+      "current": 1,
+      "historical": 6,
+      "pages": 8,
+      "bytes": 2698383
+    },
+    {
+      "site": "cloudflare",
+      "language": "en",
+      "unit": "cm",
+      "precision": 2,
+      "records": 7,
+      "current": 1,
+      "historical": 6,
+      "pages": 8,
+      "bytes": 2846376
+    },
+    {
+      "site": "vercel",
+      "language": "en",
+      "unit": "m",
+      "precision": 3,
+      "records": 20,
+      "current": 2,
+      "historical": 18,
+      "pages": 21,
+      "bytes": 7750271,
+      "syntheticSupplement": true
+    }
+  ],
+  "pdfVisualReview": {
+    "allExportsRendered": true,
+    "totalRenderedPages": 45,
+    "reviewed": "24-page contact sheet for three 7-record reports; English overview, current hidden record, stale record; stress overview and final long-content page",
+    "remaining": "Detailed review of every stress page",
+    "originalArchive": "pending_environment_unavailable"
+  },
+  "readOnlyExport": {
+    "nativeJsonBeforeAfterByteIdentical": true,
+    "bytes": 10426,
+    "sha256": "aac0685fa3d102a3687526ceae4f4cda7ab2099dbd5b195134f30dba619c86d2"
+  },
+  "fixture": {
+    "sku": [
+      "DRUM",
+      "U-PROFILE"
+    ],
+    "planMarker": "40e2ad9f954c256b",
+    "layoutModelValid": true,
+    "fieldExecutableClaim": false,
+    "accessReview": "failed and unassigned items"
+  },
+  "cleanup": {
+    "cloudflareSavedMeasurements": 0,
+    "vercelSavedMeasurements": 20,
+    "defaultCargoRestored": false,
+    "vercelLastObservedUnit": "m",
+    "scope": "dedicated QA browser local drafts only"
+  },
+  "finalBenchmarksV059": {
+    "status": "pending",
+    "expectedCasesPerSite": 12
+  },
+  "browserConsoleFinalReview": "pending",
+  "vercelRuntimeErrorFatalQuery": {
+    "window": "30m",
+    "result": "no logs returned",
+    "doesNotProveBrowserErrorAbsence": true
+  },
+  "gpu": "pending_webgl_unavailable",
+  "binaryEvidenceCommitted": false,
+  "accountsMembershipPayments": "not_enabled",
+  "specificForkliftOperations": "excluded",
+  "continuation": [
+    "restore execution and QA browser environment",
+    "archive native PDF, JSON and screenshot originals",
+    "restore QA drafts to default sample and Chinese/mm/3 decimals",
+    "verify default 116 cartons/3842 kg",
+    "run 12 fixed benchmark cases per site and capture reports",
+    "review final browser console and every stress PDF page",
+    "continue remaining roadmap items"
+  ],
+  "provenance": "Observed in the preceding uninterrupted work session; infrastructure and branch state rechecked using connected service APIs on 2026-10-23. Local binary files became inaccessible before repository archival."
+}
