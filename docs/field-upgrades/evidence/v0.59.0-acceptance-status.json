@@ -6,7 +6,7 @@
   "featureCommit": "441e16840629dd4b830effab45c718f599fd3d47",
   "featureTree": "21e2e8efecbd67d31967fe32d8e1f4a8bca9534e",
   "featureStatus": "published",
-  "closeoutStatus": "originals_archived_in_v060_followup_acceptance_in_progress",
+  "closeoutStatus": "originals_archived_cleanup_completed_current_regression_passed_in_v060",
   "checks": {
     "unitTests": 1653,
     "testFiles": 126,
@@ -103,15 +103,33 @@
   "cleanup": {
     "cloudflareSavedMeasurements": 0,
     "vercelSavedMeasurements": 0,
-    "defaultCargoRestored": false,
-    "vercelLastObservedUnit": "m",
-    "scope": "dedicated QA browser local drafts only"
+    "defaultCargoRestored": true,
+    "vercelLastObservedUnit": "mm",
+    "scope": "dedicated QA browser local drafts only",
+    "language": "zh",
+    "measurementPrecision": 3,
+    "defaultPlan": {
+      "loadedCount": 116,
+      "grossWeight": 3842
+    },
+    "followupVersion": "0.60.0"
   },
   "finalBenchmarksV059": {
-    "status": "pending",
-    "expectedCasesPerSite": 12
+    "status": "observed_pass_in_prior_session_original_reports_unavailable_after_environment_reset",
+    "expectedCasesPerSite": 12,
+    "latestNativeRegressionVersion": "0.60.0",
+    "latestNativeRegressionReports": [
+      "v0.60.0-benchmarks-cloudflare.json",
+      "v0.60.0-benchmarks-vercel.json"
+    ],
+    "notRelabeledAsV059": true
   },
-  "browserConsoleFinalReview": "pending",
+  "browserConsoleFinalReview": {
+    "version": "0.60.0",
+    "applicationOriginWarningsOrErrorsObserved": 0,
+    "browserExtensionMetadataErrorsObserved": true,
+    "scope": "new QA session only"
+  },
   "vercelRuntimeErrorFatalQuery": {
     "window": "30m",
     "result": "no logs returned",
@@ -122,13 +140,9 @@
   "accountsMembershipPayments": "not_enabled",
   "specificForkliftOperations": "excluded",
   "continuation": [
-    "restore execution and QA browser environment",
-    "archive native PDF, JSON and screenshot originals",
-    "restore QA drafts to default sample and Chinese/mm/3 decimals",
-    "verify default 116 cartons/3842 kg",
-    "run 12 fixed benchmark cases per site and capture reports",
-    "review final browser console and every stress PDF page",
-    "continue remaining roadmap items"
+    "continue remaining roadmap items",
+    "real GPU and multi-browser acceptance",
+    "optional full-resolution reading of every stress report page"
   ],
   "provenance": "Observed in the preceding uninterrupted work session; infrastructure and branch state rechecked using connected service APIs on 2026-10-23. Local binary files became inaccessible before repository archival. Execution environment recovered later on 2026-10-23; original files and hashes were rechecked, and the 20 known QA measurement records were removed through the UI. New version verification is recorded separately.",
   "archiveManifest": [

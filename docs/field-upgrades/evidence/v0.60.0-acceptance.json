@@ -1,0 +1,255 @@
+{
+  "schemaVersion": 1,
+  "version": "0.60.0",
+  "date": "2026-10-23",
+  "timezone": "Asia/Shanghai",
+  "featureCommit": "27d771ca65285ba94ad538fb900bc4e64cc5a26b",
+  "layoutCommit": "9768d4e527eda0002d9ba82d38f9dd93ed4081f8",
+  "status": "published_and_native_acceptance_completed",
+  "checks": {
+    "unitTests": 1665,
+    "testFiles": 129,
+    "htmlChecks": 21,
+    "newTests": 12,
+    "relatedFocusedTests": 30,
+    "typecheck": "passed",
+    "productionBuild": "passed",
+    "layoutFollowup": {
+      "focusedTests": 12,
+      "productionBuild": "passed",
+      "typecheck": "passed",
+      "eslintErrors": 0
+    },
+    "finalRuntimeCi": {
+      "status": "success",
+      "job": 120259286458,
+      "url": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/39906408975/job/120259286458"
+    }
+  },
+  "nativeUi": {
+    "surface": "Cloud Chrome; WebGL unavailable; real coordinate fallback",
+    "cloudflare": {
+      "url": "https://container-load-planner.pages.dev/",
+      "height1174": "144 base + 1000 interior + 30 lid",
+      "height1200": "144 base + 1026 interior + 30 lid",
+      "height174": {
+        "ariaInvalid": true,
+        "calculationEnabled": false
+      },
+      "removeLid": {
+        "interior": 1026,
+        "exterior": 1170
+      },
+      "setLidless1200": {
+        "interior": 1056,
+        "exterior": 1200
+      },
+      "restoreLid": {
+        "interior": 1056,
+        "exterior": 1230
+      },
+      "invalidDraftThenOpenPallet": {
+        "exteriorFieldRemoved": true,
+        "calculationEnabled": true
+      },
+      "mainBaseDetails": "keyboard Enter selected base; center click hits overlapping cargo in the existing top-down fallback",
+      "unitViewer": {
+        "unit": "floor-pallet-2",
+        "base": [
+          1700,
+          560,
+          144
+        ],
+        "exterior": [
+          1700,
+          560,
+          1200
+        ],
+        "deckZ": 144,
+        "packagingKg": 25,
+        "grossKg": 45,
+        "cartons": 2,
+        "coordinatesRebasedToLocalOrigin": true
+      }
+    },
+    "vercel": {
+      "nativeBackupRestored": true,
+      "height1200": "144 base + 1026 interior + 30 lid",
+      "englishLabelsAndFormula": "observed",
+      "recalculationLoadedCartons": 4,
+      "finalRuntimeExteriorEdit": {
+        "input": 1220,
+        "interior": 1046,
+        "base": 144,
+        "lid": 30,
+        "restoredInput": 1200
+      },
+      "finalUnitDialogLabels": {
+        "columnWidthPx": 84,
+        "eachLabelHeightPx": 21,
+        "screenshot": "v0.60.0-unit-base-ui-final.jpg",
+        "observedAfterPaint": true
+      }
+    }
+  },
+  "fixture": {
+    "source": "v0.60.0-crate-height-input.json",
+    "synthetic": true,
+    "loadedCartons": 4,
+    "pallets": 2,
+    "grossKg": 90,
+    "eachBaseHeightMm": 144,
+    "eachExteriorHeightMm": 1200,
+    "eachPackagingTareKg": 25,
+    "cargoZMm": [
+      144,
+      644,
+      144,
+      644
+    ],
+    "layoutValidation": "passed",
+    "fieldExecutableClaim": false,
+    "fieldReview": "door path failure and unassigned unloading destinations remain visible; this is a height/serialization QA fixture, not an approved loading plan"
+  },
+  "crossSiteExports": {
+    "palletsEqual": true,
+    "placementsEqual": true,
+    "palletizationEqual": true,
+    "containerEqual": true,
+    "metricsEqualExcept": [
+      "solveTimeMs"
+    ],
+    "solveTimeMs": {
+      "original": 17.800000000046566,
+      "restored": 0
+    },
+    "coordinatesByteIdentical": true,
+    "csvBytes": 1586,
+    "csvSha256": "e9a08bb29f4f8d4f0eda622c897ce322f1f018f09d301ed4d67ac784183ba64f",
+    "nativeWorkspaceInteriorHeight": 1026
+  },
+  "benchmarks": {
+    "caseVersion": "business-2026-10-v1",
+    "engineVersion": "0.60.0",
+    "cloudflare": {
+      "complete": true,
+      "rows": 12,
+      "allValid": true,
+      "report": "v0.60.0-benchmarks-cloudflare.json"
+    },
+    "vercel": {
+      "complete": true,
+      "rows": 12,
+      "allValid": true,
+      "report": "v0.60.0-benchmarks-vercel.json"
+    },
+    "runtimeCommit": "9768d4e527eda0002d9ba82d38f9dd93ed4081f8"
+  },
+  "cleanup": {
+    "defaultPlanCloudflare": {
+      "loadedCount": 116,
+      "grossWeight": 3842
+    },
+    "defaultPlanVercel": {
+      "loadedCount": 116,
+      "grossWeight": 3842
+    },
+    "finalReloadAndUnits": "passed",
+    "language": "zh",
+    "dimensionUnit": "mm",
+    "measurementPrecision": 3,
+    "measurementMode": "off",
+    "cloudflareSavedMeasurements": 0,
+    "vercelSavedMeasurements": 0,
+    "scope": "dedicated QA browser only"
+  },
+  "browserConsole": {
+    "review": "captured error/warning records contained browser-extension metadata transport errors; no application-origin error/warning observed",
+    "scope": "observed QA session only, not proof of all browsers or GPU rendering",
+    "finalApplicationFilter": {
+      "filter": "container-load-planner",
+      "levels": [
+        "error",
+        "warn"
+      ],
+      "cloudflare": 0,
+      "vercel": 0
+    }
+  },
+  "gpu": "pending_webgl_unavailable",
+  "multiBrowser": "pending",
+  "specificForkliftOperations": "excluded",
+  "accountsMembershipPayments": "not_enabled",
+  "archive": [
+    {
+      "path": "v0.60.0-benchmarks-cloudflare.json",
+      "bytes": 25730,
+      "sha256": "6955a7e540f5a684a94ed65c12c754ce7cf5169a22db1327bf3edc45d680cd06"
+    },
+    {
+      "path": "v0.60.0-benchmarks-vercel.json",
+      "bytes": 25698,
+      "sha256": "42c7777909bd778b8033d8ad43c59cdb053288f8508fa332e89d1c7f56700cea"
+    },
+    {
+      "path": "v0.60.0-coordinates-cloudflare.csv",
+      "bytes": 1586,
+      "sha256": "e9a08bb29f4f8d4f0eda622c897ce322f1f018f09d301ed4d67ac784183ba64f"
+    },
+    {
+      "path": "v0.60.0-coordinates-vercel.csv",
+      "bytes": 1586,
+      "sha256": "e9a08bb29f4f8d4f0eda622c897ce322f1f018f09d301ed4d67ac784183ba64f"
+    },
+    {
+      "path": "v0.60.0-crate-height-input.json",
+      "bytes": 2081,
+      "sha256": "37ac500a12ad5426f2d997c54241983c9f1f10366f385dfa5bfb494fa30bcc09"
+    },
+    {
+      "path": "v0.60.0-crate-height-ui.jpg",
+      "bytes": 90730,
+      "sha256": "a19bc8a4121e6689eaf0719755af59b06b81d49cfc56fc640d92befd93f81b92"
+    },
+    {
+      "path": "v0.60.0-plan-cloudflare.json",
+      "bytes": 8075,
+      "sha256": "59fe62bf9e2782aefabad999df13ed894bb29621a13137a91dfc03708dfd66f5"
+    },
+    {
+      "path": "v0.60.0-plan-restored-vercel.json",
+      "bytes": 6109,
+      "sha256": "ae0559a2b66b5dabd9c9ade1f890cd71d8e0e4193868569a36db0a52a08f470c"
+    },
+    {
+      "path": "v0.60.0-unit-base-ui-final.jpg",
+      "bytes": 88362,
+      "sha256": "fe4fe183115dae3bb4aac0934e6dc373afa72d01d0912214440cd82fedef1481"
+    },
+    {
+      "path": "v0.60.0-workspace-native.json",
+      "bytes": 16755,
+      "sha256": "1de9214668cfe33ad502ddde20c114470997cafedc0d6cf0b896c45b0f2a7c97"
+    }
+  ],
+  "deployments": {
+    "cloudflare": {
+      "status": "success",
+      "id": "a08b169d-ca89-4a82-99ce-f30fa351c93c",
+      "commit": "9768d4e527eda0002d9ba82d38f9dd93ed4081f8",
+      "url": "https://container-load-planner.pages.dev/"
+    },
+    "vercel": {
+      "status": "READY",
+      "id": "dpl_8HQfLzJhRqi4dcn9L37n4nsYFzuV",
+      "commit": "9768d4e527eda0002d9ba82d38f9dd93ed4081f8",
+      "url": "https://container-load-planner-gray.vercel.app/"
+    }
+  },
+  "runtimeLogs": {
+    "deployment": "dpl_HNjKUiEZ4AJWekhpcnMWY2yE8zjN",
+    "window": "30m",
+    "result": "no logs returned",
+    "scope": "initial feature deployment only; not GPU/browser proof"
+  }
+}
