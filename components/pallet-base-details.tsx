@@ -10,7 +10,7 @@ export function PalletBaseDetails({ result, pallet, unit = "mm", precision = 1 }
   useLanguage();
   const cargo = result.placements.filter(b => b.palletIds?.includes(pallet.id));
   const fmt = (n: number) => formatMeasure(n, unit, precision);
-  return <section aria-label={tr("本托底座与完整外形", "Unit base and complete exterior")}>
+  return <section className="pallet-base-details" aria-label={tr("本托底座与完整外形", "Unit base and complete exterior")}>
     <dl className="scene-properties">
       <dt>{tr("底座尺寸", "Base dimensions")}</dt><dd>{[pallet.dx, pallet.dy, pallet.dz].map(fmt).join(" × ")}</dd>
       <dt>{tr("整托外形", "Complete unit exterior")}</dt><dd>{[pallet.dx, pallet.dy, palletEnvelopeTop(pallet, cargo) - pallet.z].map(fmt).join(" × ")}</dd>
