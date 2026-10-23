@@ -6,7 +6,23 @@ export type MeasurementReportPage={entry:number|null;blocks:Array<ReportTextBloc
 export type TextWidth=(text:string,size:number,bold:boolean)=>number;
 /** Unicode codepoints are kept intact. Explicit line breaks and every character are retained. */
 export function wrapMeasurementText(value:string,maxWidth:number,size:number,bold:boolean,width:TextWidth){
-  const lines:string[]=[];for(const paragraph of value.split("\n")){let line="";for(const char of paragraph){if(line&&width(line+char,size,bold)>maxWidth){lines.push(line);line="";}line+=char;}lines.push(line);}return lines;
+  const lines:string[]=[];
+  for(const paragraph of value.split("\n")){
+    let line="";
+    for(const char of paragraph){
+      if(line&&width(line+char,size,bold)>maxWidth){
+        const space=line.lastIndexOf(" ");
+        // Prefer complete English words; Chinese and oversized identifiers still wrap by codepoint.
+        if(space>0&&/^[\x21-\x7e]+$/.test(line.slice(space+1)+char)){
+          lines.push(line.slice(0,space+1));line=line.slice(space+1);
+          if(line&&width(line+char,size,bold)>maxWidth){lines.push(line);line="";}
+        }else{lines.push(line);line="";}
+      }
+      line+=char;
+    }
+    lines.push(line);
+  }
+  return lines;
 }
 export function layoutMeasurementReport(report:MeasurementReport,width:TextWidth):MeasurementReportPage[]{
   const pages:MeasurementReportPage[]=[],en=report.language==="en",t=(zh:string,english:string)=>en?english:zh;
