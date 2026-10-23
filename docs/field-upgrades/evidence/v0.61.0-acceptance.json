@@ -1,0 +1,332 @@
+{
+  "schema": 1,
+  "version": "0.61.0",
+  "date": "2026-10-23",
+  "scope": "U17 / 015E measured complete floor units, first stage",
+  "softwareStatus": "PASS",
+  "overallU17": "PARTIAL",
+  "runtime": {
+    "featureCommit": "4fe94404ff89d87c19f22b51f8c0ee6840433027",
+    "finalCommit": "04f4c05976997adf8480949cad6a426deebb99e8",
+    "tree": "36a6dd0bfd02f659e489ce66623eeb4cb822d8ef",
+    "githubCi": "success",
+    "ciJobUrl": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/39912751396/job/120279268526",
+    "cloudflare": {
+      "deployment": "42cfb2e0-03fa-448d-8ae9-d892ce482aca",
+      "status": "success",
+      "productionUrl": "https://container-load-planner.pages.dev/"
+    },
+    "vercel": {
+      "deployment": "dpl_9EzdQJhyFaU62RX84qfSSxtD9rei",
+      "status": "READY",
+      "productionUrl": "https://container-load-planner-gray.vercel.app/"
+    }
+  },
+  "checks": {
+    "newFocusedTests": 21,
+    "unitTests": 1686,
+    "unitFiles": 131,
+    "renderedHtmlTests": 21,
+    "typecheck": "PASS",
+    "productionStaticBuild": "PASS",
+    "lintErrors": 0,
+    "existingLintWarnings": 2,
+    "retainedMessagesTranslateAfterLanguageSwitch": [
+      "cancellation",
+      "deadline",
+      "worker error"
+    ]
+  },
+  "browser": {
+    "environment": "Cloud Chromium, WebGL unavailable, actual-coordinate SVG fallback",
+    "liveOriginsTested": 2,
+    "finalRuntimeRefreshAndNativeRestoreBothOrigins": "PASS",
+    "nativeWorkerPreviewBothOrigins": "PASS",
+    "nativeExplicitAdoptionBothOrigins": "PASS",
+    "dirtyMeasurementClearsCandidate": "PASS",
+    "unaccountedOneKgBlocksAdoption": "PASS",
+    "loadedUnitPositionChangeBlocksAdoption": "PASS",
+    "explicitSimulatedLoadedEventReversalBeforeAdoption": "PASS",
+    "loadingSimulationOnly": true
+  },
+  "syntheticCase": {
+    "physicalFieldEvidence": false,
+    "units": [
+      {
+        "id": "floor-pallet-1",
+        "physicalBaseMm": [
+          1700,
+          560,
+          144
+        ],
+        "nominalExteriorHeightMm": 1200,
+        "adoptedBaseXYZmm": [
+          10,
+          600,
+          0
+        ],
+        "measurement": {
+          "version": 1,
+          "length": 1720,
+          "width": 580,
+          "height": 1220,
+          "noseProtrusion": 10,
+          "leftProtrusion": 10,
+          "source": "QA tape measure · synthetic unit 1",
+          "date": "2026-10-23",
+          "contentsKey": "8f83aa4660866872"
+        },
+        "physicalBaseAndLocalCargoUnchanged": true
+      },
+      {
+        "id": "floor-pallet-2",
+        "physicalBaseMm": [
+          1700,
+          560,
+          144
+        ],
+        "nominalExteriorHeightMm": 1200,
+        "adoptedBaseXYZmm": [
+          15,
+          15,
+          0
+        ],
+        "measurement": {
+          "version": 1,
+          "length": 1730,
+          "width": 590,
+          "height": 1230,
+          "noseProtrusion": 15,
+          "leftProtrusion": 15,
+          "source": "QA tape measure · synthetic unit 2",
+          "date": "2026-10-23",
+          "contentsKey": "7c605c97c1f1a221"
+        },
+        "physicalBaseAndLocalCargoUnchanged": true
+      }
+    ],
+    "cartons": 4,
+    "grossKg": 90,
+    "identityPreserved": true,
+    "sourceRevision": "revision-b1c03f09-2c14-4dc3-b6ef-f9d9f433e11b",
+    "adoptedRevision": "revision-b9b63e77-bebc-4240-b192-e799f8d6c65b",
+    "adoptedRevisionNumber": 2
+  },
+  "crossOrigin": {
+    "nativeCsvByteIdentical": true,
+    "nativeCsvBytes": 3129,
+    "adoptedIdentityEqual": true,
+    "physicalPalletsPlacementsMetricsAndEnvelopeEqual": true,
+    "jsonWholeFileIdentical": false,
+    "jsonDifferencesAfterRevalidation": [
+      "id",
+      "warnings",
+      "createdAt"
+    ]
+  },
+  "pdf": {
+    "nativeVersions": "feature commit 4fe9440; final patch only changes retained UI status translation",
+    "zhPages": 10,
+    "enPages": 10,
+    "allPagesContactSheetReviewed": true,
+    "envelopePage6FullResolutionReviewedBothLanguages": true,
+    "selectableText": false
+  },
+  "caseStillRequiresReview": [
+    "Second unit touches wall; final straight-line door path fails a centered door with 5 mm side bands",
+    "Unload stops unassigned",
+    "Bearing and transport securing unverified; layout validation is a separate result"
+  ],
+  "benchmarks": {
+    "cloudflare": {
+      "file": "v0.61.0-benchmark-cloudflare-native.json",
+      "validRows": 12,
+      "loadedCounts": [
+        22,
+        24,
+        12,
+        12,
+        0,
+        0,
+        21,
+        24,
+        116,
+        116,
+        32,
+        32
+      ],
+      "elapsedMs": [
+        13.900000000372529,
+        4.7999999998137355,
+        6,
+        2.2999999998137355,
+        1.2000000001862645,
+        0.39999999944120646,
+        8,
+        5.3999999994412065,
+        98.80000000074506,
+        79.90000000037253,
+        18.100000000558794,
+        21.399999999441206
+      ]
+    },
+    "vercel": {
+      "file": "v0.61.0-benchmark-vercel-native.json",
+      "validRows": 12,
+      "loadedCounts": [
+        22,
+        24,
+        12,
+        12,
+        0,
+        0,
+        21,
+        24,
+        116,
+        116,
+        32,
+        32
+      ],
+      "elapsedMs": [
+        13.199999999254942,
+        4.7000000001862645,
+        2.400000000372529,
+        1.7999999998137355,
+        0.599999999627471,
+        0.5,
+        5.199999999254942,
+        4.099999999627471,
+        92.30000000074506,
+        86.90000000037253,
+        19.100000000558794,
+        24.200000000186265
+      ]
+    }
+  },
+  "finalWorkspaceBothOrigins": {
+    "language": "zh",
+    "dimensionUnit": "mm",
+    "measurementPrecision": 3,
+    "savedMeasurements": 0,
+    "workflow": "direct",
+    "loadedCartons": 116,
+    "grossKg": 3842,
+    "benchmarkPanelClosed": true
+  },
+  "stillUnimplemented": [
+    "adopt unaccounted attachment mass and its center of mass",
+    "repack loose cargo with measured units",
+    "repack around loaded or locked units",
+    "track measurements through rotation",
+    "cross-pallet and cross-container joint search"
+  ],
+  "pendingExternalEvidence": [
+    "real GPU and other browsers",
+    "actual scanner and printer",
+    "material and structural ratings",
+    "factory loading trials"
+  ],
+  "excluded": [
+    "specific forklift operations and simulation"
+  ],
+  "notEnabled": [
+    "accounts",
+    "memberships",
+    "payments"
+  ],
+  "captureNotes": [
+    "An initial temporary download path was unavailable; only subsequently archived nonempty native files count as evidence. Actual restore confirmation used a stable archived workspace path."
+  ],
+  "files": [
+    {
+      "file": "v0.61.0-adopted-workspace-cloudflare-native.json",
+      "bytes": 16412,
+      "sha256": "f3d82623b4a8ea177da74c9f88279d61978787f0fc24ee14904361433614fa32"
+    },
+    {
+      "file": "v0.61.0-adopted-workspace-vercel-native.json",
+      "bytes": 16412,
+      "sha256": "afec258517340dab14b56423f8648be7e7bb5b042727c30ea285cb5938e72605"
+    },
+    {
+      "file": "v0.61.0-before-workspace-native.json",
+      "bytes": 14846,
+      "sha256": "414281a5a0bf864b67d8609bed078fadbb495b5e43ad07e4b1f66d95946d5f8c"
+    },
+    {
+      "file": "v0.61.0-benchmark-cloudflare-native.json",
+      "bytes": 25725,
+      "sha256": "ac7c5b82bda01f1717bda30948382fe7299900668c971ff6beb51d4084233968"
+    },
+    {
+      "file": "v0.61.0-benchmark-vercel-native.json",
+      "bytes": 25739,
+      "sha256": "e0ed6e0eb91154ad1c31a75138c735ba7a0cff88d4752d6ec8a2b4062e6a7a5d"
+    },
+    {
+      "file": "v0.61.0-coordinates-cloudflare-native.csv",
+      "bytes": 3129,
+      "sha256": "1344a13b8f81a5bd2af36ab2374304204884416e42dd17f236c350debd3f128a"
+    },
+    {
+      "file": "v0.61.0-coordinates-vercel-native.csv",
+      "bytes": 3129,
+      "sha256": "1344a13b8f81a5bd2af36ab2374304204884416e42dd17f236c350debd3f128a"
+    },
+    {
+      "file": "v0.61.0-engineering-before-native.json",
+      "bytes": 872,
+      "sha256": "6642eec2a45a119e653248efb3ee202773c006da5495603965ebfaa2776a45ec"
+    },
+    {
+      "file": "v0.61.0-loaded-guard-events-native.json",
+      "bytes": 4759,
+      "sha256": "d72a82860674ea4f3eb4bf39bc2cb3b054697278eb584b9bc08a0286cc84cb17"
+    },
+    {
+      "file": "v0.61.0-loading-en-native.pdf",
+      "bytes": 1821819,
+      "sha256": "40c149cadf5c175669e4027bdb8f94e6917cd239cd6a4a29aa113062cdc10965"
+    },
+    {
+      "file": "v0.61.0-loading-zh-native.pdf",
+      "bytes": 1666906,
+      "sha256": "be77550202881d4aa9d3c05cbc5fa406dd2291963b05e779747e8deca8e0d23c"
+    },
+    {
+      "file": "v0.61.0-pdf-envelope-en-review.png",
+      "bytes": 144054,
+      "sha256": "351e7dcb8231fe92996509046b00d31cc6f29f28e524c2ab7c620b347c073281"
+    },
+    {
+      "file": "v0.61.0-pdf-envelope-zh-review.png",
+      "bytes": 120928,
+      "sha256": "7f6e1f5607fe42b47a6e12df8ef14cc7353fd4da65acc7fc98b3d86e7444ecc8"
+    },
+    {
+      "file": "v0.61.0-plan-cloudflare-own-revision-native.json",
+      "bytes": 8646,
+      "sha256": "b3099f32aed9d3639a7246c8e993d2a72ad510e3badedb7f9fcfcd7822ae1d21"
+    },
+    {
+      "file": "v0.61.0-plan-cloudflare-restored-native.json",
+      "bytes": 8245,
+      "sha256": "46107226c208acc86fe726951e3e04ace6c390d9fac7b3c0114f2e43dedeb02f"
+    },
+    {
+      "file": "v0.61.0-plan-vercel-native.json",
+      "bytes": 8646,
+      "sha256": "1c973bfc4eafe9ffac3c60cf42e634d35d89a51508ffad897edffe4ec36b9a09"
+    },
+    {
+      "file": "v0.61.0-repack-preview-ui.jpg",
+      "bytes": 112974,
+      "sha256": "1b59b3f1f2b69dd9ee6514694ff9acea6b6d31764dc98691042fb6559ae7d799"
+    },
+    {
+      "file": "v0.61.0-unit-envelope-ui.jpg",
+      "bytes": 92250,
+      "sha256": "eac7b7124853c35c36a3fddd9df37c41f113d485c35183fbc871e588733aad1f"
+    }
+  ]
+}

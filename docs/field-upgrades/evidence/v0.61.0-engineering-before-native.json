@@ -1,0 +1,35 @@
+{
+  "format": "cargo-fit-engineering",
+  "version": 1,
+  "context": {
+    "planId": "delivery-08ca9caa-55d0-448d-86cc-6e8a78289016",
+    "revisionId": "revision-b1c03f09-2c14-4dc3-b6ef-f9d9f433e11b",
+    "signature": "5705a7a7dbe1222f"
+  },
+  "units": [
+    {
+      "palletId": "floor-pallet-2",
+      "length": 1730,
+      "width": 590,
+      "height": 1230,
+      "noseProtrusion": 15,
+      "leftProtrusion": 15,
+      "extraWeightKg": 0,
+      "weightIncluded": true,
+      "source": "QA tape measure · synthetic unit 2",
+      "date": "2026-10-23"
+    },
+    {
+      "palletId": "floor-pallet-1",
+      "length": 1720,
+      "width": 580,
+      "height": 1220,
+      "noseProtrusion": 10,
+      "leftProtrusion": 10,
+      "extraWeightKg": 0,
+      "weightIncluded": true,
+      "source": "QA tape measure · synthetic unit 1",
+      "date": "2026-10-23"
+    }
+  ]
+}

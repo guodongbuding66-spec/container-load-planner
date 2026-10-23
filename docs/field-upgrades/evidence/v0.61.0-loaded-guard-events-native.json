@@ -1,0 +1,150 @@
+{
+  "format": "cargo-fit-field-records",
+  "version": 1,
+  "current": {
+    "format": "cargo-fit-field-events",
+    "version": 1,
+    "context": {
+      "planId": "delivery-08ca9caa-55d0-448d-86cc-6e8a78289016",
+      "revision": 1,
+      "revisionId": "revision-b1c03f09-2c14-4dc3-b6ef-f9d9f433e11b",
+      "signature": "5705a7a7dbe1222f",
+      "atoms": [
+        {
+          "id": "carton-2272e7bc-ad4f-4c66-97af-25845a84a9de",
+          "kind": "carton",
+          "sourceId": "qa-long",
+          "weightKg": 10,
+          "witness": "[\"a4dca0ae138a1e02\",30,30,144,1600,450,500,\"LWH\",,[\"floor-pallet-1\"]]",
+          "children": []
+        },
+        {
+          "id": "carton-060b6478-ede9-4534-8337-f423b9d914f5",
+          "kind": "carton",
+          "sourceId": "qa-long",
+          "weightKg": 10,
+          "witness": "[\"a4dca0ae138a1e02\",30,30,644,1600,450,500,\"LWH\",,[\"floor-pallet-1\"]]",
+          "children": []
+        },
+        {
+          "id": "carton-11bf4c0d-6fb6-4871-bbf3-215f7c52f6ff",
+          "kind": "carton",
+          "sourceId": "qa-long",
+          "weightKg": 10,
+          "witness": "[\"a4dca0ae138a1e02\",30,590,144,1600,450,500,\"LWH\",,[\"floor-pallet-2\"]]",
+          "children": []
+        },
+        {
+          "id": "carton-ad7d9933-5690-4123-822d-260adc354734",
+          "kind": "carton",
+          "sourceId": "qa-long",
+          "weightKg": 10,
+          "witness": "[\"a4dca0ae138a1e02\",30,590,644,1600,450,500,\"LWH\",,[\"floor-pallet-2\"]]",
+          "children": []
+        },
+        {
+          "id": "pallet-4a34ffeb-554a-4853-a197-d024ce3086db",
+          "kind": "pallet",
+          "sourceId": "eur-1200-800",
+          "weightKg": 25,
+          "witness": "[\"bc3875043de3795a\",0,0,0,1700,560,144,\"LWH\",null,null]",
+          "children": [
+            "carton-2272e7bc-ad4f-4c66-97af-25845a84a9de",
+            "carton-060b6478-ede9-4534-8337-f423b9d914f5"
+          ]
+        },
+        {
+          "id": "pallet-285b9e5d-e6ce-4834-8cbf-d67d36344f73",
+          "kind": "pallet",
+          "sourceId": "eur-1200-800",
+          "weightKg": 25,
+          "witness": "[\"bc3875043de3795a\",0,560,0,1700,560,144,\"LWH\",null,null]",
+          "children": [
+            "carton-11bf4c0d-6fb6-4871-bbf3-215f7c52f6ff",
+            "carton-ad7d9933-5690-4123-822d-260adc354734"
+          ]
+        }
+      ]
+    },
+    "events": [
+      {
+        "id": "event-759dda50-13b3-4df8-935e-8a59fc4f67dd",
+        "at": "2026-10-23T06:27:33.561Z",
+        "deviceId": "device-19b2d441-8bed-4bd4-bac3-72fc39399326",
+        "unitId": "pallet-4a34ffeb-554a-4853-a197-d024ce3086db",
+        "action": "load",
+        "changes": [
+          {
+            "id": "pallet-4a34ffeb-554a-4853-a197-d024ce3086db",
+            "parents": [],
+            "state": {
+              "loaded": true,
+              "condition": "none"
+            }
+          },
+          {
+            "id": "carton-2272e7bc-ad4f-4c66-97af-25845a84a9de",
+            "parents": [],
+            "state": {
+              "loaded": true,
+              "condition": "none"
+            }
+          },
+          {
+            "id": "carton-060b6478-ede9-4534-8337-f423b9d914f5",
+            "parents": [],
+            "state": {
+              "loaded": true,
+              "condition": "none"
+            }
+          }
+        ],
+        "note": "",
+        "photos": []
+      },
+      {
+        "id": "event-aa007e1a-d578-4c02-bdfe-32bb28da6c96",
+        "at": "2026-10-23T06:28:02.124Z",
+        "deviceId": "device-19b2d441-8bed-4bd4-bac3-72fc39399326",
+        "unitId": "pallet-4a34ffeb-554a-4853-a197-d024ce3086db",
+        "action": "unload",
+        "changes": [
+          {
+            "id": "pallet-4a34ffeb-554a-4853-a197-d024ce3086db",
+            "parents": [
+              "event-759dda50-13b3-4df8-935e-8a59fc4f67dd"
+            ],
+            "state": {
+              "loaded": false,
+              "condition": "none"
+            }
+          },
+          {
+            "id": "carton-2272e7bc-ad4f-4c66-97af-25845a84a9de",
+            "parents": [
+              "event-759dda50-13b3-4df8-935e-8a59fc4f67dd"
+            ],
+            "state": {
+              "loaded": false,
+              "condition": "none"
+            }
+          },
+          {
+            "id": "carton-060b6478-ede9-4534-8337-f423b9d914f5",
+            "parents": [
+              "event-759dda50-13b3-4df8-935e-8a59fc4f67dd"
+            ],
+            "state": {
+              "loaded": false,
+              "condition": "none"
+            }
+          }
+        ],
+        "note": "QA only: reverse simulated loading to verify measured repack guard; no real shipment",
+        "photos": []
+      }
+    ]
+  },
+  "history": [],
+  "handovers": []
+}

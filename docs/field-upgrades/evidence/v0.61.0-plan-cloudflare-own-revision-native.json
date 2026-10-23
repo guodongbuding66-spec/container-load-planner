@@ -1,0 +1,347 @@
+{
+  "workflow": "palletized",
+  "palletBuild": {
+    "config": {
+      "packaging": {
+        "base": "corner-feet",
+        "enclosure": "slatted",
+        "material": "wood",
+        "color": "#d4af7b",
+        "opacity": 0.65,
+        "deckBoards": 5,
+        "runners": 3,
+        "wallThickness": 30,
+        "lid": true
+      },
+      "presetId": "eur-1200-800",
+      "name": "QA long crate",
+      "length": 1700,
+      "width": 560,
+      "height": 144,
+      "weight": 25,
+      "maxLoad": 1000,
+      "count": 0,
+      "gap": 0,
+      "layout": "auto",
+      "allowFloorCargo": false,
+      "maxCargoHeight": 1026
+    },
+    "mix": "single",
+    "maxPallets": 2,
+    "stackLayers": 1,
+    "maxTopLoadKg": 0
+  },
+  "id": "restored-1792737016404",
+  "mode": "mixed",
+  "strategy": "practical",
+  "practicalTargetUtilization": 0.88,
+  "engineVersion": "0.61.0",
+  "palletization": {
+    "config": {
+      "packaging": {
+        "base": "corner-feet",
+        "enclosure": "slatted",
+        "material": "wood",
+        "color": "#d4af7b",
+        "opacity": 0.65,
+        "deckBoards": 5,
+        "runners": 3,
+        "wallThickness": 30,
+        "lid": true
+      },
+      "presetId": "eur-1200-800",
+      "name": "QA long crate",
+      "length": 1700,
+      "width": 560,
+      "height": 144,
+      "weight": 25,
+      "maxLoad": 1000,
+      "count": 0,
+      "gap": 0,
+      "layout": "auto",
+      "allowFloorCargo": false,
+      "maxCargoHeight": 1026
+    },
+    "mix": "single",
+    "stackLayers": 1,
+    "maxTopLoadKg": 0,
+    "preparedCount": 2,
+    "bounded": false,
+    "only": false
+  },
+  "pallets": [
+    {
+      "id": "floor-pallet-1",
+      "presetId": "eur-1200-800",
+      "name": "QA long crate",
+      "x": 10,
+      "y": 600,
+      "z": 0,
+      "dx": 1700,
+      "dy": 560,
+      "dz": 144,
+      "weight": 25,
+      "maxLoad": 1000,
+      "orientation": "LWH",
+      "packaging": {
+        "base": "corner-feet",
+        "enclosure": "slatted",
+        "material": "wood",
+        "color": "#d4af7b",
+        "opacity": 0.65,
+        "deckBoards": 5,
+        "runners": 3,
+        "wallThickness": 30,
+        "lid": true
+      },
+      "enclosureHeight": 1200,
+      "measuredEnvelope": {
+        "version": 1,
+        "length": 1720,
+        "width": 580,
+        "height": 1220,
+        "noseProtrusion": 10,
+        "leftProtrusion": 10,
+        "source": "QA tape measure · synthetic unit 1",
+        "date": "2026-10-23",
+        "contentsKey": "8f83aa4660866872"
+      }
+    },
+    {
+      "id": "floor-pallet-2",
+      "presetId": "eur-1200-800",
+      "name": "QA long crate",
+      "x": 15,
+      "y": 15,
+      "z": 0,
+      "dx": 1700,
+      "dy": 560,
+      "dz": 144,
+      "weight": 25,
+      "maxLoad": 1000,
+      "orientation": "LWH",
+      "packaging": {
+        "base": "corner-feet",
+        "enclosure": "slatted",
+        "material": "wood",
+        "color": "#d4af7b",
+        "opacity": 0.65,
+        "deckBoards": 5,
+        "runners": 3,
+        "wallThickness": 30,
+        "lid": true
+      },
+      "enclosureHeight": 1200,
+      "measuredEnvelope": {
+        "version": 1,
+        "length": 1730,
+        "width": 590,
+        "height": 1230,
+        "noseProtrusion": 15,
+        "leftProtrusion": 15,
+        "source": "QA tape measure · synthetic unit 2",
+        "date": "2026-10-23",
+        "contentsKey": "7c605c97c1f1a221"
+      }
+    }
+  ],
+  "container": {
+    "id": "40hq",
+    "name": "40HQ 高柜",
+    "length": 12032,
+    "width": 2350,
+    "height": 2700,
+    "doorWidth": 2340,
+    "doorHeight": 2597,
+    "maxWeight": 28600
+  },
+  "clearance": 10,
+  "placements": [
+    {
+      "id": "prebuilt-1",
+      "productId": "qa-long",
+      "sku": "LONG-CTN",
+      "name": "Synthetic long carton",
+      "color": "#2f7f89",
+      "x": 40,
+      "y": 630,
+      "z": 144,
+      "dx": 1600,
+      "dy": 450,
+      "dz": 500,
+      "weight": 10,
+      "layer": 1,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-2",
+      "productId": "qa-long",
+      "sku": "LONG-CTN",
+      "name": "Synthetic long carton",
+      "color": "#2f7f89",
+      "x": 40,
+      "y": 630,
+      "z": 644,
+      "dx": 1600,
+      "dy": 450,
+      "dz": 500,
+      "weight": 10,
+      "layer": 2,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-3",
+      "productId": "qa-long",
+      "sku": "LONG-CTN",
+      "name": "Synthetic long carton",
+      "color": "#2f7f89",
+      "x": 45,
+      "y": 45,
+      "z": 144,
+      "dx": 1600,
+      "dy": 450,
+      "dz": 500,
+      "weight": 10,
+      "layer": 1,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-2"
+      ]
+    },
+    {
+      "id": "prebuilt-4",
+      "productId": "qa-long",
+      "sku": "LONG-CTN",
+      "name": "Synthetic long carton",
+      "color": "#2f7f89",
+      "x": 45,
+      "y": 45,
+      "z": 644,
+      "dx": 1600,
+      "dy": 450,
+      "dz": 500,
+      "weight": 10,
+      "layer": 2,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-2"
+      ]
+    }
+  ],
+  "summaries": [
+    {
+      "productId": "qa-long",
+      "sku": "LONG-CTN",
+      "name": "Synthetic long carton",
+      "color": "#2f7f89",
+      "requested": 4,
+      "loaded": 4,
+      "unloaded": 0,
+      "loadedWeight": 40,
+      "loadedVolume": 1440000000
+    }
+  ],
+  "setSummaries": [],
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "metrics": {
+    "solidVolumeApproximate": false,
+    "envelopeVolume": 2472533000,
+    "envelopeUtilization": 0.03284116631117923,
+    "envelopeApproximate": false,
+    "loadedCount": 4,
+    "requestedCount": 4,
+    "loadedVolume": 2042160000,
+    "grossWeight": 90,
+    "effectiveVolume": 75287612400,
+    "volumeUtilization": 0.027124781021744822,
+    "weightUtilization": 0.003146853146853147,
+    "centerOfGravity": {
+      "x": 853.6111111111111,
+      "y": 576.3888888888889,
+      "z": 680.5121895306485,
+      "longitudinalRatio": 0.07106319606319605,
+      "lateralRatio": 0.24737720553171197,
+      "heightRatio": 0.25297850911920017,
+      "balanced": false
+    },
+    "executionComplexity": {
+      "orientationVariants": 1,
+      "maxOrientationsPerSku": 1,
+      "partialSupportCount": 0,
+      "tippedCartonCount": 0
+    },
+    "solveTimeMs": 0
+  },
+  "loadingRules": {
+    "layout": "auto",
+    "search": "smart",
+    "cargoOrder": "auto"
+  },
+  "cargoDetails": {
+    "qa-long": {
+      "cargoShape": "box"
+    }
+  },
+  "warnings": [
+    "历史箱位已按当前箱规与引擎重新校验。自动重算已暂停，可继续手动调整或生成新方案。",
+    "已按实测保守包络底置重排，底座与托内箱位不变。重新计算整个订单使用原标称输入；修改托内货物需恢复原备份并重新测量 / Repacked floor units using measured conservative envelopes; physical bases and local contents stay unchanged. Whole-order recalculation uses nominal inputs; changed contents require the original backup and new measurements"
+  ],
+  "createdAt": "2026-10-23T06:30:16.406Z",
+  "deliveryIdentity": {
+    "schema": 1,
+    "planId": "delivery-08ca9caa-55d0-448d-86cc-6e8a78289016",
+    "revision": 2,
+    "revisionId": "revision-3347814a-31af-49fc-a131-5af6fe46d298",
+    "previousRevisionId": "revision-b1c03f09-2c14-4dc3-b6ef-f9d9f433e11b",
+    "issuedAt": "2026-10-23T06:31:36.925Z",
+    "signature": "d9745262087b4e8a",
+    "units": [
+      {
+        "unitId": "carton-2272e7bc-ad4f-4c66-97af-25845a84a9de",
+        "kind": "carton",
+        "localId": "prebuilt-1",
+        "fingerprint": "a4dca0ae138a1e02"
+      },
+      {
+        "unitId": "carton-060b6478-ede9-4534-8337-f423b9d914f5",
+        "kind": "carton",
+        "localId": "prebuilt-2",
+        "fingerprint": "a4dca0ae138a1e02"
+      },
+      {
+        "unitId": "carton-11bf4c0d-6fb6-4871-bbf3-215f7c52f6ff",
+        "kind": "carton",
+        "localId": "prebuilt-3",
+        "fingerprint": "a4dca0ae138a1e02"
+      },
+      {
+        "unitId": "carton-ad7d9933-5690-4123-822d-260adc354734",
+        "kind": "carton",
+        "localId": "prebuilt-4",
+        "fingerprint": "a4dca0ae138a1e02"
+      },
+      {
+        "unitId": "pallet-4a34ffeb-554a-4853-a197-d024ce3086db",
+        "kind": "pallet",
+        "localId": "floor-pallet-1",
+        "fingerprint": "bc3875043de3795a"
+      },
+      {
+        "unitId": "pallet-285b9e5d-e6ce-4834-8cbf-d67d36344f73",
+        "kind": "pallet",
+        "localId": "floor-pallet-2",
+        "fingerprint": "bc3875043de3795a"
+      }
+    ],
+    "withdrawn": []
+  }
+}
