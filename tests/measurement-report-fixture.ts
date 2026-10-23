@@ -1,0 +1,10 @@
+import {pack} from "../lib/packing/engine";
+import {CONTAINER_PRESETS,SAMPLE_PRODUCTS} from "../lib/packing/presets";
+import {captureMeasurement} from "../lib/packing/saved-measurements";
+import {EMPTY_SECTION} from "../lib/packing/inspection";
+import {regularSurfaceFeatures,regularSurfaceSpec} from "../lib/packing/surface-inspection";
+export const reportPlan=pack({mode:"mixed",strategy:"practical",container:CONTAINER_PRESETS[2],clearance:10,products:[{...SAMPLE_PRODUCTS[0],id:"u",sku:"U",name:"U",quantity:1,length:1000,width:100,height:1000,weight:10,cargoShape:"u-profile",rotationPolicy:"fixed"}]});
+export const reportBox=reportPlan.placements[0],reportSpec=regularSurfaceSpec(reportBox,reportPlan.cargoDetails?.u)!,reportVertices=regularSurfaceFeatures(reportBox,reportSpec,"vertex"),reportTime="2026-10-22T16:00:00.000Z";
+export const solidRecord=(id="solid")=>captureMeasurement(reportPlan,"points",[reportBox,reportBox],[reportVertices[3],reportVertices[6]],"vertex","x-",EMPTY_SECTION,"U opening",id,reportTime,[reportBox,reportBox],[reportSpec,reportSpec]);
+export const wallRecord=(id="wall")=>captureMeasurement(reportPlan,"wall",[reportBox],[],"face","x-",EMPTY_SECTION,"Rear clearance",id,reportTime);
+export const reportOptions={language:"en" as const,unit:"mm" as const,precision:3,generatedAt:reportTime};
