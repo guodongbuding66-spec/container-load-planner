@@ -1,4 +1,5 @@
 "use client";
+import {bottomDeckText} from "../lib/packing/packaging";
 import {palletLoadEnvelope} from "../lib/packing/unit-envelope";
 import { palletEnvelopeTop } from "../lib/packing/deck-support";
 import { formatMeasure } from "../lib/packing/inspection";
@@ -14,6 +15,7 @@ export function PalletBaseDetails({ result, pallet, unit = "mm", precision = 1 }
   const fmt = (n: number) => formatMeasure(n, unit, precision);
   return <section className="pallet-base-details" aria-label={tr("本托底座与完整外形", "Unit base and complete exterior")}>
     <dl className="scene-properties">
+      <dt>{tr("底部结构","Bottom construction")}</dt><dd>{tr(...bottomDeckText(pallet.packaging,pallet.dz))}</dd>
       <dt>{tr("底座尺寸", "Base dimensions")}</dt><dd>{[pallet.dx, pallet.dy, pallet.dz].map(fmt).join(" × ")}</dd>
       <dt>{tr("整托外形", "Complete unit exterior")}</dt><dd>{[pallet.dx, pallet.dy, palletEnvelopeTop(pallet, cargo) - pallet.z].map(fmt).join(" × ")}</dd>
       <dt>{tr("底座 XYZ", "Base XYZ")}</dt><dd>{[pallet.x, pallet.y, pallet.z].map(fmt).join(" / ")}</dd>

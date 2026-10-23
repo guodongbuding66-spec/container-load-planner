@@ -1,3 +1,4 @@
+import {bottomDeckText} from "./packaging";
 import {palletLoadEnvelope} from "./unit-envelope";
 import {deliveryIdentityState,deliveryUnitBindings} from "./delivery-identity";
 import {planOrderRows} from "./order-lines";
@@ -85,6 +86,17 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
     looseRows.slice(from,from+25).forEach((r,i)=>{const y=460+i*70;text(ellipsis(r.sku,410),100,y,25);[r.reserved,r.loose,r.palletized,r.unloaded,r.weightKg.toFixed(1)].forEach((v,j)=>text(String(v),[540,790,1040,1260,1460][j],y,25));});await finish();
   }
   for(let startAt=0;startAt<(result.pallets?.length??0);startAt+=28){start(result.workflow==="pallet-only"?t("独立托盘清单与自重","Independent pallet manifest and tare"):result.palletization?t("整托入柜与自重","Complete pallet placement and tare"):t("底层托盘铺设与自重","Floor pallet layout and tare"));text(result.workflow==="pallet-only"?t("按关联清单独立打托，货物限高不含底座，总重含托盘自重。","Build each listed pallet independently. Cargo height excludes decks; gross weight includes tare."):result.palletization?t("按托盘关联清单在柜外打托，再整托入柜；货物 Z 已包含底座。","Build associated cargo on each pallet outside, then load complete pallets; Z includes decks."):t("先铺设托盘；货物 Z 已包含底座高度，勿再次加高。","Place pallets first. Cargo Z already includes the base height."),100,310,27,true);result.pallets!.slice(startAt,startAt+28).forEach((p,i)=>{const y=390+i*64;text(`${p.id} · ${p.name}`,100,y,25);text(`${p.x} / ${p.y} / ${p.z}`,700,y,25);text(`${p.dx} × ${p.dy} × ${Math.max(p.enclosureHeight??p.dz,p.dz+deckSupportHeight(p))}`,1100,y,25);text(`${p.weight} kg`,1530,y,25);});await finish();}
+  const noBottomUnits=(result.pallets??[]).filter(p=>p.packaging?.bottomDeck==="none");
+  for(let from=0;from<noBottomUnits.length;from+=15){
+    start(t("无底板托盘结构与自重","No-bottom pallet construction and tare"));
+    text(t("支承件直接落地；完整外包络仍预留。自重为输入值，不按删板自动减重。","Supports reach the floor; the full envelope stays reserved. Tare is entered, not reduced by removing boards."),100,310,24);
+    noBottomUnits.slice(from,from+15).forEach((p,i)=>{const y=410+i*115;
+      text(ellipsis(`${p.id} · ${t(...bottomDeckText(p.packaging,p.dz))}`,1550),100,y,26,true);
+      text(`${p.dx} × ${p.dy} × ${p.dz} mm · ${t("包装自重","Packaging tare")}: ${p.weight} kg`,100,y+43,24);
+    });
+    text(t("单面型不表示可翻面承重、货架适用或运输强度已核验。","Single-deck construction does not establish reversibility, rack suitability or transport strength."),100,2260,23);
+    await finish();
+  }
   const measuredUnits=(result.pallets??[]).filter(p=>p.measuredEnvelope);
   for(let from=0;from<measuredUnits.length;from+=12){
     start(t("已采用实测保守装载包络","Adopted measured conservative loading envelopes"));

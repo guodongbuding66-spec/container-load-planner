@@ -1,4 +1,5 @@
 "use client";
+import {BottomDeckSettings} from "./bottom-deck-settings";
 import { useEffect, useMemo, useState } from "react";
 import { Layers3, Check } from "lucide-react";
 import type { ContainerSpec, FloorPalletConfig } from "../lib/packing/types";
@@ -47,6 +48,7 @@ export function FloorPalletSettings({config,container,clearance,customSpaces,onS
       <label className="pallet-preset-label">{tr("从托盘库选择","Pallet library")}<select aria-label={tr("底层托盘规格","Floor pallet preset")} value={draft.presetId} onChange={e=>choose(e.target.value)}>{!spaces.some(s=>s.id===draft.presetId)&&<option value={draft.presetId}>{tr(draft.name)}</option>}{spaces.map(s=><option key={s.id} value={s.id}>{tr(s.name)} · {s.length} × {s.width} mm</option>)}</select></label>
       <div className="feature-form-grid">{fields.map(([key,zh,en,unit])=><label key={key}>{tr(zh,en)}{unit&&` (${unit})`}<input inputMode={key==="count"?"numeric":"decimal"} aria-label={tr(zh,en)} value={values[key]} onChange={e=>setValues(v=>({...v,[key]:e.target.value}))}/>{key==="count"&&<small>{tr("0 = 自动铺设；可指定实际数量","0 = fill floor; or set a fixed count")}</small>}{key==="maxCargoHeight"&&<small>{tr("从托盘顶面起算；0 = 按柜高和门高","Above deck; 0 = vehicle and door limit")}</small>}</label>)}</div>
       <label className="pallet-preset-label">{tr("铺设方向","Floor layout")}<select aria-label={tr("托盘铺设方向","Pallet layout")} value={draft.layout} onChange={e=>setDraft(v=>({...v,layout:e.target.value as FloorPalletConfig["layout"]}))}><option value="auto">{tr("自动组合方向","Mixed horizontal orientations")}</option><option value="long">{tr("托盘长边沿柜长","Long side along vehicle")}</option><option value="cross">{tr("托盘长边沿柜宽","Long side across vehicle")}</option></select></label>
+      <BottomDeckSettings value={draft} onChange={setDraft}/>
       <label className="pallet-floor-option"><input type="checkbox" checked={draft.allowFloorCargo} onChange={e=>setDraft(v=>({...v,allowFloorCargo:e.target.checked}))}/>{tr("允许余下货物直接放在柜底","Allow loose cargo on remaining floor")}</label>
       <p className="feature-muted">{tr("规格库为参考。请核对托盘实测尺寸、自重及额定承重；不使用托盘时不扣减空间。","Confirm actual dimensions, tare and rated payload. No pallet deduction when disabled.")}</p>
     </section><section className="pallet-layout-preview">

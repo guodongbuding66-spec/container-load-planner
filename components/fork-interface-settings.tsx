@@ -12,7 +12,8 @@ export function ForkInterfaceSettings({value,onChange,onValidityChange,resetToke
  useEffect(()=>()=>{[...MEASURES,...FORK_NUMBERS,"staticKg","dynamicKg","rackKg"].forEach(k=>onValidityChange(`pallet-build:fork-${k}`,true));},[onValidityChange]);
  const patch=(next:Partial<ForkInterface>)=>onChange({...value,forkInterface:{...p,...next}});
  const measure=(next:Partial<BaseMeasurements>)=>onChange({...value,packaging:{...spec,measurements:{...m??baseMeasurements(value.length,value.width,value.height,spec),...next}}});
- const fields=MEASURES.filter(key=>spec.base!=="corner-feet"||!["bottomThickness","bearerThickness","deckBoardWidth"].includes(key)).filter(key=>spec.base!=="stringer"||key!=="bearerThickness");
+ const fields=MEASURES.filter(key=>spec.base!=="corner-feet"||!["bottomThickness","bearerThickness","deckBoardWidth"].includes(key)).filter(key=>spec.base!=="stringer"||key!=="bearerThickness").filter(key=>spec.bottomDeck!=="none"||key!=="bottomThickness");
+ useEffect(()=>{if(spec.bottomDeck==="none")onValidityChange("pallet-build:fork-bottomThickness",true);},[spec.bottomDeck,onValidityChange]);
  return <details className="fork-interface-settings"><summary>{tr("底座实测与托盘载荷资料","Measured base and pallet load data")}</summary>
  <p className="helper-text">{tr("规则等距结构；实测尺寸与包装模型共用。保留托盘静载、动载与货架载荷资料，不模拟具体设备装卸。","Regular evenly spaced structure uses the same measured dimensions as the packaging model. Keep separate pallet static, dynamic and rack ratings; no equipment-handling simulation.")}</p>
  <label className="packaging-check"><input type="checkbox" aria-label={tr("使用实测底座尺寸","Use measured base dimensions")} checked={!!m} disabled={spec.base==="solid"} onChange={e=>{MEASURES.forEach(k=>onValidityChange(`pallet-build:fork-${k}`,true));onChange({...value,packaging:{...spec,measurements:e.target.checked?baseMeasurements(value.length,value.width,value.height,spec):undefined}});}}/>{tr("使用实测底座尺寸","Use measured base dimensions")}</label>

@@ -1,4 +1,5 @@
 "use client";
+import {BottomDeckSettings} from "./bottom-deck-settings";
 import {DeckSupportSettings} from "./deck-support-settings";
 import { CrateExteriorHeight } from "./crate-exterior-height";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
@@ -27,7 +28,7 @@ export function PackagingEditor({value,onChange,onValidityChange,resetToken=0,on
   useEffect(()=>{onValidityChange("pallet-build:structure",!error);return()=>onValidityChange("pallet-build:structure",true);},[error,onValidityChange]);
   useEffect(()=>{if(spec.base==="solid"||spec.base==="corner-feet")for(const key of ["boards","runners"])onValidityChange("pallet-build:"+key,true);if(spec.enclosure==="none")onValidityChange("pallet-build:wall",true);},[spec.base,spec.enclosure,onValidityChange]);
   useEffect(()=>()=>{for(const key of ["boards","runners","wall"])onValidityChange("pallet-build:"+key,true);},[onValidityChange]);
-  const patch=(v:Partial<PackagingSpec>)=>onChange({...value,packaging:{...spec,...v,...(v.base==="solid"?{measurements:undefined}:{})}});
+  const patch=(v:Partial<PackagingSpec>)=>onChange({...value,packaging:{...spec,...v,...(v.base&&!["block","stringer"].includes(v.base)?{bottomDeck:undefined}:{}),...(v.base==="solid"?{measurements:undefined}:{})}});
   const presets=TRANSPORT_PRESETS.filter(p=>p.category==="pallet");
   const save=()=>{const label=name.trim();if(!label||error)return;const next=[{name:label,config:parseFloorPalletConfig({...value,name:label})},...templates.filter(t=>t.name!==label)].slice(0,30);setTemplates(next);try{localStorage.setItem(STORAGE,JSON.stringify(next));setNotice(tr("模板已保存；当前规格也会随工作区备份。","Template saved; the current specification is included in workspace backups."));}catch{setNotice(tr("模板仅保留本次会话；可备份工作区保留当前规格。","Template retained for this session; back up the workspace to keep its current specification."));}};
   return <div className="packaging-editor"><section className="packaging-fields">
@@ -44,6 +45,7 @@ export function PackagingEditor({value,onChange,onValidityChange,resetToken=0,on
     <p className="helper-text">{spec.base==="corner-feet"?tr("四角承压脚只有四个角脚，不是通长底梁。请按实物选择底座结构；具体部件尺寸可在下方底座实测资料中填写。", "Four corner feet are separate feet, not continuous runners. Choose the actual base structure and enter its component dimensions in the base measurements below."):tr("每个整托分别生成并保留自己的底座，底座随货组一起装柜；部件尺寸按实物录入。", "Each complete unit retains its own base and is loaded together with its cargo. Enter measured component dimensions for the actual base.")}</p>
     {inner.crate&&<CrateExteriorHeight value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken}/>}
     <div className="packaging-template-row"><input aria-label={tr("包装模板名称","Packaging template name")} value={name} maxLength={80} placeholder={tr("自定义模板名称","Custom template name")} onChange={e=>setName(e.target.value)}/><button type="button" className="button small" disabled={invalid||!name.trim()||!!error} onClick={save}>{tr("保存模板","Save template")}</button>{templates.length>0&&<select aria-label={tr("已保存包装模板","Saved packaging templates")} value="" onChange={e=>{const t=e.target.value===""?undefined:templates[Number(e.target.value)];if(t){onReset?.();onChange(structuredClone(t.config));}}}><option value="">{tr("载入模板","Load template")}</option>{templates.map((t,i)=><option key={t.name} value={i}>{t.name}</option>)}</select>}</div>
+    <BottomDeckSettings value={value} onChange={onChange} disabled={invalid}/>
     <DeckSupportSettings value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken} invalid={invalid}/>
     <ForkInterfaceSettings value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken} invalid={invalid}/>
     {inner.crate&&<CrateBearingSettings value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken} invalid={invalid}/>}
