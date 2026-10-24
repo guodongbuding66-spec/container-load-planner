@@ -6,6 +6,7 @@ import {packagingInterior} from "../lib/packing/packaging";
 import {inspectPalletHeights,preparePalletHeightTrial} from "../lib/packing/pallet-height";
 import {canCompareExistingPackaging,preparePackagingComparisonTrial,improvesPalletTrial,inspectPalletCapacity} from "../lib/packing/pallet-capacity";
 import {PalletCapacityDiagnostics} from "./pallet-capacity-diagnostics";
+import {PalletTailTrial} from "./pallet-tail-trial";
 import type {PackingRequest,PackingResult,ProductInput,PalletBuildOptions} from "../lib/packing/types";
 import {tr,useLanguage} from "./language";
 
@@ -47,6 +48,7 @@ export function OrderCapacityTrial(props:Props){
  return <section className="order-capacity-trial" aria-label={tr("订单数量与补货试算","Order quantity and replenishment trial")}>
   <div className="panel-head"><div><h3>{loaded===undefined?tr("订单数量与装载试算","Order quantity and loading trials"):unmet?(request.workflow==="palletized"?tr("订单尚未装完：检查打托与堆叠限制","Order incomplete: review packaging and stacking limits"):tr("订单尚未装完：检查装载限制","Order incomplete: review loading limits")):tr("本单装完 ≠ 整柜装满","Order fulfilled ≠ container full")}</h3><p>{tr("订单量","Ordered")}: {ordered.toLocaleString()} {tr("箱","cartons")}{loaded!==undefined&&<> · {tr("当前已装","Currently loaded")}: {loaded.toLocaleString()} {tr("箱","cartons")}</>}</p></div></div>
   <PalletCapacityDiagnostics plan={plan}/>
+  <PalletTailTrial request={request} plan={plan} disabled={props.disabled||!!measured||task.running} canApply={canApply} onApply={props.onApplyBuild}/>
   {canCompareExistingPackaging(request)&&<div className="existing-packaging-trial"><button type="button" className="button" disabled={props.disabled||!!measured||task.running} onClick={()=>task.run("packaging")}>{tr("保持本单数量，按现有包装比选","Compare existing packaging for this order")}</button><p className="helper-text">{tr("比较已登记的适用规格，同货量优先较小包装；不新增规格，不增加库存，不提高限高或承重。逐托启发式搜索不保证全局最优。","Compare registered eligible specifications, preferring smaller packaging at equal cargo load. No specifications, stock, height limits or ratings are added. The per-unit heuristic is not globally optimal.")}</p></div>}
   {heights.length>0&&<details open={oneLayer} className="pallet-height-diagnostic" aria-label={tr("托内高度诊断","Pallet cargo height diagnosis")}><summary>{tr("托内限高与纸箱层数","Cargo ceilings and carton layers")}</summary>
    {oneLayer&&<p role="status"><strong>{tr("当前只生成了第一层，且仍有订单未装。","Only the first cargo layer was generated and order demand remains.")}</strong> {tr("整托堆叠 1 层只限制托盘之间叠放；托内纸箱仍可按以下规则加层。","A loaded-unit stack limit of 1 controls pallet-on-pallet stacking; cartons within a pallet use the rules below.")}</p>}

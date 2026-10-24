@@ -1,0 +1,82 @@
+"use client";
+import {useLayoutEffect,useMemo,useRef,useState} from "react";
+import {tailCargoGroups,preparePalletTailTrials} from "../lib/packing/pallet-tail";
+import {reviewOrderCapacityTrial,type OrderCapacityTrial} from "../lib/packing/order-capacity";
+import {improvesPalletTrial} from "../lib/packing/pallet-capacity";
+import {retainsLoadedRows} from "../lib/packing/set-utils";
+import {looseManifest} from "../lib/packing/loose-cargo";
+import type {PackingRequest,PackingResult,PalletBuildOptions} from "../lib/packing/types";
+import {tr,useLanguage} from "./language";
+
+type Candidate={trial:OrderCapacityTrial;plan:PackingResult};
+type Row={units:number;loaded:number|null;retained:boolean;problem?:string};
+type Props={request:PackingRequest;plan?:PackingResult|null;disabled:boolean;canApply:boolean;onApply?:(build:PalletBuildOptions)=>void};
+
+export function usePalletTailTrial({request,plan,disabled:inputDisabled,canApply,onApply}:Props){
+ const groups=useMemo(()=>{try{return tailCargoGroups(request,plan);}catch{return [];}},[request,plan]);
+ const [choice,setChoice]=useState<{id:string;limit:string}|null>(null),group=groups.find(g=>g.id===choice?.id)??groups[0];
+ const limitText=choice&&choice.id===group?.id?choice.limit:String(Math.min(8,group?.availableUnits??0)),limit=Number(limitText);
+ const blocked=!!plan?.pallets?.some(p=>p.measuredEnvelope||p.locked),disabled=inputDisabled||blocked||!plan;
+ const inputKey=JSON.stringify([request,group?.id,limitText]),identity=useMemo(()=>({inputKey,plan,disabled,canApply}),[inputKey,plan,disabled,canApply]),latest=useRef(identity);
+ const worker=useRef<Worker|null>(null),timer=useRef<ReturnType<typeof setTimeout>|null>(null);
+ const [state,setState]=useState<{identity:typeof identity;status:"running"|"done"|"cancelled"|"timeout"|"error";rows:Row[];total:number;best?:Candidate;error?:string}|null>(null);
+ const stop=()=>{worker.current?.terminate();worker.current=null;if(timer.current)clearTimeout(timer.current);timer.current=null;};
+ useLayoutEffect(()=>{latest.current=identity;return()=>{worker.current?.terminate();worker.current=null;if(timer.current)clearTimeout(timer.current);};},[identity]);
+ const current=state?.identity===identity?state:null,running=current?.status==="running",best=current?.best;
+ const validLimit=Number.isSafeInteger(limit)&&limit>=1&&!!group&&limit<=group.availableUnits;
+ const run=()=>{
+  stop();if(disabled||!plan||!group||!validLimit)return;
+  try{
+   const trials=preparePalletTailTrials(request,plan,group.id,limit),w=new Worker(new URL("../lib/packing/pallet-tail.worker.ts",import.meta.url),{type:"module"});
+   worker.current=w;let index=0,selected:Candidate|undefined;const rows:Row[]=[];
+   setState({identity,status:"running",rows:[],total:trials.length});
+   const active=()=>worker.current===w&&latest.current===identity;
+   timer.current=setTimeout(()=>{if(!active())return;stop();setState({identity,status:"timeout",rows:[...rows],total:trials.length});},30000);
+   w.onmessage=e=>{
+    if(!active())return;
+    if(e.data.index!==index){stop();setState({identity,status:"error",rows:[],total:trials.length});return;}
+    const trial=trials[index];let candidate:PackingResult|undefined,problem:string|undefined=e.data.error;
+    try{if(!problem)candidate=reviewOrderCapacityTrial(trial,e.data.plan);}catch(error){problem=error instanceof Error?error.message:String(error);}
+    const retained=!!candidate&&retainsLoadedRows(candidate.placements,plan.placements);
+    rows.push({units:trial.tailReservationChange!.units,loaded:candidate?.metrics.loadedCount??null,retained,problem});
+    if(candidate&&retained&&improvesPalletTrial(candidate,plan)&&(!selected||candidate.metrics.loadedCount>selected.plan.metrics.loadedCount))selected={trial,plan:candidate};
+    index++;const finished=index===trials.length;if(finished)stop();
+    setState({identity,status:finished?"done":"running",rows:[...rows],total:trials.length,...(finished?{best:selected}:{})});
+   };
+   w.onerror=()=>{if(!active())return;stop();setState({identity,status:"error",rows:[...rows],total:trials.length});};
+   w.postMessage({trials});
+  }catch(error){setState({identity,status:"error",rows:[],total:0,error:error instanceof Error?error.message:String(error)});}
+ };
+ const cancel=()=>{stop();setState({identity,status:"cancelled",rows:[],total:0});};
+ const adopt=()=>{if(disabled||!canApply||running||!best||!plan||!improvesPalletTrial(best.plan,plan))return;onApply?.(structuredClone(best.trial.request.palletBuild!));};
+ return {groups,setChoice,group,limitText,disabled,validLimit,run,cancel,adopt,current,running,best,blocked};
+}
+
+export function PalletTailTrial(props:Props){
+ const {request,plan,canApply,onApply}=props,language=useLanguage();
+ const {groups,setChoice,group,limitText,disabled,validLimit,run,cancel,adopt,current,running,best,blocked}=usePalletTailTrial(props);
+ const parts=current?.error?.split(" / "),errorText=parts?.length===2?parts[language==="en"?1:0]:current?.error;
+ const problemText=(problem:string)=>{const parts=problem.split(" / ");return parts.length===2?parts[language==="en"?1:0]:language==="en"&&/[\u3400-\u9fff]/u.test(problem)?"Review geometry, support, load ratings and complete-kit rules.":problem;};
+ if(request.workflow!=="palletized")return null;
+ return <details className="pallet-tail-trial"><summary>{tr("尾数散箱与整托混装试算","Trial loose tails alongside loaded pallets")}</summary>
+  <p className="helper-text">{tr("从本单未装数量中预留尾数，完整套装一起划分；其余货物重新打托并装柜。原箱位不锁定，已有散箱预留只增不减。","Reserve tails from this order's unmet demand, keeping complete kits together; rebuild and repack the remaining cargo. Positions may change. Existing loose reservations are never reduced.")}</p>
+  {group?<div className="tail-trial-fields"><label>{tr("订单行／套装","Order row / kit")}<select value={group.id} disabled={disabled||running} onChange={e=>{const g=groups.find(g=>g.id===e.target.value)!;setChoice({id:g.id,limit:String(Math.min(8,g.availableUnits))});}}>{groups.map(g=><option value={g.id} key={g.id}>{g.name} · {g.cartonsPerUnit} {tr("箱／份","cartons / unit")}</option>)}</select></label>
+   <label>{tr("最多新增散装份数","Maximum additional loose units")}<input type="number" min={1} max={group.availableUnits} step={1} value={limitText} disabled={disabled||running} onChange={e=>setChoice({id:group.id,limit:e.target.value})}/></label>
+   <p className="helper-text">{tr("本行最多","This group allows up to")} {group.availableUnits} {tr("份；每次候选最多新增 64 箱。分别检查 1、2、4、8 份和所填上限，最多 5 个候选，不穷举所有数量。","units; each candidate adds at most 64 loose cartons. Test 1, 2, 4, 8 and the entered ceiling, at most 5 candidates; this does not enumerate every quantity.")}</p>
+   {!validLimit&&<p role="alert">{tr("请输入本行允许范围内的整数。","Enter an integer within this group's allowed range.")}</p>}
+  </div>:<p>{tr("需要已计算且仍有未装纸箱的整托方案；套装必须有完整余量。","A calculated palletized plan with unmet carton demand is required; kits need complete remaining units.")}</p>}
+  {blocked&&<p role="status">{tr("已有实测包络或锁定整托，已停用重新打托试算。","Measured envelopes or locked units disable this rebuilding trial.")}</p>}
+  <div className="upgrade-actions"><button type="button" className="button" disabled={disabled||!group||!validLimit||running} onClick={run}>{tr("保持本单数量，比较尾数混装","Compare loose tails for this order")}</button><button type="button" className="button" disabled={!running} onClick={cancel}>{tr("停止尾数试算","Stop tail trial")}</button></div>
+  {current&&<p role="status">{current.status==="running"?`${tr("正在校验候选","Checking candidates")} ${current.rows.length} / ${current.total}`:current.status==="done"?tr("尾数试算完成，原方案保持。","Tail comparison complete; the original plan is retained."):current.status==="timeout"?tr("30 秒预算已结束，未完成批次不允许采用。","The 30-second budget expired; the incomplete batch cannot be applied."):current.status==="cancelled"?tr("已停止，原方案保持。","Stopped; the original plan is retained."):tr("试算未完成，原方案保持。","Trial failed; the original plan is retained.")}</p>}
+  {errorText&&<p role="alert">{errorText}</p>}
+  {!!current?.rows.length&&<div className="pallet-capacity-table"><table><thead><tr><th>{tr("新增散装份数","Extra loose units")}</th><th>{tr("整单已装箱数","Total cartons loaded")}</th><th>{tr("已装订单行","Loaded order rows")}</th><th>{tr("复核说明","Review")}</th></tr></thead><tbody>{current.rows.map(r=><tr key={r.units}><td>{r.units}</td><td>{r.loaded??tr("未通过复核","Not validated")}</td><td>{r.retained?tr("数量不减","Retained"):tr("不可采用","Unavailable")}</td><td>{r.problem?problemText(r.problem):r.loaded!==null&&!r.retained?tr("会减少至少一个已装订单行","Would reduce at least one loaded order row"):r.loaded!==null&&r.loaded<=(plan?.metrics.loadedCount??0)?tr("未增加总箱数","No total-carton increase"):tr("通过模型校验","Model validation passed")}</td></tr>)}</tbody></table></div>}
+  {best&&<div className="capacity-trial-result"><p><strong>{tr("尾数候选可装","Tail candidate loads")} {best.plan.metrics.loadedCount} {tr("箱","cartons")}</strong> · {tr("原订单","Original order")} {best.plan.metrics.requestedCount} · {tr("整托","Loaded units")} {best.plan.pallets?.length??0} · {tr("毛重","Gross")} {best.plan.metrics.grossWeight} kg</p>
+   <ul>{best.trial.tailReservationChange!.changes.map(c=><li key={c.id}>{c.sku} · {tr("散箱预留","Loose reservation")}: {c.from} → {c.to}</li>)}</ul>
+   <ul>{looseManifest(best.plan).filter(r=>r.reserved>0).map(r=><li key={r.productId}>{r.sku} · {tr("已装散箱／托内箱／未装","Loaded loose / palletized / unloaded")}: {r.loose} / {r.palletized} / {r.unloaded}</li>)}</ul>
+   <button type="button" className="button primary" disabled={disabled||!canApply||!onApply||running} onClick={adopt}>{tr("采用尾数预留并重新计算","Apply tail reservations and recalculate")}</button>
+  </div>}
+  {current?.status==="done"&&!best&&<p>{tr("本批次未找到总箱数增加且各已装订单行不减量的合法候选；不代表其他数量无解。","No validated candidate in this batch increased the total while retaining every loaded order row; other quantities may still work.")}</p>}
+  {!canApply&&<p>{tr("已有交付版本，仅可预览；请在方案副本中修改。","Issued delivery versions are preview-only; change a plan copy.")}</p>}
+  <small>{tr("不增加订单、包装库存、限高或承重；散箱与整托不互相承托、不占托内空隙。只比较所选订单行／套装，30 秒，订单最多 4000 箱；不代表原位补货、最优解或运输固定核验。","Order demand, packaging stock, height ceilings and ratings remain intact. Loose cartons cannot cross-support pallets or use their internal voids. Compare one selected row / kit, up to 4000 ordered cartons and 30 seconds; this is not in-place insertion, an optimality proof or securing verification.")}</small>
+ </details>;
+}

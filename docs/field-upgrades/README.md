@@ -48,3 +48,5 @@
 新增测试仿照 lib/packing/operations.test.ts 的 Vitest fixture 形式；UI 用现有 components/*.test.tsx 结构。没有硬件 WebGL 时，把 GPU 验收标为待完成，不能用降级视图的截图替代。
 
 所有计划仅授权实现自身范围。不要顺手升级依赖、改默认经验装载率、放宽套装比例、关闭独立校验。部署按用户对 GitHub、Pages 和 Vercel 的后续明确授权执行。每个计划最终交由审阅者核对范围及证据。
+
+- [013G 尾数散箱与整托混装试算（v0.66.0）](013g-pallet-tail-trial.md)：一个订单行／完整套装、最多五候选、逐行不减量与明确采用；其他未完条目保留。
