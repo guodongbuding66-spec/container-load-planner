@@ -49,7 +49,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.62.0";
+export const ENGINE_VERSION = "0.63.0";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -252,7 +252,7 @@ export function calculateReverseCounts(
   const sourceQuantities = activeProducts.map((product) =>
     request.mode === "single"
       ? singleSetCode ? unitsPerSet(product) : 1
-      : Math.max(1, Math.floor(product.quantity || 0)),
+      : Math.max(0, Math.floor(product.quantity || 0)),
   );
   const sourceTotal = sourceQuantities.reduce((sum, quantity) => sum + quantity, 0);
   const targetVolume = Math.min(1, Math.max(0, targetVolumeUtilization));

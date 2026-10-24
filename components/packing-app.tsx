@@ -1,5 +1,6 @@
 "use client";
 import {issueDeliveryIdentity} from "../lib/packing/delivery-identity";
+import {OrderCapacityTrial} from "./order-capacity-trial";
 import {EngineeringChecks} from "./engineering-checks";
 import type {EngineeringDocument} from "../lib/packing/engineering-checks";
 import {QualityBenchmarks} from "./quality-benchmarks";
@@ -784,7 +785,7 @@ export function PackingApp() {
         sku: item.sku,
         suggestedQuantity: selectedFeasibleRecommendation.displayQuantity * normalizedUnitsPerSet(item),
       }))
-    : selectedCachedPlan
+    : mode !== "mixed" && selectedCachedPlan
       ? selectedCachedPlan.summaries.map((item) => ({ productId: item.productId, sku: item.sku, suggestedQuantity: item.loaded }))
       : reversePlan.quantities;
 
@@ -1593,6 +1594,9 @@ export function PackingApp() {
   };
   const workspaceBackup = useMemo(() => serializeWorkspaceBackup({palletLayerTemplates,workflow,palletBuild,floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,result,resultBundle?.strategyPlans), [palletLayerTemplates,workflow,palletBuild,floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit,result,resultBundle?.strategyPlans]);
   const upgradesDisabled = hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0 || status === "working";
+  const capacityRequest: PackingRequest = {workflow,palletBuild:isPalletWorkflow?palletBuild:undefined,floorPallets:isPalletWorkflow?undefined:floorPallets,loadingRules,mode,strategy,practicalTargetUtilization:practicalTargetPercent/100,container,clearance,products:activeProducts};
+  const applyCapacityStock=(next:ProductInput[])=>{if(result?.deliveryIdentity)return;clearActiveCalculation();setAutoCalculate(false);setProducts(next);clearNumericDraftErrors();rulesDraftRef.current=null;markDirty();setWorkflowStep(3);setManualRun(value=>value+1);};
+  const capacityTrial=mode==="mixed"&&workflow!=="pallet-only"?<OrderCapacityTrial request={capacityRequest} plan={dirty?null:result} volume={targetVolumePercent/100} weight={targetWeightPercent/100} disabled={upgradesDisabled||setupInvalid} canApply={!result?.deliveryIdentity} onApply={applyCapacityStock}/>:null;
   const adoptDeliveryVersion=(next:PackingResult)=>{
     if(result?.deliveryIdentity&&next.deliveryIdentity?.planId===result.deliveryIdentity.planId){const id=result.deliveryIdentity,known=fieldRecordsRef.current.get(`${id.planId}/${id.revisionId}`)??readVersionFieldRecords(id,localStorage),prior=id.previousRevisionId?(fieldRecordsRef.current.get(`${id.planId}/${id.previousRevisionId}`)??readRevisionFieldRecords({planId:id.planId,revisionId:id.previousRevisionId},localStorage)):null;requireKnownFieldHandover(result,known,prior);guardFieldRevision(result,next,known);}
     const inputs=parseWorkspaceBackup(workspaceBackup);
@@ -2009,9 +2013,9 @@ export function PackingApp() {
                   <small>{reversePlan.displayUnit === "set" && reversePlan.weightLimitedDisplay !== null ? tt`共 ${formatNumber(reversePlan.weightLimitedDisplay * reversePlan.cartonsPerSet)} 箱 · ` : ""}{tr("目标 ")}{targetWeightPercent}%</small>
                 </div>
                 <div className="recommended">
-                  <span>{mode === "single" ? strategy === "practical" ? tr("现场方案预测") : tr("高密度参考预测") : tr("综合建议")}</span>
-                  <strong>{dirty ? tr("待重新计算") : selectedPredictionDisplay === null ? status === "working" ? tr("计算中") : tr("待计算") : `${formatNumber(selectedPredictionDisplay)} ${reversePlan.displayUnit === "set" ? tr("套") : tr("箱")}`}</strong>
-                  <small>{selectedCachedPlan
+                  <span>{mode === "single" ? strategy === "practical" ? tr("现场方案预测") : tr("高密度参考预测") : tr("算术计划量（待试装）","Arithmetic plan (not yet packed)")}</span>
+                  <strong>{mode==="mixed"?`${formatNumber(reversePlan.recommendedTotal)} ${tr("箱")}`:dirty ? tr("待重新计算") : selectedPredictionDisplay === null ? status === "working" ? tr("计算中") : tr("待计算") : `${formatNumber(selectedPredictionDisplay)} ${reversePlan.displayUnit === "set" ? tr("套") : tr("箱")}`}</strong>
+                  <small>{mode==="mixed"?tr("尚未核验完整包装、摆放和承重；计算后可在装箱方案中试算补货。","Complete packaging, placement and loads are not yet checked; run a replenishment trial after calculating the order."):selectedCachedPlan
                     ? tt`${reversePlan.displayUnit === "set" ? tt`共 ${formatNumber(selectedPlanCartons)} 箱 · ` : ""}已按当前${strategy === "practical" ? tr("现场") : tr("极限")}算法生成并独立校验`
                     : mode === "single" && strategy === "maximum"
                     ? selectedPredictionDisplay === null ? tr("等待独立极限结果") : tt`共 ${formatNumber(selectedPlanCartons)} 箱 · 不受 ${targetVolumePercent}% / ${targetWeightPercent}% 计划预留限制`
@@ -2023,7 +2027,7 @@ export function PackingApp() {
               </div>
               <button className="reverse-apply-button" onClick={mode === "single" ? startConfiguredCalculation : applyReversePlan} disabled={status === "working" || hasPendingDimensionChanges || reversePlan.recommendedTotal <= 0}><ShieldCheck size={17} />{mode === "single"
                 ? status === "working" ? tr("正在同步双算法方案…") : tr("重新计算当前双算法快照")
-                : tr("应用建议数量并验证真实装载")}</button>
+                : tr("将算术数量填入订单（随后计算）","Fill arithmetic quantities into order (calculate next)")}</button>
               <p className="reverse-note">{dirty
                 ? tr("输入已修改，计算后再展示经过校验的统一建议。")
                 : status === "working" && selectedCachedPlan
@@ -2062,13 +2066,14 @@ export function PackingApp() {
             </details>
             {result?.metrics.loadedCount === 0 && <ZeroLoadNotice result={result} products={activeProducts} unit={lengthUnit} onEdit={id=>{goToStep(1);if(id)setActiveCargo(id);}}/>}
             {result ? <RemainingCapacity result={result} visibleCount={packingProgress} pending={hasPendingDimensionChanges} /> : null}
+            {capacityTrial}
             {result ? (
               <>
                 <div className="packing-timeline">
                   <button className="timeline-play" onClick={togglePackingPlayback} disabled={!result.placements.length} aria-label={isPlaying ? tr("暂停码垛动画") : tr("播放码垛动画")}>{isPlaying ? <Pause size={15} /> : <Play size={15} />}</button>
                   <div className="timeline-count">{progressSummary?.isSetMode
                     ? <><strong>{tr("整套 ")}{formatNumber(progressSummary.completedSets)} / {formatNumber(progressSummary.totalSets)}{tr(" 套")}</strong><span>{tr("箱级进度 ")}{formatNumber(progressSummary.visibleCartons)} / {formatNumber(progressSummary.totalCartons)}{tr(" 箱 · ")}{result.placements.length ? Math.round((packingProgress / result.placements.length) * 100) : 0}{tr("% · 柜内 → 箱门")}</span></>
-                    : <><strong>{formatNumber(packingProgress)} / {formatNumber(result.placements.length)}{tr(" 箱")}</strong><span>{tr("码垛进度 · ")}{result.placements.length ? Math.round((packingProgress / result.placements.length) * 100) : 0}{tr("% · 柜内 → 箱门")}</span></>}</div>
+                    : <><strong>{formatNumber(packingProgress)} / {formatNumber(result.placements.length)}{tr(" 箱")}</strong><span>{tr("动画进度，非整柜容量 · ","Playback, not container capacity · ")}{result.placements.length ? Math.round((packingProgress / result.placements.length) * 100) : 0}{tr("% · 柜内 → 箱门")}</span></>}</div>
                   <input aria-label={progressSummary?.isSetMode ? tr("套装箱级码垛进度") : tr("码垛进度")} type="range" min="0" max={Math.max(1, result.placements.length)} value={packingProgress} onChange={(event) => { setIsPlaying(false); setPackingProgress(numberValue(event.target.value)); }} />
                   <div className="timeline-step-controls" aria-label={tr("逐箱码垛控制")}>
                     <button onClick={() => movePackingProgress(-1)} disabled={packingProgress <= 0} aria-label={tr("上一步")}><ChevronLeft size={14} /></button>
