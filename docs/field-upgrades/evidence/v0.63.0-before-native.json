@@ -1,0 +1,466 @@
+{
+  "workflow": "palletized",
+  "palletBuild": {
+    "config": {
+      "packaging": {
+        "base": "block",
+        "enclosure": "none",
+        "material": "wood",
+        "color": "#d4af7b",
+        "opacity": 0.65,
+        "deckBoards": 5,
+        "runners": 3,
+        "wallThickness": 30,
+        "lid": true
+      },
+      "presetId": "eur-1200-800",
+      "name": "Long carton pallet",
+      "length": 1800,
+      "width": 1100,
+      "height": 144,
+      "weight": 25,
+      "maxLoad": 1000,
+      "count": 0,
+      "gap": 0,
+      "layout": "auto",
+      "allowFloorCargo": false,
+      "maxCargoHeight": 1000
+    },
+    "mix": "single",
+    "maxPallets": 50,
+    "stackLayers": 1,
+    "maxTopLoadKg": 0
+  },
+  "id": "restored-1792804736637",
+  "mode": "mixed",
+  "strategy": "practical",
+  "practicalTargetUtilization": 0.88,
+  "engineVersion": "0.62.0",
+  "palletization": {
+    "config": {
+      "packaging": {
+        "base": "block",
+        "enclosure": "none",
+        "material": "wood",
+        "color": "#d4af7b",
+        "opacity": 0.65,
+        "deckBoards": 5,
+        "runners": 3,
+        "wallThickness": 30,
+        "lid": true
+      },
+      "presetId": "eur-1200-800",
+      "name": "Long carton pallet",
+      "length": 1800,
+      "width": 1100,
+      "height": 144,
+      "weight": 25,
+      "maxLoad": 1000,
+      "count": 0,
+      "gap": 0,
+      "layout": "auto",
+      "allowFloorCargo": false,
+      "maxCargoHeight": 1000
+    },
+    "mix": "single",
+    "stackLayers": 1,
+    "maxTopLoadKg": 0,
+    "preparedCount": 1,
+    "bounded": false,
+    "only": false
+  },
+  "pallets": [
+    {
+      "id": "floor-pallet-1",
+      "presetId": "eur-1200-800",
+      "name": "Long carton pallet",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "dx": 1800,
+      "dy": 1100,
+      "dz": 144,
+      "weight": 25,
+      "maxLoad": 1000,
+      "orientation": "LWH",
+      "packaging": {
+        "base": "block",
+        "enclosure": "none",
+        "material": "wood",
+        "color": "#d4af7b",
+        "opacity": 0.65,
+        "deckBoards": 5,
+        "runners": 3,
+        "wallThickness": 30,
+        "lid": true
+      }
+    }
+  ],
+  "container": {
+    "id": "40hq",
+    "name": "40HQ 高柜",
+    "length": 12032,
+    "width": 2350,
+    "height": 2700,
+    "doorWidth": 2340,
+    "doorHeight": 2597,
+    "maxWeight": 28600
+  },
+  "clearance": 10,
+  "placements": [
+    {
+      "id": "prebuilt-1",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 0,
+      "z": 144,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 1,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-2",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 545,
+      "z": 144,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 1,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-3",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 0,
+      "z": 264,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 2,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-4",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 545,
+      "z": 264,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 2,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-5",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 0,
+      "z": 384,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 3,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-6",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 545,
+      "z": 384,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 3,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-7",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 0,
+      "z": 504,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 4,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-8",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 545,
+      "z": 504,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 4,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-9",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 0,
+      "z": 624,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 5,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-10",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 545,
+      "z": 624,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 5,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-11",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 0,
+      "z": 744,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 6,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-12",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 545,
+      "z": 744,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 6,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-13",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 0,
+      "z": 864,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 7,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-14",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 545,
+      "z": 864,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 7,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-15",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 0,
+      "z": 984,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 8,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-16",
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 545,
+      "z": 984,
+      "dx": 1640,
+      "dy": 545,
+      "dz": 120,
+      "weight": 42,
+      "layer": 8,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    }
+  ],
+  "summaries": [
+    {
+      "productId": "long",
+      "sku": "REAL-1CTN",
+      "name": "Long carton",
+      "color": "#2f7f89",
+      "requested": 16,
+      "loaded": 16,
+      "unloaded": 0,
+      "loadedWeight": 672,
+      "loadedVolume": 1716096000
+    }
+  ],
+  "setSummaries": [],
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "metrics": {
+    "loadedCount": 16,
+    "requestedCount": 16,
+    "loadedVolume": 2001216000,
+    "grossWeight": 697,
+    "effectiveVolume": 75287612400,
+    "volumeUtilization": 0.026580946535634857,
+    "weightUtilization": 0.024370629370629372,
+    "centerOfGravity": {
+      "x": 822.8694404591105,
+      "y": 545.1793400286944,
+      "z": 604.7625388479321,
+      "longitudinalRatio": 0.06850394942217036,
+      "lateralRatio": 0.23398254936853835,
+      "heightRatio": 0.22481878767581118,
+      "balanced": false
+    },
+    "executionComplexity": {
+      "orientationVariants": 1,
+      "maxOrientationsPerSku": 1,
+      "partialSupportCount": 0,
+      "tippedCartonCount": 0
+    },
+    "solveTimeMs": 0
+  },
+  "cargoDetails": {
+    "long": {}
+  },
+  "warnings": [
+    "历史箱位已按当前箱规与引擎重新校验。自动重算已暂停，可继续手动调整或生成新方案。"
+  ],
+  "createdAt": "2026-10-24T01:18:56.638Z"
+}

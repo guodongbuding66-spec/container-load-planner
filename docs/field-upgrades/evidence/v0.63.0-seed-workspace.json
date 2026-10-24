@@ -1,0 +1,479 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.63.0",
+  "createdAt": "2026-10-24T01:17:35.389Z",
+  "inputs": {
+    "mode": "mixed",
+    "workflow": "palletized",
+    "strategy": "practical",
+    "container": {
+      "id": "40hq",
+      "name": "40HQ 高柜",
+      "length": 12032,
+      "width": 2350,
+      "height": 2700,
+      "doorWidth": 2340,
+      "doorHeight": 2597,
+      "maxWeight": 28600
+    },
+    "clearance": 10,
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "Long carton pallet",
+        "length": 1800,
+        "width": 1100,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "maxPallets": 50,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "practicalTargetUtilization": 0.88,
+    "products": [
+      {
+        "id": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "length": 1640,
+        "width": 545,
+        "height": 120,
+        "weight": 42,
+        "quantity": 16,
+        "priority": 100,
+        "rotationPolicy": "upright",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "color": "#2f7f89"
+      }
+    ],
+    "practicalTargetPercent": 88,
+    "customContainers": [],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {},
+  "coordinatePlan": {
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "Long carton pallet",
+        "length": 1800,
+        "width": 1100,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "maxPallets": 50,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "strategy": "practical",
+    "placements": [
+      {
+        "id": "prebuilt-1",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 144,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-2",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 545,
+        "z": 144,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-3",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 264,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-4",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 545,
+        "z": 264,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-5",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 384,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-6",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 545,
+        "z": 384,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 3,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-7",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 504,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 4,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-8",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 545,
+        "z": 504,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 4,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-9",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 624,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 5,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-10",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 545,
+        "z": 624,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 5,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-11",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 744,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 6,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-12",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 545,
+        "z": 744,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 6,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-13",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 864,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 7,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-14",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 545,
+        "z": 864,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 7,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-15",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 984,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 8,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-16",
+        "productId": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 545,
+        "z": 984,
+        "dx": 1640,
+        "dy": 545,
+        "dz": 120,
+        "weight": 42,
+        "layer": 8,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      }
+    ],
+    "pallets": [
+      {
+        "id": "floor-pallet-1",
+        "presetId": "eur-1200-800",
+        "name": "Long carton pallet",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "dx": 1800,
+        "dy": 1100,
+        "dz": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "orientation": "LWH",
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        }
+      }
+    ],
+    "palletization": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "Long carton pallet",
+        "length": 1800,
+        "width": 1100,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "preparedCount": 1,
+      "bounded": false,
+      "only": false
+    }
+  }
+}

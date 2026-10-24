@@ -1,0 +1,93 @@
+{
+  "note": "Explicit reproducible case; the screenshots do not expose all original settings.",
+  "request": {
+    "mode": "mixed",
+    "workflow": "palletized",
+    "strategy": "practical",
+    "container": {
+      "id": "40hq",
+      "name": "40HQ 高柜",
+      "length": 12032,
+      "width": 2350,
+      "height": 2700,
+      "doorWidth": 2340,
+      "doorHeight": 2597,
+      "maxWeight": 28600
+    },
+    "clearance": 10,
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "Long carton pallet",
+        "length": 1800,
+        "width": 1100,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "maxPallets": 50,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "practicalTargetUtilization": 0.88,
+    "products": [
+      {
+        "id": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "length": 1640,
+        "width": 545,
+        "height": 120,
+        "weight": 42,
+        "quantity": 16,
+        "priority": 100,
+        "rotationPolicy": "upright",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "color": "#2f7f89"
+      }
+    ]
+  },
+  "original": {
+    "loaded": 16,
+    "pallets": 1
+  },
+  "trial": {
+    "arithmetic": 596,
+    "loaded": 208,
+    "pallets": 13,
+    "grossKg": 9061,
+    "topMm": 1104,
+    "layers": [
+      144,
+      264,
+      384,
+      504,
+      624,
+      744,
+      864,
+      984
+    ],
+    "validation": {
+      "valid": true,
+      "errors": []
+    }
+  }
+}

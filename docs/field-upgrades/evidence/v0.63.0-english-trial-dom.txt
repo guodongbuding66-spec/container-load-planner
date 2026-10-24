@@ -1,0 +1,23 @@
+Order fulfilled ≠ container full
+
+Ordered: 208 cartons · Currently loaded: 208 cartons
+
+Increase hypothetical stock in the current SKU ratio, rebuild units and repack. This is not an in-place insertion check or proof of maximum capacity.
+
+Review height, stacking and packaging limits
+Trial additional cargo (keep order)
+Stop trial
+
+Trial loaded 208 cartons · Trial stock 596 · Gross 9,061 kg · Volume use 34.6%
+
+Compared with currently loaded: +0 cartons
+
+Arithmetic target: 596 cartons; use the validated packing count above. Unloading order, securing and missing load ratings still need review.
+
+Prepared / loaded units: 38 / 13
+
+Add validated stock and recalculate
+
+No additional order stock was validated. Review the limits above; remaining CBM alone does not establish feasibility.
+
+Up to 4000 cartons and 30 seconds. Unmounting, cancellation or changed inputs discard unfinished trials.

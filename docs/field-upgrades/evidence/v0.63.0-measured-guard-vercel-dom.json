@@ -1,0 +1,4 @@
+{
+  "disabled": true,
+  "text": "Order fulfilled ≠ container full\n\nOrdered: 4 cartons · Currently loaded: 4 cartons\n\nIncrease hypothetical stock in the current SKU ratio, rebuild units and repack. This is not an in-place insertion check or proof of maximum capacity.\n\nReview height, stacking and packaging limits\n\nThis plan uses measured unit envelopes. This trial does not support those envelopes and is disabled. Review a plan copy separately; do not fall back to nominal dimensions.\n\nTrial additional cargo (keep order)\nStop trial\n\nUp to 4000 cartons and 30 seconds. Unmounting, cancellation or changed inputs discard unfinished trials."
+}

@@ -1,0 +1,220 @@
+{
+  "format": "cargo-fit-release-acceptance",
+  "version": 1,
+  "engineVersion": "0.63.0",
+  "recordedAt": "2026-10-24T01:43:41.147450+00:00",
+  "runtimeCommit": "1a38ca9d550606e7c77894f673580d53387dff9f",
+  "runtimeTree": "afb956b7009b2324b672ffffb31a3572b91736be",
+  "firstFunctionalCommit": "97879cb00c90417ff26042ca0f18b965baa556ea",
+  "software": {
+    "addedTests": 33,
+    "unitTests": 1741,
+    "unitTestFiles": 135,
+    "htmlChecks": 21,
+    "typecheck": "PASS",
+    "productionBuild": "PASS",
+    "lintErrors": 0,
+    "existingLintWarnings": 2,
+    "githubCi": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/40050488455/job/120741841835",
+    "githubCiConclusion": "success"
+  },
+  "deployments": {
+    "cloudflare": {
+      "deployment": "9783a9f3-389b-44a9-91d0-4a2cf7575b20",
+      "url": "https://container-load-planner.pages.dev/",
+      "status": "SUCCESS"
+    },
+    "vercel": {
+      "deployment": "dpl_GAxLaGiYYZxT2CefxxcXVPe2cFLE",
+      "url": "https://container-load-planner-gray.vercel.app/",
+      "status": "READY",
+      "aliasVerified": true
+    }
+  },
+  "controlledCase": {
+    "originalScreenshotExactConfigurationAvailable": false,
+    "note": "A reproducible long-carton case, not an assertion that all screenshot settings were known.",
+    "cartonMm": [
+      1640,
+      545,
+      120
+    ],
+    "cartonKg": 42,
+    "baseMm": [
+      1800,
+      1100,
+      144
+    ],
+    "tareKgPerPallet": 25,
+    "payloadKgPerPallet": 1000,
+    "cargoHeightMm": 1000,
+    "maxPreparedPallets": 50,
+    "loadedPalletStackLayers": 1,
+    "originalOrder": 16,
+    "arithmeticTarget": 596,
+    "trialLoaded": 208,
+    "trialPallets": 13,
+    "trialKg": 9061,
+    "cargoLayers": 8,
+    "topMm": 1104,
+    "trialKeptOriginalOrder": true,
+    "adoptedOrder": 208,
+    "bothAlgorithmsAfterAdoption": 208,
+    "refreshedOrderPersisted": 208,
+    "cartonTopLoadRatings": "not supplied; unverified"
+  },
+  "nativeChecks": {
+    "crossSiteWorkspaceRestore": "PASS",
+    "csvByteIdentical": true,
+    "csvBytes": 31832,
+    "placementsAndPalletsEqual": true,
+    "businessMetricsEqualExcludingSolveTime": true,
+    "englishNewPanelNoCJK": true,
+    "nativeCancellationRetainsOrder": true,
+    "measuredEnvelopeGuardBothSites": true,
+    "measuredGuardEnglishNoCJK": true,
+    "functionalChecksCommit": "97879cb00c90417ff26042ca0f18b965baa556ea",
+    "measuredGuardAndDefaultChecksCommit": "1a38ca9d550606e7c77894f673580d53387dff9f"
+  },
+  "benchmarks": {
+    "nativeEngineVersion": "0.63.0",
+    "runCommit": "97879cb00c90417ff26042ca0f18b965baa556ea",
+    "engineAndPackingWorkerUnchangedInGuardCommit": true,
+    "rowsPerSite": 12,
+    "allModelValid": true,
+    "loadedCounts": [
+      22,
+      24,
+      12,
+      12,
+      0,
+      0,
+      21,
+      24,
+      116,
+      116,
+      32,
+      32
+    ]
+  },
+  "defaultWorkspacesBothSites": {
+    "loaded": 116,
+    "requested": 116,
+    "grossKg": 3842,
+    "workflow": "direct",
+    "floorPallets": false,
+    "language": "zh",
+    "lengthUnit": "mm",
+    "measurementDecimals": 3,
+    "savedMeasurements": 0
+  },
+  "pending": [
+    "Exact cause of the supplied screenshot requires its full input configuration; constraints are now visible",
+    "Actual GPU/WebGL and multiple browsers",
+    "Rated structural evidence and factory trials",
+    "In-place replenishment preserving installed positions",
+    "Global maximum-capacity proof",
+    "All other unresolved U01-U24 and account/membership/payment scope"
+  ],
+  "excluded": [
+    "Specific forklift operation and equipment-motion simulation"
+  ],
+  "artifacts": [
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-adopted-plan-native.json",
+      "bytes": 88757,
+      "sha256": "26db8cac9480b248ef3060acfacc128e785e402db98382d55b9cc822a91b24cb",
+      "origin": "native-browser-download"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-adopted-workspace-native.json",
+      "bytes": 301883,
+      "sha256": "adf1fc243ec94159e3989311f34f845816527ad7ee9393f8496c2f75ea6deefc",
+      "origin": "native-browser-download"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-before-native.json",
+      "bytes": 9527,
+      "sha256": "7db332f55f80a051c51979d4a91a02393d37dea98c1d91a627935caa64c289eb",
+      "origin": "native-browser-download"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-benchmark-cloudflare-native.json",
+      "bytes": 25696,
+      "sha256": "45d771630879f7859cae66e8574232fe49c81b14fee4dfdad4b9afbf61fd3223",
+      "origin": "native-browser-download"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-benchmark-vercel-native.json",
+      "bytes": 25683,
+      "sha256": "89878d08335f0ba6de6a2f055a3cdbbcf1444d6503146fb8acdfc2de1082b6fa",
+      "origin": "native-browser-download"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-cancel-dom.txt",
+      "bytes": 488,
+      "sha256": "d63488ef645d523dc0d809f753b4d0a13d663ef7b781b818befbbad6cf378e57",
+      "origin": "visible-browser-DOM observation"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-capacity-208-proof.jpg",
+      "bytes": 108207,
+      "sha256": "d0e27aeb3ceea123dfe7d3c523de6e8b78348dcc3a261bebeee11c9b2a8d8505",
+      "origin": "native-browser-screenshot"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-coordinates-cloudflare-native.csv",
+      "bytes": 31832,
+      "sha256": "655db15f515ab1830b6c12d52a4b8e1aac08384a973561985ed07180c92caeb3",
+      "origin": "native-browser-download"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-coordinates-vercel-native.csv",
+      "bytes": 31832,
+      "sha256": "655db15f515ab1830b6c12d52a4b8e1aac08384a973561985ed07180c92caeb3",
+      "origin": "native-browser-download"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-core-case.json",
+      "bytes": 1959,
+      "sha256": "67996ec86b0a2c169e0693c3bfa46b47b79ef7b81e29f0c9e70af05f327d56cd",
+      "origin": "controlled-reproduction-script"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-default-workspaces-dom.json",
+      "bytes": 286,
+      "sha256": "cfcdd2f6f02c61ccbc07bfd38fb9ab6222b93aeced6aecb7028dbbadd9b593e8",
+      "origin": "visible-browser-DOM observation"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-english-trial-dom.txt",
+      "bytes": 898,
+      "sha256": "378d6419d4966a4213462396a3cf8e901e9dd78bbe3ebc6d0096da5440dac85c",
+      "origin": "visible-browser-DOM observation"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-measured-guard-dom.json",
+      "bytes": 633,
+      "sha256": "b708d5602ee8fa56010aece06f442c266668217d84690ac189e5e6d65c1abec0",
+      "origin": "visible-browser-DOM observation"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-measured-guard-vercel-dom.json",
+      "bytes": 658,
+      "sha256": "d42b40fd601e04a1dd161751b3e0ad05a6d23e0fd823b1acba446b73ebd43b48",
+      "origin": "visible-browser-DOM observation"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-restored-plan-vercel-native.json",
+      "bytes": 87157,
+      "sha256": "b1fbb566963c03d7a575efc4a3fa71600fdf7f9ea2896c371f36ae96ccfd15f3",
+      "origin": "native-browser-download"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.63.0-seed-workspace.json",
+      "bytes": 10550,
+      "sha256": "6fba66c2155ead1d746987d4ca840fc3c16f9eb432db84608ccf48755dbdc298",
+      "origin": "controlled-reproduction-script"
+    }
+  ]
+}
