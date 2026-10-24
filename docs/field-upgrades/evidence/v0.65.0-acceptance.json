@@ -1,0 +1,210 @@
+{
+  "date": "2026-10-24",
+  "runtimeCommit": "8f68ea9d28a6c28c998187b47a5fee76cfc7bdba",
+  "runtimeTree": "84ff445a24dd464c166cd75a3f4e33cdeaa135b6",
+  "scope": "Controlled registered-packaging cases, not the missing original screenshot workspace.",
+  "checks": {
+    "unitTests": 1779,
+    "unitFiles": 138,
+    "pageChecks": 21,
+    "typecheck": "PASS",
+    "productionBuild": "PASS",
+    "lintErrors": 0,
+    "existingLintWarnings": 2
+  },
+  "githubCI": {
+    "runId": 40078289200,
+    "status": "success",
+    "url": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/40078289200"
+  },
+  "cloudflare": {
+    "deployment": "9a9bc332-b427-486a-b2f7-a9d8b57ff628",
+    "status": "SUCCESS",
+    "url": "https://container-load-planner.pages.dev/"
+  },
+  "vercel": {
+    "deployment": "dpl_3Qy46KEWAuwCB2vW256RQkvY9aSf",
+    "status": "READY",
+    "url": "https://container-load-planner-gray.vercel.app/",
+    "aliasCommitVerified": true
+  },
+  "native": {
+    "cloudflareIdenticalInputsBeforeAfter": true,
+    "beforeEngine": "0.64.0",
+    "afterEngine": "0.65.0",
+    "orderRetained": 596,
+    "beforeBothStrategies": 92,
+    "afterBothStrategies": 299,
+    "afterUnits": 13,
+    "grossWeightKg": 12883,
+    "unloadedRetained": 297,
+    "registeredSmallStock": 13,
+    "vercelPreviewKeeps92UntilExplicitAdoption": true,
+    "vercelAdoptionAndRefresh": {
+      "order": 596,
+      "selection": "compact",
+      "bothStrategiesLoaded": 299
+    },
+    "stock2Case": {
+      "order": 596,
+      "bothStrategiesLoaded": 115,
+      "smallUnits": 2,
+      "largeUnits": 3,
+      "grossWeightKg": 4955,
+      "unloaded": 481
+    },
+    "physicalCoordinatesAndPalletsEqualAcrossSitesAndRestore": true,
+    "csvBytes": 173031,
+    "csvSHA256": "40a20dc53dfa1df5305c9bbee2c7dc8be2d191d2d65f187db8ae6fad378eeae0",
+    "newEnglishPreviewNoChineseText": true,
+    "businessBenchmarks": {
+      "caseVersion": "business-2026-10-v2",
+      "cases": 7,
+      "runsPerSite": 14,
+      "allModelValidationPassed": true,
+      "compactStockProofCountBothStrategies": 299
+    },
+    "defaultsRestoredBothSites": {
+      "bothStrategiesLoaded": 116,
+      "grossWeightKg": 3842,
+      "workflow": "direct",
+      "palletBaseMm": [
+        1200,
+        800,
+        144
+      ],
+      "floorPallets": null
+    },
+    "downloadRecovery": "Vercel default workspace export first returned an unavailable path; one standalone retry succeeded and the successful native export is archived."
+  },
+  "environment": {
+    "browser": "Cloud Chrome",
+    "observedMessage": "当前浏览器未启用 WebGL",
+    "observedFallback": "已切换为真实坐标俯视图；装柜计算、校验与导出不受影响。",
+    "realGPUVerified": false,
+    "multipleBrowserEnginesVerified": false
+  },
+  "pending": [
+    "Exact original user workspace reproduction",
+    "Real GPU and multiple browser engines",
+    "Factory strength evidence and loading acceptance",
+    "Broader joint packaging and cost optimization"
+  ],
+  "evidence": [
+    {
+      "path": "v0.65.0-after-workspace-cloudflare-native.json",
+      "bytes": 465741,
+      "sha256": "5893655fe028b54fb346efef29929d02e6d68c3d82c513065edc8e472a9d4607"
+    },
+    {
+      "path": "v0.65.0-algorithm-comparison.json",
+      "bytes": 1345,
+      "sha256": "b11c5a5dd1915a2f5992d923a5b4e2bb393afc19be7163ae70b24ffbb52e19a6"
+    },
+    {
+      "path": "v0.65.0-before-workspace-native.json",
+      "bytes": 150546,
+      "sha256": "9f2a18e994214d2e29a3a8b9f0d221906f9b5bdf40a7450e1bca0793f50e2a2c"
+    },
+    {
+      "path": "v0.65.0-benchmarks-cloudflare-native.json",
+      "bytes": 33954,
+      "sha256": "c892eb6dced202c8827ecd486e7ab5e93410471775b23dfefebeec5f8fe30daa"
+    },
+    {
+      "path": "v0.65.0-benchmarks-vercel-native.json",
+      "bytes": 33919,
+      "sha256": "07adea0d90bb129a62e762d952546e8d9de1bd07d3da4f08096507e0a8576126"
+    },
+    {
+      "path": "v0.65.0-compact-old-seed.json",
+      "bytes": 49158,
+      "sha256": "9f9687e90a14c477ba6c779759ff4c680b389f42bc1993fc76e5fef5122dd203"
+    },
+    {
+      "path": "v0.65.0-coordinates-cloudflare-native.csv",
+      "bytes": 173031,
+      "sha256": "40a20dc53dfa1df5305c9bbee2c7dc8be2d191d2d65f187db8ae6fad378eeae0"
+    },
+    {
+      "path": "v0.65.0-coordinates-vercel-native.csv",
+      "bytes": 173031,
+      "sha256": "40a20dc53dfa1df5305c9bbee2c7dc8be2d191d2d65f187db8ae6fad378eeae0"
+    },
+    {
+      "path": "v0.65.0-cross-restored-plan-native.json",
+      "bytes": 133878,
+      "sha256": "562f545068d1b4f3c85c4ea3d90d9f7f8a29c562ad52284fa16fc29af43c7b08"
+    },
+    {
+      "path": "v0.65.0-default-workspace-cloudflare-native.json",
+      "bytes": 136580,
+      "sha256": "030cb56937e741e60042950f4e40074228169c9ab1b45f666afb69de297f3691"
+    },
+    {
+      "path": "v0.65.0-default-workspace-vercel-native.json",
+      "bytes": 136580,
+      "sha256": "a1b8d1c86ac97c74002e0928179c6bc9362dae9e83325837c46c3632831e3fc5"
+    },
+    {
+      "path": "v0.65.0-defaults-native.json",
+      "bytes": 1085,
+      "sha256": "baca30551de66cdf8c73e968665b8411fc346de2681a3aa71a328dc05a98ac58"
+    },
+    {
+      "path": "v0.65.0-formal-299-proof.jpg",
+      "bytes": 102037,
+      "sha256": "10436757dfea158264036160c1257516b1158efb0140a8610cb9746728ff7871"
+    },
+    {
+      "path": "v0.65.0-local-checks.txt",
+      "bytes": 4888,
+      "sha256": "3bf55b2fa0c404d47f76f5ecde704f0229fddd54d3b04c2d6811e5542ca060af"
+    },
+    {
+      "path": "v0.65.0-ordered-seed.json",
+      "bytes": 47083,
+      "sha256": "ef3cc8db13000936b4daaaa4d70c31b7b112faf52b1b4821cb3ead88b3e3d4f7"
+    },
+    {
+      "path": "v0.65.0-packaging-preview-english-native.txt",
+      "bytes": 1481,
+      "sha256": "f6aa5084ad08437c9228f364132769fe88c0cae8112d3ef4bd238208e124c14a"
+    },
+    {
+      "path": "v0.65.0-packaging-preview-vercel-native.txt",
+      "bytes": 1396,
+      "sha256": "b381c030bf23a3b6d0eba437eeae2e141b4305ea744a0a460d96918de423d2cc"
+    },
+    {
+      "path": "v0.65.0-pallet-diagnostics-native.txt",
+      "bytes": 2331,
+      "sha256": "3c80c8105de516905b898daa895e3162bbbc001bdb12497e5b1f45b0e56fdc35"
+    },
+    {
+      "path": "v0.65.0-plan-cloudflare-native.json",
+      "bytes": 135891,
+      "sha256": "142dad68bb581890b32142aa2ff4b3b9a2eb3040bdb656d83df81bcf1f67a4b4"
+    },
+    {
+      "path": "v0.65.0-plan-vercel-native.json",
+      "bytes": 135905,
+      "sha256": "6447354706a894597d2a05fe239bb8cdc353c285a9cedcf6f055fe0619c3ebda"
+    },
+    {
+      "path": "v0.65.0-stock2-plan-native.json",
+      "bytes": 55990,
+      "sha256": "6f343e3dfb6e9f9a1ce3be4c1c032b06d3170e1acd90fda00448a7660681feda"
+    },
+    {
+      "path": "v0.65.0-stock2-preview-native.txt",
+      "bytes": 1449,
+      "sha256": "fa47b905e75e8ba59e1a10bd0907cb47c45b8db6c5a8a06d47e1923c3352f31f"
+    },
+    {
+      "path": "v0.65.0-stock2-seed.json",
+      "bytes": 47080,
+      "sha256": "5bbfdc55f0c4d5faa8448fa60d1456d3e49a94d90fedbc03b81cf8572d7861d7"
+    }
+  ]
+}

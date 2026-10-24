@@ -1,0 +1,46 @@
+[
+  {
+    "site": "cloudflare",
+    "engineVersion": "0.65.0",
+    "loadedBothStrategies": 116,
+    "grossWeightKg": 3842,
+    "defaultPhysicalInputsVerified": true,
+    "restoredProductDefaults": [
+      "mustLoad=true",
+      "bottomOnly=false",
+      "setCode=empty",
+      "unitsPerSet=1",
+      "rounded declaredVolumeCbm"
+    ],
+    "workflow": "direct",
+    "palletBase": [
+      1200,
+      800,
+      144
+    ],
+    "floorPallets": null,
+    "nativeExportSHA256": "030cb56937e741e60042950f4e40074228169c9ab1b45f666afb69de297f3691"
+  },
+  {
+    "site": "vercel",
+    "engineVersion": "0.65.0",
+    "loadedBothStrategies": 116,
+    "grossWeightKg": 3842,
+    "defaultPhysicalInputsVerified": true,
+    "restoredProductDefaults": [
+      "mustLoad=true",
+      "bottomOnly=false",
+      "setCode=empty",
+      "unitsPerSet=1",
+      "rounded declaredVolumeCbm"
+    ],
+    "workflow": "direct",
+    "palletBase": [
+      1200,
+      800,
+      144
+    ],
+    "floorPallets": null,
+    "nativeExportSHA256": "a1b8d1c86ac97c74002e0928179c6bc9362dae9e83325837c46c3632831e3fc5"
+  }
+]

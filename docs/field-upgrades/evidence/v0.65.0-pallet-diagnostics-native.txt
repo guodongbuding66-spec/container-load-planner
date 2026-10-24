@@ -1,0 +1,48 @@
+订单尚未装完：检查打托与堆叠限制
+
+订单量: 596 箱 · 当前已装: 299 箱
+
+13 托／箱体单元 · 底座投影 92.0% · 托内额定载荷使用率 96.6%
+
+底座投影按柜内净长 × 净宽计算，叠放不重复计面积；未扣禁占区，也不代表可补货空间。载荷使用率只解释当前已入柜单元。
+
+逐托占地、装箱数与载荷明细
+单元／规格	底座尺寸 mm	托内箱数	货物重量	托内可用额定载荷	托内载荷余量	货物堆高 mm
+floor-pallet-1
+Small registered pallet	1800 × 1100 × 60	23	966.0 kg	1000.0 kg	34.0 kg	1440.0
+floor-pallet-2
+Small registered pallet	1800 × 1100 × 60	23	966.0 kg	1000.0 kg	34.0 kg	1440.0
+floor-pallet-3
+Small registered pallet	1800 × 1100 × 60	23	966.0 kg	1000.0 kg	34.0 kg	1440.0
+floor-pallet-4
+Small registered pallet	1800 × 1100 × 60	23	966.0 kg	1000.0 kg	34.0 kg	1440.0
+floor-pallet-5
+Small registered pallet	1800 × 1100 × 60	23	966.0 kg	1000.0 kg	34.0 kg	1440.0
+floor-pallet-6
+Small registered pallet	1800 × 1100 × 60	23	966.0 kg	1000.0 kg	34.0 kg	1440.0
+floor-pallet-7
+Small registered pallet	1800 × 1100 × 60	23	966.0 kg	1000.0 kg	34.0 kg	1440.0
+floor-pallet-8
+Small registered pallet	1800 × 1100 × 60	23	966.0 kg	1000.0 kg	34.0 kg	1440.0
+floor-pallet-9
+Small registered pallet	1800 × 1100 × 60	23	966.0 kg	1000.0 kg	34.0 kg	1440.0
+floor-pallet-10
+Small registered pallet	1800 × 1100 × 60	23	966.0 kg	1000.0 kg	34.0 kg	1440.0
+floor-pallet-11
+Small registered pallet	1800 × 1100 × 60	23	966.0 kg	1000.0 kg	34.0 kg	1440.0
+floor-pallet-12
+Small registered pallet	1800 × 1100 × 60	23	966.0 kg	1000.0 kg	34.0 kg	1440.0
+floor-pallet-13
+Small registered pallet	1100 × 1800 × 60	23	966.0 kg	1000.0 kg	34.0 kg	1440.0
+
+托内可用额定载荷已扣新增支承件重量；余量仅作算术诊断，不替代承托、累计上压或运输固定校验。叠托、实测包络或关联不完整时不显示可用余量。
+
+托内限高与纸箱层数
+
+按当前 SKU 比例增加假设货量，重新打托并试装；不表示原位置可直接补入。结果是当前算法找到的可行方案，不是全局最大容量。
+
+查看当前限高、层数与包装限制
+试算增加货量（不改订单）
+停止试算
+
+最多 4000 箱，30 秒；关闭、停止或参数变化会丢弃未完成试算。

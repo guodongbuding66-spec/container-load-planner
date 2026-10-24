@@ -1,0 +1,35 @@
+Order incomplete: review packaging and stacking limits
+
+Ordered: 596 cartons · Currently loaded: 92 cartons
+
+4 loaded units · Base projection 87.5% · Own-cargo payload use 96.6%
+
+Base projections use net vehicle length × width, count stacked overlaps once, and do not subtract site exclusions or establish usable voids. Payload use describes currently loaded units only.
+
+Unit dimensions, carton counts and payload details
+Compare existing packaging for this order
+
+Compare registered eligible specifications, preferring smaller packaging at equal cargo load. No specifications, stock, height limits or ratings are added. The per-unit heuristic is not globally optimal.
+
+Cargo ceilings and carton layers
+
+Increase hypothetical stock in the current SKU ratio, rebuild units and repack. This is not an in-place insertion check or proof of maximum capacity.
+
+Review height, stacking and packaging limits
+Trial additional cargo (keep order)
+Stop trial
+
+Trial loaded 299 cartons · Trial stock 596 · Gross 12,883 kg · Volume use 44.6%
+
+Compared with currently loaded: +207 cartons
+
+Original order retained: 596
+
+Packaging selection: list order → compact at equal load; dimensions, height ceilings, stock, top loads and cargo rules are retained.
+
+Small registered pallet · 13 units · 299 cartons
+
+Prepared / loaded units: 26 / 13
+
+Apply packaging selection and recalculate
+Up to 4000 cartons and 30 seconds. Unmounting, cancellation or changed inputs discard unfinished trials.
