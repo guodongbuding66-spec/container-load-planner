@@ -1,0 +1,202 @@
+{
+  "format": "cargo-fit-release-acceptance",
+  "version": 1,
+  "engineVersion": "0.62.0",
+  "recoveredAt": "2026-10-24T00:53:06.304252+00:00",
+  "runtimeCommit": "fd424dbf78b1175f4405bb1d7b358d7b880b5e7a",
+  "runtimeTree": "d337cc6f409d8a27efb7d76082ed21aab9e6586e",
+  "documentationCheckpoint": "bc8e8f96e55c3d570dc2e88542f311b33c8ae5e5",
+  "software": {
+    "unitTests": 1708,
+    "unitTestFiles": 133,
+    "addedTests": 22,
+    "htmlChecks": 21,
+    "typecheck": "PASS",
+    "productionBuild": "PASS",
+    "lintErrors": 0,
+    "existingLintWarnings": 2,
+    "githubCiJob": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/39980573547/job/120506480388",
+    "githubCiConclusion": "success"
+  },
+  "deployments": {
+    "cloudflare": {
+      "url": "https://container-load-planner.pages.dev/",
+      "runtimeDeployment": "ade678ee-08b7-4456-9a16-6dc02073bb59",
+      "status": "SUCCESS"
+    },
+    "vercel": {
+      "url": "https://container-load-planner-gray.vercel.app/",
+      "runtimeDeployment": "dpl_7Ywe7sxT96MVBtZUJCvPQagz8SFA",
+      "status": "READY"
+    }
+  },
+  "nativeRecovery": {
+    "bottomDeck": "none",
+    "baseConstruction": "block",
+    "hasMeasuredBottomEvidence": false,
+    "units": 2,
+    "cartons": 4,
+    "totalKg": 90,
+    "baseMm": [
+      1700,
+      560,
+      144
+    ],
+    "unitExteriorMm": [
+      1700,
+      560,
+      1144
+    ],
+    "tareKgPerUnit": 25,
+    "grossKgPerUnit": 45,
+    "deckZMm": 144,
+    "crossSiteWorkspaceRestore": "PASS",
+    "placementsEqual": true,
+    "palletsEqual": true,
+    "validationEqual": true,
+    "businessMetricsEqual": true,
+    "solveTimeMs": {
+      "cloudflare": 16.599999999976717,
+      "restoredVercel": 0
+    },
+    "coordinateCsvByteIdentical": true,
+    "coordinateCsvBytes": 1630,
+    "pdfPages": 7,
+    "pdfVisualReview": "All pages in contact sheet and page 5 at full resolution; no observed clipping",
+    "exampleLimits": "Deliberately sparse front-corner case retains center-of-mass, unassigned stop and door/path findings; geometry validity is not a complete field acceptance."
+  },
+  "benchmarks": {
+    "cloudflare": {
+      "complete": true,
+      "rows": 12,
+      "allModelValid": true,
+      "loaded": [
+        22,
+        24,
+        12,
+        12,
+        0,
+        0,
+        21,
+        24,
+        116,
+        116,
+        32,
+        32
+      ],
+      "environment": "v0.62.0 recovery · Chrome cloud · Cloudflare · GPU unavailable",
+      "createdAt": "2026-10-24T00:43:53.828Z"
+    },
+    "vercel": {
+      "complete": true,
+      "rows": 12,
+      "allModelValid": true,
+      "loaded": [
+        22,
+        24,
+        12,
+        12,
+        0,
+        0,
+        21,
+        24,
+        116,
+        116,
+        32,
+        32
+      ],
+      "environment": "v0.62.0 recovery · Chrome cloud · Vercel · GPU unavailable",
+      "createdAt": "2026-10-24T00:43:55.191Z"
+    }
+  },
+  "defaultWorkspaceBothSites": {
+    "workflow": "direct",
+    "palletsEnabled": false,
+    "loadedCartons": 116,
+    "requestedCartons": 116,
+    "grossKg": 3842,
+    "palletManifestRows": 0,
+    "language": "zh",
+    "lengthUnit": "mm",
+    "measurementDecimals": 3,
+    "savedMeasurements": 0,
+    "measurementMode": "off"
+  },
+  "workspaceRecovery": {
+    "sourceDifferencesRestored": 183,
+    "sourceBlobHashesVerified": 183,
+    "canonicalTreeBeforeNewArchive": "8b7157a61817fa02556b43ed13244df240986b68",
+    "olderMissingEvidencePreservedInRemoteIndex": true
+  },
+  "historicalEvidenceLoss": {
+    "originalEightPagePdfAndNativeFilesAvailableLocally": false,
+    "note": "Earlier native operations are historical observations only. Recovered files are a new unmeasured block-pallet acceptance run, not replacements pretending to be the lost measured eight-page run."
+  },
+  "pending": [
+    "Actual GPU/WebGL and multiple browser verification",
+    "Rated structural evidence and representative factory loading trials",
+    "Symmetric reversible, winged, post, wheeled and special pallet structures",
+    "All unresolved U01-U24 scope in unfinished-roadmap.md",
+    "Account, membership and paid access deployment"
+  ],
+  "excluded": [
+    "Specific forklift operation, steering and equipment-motion simulation"
+  ],
+  "consoleReview": "Recent browser logs contained extension metadata errors from chrome-extension URLs; this bounded review is not an exhaustive zero-error claim.",
+  "artifacts": [
+    {
+      "path": "docs/field-upgrades/evidence/v0.62.0-recovered-benchmark-cloudflare-native.json",
+      "bytes": 25700,
+      "sha256": "890abd35adf17a3f6f4984386a578d82a7cbb7950f44d4a7821579b214c270c8",
+      "origin": "native-browser-download"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.62.0-recovered-benchmark-vercel-native.json",
+      "bytes": 25701,
+      "sha256": "4d10c9fc62b3878156c4b598a719deba9c6a5e2fe616797536f6caa4c5d39dea",
+      "origin": "native-browser-download"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.62.0-recovered-coordinates-cloudflare-native.csv",
+      "bytes": 1630,
+      "sha256": "aceb91cb083a9b4fd81f4c1501b955e13989a2580a0f8a56976ddc5d58f5e43c",
+      "origin": "native-browser-download"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.62.0-recovered-coordinates-vercel-native.csv",
+      "bytes": 1630,
+      "sha256": "aceb91cb083a9b4fd81f4c1501b955e13989a2580a0f8a56976ddc5d58f5e43c",
+      "origin": "native-browser-download"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.62.0-recovered-loading-native.pdf",
+      "bytes": 953160,
+      "sha256": "cc1e2a27ae007ac1e8d72d3e84819cc56b2eb254edd9b2b8a90e70264a061913",
+      "origin": "native-browser-download"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.62.0-recovered-plan-native.json",
+      "bytes": 7616,
+      "sha256": "c56f1a5452961a014574d9350325d1a8953b7e658c06c476c62d3033130ca588",
+      "origin": "native-browser-download"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.62.0-recovered-plan-vercel-native.json",
+      "bytes": 6015,
+      "sha256": "10c0f3382f4b2f77e68898a53b8f335e2a071ab37836673a12c0e358053bb49f",
+      "origin": "native-browser-download"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.62.0-recovered-unit-check.jpg",
+      "bytes": 89064,
+      "sha256": "081323fc306a6ff3567d06f7fe5b171e4203e02e41794c8c3c86920b4aaeb742",
+      "origin": "native-browser-screenshot"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.62.0-recovered-workspace-native.json",
+      "bytes": 16989,
+      "sha256": "6c13fb714209d4e0b5ff26997752e7eed28a6b9c8f0613818a9ed029448a8873",
+      "origin": "native-browser-download"
+    }
+  ]
+}

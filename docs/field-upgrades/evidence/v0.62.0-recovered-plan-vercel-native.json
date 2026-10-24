@@ -1,0 +1,274 @@
+{
+  "workflow": "palletized",
+  "palletBuild": {
+    "config": {
+      "packaging": {
+        "base": "block",
+        "bottomDeck": "none",
+        "enclosure": "none",
+        "material": "wood",
+        "color": "#d4af7b",
+        "opacity": 0.65,
+        "deckBoards": 5,
+        "runners": 3,
+        "wallThickness": 30,
+        "lid": true
+      },
+      "presetId": "eur-1200-800",
+      "name": "QA recovered flat pallet",
+      "length": 1700,
+      "width": 560,
+      "height": 144,
+      "weight": 25,
+      "maxLoad": 1000,
+      "count": 0,
+      "gap": 0,
+      "layout": "auto",
+      "allowFloorCargo": false,
+      "maxCargoHeight": 1026
+    },
+    "mix": "single",
+    "maxPallets": 2,
+    "stackLayers": 1,
+    "maxTopLoadKg": 0
+  },
+  "id": "restored-1792802566707",
+  "mode": "mixed",
+  "strategy": "practical",
+  "practicalTargetUtilization": 0.88,
+  "engineVersion": "0.62.0",
+  "palletization": {
+    "config": {
+      "packaging": {
+        "base": "block",
+        "bottomDeck": "none",
+        "enclosure": "none",
+        "material": "wood",
+        "color": "#d4af7b",
+        "opacity": 0.65,
+        "deckBoards": 5,
+        "runners": 3,
+        "wallThickness": 30,
+        "lid": true
+      },
+      "presetId": "eur-1200-800",
+      "name": "QA recovered flat pallet",
+      "length": 1700,
+      "width": 560,
+      "height": 144,
+      "weight": 25,
+      "maxLoad": 1000,
+      "count": 0,
+      "gap": 0,
+      "layout": "auto",
+      "allowFloorCargo": false,
+      "maxCargoHeight": 1026
+    },
+    "mix": "single",
+    "stackLayers": 1,
+    "maxTopLoadKg": 0,
+    "preparedCount": 2,
+    "bounded": false,
+    "only": false
+  },
+  "pallets": [
+    {
+      "id": "floor-pallet-1",
+      "presetId": "eur-1200-800",
+      "name": "QA recovered flat pallet",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "dx": 1700,
+      "dy": 560,
+      "dz": 144,
+      "weight": 25,
+      "maxLoad": 1000,
+      "orientation": "LWH",
+      "packaging": {
+        "base": "block",
+        "bottomDeck": "none",
+        "enclosure": "none",
+        "material": "wood",
+        "color": "#d4af7b",
+        "opacity": 0.65,
+        "deckBoards": 5,
+        "runners": 3,
+        "wallThickness": 30,
+        "lid": true
+      }
+    },
+    {
+      "id": "floor-pallet-2",
+      "presetId": "eur-1200-800",
+      "name": "QA recovered flat pallet",
+      "x": 0,
+      "y": 560,
+      "z": 0,
+      "dx": 1700,
+      "dy": 560,
+      "dz": 144,
+      "weight": 25,
+      "maxLoad": 1000,
+      "orientation": "LWH",
+      "packaging": {
+        "base": "block",
+        "bottomDeck": "none",
+        "enclosure": "none",
+        "material": "wood",
+        "color": "#d4af7b",
+        "opacity": 0.65,
+        "deckBoards": 5,
+        "runners": 3,
+        "wallThickness": 30,
+        "lid": true
+      }
+    }
+  ],
+  "container": {
+    "id": "40hq",
+    "name": "40HQ 高柜",
+    "length": 12032,
+    "width": 2350,
+    "height": 2700,
+    "doorWidth": 2340,
+    "doorHeight": 2597,
+    "maxWeight": 28600
+  },
+  "clearance": 10,
+  "placements": [
+    {
+      "id": "prebuilt-1",
+      "productId": "qa-long",
+      "sku": "LONG-CTN",
+      "name": "Synthetic long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 0,
+      "z": 144,
+      "dx": 1600,
+      "dy": 450,
+      "dz": 500,
+      "weight": 10,
+      "layer": 1,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-2",
+      "productId": "qa-long",
+      "sku": "LONG-CTN",
+      "name": "Synthetic long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 0,
+      "z": 644,
+      "dx": 1600,
+      "dy": 450,
+      "dz": 500,
+      "weight": 10,
+      "layer": 2,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-1"
+      ]
+    },
+    {
+      "id": "prebuilt-3",
+      "productId": "qa-long",
+      "sku": "LONG-CTN",
+      "name": "Synthetic long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 560,
+      "z": 144,
+      "dx": 1600,
+      "dy": 450,
+      "dz": 500,
+      "weight": 10,
+      "layer": 1,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-2"
+      ]
+    },
+    {
+      "id": "prebuilt-4",
+      "productId": "qa-long",
+      "sku": "LONG-CTN",
+      "name": "Synthetic long carton",
+      "color": "#2f7f89",
+      "x": 0,
+      "y": 560,
+      "z": 644,
+      "dx": 1600,
+      "dy": 450,
+      "dz": 500,
+      "weight": 10,
+      "layer": 2,
+      "orientation": "LWH",
+      "palletIds": [
+        "floor-pallet-2"
+      ]
+    }
+  ],
+  "summaries": [
+    {
+      "productId": "qa-long",
+      "sku": "LONG-CTN",
+      "name": "Synthetic long carton",
+      "color": "#2f7f89",
+      "requested": 4,
+      "loaded": 4,
+      "unloaded": 0,
+      "loadedWeight": 40,
+      "loadedVolume": 1440000000
+    }
+  ],
+  "setSummaries": [],
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "metrics": {
+    "loadedCount": 4,
+    "requestedCount": 4,
+    "loadedVolume": 1714176000,
+    "grossWeight": 90,
+    "effectiveVolume": 75287612400,
+    "volumeUtilization": 0.022768367137114845,
+    "weightUtilization": 0.003146853146853147,
+    "centerOfGravity": {
+      "x": 827.7777777777778,
+      "y": 535.5555555555555,
+      "z": 340.98779704560053,
+      "longitudinalRatio": 0.06891256891256892,
+      "lateralRatio": 0.22985216976633285,
+      "heightRatio": 0.1267612628422307,
+      "balanced": false
+    },
+    "executionComplexity": {
+      "orientationVariants": 1,
+      "maxOrientationsPerSku": 1,
+      "partialSupportCount": 0,
+      "tippedCartonCount": 0
+    },
+    "solveTimeMs": 0
+  },
+  "loadingRules": {
+    "layout": "auto",
+    "search": "smart",
+    "cargoOrder": "auto"
+  },
+  "cargoDetails": {
+    "qa-long": {
+      "cargoShape": "box"
+    }
+  },
+  "warnings": [
+    "历史箱位已按当前箱规与引擎重新校验。自动重算已暂停，可继续手动调整或生成新方案。"
+  ],
+  "createdAt": "2026-10-24T00:42:46.707Z"
+}
