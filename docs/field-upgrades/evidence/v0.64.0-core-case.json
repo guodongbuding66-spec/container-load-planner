@@ -1,0 +1,89 @@
+{
+  "scope": "Controlled reproduction, not the original user workspace",
+  "request": {
+    "mode": "mixed",
+    "workflow": "palletized",
+    "strategy": "practical",
+    "container": {
+      "id": "40hq",
+      "name": "40HQ 高柜",
+      "length": 12032,
+      "width": 2350,
+      "height": 2700,
+      "doorWidth": 2340,
+      "doorHeight": 2597,
+      "maxWeight": 28600
+    },
+    "clearance": 10,
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "Long carton pallet",
+        "length": 2743,
+        "width": 2233,
+        "height": 60,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 120
+      },
+      "mix": "single",
+      "maxPallets": 50,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "practicalTargetUtilization": 0.88,
+    "products": [
+      {
+        "id": "long",
+        "sku": "REAL-1CTN",
+        "name": "Long carton",
+        "length": 1640,
+        "width": 545,
+        "height": 120,
+        "weight": 42,
+        "quantity": 596,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "color": "#2f7f89"
+      }
+    ]
+  },
+  "changes": [
+    {
+      "id": "primary",
+      "name": "Long carton pallet",
+      "from": 120,
+      "to": 2527
+    }
+  ],
+  "before": {
+    "requested": 596,
+    "loaded": 16,
+    "weight": 772,
+    "top": 180
+  },
+  "after": {
+    "requested": 596,
+    "loaded": 92,
+    "weight": 3964,
+    "unloaded": 504,
+    "maxLayer": 6
+  }
+}

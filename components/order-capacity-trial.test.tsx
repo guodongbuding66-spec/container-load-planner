@@ -6,6 +6,8 @@ import {afterEach,expect,it,vi} from "vitest";
 import {OrderCapacityTrial,useOrderCapacityTrial} from "./order-capacity-trial";
 import {runOrderCapacityTrial} from "../lib/packing/order-capacity";
 import {orderCapacityFixture} from "../tests/order-capacity-fixture";
+import {palletHeightFixture} from "../tests/pallet-height-fixture";
+import {packLoadingWorkflow} from "../lib/packing/pack-loading";
 import {setAppLanguage} from "./language";
 class FakeWorker{
  static instances:FakeWorker[]=[];onmessage:((e:MessageEvent)=>void)|null=null;onerror:(()=>void)|null=null;
@@ -19,6 +21,30 @@ async function mount(Hook:()=>React.ReactNode){
 }
 afterEach(()=>{vi.useRealTimers();FakeWorker.instances=[];vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("zh");vi.unstubAllGlobals();});
 const defaults=()=>({request:orderCapacityFixture(),volume:.85,weight:.9,disabled:false,canApply:true,onApply:vi.fn()});
+it("previews the unchanged 596-carton order and applies only validated higher ceilings",async()=>{
+ const request=palletHeightFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request),onApplyHeight:vi.fn()};
+ let task!:ReturnType<typeof useOrderCapacityTrial>;function Hook(){task=useOrderCapacityTrial(props);return <group/>;}
+ const root=await mount(Hook);try{
+  await act(async()=>task.run("height"));const w=FakeWorker.instances[0],trial=w.postMessage.mock.calls[0][0];
+  expect(trial.request.products[0].quantity).toBe(596);expect(props.request.palletBuild!.config.maxCargoHeight).toBe(120);
+  await act(async()=>w.deliver({plan:runOrderCapacityTrial(trial)}));expect(props.onApplyHeight).not.toHaveBeenCalled();
+  await act(async()=>task.adopt());expect(props.onApplyHeight.mock.calls[0][0].config.maxCargoHeight).toBe(2527);expect(props.onApply).not.toHaveBeenCalled();expect(props.request.products[0].quantity).toBe(596);
+ }finally{await root.close();}
+});
+it("does not apply a non-improving height trial or an issued delivery preview",async()=>{
+ const request=palletHeightFixture();request.products[0].maxStackLayers=1;
+ let props={...defaults(),request,plan:packLoadingWorkflow(request),onApplyHeight:vi.fn()},task!:ReturnType<typeof useOrderCapacityTrial>;function Hook(){task=useOrderCapacityTrial(props);return <group/>;}
+ const root=await mount(Hook);try{
+  await act(async()=>task.run("height"));let w=FakeWorker.instances[0];await act(async()=>w.deliver({plan:runOrderCapacityTrial(w.postMessage.mock.calls[0][0])}));await act(async()=>task.adopt());expect(props.onApplyHeight).not.toHaveBeenCalled();
+  const next=palletHeightFixture();props={...props,request:next,plan:packLoadingWorkflow(next),canApply:false};await root.render();
+  await act(async()=>task.run("height"));w=FakeWorker.instances[1];await act(async()=>w.deliver({plan:runOrderCapacityTrial(w.postMessage.mock.calls[0][0])}));await act(async()=>task.adopt());expect(props.onApplyHeight).not.toHaveBeenCalled();
+ }finally{await root.close();}
+});
+it("describes the unfinished one-layer order and distinguishes pallet stacks from carton layers",()=>{
+ const request=palletHeightFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request)};
+ const zh=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);expect(zh).toContain("订单尚未装完");expect(zh).toContain("当前只生成了第一层");expect(zh).toContain("120.0 mm");expect(zh).toContain("2527.0 mm");expect(zh).toContain("保持本单数量，按柜门净高试算打托");
+ vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");const en=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);expect(en).toContain("Order incomplete");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
+});
 it("previews independently checked added stock and never auto-applies it",async()=>{
  const props=defaults();let task!:ReturnType<typeof useOrderCapacityTrial>;function Hook(){task=useOrderCapacityTrial(props);return <group/>;}
  const root=await mount(Hook);try{await act(async()=>task.run());const trial=FakeWorker.instances[0].postMessage.mock.calls[0][0],plan=runOrderCapacityTrial(trial);await act(async()=>FakeWorker.instances[0].deliver({plan}));expect(props.onApply).not.toHaveBeenCalled();expect(props.request.products[0].quantity).toBe(16);await act(async()=>task.adopt());expect(props.onApply.mock.calls[0][0][0].quantity).toBe(plan.metrics.loadedCount);}finally{await root.close();}
