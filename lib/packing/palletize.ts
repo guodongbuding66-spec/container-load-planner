@@ -1,6 +1,7 @@
 import {reviewPalletLowerBound,type PalletSearchSummary} from "./pallet-search";
 import {looseReservationErrors,looseOutsideUnit} from "./loose-cargo";
-import {applyTypeSupport} from "./loading-rules";
+import {applyTypeSupport,DEFAULT_LOADING_RULES} from "./loading-rules";
+import {retainsLoadedRows} from "./set-utils";
 import {crateAutoEnabled,crateTopCapacity,crateCandidateAllowed,isCrate} from "./crate-auto-stack";
 import {completePackagingTare,deckSupportHeight} from "./deck-support";
 import {assertAccessorySupportWorkflow} from "./accessory-support";
@@ -135,7 +136,18 @@ function buildPalletCandidate(request: PackingRequest, input: FloorPalletConfig,
     }
     return crateCandidateAllowed(candidate,placed,resolveCrate);
   };
-  const outer=only?null:looseProducts.length||prepared.some(u=>isCrate(bySpecification.get(u.specificationId)!.config))?searchRigidUnits(outerRequest,candidateAllowed):pack(outerRequest);
+  const packOuter=(r:PackingRequest)=>looseProducts.length||prepared.some(u=>isCrate(bySpecification.get(u.specificationId)!.config))?searchRigidUnits(r,candidateAllowed):pack(r);
+  let outer=only?null:packOuter(outerRequest),compactOrderImproved=false;
+  // Once small-spec stock is exhausted, larger fallback units still exist in the
+  // prepared list. Volume-first sorting can let them displace all small units.
+  // Compare an alternate order under automatic search, using original carton
+  // rows rather than proxy-unit counts. Explicit cargo-order preferences stay intact.
+  if(outer&&options.selection==="compact"&&specifications.length>1&&(!request.loadingRules||request.loadingRules.cargoOrder==="auto")){
+    const candidate=packOuter({...outerRequest,loadingRules:{...DEFAULT_LOADING_RULES,...outerRequest.loadingRules,cargoOrder:"small-first"}});
+    const cargoRows=(plan:Pick<PackingResult,"placements">)=>plan.placements.flatMap(b=>unitById.get(b.productId)?.cargo??[b]);
+    const baselineRows=cargoRows(outer),candidateRows=cargoRows(candidate);
+    if(candidate.validation.valid&&candidateRows.length>baselineRows.length&&retainsLoadedRows(candidateRows,baselineRows)){outer=candidate;compactOrderImproved=true;}
+  }
   if(outer&&!outer.validation.valid)throw new Error(outer.validation.errors.join("; "));
   const outerBoxes:PlacedBox[]=outer?.placements??prepared.map((u,i)=>{const c=bySpecification.get(u.specificationId)!.config;return {id:u.id,productId:u.id,sku:u.id,name:c.name,color:"#997947",x:i%columns*(cellLength+200),y:Math.floor(i/columns)*(cellWidth+200),z:0,dx:c.length,dy:c.width,dz:u.height,weight:u.weight,layer:1,orientation:"LWH"};});
   const selectionChoices:PackagingChoice[]=[];
@@ -157,6 +169,7 @@ function buildPalletCandidate(request: PackingRequest, input: FloorPalletConfig,
   const palletization={...(options.looseQuantities?{looseQuantities:options.looseQuantities}:{}),...(options.selection===undefined?{}:{selection:options.selection}),...(options.selection==="compact"?{selectionChoices}:{}),config:options.config,mix:options.mix,...(build?{stackLayers:options.stackLayers,maxTopLoadKg:options.maxTopLoadKg,preparedCount:prepared.length,bounded,only}:{}),...(multiple?{specifications,preparedBySpecification:Object.fromEntries(used)}:{})};
   const plan:PackingResult=restorePackingSnapshot({...request,floorPallets:undefined,container,clearance:only?0:request.clearance,strategy},{strategy,placements,pallets,palletization,delivery:request.delivery,accessConfig:request.accessConfig});
   plan.warnings=["货物打托与整托坐标已通过独立校验"];
+  if(compactOrderImproved)plan.warnings.push("已比较小包装优先的整托入柜顺序；采用的候选增加箱数且各已装订单行不减量 / Compared compact-first unit loading; the adopted candidate increases cartons without reducing any loaded order row");
   if(bounded)plan.warnings.push("已达到托盘或箱位搜索上限，未完成订单仍保留");
   if(options.selection==="compact")plan.warnings.push("多规格逐托比较：优先满足必装与高优先级货量，同货量依次选更小外包络、更小占地和更轻包装；局部启发式不保证全局最少托数或费用。");
   else if(multiple)plan.warnings.push("多种包装按列表顺序和适用 SKU 尝试；每种可用数量独立限制，不推定全局最少包装数。");

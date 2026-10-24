@@ -1,0 +1,64 @@
+{
+  "scope": "Same input, pre-change palletize.ts from canonical b62981b versus current palletize.ts; other packing modules shared.",
+  "rows": [
+    {
+      "stock": 13,
+      "strategy": "practical",
+      "before": {
+        "loaded": 92,
+        "valid": true
+      },
+      "after": {
+        "loaded": 299,
+        "valid": true,
+        "weight": 12883,
+        "pallets": 13
+      }
+    },
+    {
+      "stock": 13,
+      "strategy": "maximum",
+      "before": {
+        "loaded": 92,
+        "valid": true
+      },
+      "after": {
+        "loaded": 299,
+        "valid": true,
+        "weight": 12883,
+        "pallets": 13
+      }
+    },
+    {
+      "stock": 2,
+      "strategy": "practical",
+      "before": {
+        "loaded": 92,
+        "valid": true
+      },
+      "after": {
+        "loaded": 115,
+        "valid": true,
+        "weight": 4955,
+        "pallets": 5
+      }
+    },
+    {
+      "stock": 2,
+      "strategy": "maximum",
+      "before": {
+        "loaded": 92,
+        "valid": true
+      },
+      "after": {
+        "loaded": 115,
+        "valid": true,
+        "weight": 4955,
+        "pallets": 5
+      }
+    }
+  ],
+  "baselineCommit": "b62981b6132cb09704b289f07a7b1a52e965225a",
+  "oldPalletizeBlob": "3881aecbd2d65648bf46f44ceb43198711410a59",
+  "newPalletizeBlob": "09c8cb6ff0b01ee007228f0a29fded8e5c025d95"
+}

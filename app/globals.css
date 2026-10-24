@@ -176,6 +176,12 @@ input:focus, select:focus { border-color: #75aeb4 !important; box-shadow: 0 0 0 
 .order-capacity-trial li { margin: 8px 0; overflow-wrap: anywhere; }
 .order-capacity-trial .upgrade-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .capacity-trial-result { border-top: 1px solid #d6e5e8; margin-top: 12px; padding-top: 8px; }
+.pallet-capacity-diagnostics { margin: 10px 0; padding: 10px 12px; background: #f0f7f8; border-radius: 6px; }
+.pallet-capacity-diagnostics .table-scroll { overflow-x: auto; max-width: 100%; }
+.pallet-capacity-diagnostics table { width: 100%; font-size: 12px; }
+.pallet-capacity-diagnostics th { white-space: nowrap; }
+.pallet-capacity-diagnostics td small { display: block; min-width: 150px; }
+.existing-packaging-trial { margin: 12px 0; }
 .overview-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .overview-grid > div { padding: 10px 11px; border: 1px solid #e4ebec; border-radius: 9px; background: #f8fafb; }
 .overview-grid span { display: block; color: #7c8d92; font-size: 8px; }

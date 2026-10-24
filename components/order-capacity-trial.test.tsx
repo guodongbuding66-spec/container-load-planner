@@ -7,6 +7,7 @@ import {OrderCapacityTrial,useOrderCapacityTrial} from "./order-capacity-trial";
 import {runOrderCapacityTrial} from "../lib/packing/order-capacity";
 import {orderCapacityFixture} from "../tests/order-capacity-fixture";
 import {palletHeightFixture} from "../tests/pallet-height-fixture";
+import {packagingCapacityFixture} from "../tests/packaging-capacity-fixture";
 import {packLoadingWorkflow} from "../lib/packing/pack-loading";
 import {setAppLanguage} from "./language";
 class FakeWorker{
@@ -21,23 +22,53 @@ async function mount(Hook:()=>React.ReactNode){
 }
 afterEach(()=>{vi.useRealTimers();FakeWorker.instances=[];vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("zh");vi.unstubAllGlobals();});
 const defaults=()=>({request:orderCapacityFixture(),volume:.85,weight:.9,disabled:false,canApply:true,onApply:vi.fn()});
+it("previews existing packaging stock and applies only selection, leaving 596 ordered",async()=>{
+ const request=packagingCapacityFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request),onApplyBuild:vi.fn()};let task!:ReturnType<typeof useOrderCapacityTrial>;function Hook(){task=useOrderCapacityTrial(props);return <group/>;}
+ const root=await mount(Hook);try{
+  await act(async()=>task.run("packaging"));const w=FakeWorker.instances[0],trial=w.postMessage.mock.calls[0][0];
+  expect(trial.request.palletBuild.additionalSpecs[0].maxPallets).toBe(13);expect(props.request.palletBuild!.selection).toBeUndefined();
+  await act(async()=>w.deliver({plan:runOrderCapacityTrial(trial)}));expect(props.onApplyBuild).not.toHaveBeenCalled();expect(task.current?.plan?.metrics.loadedCount).toBe(299);
+  await act(async()=>task.adopt());expect(props.onApplyBuild.mock.calls[0][0].selection).toBe("compact");expect(props.onApply).not.toHaveBeenCalled();expect(request.products[0].quantity).toBe(596);
+ }finally{await root.close();}
+});
+it("discards a packaging candidate if stock changes, even after a round trip to the old stock",async()=>{
+ const request=packagingCapacityFixture();let props={...defaults(),request,plan:packLoadingWorkflow(request),onApplyBuild:vi.fn()},task!:ReturnType<typeof useOrderCapacityTrial>;function Hook(){task=useOrderCapacityTrial(props);return <group/>;}
+ const root=await mount(Hook);try{
+  await act(async()=>task.run("packaging"));const w=FakeWorker.instances[0],candidate=runOrderCapacityTrial(w.postMessage.mock.calls[0][0]);
+  props={...props,request:packagingCapacityFixture(2)};await root.render();expect(w.terminate).toHaveBeenCalled();
+  props={...props,request};await root.render();await act(async()=>w.deliver({plan:candidate}));expect(task.current).toBeNull();await act(async()=>task.adopt());expect(props.onApplyBuild).not.toHaveBeenCalled();
+ }finally{await root.close();}
+});
+it("keeps packaging selection read-only for an issued delivery and blocks measured fallback",async()=>{
+ const request=packagingCapacityFixture();let props={...defaults(),request,plan:packLoadingWorkflow(request),canApply:false,measuredEnvelope:false,onApplyBuild:vi.fn()},task!:ReturnType<typeof useOrderCapacityTrial>;function Hook(){task=useOrderCapacityTrial(props);return <group/>;}
+ const root=await mount(Hook);try{
+  await act(async()=>task.run("packaging"));const w=FakeWorker.instances[0];await act(async()=>w.deliver({plan:runOrderCapacityTrial(w.postMessage.mock.calls[0][0])}));await act(async()=>task.adopt());expect(props.onApplyBuild).not.toHaveBeenCalled();
+  props={...props,canApply:true,measuredEnvelope:true};await root.render();await act(async()=>task.run("packaging"));expect(FakeWorker.instances).toHaveLength(1);expect(task.current).toBeNull();
+ }finally{await root.close();}
+});
+it("offers registered packaging comparisons and uses a general limit title for direct loading",()=>{
+ const request=packagingCapacityFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request)};
+ const html=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);expect(html).toContain("保持本单数量，按现有包装比选");expect(html).toContain("87.5%");
+ const direct={...request,workflow:"direct" as const,products:request.products.map(p=>({...p,quantity:700}))},plan=packLoadingWorkflow(direct);
+ expect(plan.metrics.loadedCount).toBeLessThan(700);const directHtml=renderToStaticMarkup(<OrderCapacityTrial {...props} request={direct} plan={plan}/>);expect(directHtml).toContain("订单尚未装完：检查装载限制");expect(directHtml).not.toContain("整托占地与载荷诊断");
+});
 it("previews the unchanged 596-carton order and applies only validated higher ceilings",async()=>{
- const request=palletHeightFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request),onApplyHeight:vi.fn()};
+ const request=palletHeightFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request),onApplyBuild:vi.fn()};
  let task!:ReturnType<typeof useOrderCapacityTrial>;function Hook(){task=useOrderCapacityTrial(props);return <group/>;}
  const root=await mount(Hook);try{
   await act(async()=>task.run("height"));const w=FakeWorker.instances[0],trial=w.postMessage.mock.calls[0][0];
   expect(trial.request.products[0].quantity).toBe(596);expect(props.request.palletBuild!.config.maxCargoHeight).toBe(120);
-  await act(async()=>w.deliver({plan:runOrderCapacityTrial(trial)}));expect(props.onApplyHeight).not.toHaveBeenCalled();
-  await act(async()=>task.adopt());expect(props.onApplyHeight.mock.calls[0][0].config.maxCargoHeight).toBe(2527);expect(props.onApply).not.toHaveBeenCalled();expect(props.request.products[0].quantity).toBe(596);
+  await act(async()=>w.deliver({plan:runOrderCapacityTrial(trial)}));expect(props.onApplyBuild).not.toHaveBeenCalled();
+  await act(async()=>task.adopt());expect(props.onApplyBuild.mock.calls[0][0].config.maxCargoHeight).toBe(2527);expect(props.onApply).not.toHaveBeenCalled();expect(props.request.products[0].quantity).toBe(596);
  }finally{await root.close();}
 });
 it("does not apply a non-improving height trial or an issued delivery preview",async()=>{
  const request=palletHeightFixture();request.products[0].maxStackLayers=1;
- let props={...defaults(),request,plan:packLoadingWorkflow(request),onApplyHeight:vi.fn()},task!:ReturnType<typeof useOrderCapacityTrial>;function Hook(){task=useOrderCapacityTrial(props);return <group/>;}
+ let props={...defaults(),request,plan:packLoadingWorkflow(request),onApplyBuild:vi.fn()},task!:ReturnType<typeof useOrderCapacityTrial>;function Hook(){task=useOrderCapacityTrial(props);return <group/>;}
  const root=await mount(Hook);try{
-  await act(async()=>task.run("height"));let w=FakeWorker.instances[0];await act(async()=>w.deliver({plan:runOrderCapacityTrial(w.postMessage.mock.calls[0][0])}));await act(async()=>task.adopt());expect(props.onApplyHeight).not.toHaveBeenCalled();
+  await act(async()=>task.run("height"));let w=FakeWorker.instances[0];await act(async()=>w.deliver({plan:runOrderCapacityTrial(w.postMessage.mock.calls[0][0])}));await act(async()=>task.adopt());expect(props.onApplyBuild).not.toHaveBeenCalled();
   const next=palletHeightFixture();props={...props,request:next,plan:packLoadingWorkflow(next),canApply:false};await root.render();
-  await act(async()=>task.run("height"));w=FakeWorker.instances[1];await act(async()=>w.deliver({plan:runOrderCapacityTrial(w.postMessage.mock.calls[0][0])}));await act(async()=>task.adopt());expect(props.onApplyHeight).not.toHaveBeenCalled();
+  await act(async()=>task.run("height"));w=FakeWorker.instances[1];await act(async()=>w.deliver({plan:runOrderCapacityTrial(w.postMessage.mock.calls[0][0])}));await act(async()=>task.adopt());expect(props.onApplyBuild).not.toHaveBeenCalled();
  }finally{await root.close();}
 });
 it("describes the unfinished one-layer order and distinguishes pallet stacks from carton layers",()=>{
@@ -66,8 +97,8 @@ it("rejects broken geometry in a worker reply",async()=>{
  const root=await mount(Hook);try{await act(async()=>task.run());const w=FakeWorker.instances[0],plan=runOrderCapacityTrial(w.postMessage.mock.calls[0][0]);plan.placements[0].x=-999;await act(async()=>w.deliver({plan}));expect(task.current?.kind).toBe("error");expect(task.current?.plan).toBeUndefined();}finally{await root.close();}
 });
 it("displays order versus capacity, limits and complete English copy",()=>{
- const props=defaults();props.request.products[0].maxStackLayers=1;const zh=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);expect(zh).toContain("本单装完 ≠ 整柜装满");expect(zh).toContain("箱体层数上限");expect(zh).toContain("1000 mm");expect(zh).toContain("30 秒");
- vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");const en=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);expect(en).toContain("Order fulfilled ≠ container full");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
+ const props=defaults();props.request.products[0].maxStackLayers=1;const zh=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);expect(zh).toContain("订单数量与装载试算");expect(zh).toContain("箱体层数上限");expect(zh).toContain("1000 mm");expect(zh).toContain("30 秒");
+ vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");const en=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);expect(en).toContain("Order quantity and loading trials");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
 });
 it("disables nominal trials when adopted measured envelopes are present",async()=>{
  let props={...defaults(),measuredEnvelope:true},task!:ReturnType<typeof useOrderCapacityTrial>;function Hook(){task=useOrderCapacityTrial(props);return <group/>;}
