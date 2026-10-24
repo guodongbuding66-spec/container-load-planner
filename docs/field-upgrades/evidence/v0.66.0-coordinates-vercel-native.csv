@@ -1,0 +1,105 @@
+﻿序号,SKU,品名,套装编码,套号,套内序号,X(mm),Y(mm),Z(mm),长(mm),宽(mm),高(mm),方向,层级,重量(kg),记录类型,托盘关联,客户,目的地,卸货站次,货物外形,圆筒轴向,顶边或顶径比例,竖壁厚度比例,横壁厚度比例,高台长度比例,低台高度比例,旋转轴符号,实体模型JSON,保护间隙(mm),装载方式,坐标用途,包装结构JSON,包装总高(mm),包装规格ID,包装规格名称,装载单元类型
+0,floor-pallet-1,Large registered pallet,,,,0,0,0,2743,2233,60,LWH,0,25,pallet,floor-pallet-1,,,,box,,,,,,,,,,palletized,vehicle-loading,"{""base"":""block"",""enclosure"":""none"",""material"":""wood"",""color"":""#d4af7b"",""opacity"":0.65,""deckBoards"":5,""runners"":3,""wallThickness"":30,""lid"":true}",60,primary,Large registered pallet,complete-unit
+0,floor-pallet-2,Large registered pallet,,,,2743,0,0,2743,2233,60,LWH,0,25,pallet,floor-pallet-2,,,,box,,,,,,,,,,palletized,vehicle-loading,"{""base"":""block"",""enclosure"":""none"",""material"":""wood"",""color"":""#d4af7b"",""opacity"":0.65,""deckBoards"":5,""runners"":3,""wallThickness"":30,""lid"":true}",60,primary,Large registered pallet,complete-unit
+0,floor-pallet-3,Large registered pallet,,,,5486,0,0,2743,2233,60,LWH,0,25,pallet,floor-pallet-3,,,,box,,,,,,,,,,palletized,vehicle-loading,"{""base"":""block"",""enclosure"":""none"",""material"":""wood"",""color"":""#d4af7b"",""opacity"":0.65,""deckBoards"":5,""runners"":3,""wallThickness"":30,""lid"":true}",60,primary,Large registered pallet,complete-unit
+0,floor-pallet-4,Large registered pallet,,,,8229,0,0,2743,2233,60,LWH,0,25,pallet,floor-pallet-4,,,,box,,,,,,,,,,palletized,vehicle-loading,"{""base"":""block"",""enclosure"":""none"",""material"":""wood"",""color"":""#d4af7b"",""opacity"":0.65,""deckBoards"":5,""runners"":3,""wallThickness"":30,""lid"":true}",60,primary,Large registered pallet,complete-unit
+1,REAL-1CTN,Long carton,,,,0,0,60,1640,545,120,LWH,1,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+2,REAL-1CTN,Long carton,,,,0,545,60,1640,545,120,LWH,1,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+3,REAL-1CTN,Long carton,,,,0,1090,60,1640,545,120,LWH,1,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+4,REAL-1CTN,Long carton,,,,0,1635,60,1640,545,120,LWH,1,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+5,REAL-1CTN,Long carton,,,,0,0,180,1640,545,120,LWH,2,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+6,REAL-1CTN,Long carton,,,,0,545,180,1640,545,120,LWH,2,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+7,REAL-1CTN,Long carton,,,,0,1090,180,1640,545,120,LWH,2,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+8,REAL-1CTN,Long carton,,,,0,1635,180,1640,545,120,LWH,2,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+9,REAL-1CTN,Long carton,,,,0,0,300,1640,545,120,LWH,3,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+10,REAL-1CTN,Long carton,,,,0,545,300,1640,545,120,LWH,3,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+11,REAL-1CTN,Long carton,,,,0,1090,300,1640,545,120,LWH,3,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+12,REAL-1CTN,Long carton,,,,0,1635,300,1640,545,120,LWH,3,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+13,REAL-1CTN,Long carton,,,,0,0,420,1640,545,120,LWH,4,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+14,REAL-1CTN,Long carton,,,,0,545,420,1640,545,120,LWH,4,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+15,REAL-1CTN,Long carton,,,,0,1090,420,1640,545,120,LWH,4,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+16,REAL-1CTN,Long carton,,,,0,1635,420,1640,545,120,LWH,4,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+17,REAL-1CTN,Long carton,,,,0,0,540,1640,545,120,LWH,5,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+18,REAL-1CTN,Long carton,,,,0,545,540,1640,545,120,LWH,5,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+19,REAL-1CTN,Long carton,,,,0,1090,540,1640,545,120,LWH,5,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+20,REAL-1CTN,Long carton,,,,0,1635,540,1640,545,120,LWH,5,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+21,REAL-1CTN,Long carton,,,,0,0,660,1640,545,120,LWH,6,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+22,REAL-1CTN,Long carton,,,,0,545,660,1640,545,120,LWH,6,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+23,REAL-1CTN,Long carton,,,,0,1090,660,1640,545,120,LWH,6,42,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+24,REAL-1CTN,Long carton,,,,2743,0,60,1640,545,120,LWH,1,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+25,REAL-1CTN,Long carton,,,,2743,545,60,1640,545,120,LWH,1,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+26,REAL-1CTN,Long carton,,,,2743,1090,60,1640,545,120,LWH,1,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+27,REAL-1CTN,Long carton,,,,2743,1635,60,1640,545,120,LWH,1,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+28,REAL-1CTN,Long carton,,,,2743,0,180,1640,545,120,LWH,2,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+29,REAL-1CTN,Long carton,,,,2743,545,180,1640,545,120,LWH,2,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+30,REAL-1CTN,Long carton,,,,2743,1090,180,1640,545,120,LWH,2,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+31,REAL-1CTN,Long carton,,,,2743,1635,180,1640,545,120,LWH,2,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+32,REAL-1CTN,Long carton,,,,2743,0,300,1640,545,120,LWH,3,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+33,REAL-1CTN,Long carton,,,,2743,545,300,1640,545,120,LWH,3,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+34,REAL-1CTN,Long carton,,,,2743,1090,300,1640,545,120,LWH,3,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+35,REAL-1CTN,Long carton,,,,2743,1635,300,1640,545,120,LWH,3,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+36,REAL-1CTN,Long carton,,,,2743,0,420,1640,545,120,LWH,4,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+37,REAL-1CTN,Long carton,,,,2743,545,420,1640,545,120,LWH,4,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+38,REAL-1CTN,Long carton,,,,2743,1090,420,1640,545,120,LWH,4,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+39,REAL-1CTN,Long carton,,,,2743,1635,420,1640,545,120,LWH,4,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+40,REAL-1CTN,Long carton,,,,2743,0,540,1640,545,120,LWH,5,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+41,REAL-1CTN,Long carton,,,,2743,545,540,1640,545,120,LWH,5,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+42,REAL-1CTN,Long carton,,,,2743,1090,540,1640,545,120,LWH,5,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+43,REAL-1CTN,Long carton,,,,2743,1635,540,1640,545,120,LWH,5,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+44,REAL-1CTN,Long carton,,,,2743,0,660,1640,545,120,LWH,6,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+45,REAL-1CTN,Long carton,,,,2743,545,660,1640,545,120,LWH,6,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+46,REAL-1CTN,Long carton,,,,2743,1090,660,1640,545,120,LWH,6,42,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+47,REAL-1CTN,Long carton,,,,5486,0,60,1640,545,120,LWH,1,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+48,REAL-1CTN,Long carton,,,,5486,545,60,1640,545,120,LWH,1,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+49,REAL-1CTN,Long carton,,,,5486,1090,60,1640,545,120,LWH,1,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+50,REAL-1CTN,Long carton,,,,5486,1635,60,1640,545,120,LWH,1,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+51,REAL-1CTN,Long carton,,,,5486,0,180,1640,545,120,LWH,2,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+52,REAL-1CTN,Long carton,,,,5486,545,180,1640,545,120,LWH,2,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+53,REAL-1CTN,Long carton,,,,5486,1090,180,1640,545,120,LWH,2,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+54,REAL-1CTN,Long carton,,,,5486,1635,180,1640,545,120,LWH,2,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+55,REAL-1CTN,Long carton,,,,5486,0,300,1640,545,120,LWH,3,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+56,REAL-1CTN,Long carton,,,,5486,545,300,1640,545,120,LWH,3,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+57,REAL-1CTN,Long carton,,,,5486,1090,300,1640,545,120,LWH,3,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+58,REAL-1CTN,Long carton,,,,5486,1635,300,1640,545,120,LWH,3,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+59,REAL-1CTN,Long carton,,,,5486,0,420,1640,545,120,LWH,4,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+60,REAL-1CTN,Long carton,,,,5486,545,420,1640,545,120,LWH,4,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+61,REAL-1CTN,Long carton,,,,5486,1090,420,1640,545,120,LWH,4,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+62,REAL-1CTN,Long carton,,,,5486,1635,420,1640,545,120,LWH,4,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+63,REAL-1CTN,Long carton,,,,5486,0,540,1640,545,120,LWH,5,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+64,REAL-1CTN,Long carton,,,,5486,545,540,1640,545,120,LWH,5,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+65,REAL-1CTN,Long carton,,,,5486,1090,540,1640,545,120,LWH,5,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+66,REAL-1CTN,Long carton,,,,5486,1635,540,1640,545,120,LWH,5,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+67,REAL-1CTN,Long carton,,,,5486,0,660,1640,545,120,LWH,6,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+68,REAL-1CTN,Long carton,,,,5486,545,660,1640,545,120,LWH,6,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+69,REAL-1CTN,Long carton,,,,5486,1090,660,1640,545,120,LWH,6,42,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+70,REAL-1CTN,Long carton,,,,8229,0,60,1640,545,120,LWH,1,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+71,REAL-1CTN,Long carton,,,,8229,545,60,1640,545,120,LWH,1,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+72,REAL-1CTN,Long carton,,,,8229,1090,60,1640,545,120,LWH,1,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+73,REAL-1CTN,Long carton,,,,8229,1635,60,1640,545,120,LWH,1,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+74,REAL-1CTN,Long carton,,,,8229,0,180,1640,545,120,LWH,2,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+75,REAL-1CTN,Long carton,,,,8229,545,180,1640,545,120,LWH,2,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+76,REAL-1CTN,Long carton,,,,8229,1090,180,1640,545,120,LWH,2,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+77,REAL-1CTN,Long carton,,,,8229,1635,180,1640,545,120,LWH,2,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+78,REAL-1CTN,Long carton,,,,8229,0,300,1640,545,120,LWH,3,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+79,REAL-1CTN,Long carton,,,,8229,545,300,1640,545,120,LWH,3,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+80,REAL-1CTN,Long carton,,,,8229,1090,300,1640,545,120,LWH,3,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+81,REAL-1CTN,Long carton,,,,8229,1635,300,1640,545,120,LWH,3,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+82,REAL-1CTN,Long carton,,,,8229,0,420,1640,545,120,LWH,4,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+83,REAL-1CTN,Long carton,,,,8229,545,420,1640,545,120,LWH,4,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+84,REAL-1CTN,Long carton,,,,8229,1090,420,1640,545,120,LWH,4,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+85,REAL-1CTN,Long carton,,,,8229,1635,420,1640,545,120,LWH,4,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+86,REAL-1CTN,Long carton,,,,8229,0,540,1640,545,120,LWH,5,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+87,REAL-1CTN,Long carton,,,,8229,545,540,1640,545,120,LWH,5,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+88,REAL-1CTN,Long carton,,,,8229,1090,540,1640,545,120,LWH,5,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+89,REAL-1CTN,Long carton,,,,8229,1635,540,1640,545,120,LWH,5,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+90,REAL-1CTN,Long carton,,,,8229,0,660,1640,545,120,LWH,6,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+91,REAL-1CTN,Long carton,,,,8229,545,660,1640,545,120,LWH,6,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+92,REAL-1CTN,Long carton,,,,8229,1090,660,1640,545,120,LWH,6,42,cargo,floor-pallet-4,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Large registered pallet,unit-content
+93,REAL-1CTN,Long carton,,,,10972,0,0,545,1640,120,WLH,1,42,cargo,,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,,,loose-cargo
+94,REAL-1CTN,Long carton,,,,10972,0,120,545,1640,120,WLH,2,42,cargo,,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,,,loose-cargo
+95,REAL-1CTN,Long carton,,,,10972,0,240,545,1640,120,WLH,3,42,cargo,,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,,,loose-cargo
+96,REAL-1CTN,Long carton,,,,10972,0,360,545,1640,120,WLH,4,42,cargo,,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,,,loose-cargo
+97,REAL-1CTN,Long carton,,,,10972,0,480,545,1640,120,WLH,5,42,cargo,,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,,,loose-cargo
+98,REAL-1CTN,Long carton,,,,10972,0,600,545,1640,120,WLH,6,42,cargo,,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,,,loose-cargo
+99,REAL-1CTN,Long carton,,,,10972,0,720,545,1640,120,WLH,7,42,cargo,,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,,,loose-cargo
+100,REAL-1CTN,Long carton,,,,10972,0,840,545,1640,120,WLH,8,42,cargo,,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,,,loose-cargo

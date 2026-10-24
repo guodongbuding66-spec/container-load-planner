@@ -1,0 +1,27 @@
+Trial loose tails alongside loaded pallets
+
+Reserve tails from this order's unmet demand, keeping complete kits together; rebuild and repack the remaining cargo. Positions may change. Existing loose reservations are never reduced.
+
+Order row / kit
+REAL-1CTN · 1 cartons / unit
+Maximum additional loose units
+
+This group allows up to 64 units; each candidate adds at most 64 loose cartons. Test 1, 2, 4, 8 and the entered ceiling, at most 5 candidates; this does not enumerate every quantity.
+
+Compare loose tails for this order
+Stop tail trial
+
+Tail comparison complete; the original plan is retained.
+
+Extra loose units	Total cartons loaded	Loaded order rows	Review
+1	93	Retained	Model validation passed
+2	94	Retained	Model validation passed
+4	96	Retained	Model validation passed
+8	100	Retained	Model validation passed
+
+Tail candidate loads 100 cartons · Original order 596 · Loaded units 4 · Gross 4300 kg
+
+REAL-1CTN · Loose reservation: 0 → 8
+REAL-1CTN · Loaded loose / palletized / unloaded: 8 / 92 / 496
+Apply tail reservations and recalculate
+Order demand, packaging stock, height ceilings and ratings remain intact. Loose cartons cannot cross-support pallets or use their internal voids. Compare one selected row / kit, up to 4000 ordered cartons and 30 seconds; this is not in-place insertion, an optimality proof or securing verification.

@@ -1,0 +1,100 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.66.0",
+  "createdAt": "2026-10-24T12:10:35.666Z",
+  "inputs": {
+    "mode": "mixed",
+    "workflow": "palletized",
+    "strategy": "practical",
+    "container": {
+      "id": "tail-test",
+      "name": "Tail test vehicle",
+      "category": "other",
+      "loadingAccess": "rear",
+      "length": 1200,
+      "width": 1000,
+      "height": 1000,
+      "doorWidth": 1000,
+      "doorHeight": 1000,
+      "maxWeight": 10000
+    },
+    "clearance": 0,
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "Tail test pallet",
+        "length": 800,
+        "width": 1000,
+        "height": 100,
+        "weight": 25,
+        "maxLoad": 30,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 400
+      },
+      "mix": "single",
+      "maxPallets": 1,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "products": [
+      {
+        "id": "a",
+        "sku": "TAIL-A",
+        "name": "Tail carton",
+        "length": 200,
+        "width": 200,
+        "height": 100,
+        "weight": 10,
+        "quantity": 10,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxTopLoadKg": 1000,
+        "maxStackLayers": 0,
+        "color": "#2f7f89",
+        "setCode": "KIT",
+        "unitsPerSet": 1
+      },
+      {
+        "id": "b",
+        "sku": "TAIL-B",
+        "name": "Tail carton",
+        "length": 200,
+        "width": 200,
+        "height": 100,
+        "weight": 10,
+        "quantity": 20,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxTopLoadKg": 1000,
+        "maxStackLayers": 0,
+        "color": "#2f7f89",
+        "setCode": "KIT",
+        "unitsPerSet": 2
+      }
+    ],
+    "practicalTargetPercent": 88,
+    "customContainers": [],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {}
+}
