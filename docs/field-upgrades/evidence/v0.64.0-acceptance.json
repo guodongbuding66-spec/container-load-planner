@@ -1,0 +1,147 @@
+{
+  "date": "2026-10-24",
+  "runtimeCommit": "7964396f52d2354353962fc597331a1f1d42ecd9",
+  "runtimeTree": "14d27e56a17c7b07445acb226b128d3d67acee80",
+  "scope": "Controlled reproduction and native acceptance; the original user workspace remains unavailable.",
+  "checks": {
+    "unitTests": 1758,
+    "unitFiles": 136,
+    "pageTests": 21,
+    "typecheck": "PASS",
+    "productionBuild": "PASS",
+    "lintErrors": 0,
+    "existingLintWarnings": 2
+  },
+  "githubCI": {
+    "status": "success",
+    "runId": 40071904328,
+    "url": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/40071904328"
+  },
+  "cloudflare": {
+    "deployment": "0ba48936-d97d-403a-99cd-bf8b5a4c660c",
+    "status": "SUCCESS",
+    "url": "https://container-load-planner.pages.dev/"
+  },
+  "vercel": {
+    "deployment": "dpl_577g5BswFNVUVtMp1CSB4KrfezXK",
+    "status": "READY",
+    "url": "https://container-load-planner-gray.vercel.app/"
+  },
+  "native": {
+    "orderedBeforeAndAfter": 596,
+    "beforeLoaded": 16,
+    "previewLoaded": 92,
+    "beforeWeightKg": 772,
+    "afterLoadedBothStrategiesBothSites": 92,
+    "afterWeightKg": 3964,
+    "unloadedRetained": 504,
+    "pallets": 4,
+    "maxCartonLayer": 6,
+    "cargoCeilingFromMm": 120,
+    "cargoCeilingToMm": 2527,
+    "noGainRule": "maxStackLayers=1: still 16, apply disabled",
+    "noAutomaticApply": true,
+    "refreshPreservedOnBothSites": {
+      "order": 596,
+      "cargoCeilingMm": 2527
+    },
+    "englishDiagnostic": "No Chinese text in new panel",
+    "crossSiteRestore": "identical placements and pallets",
+    "csvBytes": 13605,
+    "csvSHA256": "37c1b6c36f076d1d307690b32f63e21582c9489669944a069a09d340a5cfbf6c",
+    "defaultRestoredBothSites": {
+      "loaded": 116,
+      "weightKg": 3842,
+      "workflow": "direct",
+      "palletBuild": "DEFAULT_PALLET_BUILD",
+      "floorPallets": null
+    }
+  },
+  "pending": [
+    "Exact original user workspace reproduction",
+    "Real GPU and multiple browser engines",
+    "Factory loading and strength evidence"
+  ],
+  "evidence": [
+    {
+      "path": "v0.64.0-adopted-plan-native.json",
+      "bytes": 40865,
+      "sha256": "4ba2ee53a44e746030ddb568b81d7b5d35def0b737dfdaafc38352d633a8aef4"
+    },
+    {
+      "path": "v0.64.0-adopted-workspace-native.json",
+      "bytes": 133920,
+      "sha256": "2d4b47db6945a17f3a9bf118c49d7160c048efc08be2ab7903ccc6f3b220cb41"
+    },
+    {
+      "path": "v0.64.0-before-native.json",
+      "bytes": 11182,
+      "sha256": "dac09bfad2c10417eaefa9aca836a199e9e545c4158553c8675a2f9b935a248f"
+    },
+    {
+      "path": "v0.64.0-before-proof.jpg",
+      "bytes": 105352,
+      "sha256": "692f0f4d0cd610418f9d05573f5c58dd558443d8810d50ffbe0b7527b4ab6d05"
+    },
+    {
+      "path": "v0.64.0-coordinates-cloudflare-native.csv",
+      "bytes": 13605,
+      "sha256": "37c1b6c36f076d1d307690b32f63e21582c9489669944a069a09d340a5cfbf6c"
+    },
+    {
+      "path": "v0.64.0-coordinates-vercel-native.csv",
+      "bytes": 13605,
+      "sha256": "37c1b6c36f076d1d307690b32f63e21582c9489669944a069a09d340a5cfbf6c"
+    },
+    {
+      "path": "v0.64.0-core-case.json",
+      "bytes": 1919,
+      "sha256": "0ee927e79d4fc3aa91fe00f8eccad778ef78309b476d94dd457600e0121c3f71"
+    },
+    {
+      "path": "v0.64.0-defaults-native.json",
+      "bytes": 628,
+      "sha256": "6fbabf32c0e2370eb71d512dafbdb03a490c3fb6f0058f78b46c68893b112360"
+    },
+    {
+      "path": "v0.64.0-english-diagnostic-native.txt",
+      "bytes": 801,
+      "sha256": "c2e38c1dd2e9143bc6d81f99398b5e766ff04df70b8916e2fff9ad0ed972175d"
+    },
+    {
+      "path": "v0.64.0-height-92-proof.jpg",
+      "bytes": 109517,
+      "sha256": "3dbec54670755349cbc8993663ac80c901a9866c3059f644bf5e72c760f4a2c5"
+    },
+    {
+      "path": "v0.64.0-height-preview-native.txt",
+      "bytes": 1425,
+      "sha256": "d0e2b5135cfc2f61b905544f4395d635202fca532aba0c2166cf3129d8405f06"
+    },
+    {
+      "path": "v0.64.0-local-checks.txt",
+      "bytes": 4886,
+      "sha256": "cd6f7c05f05064871cef21474c06edc3e32427be771fed5bc29ae6676851a624"
+    },
+    {
+      "path": "v0.64.0-no-gain-vercel-native.txt",
+      "bytes": 1654,
+      "sha256": "23b2020cff15e7c20550f8abe3435b74d3e3fccc61e61fb9e119f7211b30ce50"
+    },
+    {
+      "path": "v0.64.0-restored-vercel-plan-native.json",
+      "bytes": 39265,
+      "sha256": "1ffecce3ae10a18ffff2a591b7041d23de0c4c63d8d30cc6941fab71894efeb6"
+    },
+    {
+      "path": "v0.64.0-seed-workspace.json",
+      "bytes": 12351,
+      "sha256": "3f7155c9853079aa59e7d310e727b0af763720527a7560d113113b8772fc9c2d"
+    },
+    {
+      "path": "v0.64.0-vercel-plan-native.json",
+      "bytes": 40839,
+      "sha256": "0fd2cb095e672674179e963651df69eb7f486cf78740608d45ea14f92d4d973e"
+    }
+  ]
+}

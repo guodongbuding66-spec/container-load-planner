@@ -1,0 +1,12 @@
+[
+  {
+    "url": "https://container-load-planner.pages.dev/",
+    "strategies": "现场易执行\n116 箱\n高密度参考\n116 箱",
+    "capacity": "集装箱剩余容量\n剩余有效容积\n52.73 m³ / CBM\n已用 / 有效总容积\n22.55 / 75.29 m³\n剩余可用载重\n24,758 kg\n容量计算明细"
+  },
+  {
+    "url": "https://container-load-planner-gray.vercel.app/",
+    "strategies": "现场易执行\n116 箱\n高密度参考\n116 箱",
+    "capacity": "集装箱剩余容量\n剩余有效容积\n52.73 m³ / CBM\n已用 / 有效总容积\n22.55 / 75.29 m³\n剩余可用载重\n24,758 kg\n容量计算明细"
+  }
+]

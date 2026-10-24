@@ -1,0 +1,16 @@
+Order incomplete: review packaging and stacking limits
+
+Ordered: 596 cartons · Currently loaded: 92 cartons
+
+Long carton pallet · Current cargo ceiling 2527.0 mm · Available cargo ceiling 2527.0 mm
+REAL-1CTN · Height-only upper bound 21 layers · Payload-only upper bound 23 cartons (before added support mass)
+
+These are separate upper bounds, not a jointly achievable pack; orientation, support, cumulative top loads, kits and stock still apply.
+
+Increase hypothetical stock in the current SKU ratio, rebuild units and repack. This is not an in-place insertion check or proof of maximum capacity.
+
+Review height, stacking and packaging limits
+Trial additional cargo (keep order)
+Stop trial
+
+Up to 4000 cartons and 30 seconds. Unmounting, cancellation or changed inputs discard unfinished trials.
