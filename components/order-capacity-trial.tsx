@@ -6,8 +6,9 @@ import {packagingInterior} from "../lib/packing/packaging";
 import type {PackingRequest,PackingResult,ProductInput} from "../lib/packing/types";
 import {tr,useLanguage} from "./language";
 
-type Props={request:PackingRequest;plan?:PackingResult|null;volume:number;weight:number;disabled:boolean;canApply:boolean;onApply:(products:ProductInput[])=>void};
-export function useOrderCapacityTrial({request,volume,weight,disabled,canApply,onApply}:Props){
+type Props={request:PackingRequest;plan?:PackingResult|null;measuredEnvelope?:boolean;volume:number;weight:number;disabled:boolean;canApply:boolean;onApply:(products:ProductInput[])=>void};
+export function useOrderCapacityTrial({request,volume,weight,disabled:inputDisabled,canApply,onApply,plan,measuredEnvelope}:Props){
+ const disabled=inputDisabled||!!measuredEnvelope||!!plan?.pallets?.some(p=>p.measuredEnvelope);
  const key=JSON.stringify([request,volume,weight]),identity=useMemo(()=>({key,disabled,canApply}),[key,disabled,canApply]),worker=useRef<Worker|null>(null),timer=useRef<ReturnType<typeof setTimeout>|null>(null),latest=useRef(identity),blocked=useRef(disabled);
  const [state,setState]=useState<{identity:typeof identity;kind:"running"|"done"|"cancelled"|"timeout"|"error";trial?:OrderCapacityTrial;plan?:PackingResult;error?:string}|null>(null);
  const stop=()=>{worker.current?.terminate();worker.current=null;if(timer.current)clearTimeout(timer.current);timer.current=null;};
@@ -30,6 +31,7 @@ export function useOrderCapacityTrial({request,volume,weight,disabled,canApply,o
 
 export function OrderCapacityTrial(props:Props){
  const language=useLanguage(),{request,plan,canApply}=props,task=useOrderCapacityTrial(props),trial=task.current?.trial,candidate=task.current?.plan;
+ const measured=props.measuredEnvelope||plan?.pallets?.some(p=>p.measuredEnvelope);
  const rawError=task.current?.error,errorParts=rawError?.split(" / "),errorText=errorParts?.length===2?errorParts[language==="en"?1:0]:rawError&&language==="en"&&/[\u3400-\u9fff]/u.test(rawError)?"Review dimensions, packaging stock, load ratings and complete-kit rules.":rawError;
  const ordered=request.products.reduce((n,p)=>n+p.quantity,0),loaded=plan?.metrics.loadedCount;
  const added=candidate?replenishedOrder(request.products,candidate).reduce((n,p)=>n+p.quantity,0)-ordered:0;
@@ -45,7 +47,8 @@ export function OrderCapacityTrial(props:Props){
     {request.floorPallets&&<li>{request.floorPallets.name} · {tr("底座高","Base height")} {request.floorPallets.height} mm · {tr("货物限高","Cargo height limit")} {request.floorPallets.maxCargoHeight||tr("按柜高及门洞","Vehicle / door clearance")} · {tr("单托载荷","Payload per pallet")} {request.floorPallets.maxLoad} kg</li>}
    </ul><p className="helper-text">{tr("规则未放宽。尺寸、门洞、朝向、承托、累计载荷、保护间隙和包装库存仍参与校验；运输固定及缺失额定资料仍需另行复核。","Rules are unchanged. Geometry, door fit, orientation, support, cumulative loads, gaps and packaging stock remain checked. Securing and missing ratings still need separate review.")}</p>
   </details>
-  <div className="upgrade-actions"><button type="button" className="button primary" disabled={props.disabled||task.running} onClick={task.run}>{tr("试算增加货量（不改订单）","Trial additional cargo (keep order)")}</button><button type="button" className="button" disabled={!task.running} onClick={task.cancel}>{tr("停止试算","Stop trial")}</button></div>
+  {measured&&<p role="status">{tr("当前方案已采用实测整托包络；本项试算不支持该包络，已停用。请在方案副本中单独复核，不能退回标称尺寸计算。","This plan uses measured unit envelopes. This trial does not support those envelopes and is disabled. Review a plan copy separately; do not fall back to nominal dimensions.")}</p>}
+  <div className="upgrade-actions"><button type="button" className="button primary" disabled={props.disabled||!!measured||task.running} onClick={task.run}>{tr("试算增加货量（不改订单）","Trial additional cargo (keep order)")}</button><button type="button" className="button" disabled={!task.running} onClick={task.cancel}>{tr("停止试算","Stop trial")}</button></div>
   <p role="status">{status}</p>{errorText&&<p role="alert">{errorText}</p>}
   {candidate&&trial&&<div className="capacity-trial-result"><p><strong>{tr("试算可装","Trial loaded")} {candidate.metrics.loadedCount.toLocaleString()} {tr("箱","cartons")}</strong> · {tr("试算货量","Trial stock")} {candidate.metrics.requestedCount.toLocaleString()} · {tr("毛重","Gross")} {candidate.metrics.grossWeight.toLocaleString()} kg · {tr("体积利用率","Volume use")} {(candidate.metrics.volumeUtilization*100).toFixed(1)}%</p>
    {loaded!==undefined&&<p>{tr("与当前已装数量相比","Compared with currently loaded")}: {candidate.metrics.loadedCount-loaded>=0?"+":""}{candidate.metrics.loadedCount-loaded} {tr("箱","cartons")}</p>}

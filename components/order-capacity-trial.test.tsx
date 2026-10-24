@@ -43,3 +43,10 @@ it("displays order versus capacity, limits and complete English copy",()=>{
  const props=defaults();props.request.products[0].maxStackLayers=1;const zh=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);expect(zh).toContain("本单装完 ≠ 整柜装满");expect(zh).toContain("箱体层数上限");expect(zh).toContain("1000 mm");expect(zh).toContain("30 秒");
  vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");const en=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);expect(en).toContain("Order fulfilled ≠ container full");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
 });
+it("disables nominal trials when adopted measured envelopes are present",async()=>{
+ let props={...defaults(),measuredEnvelope:true},task!:ReturnType<typeof useOrderCapacityTrial>;function Hook(){task=useOrderCapacityTrial(props);return <group/>;}
+ const root=await mount(Hook);try{await act(async()=>task.run());expect(FakeWorker.instances).toHaveLength(0);props={...props,measuredEnvelope:false};await root.render();await act(async()=>task.run());expect(FakeWorker.instances).toHaveLength(1);props={...props,measuredEnvelope:true};await root.render();expect(FakeWorker.instances[0].terminate).toHaveBeenCalled();expect(task.current).toBeNull();await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();}finally{await root.close();}
+});
+it("explains the measured-envelope guard in both languages",()=>{
+ const props={...defaults(),measuredEnvelope:true};expect(renderToStaticMarkup(<OrderCapacityTrial {...props}/>)).toContain("不能退回标称尺寸计算");vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");const en=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);expect(en).toContain("do not fall back to nominal dimensions");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
+});
