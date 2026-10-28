@@ -5,7 +5,7 @@ import {renderToStaticMarkup} from "react-dom/server";
 import {afterEach,expect,it,vi} from "vitest";
 import {usePalletTailTrial,PalletTailTrial} from "./pallet-tail-trial";
 import {runOrderCapacityTrial} from "../lib/packing/order-capacity";
-import {palletTailFixture} from "../tests/pallet-tail-fixture";
+import {palletTailFixture,jointPalletTailFixture} from "../tests/pallet-tail-fixture";
 import {packLoadingWorkflow} from "../lib/packing/pack-loading";
 import {setAppLanguage} from "./language";
 class FakeWorker{
@@ -67,4 +67,39 @@ it("keeps an issued version preview-only and blocks measured or locked rebuildin
 it("shows the bounded scope and has complete English and empty-plan states",()=>{
  const props=defaults();expect(renderToStaticMarkup(<PalletTailTrial {...props}/>)).toContain("最多 5 个候选");expect(renderToStaticMarkup(<PalletTailTrial {...props} plan={null}/>)).toContain("需要已计算");
  vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");const en=renderToStaticMarkup(<PalletTailTrial {...props}/>);expect(en).toContain("Maximum additional loose units");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
+});
+it("invalidates quick previews when switching to every-quantity mode and selects the leaner tie",async()=>{
+ const request=palletTailFixture();request.container.height=600;request.container.doorHeight=600;const props={...defaults(),request,plan:packLoadingWorkflow(request)};let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}
+ const root=await mount(Hook);try{
+  await act(async()=>task.run());const old=FakeWorker.instances[0],oldTrials=old.postMessage.mock.calls[0][0].trials;
+  await act(async()=>task.setSearchMode("detailed"));expect(old.terminate).toHaveBeenCalled();await act(async()=>old.deliver({index:0,plan:runOrderCapacityTrial(oldTrials[0])}));expect(task.current).toBeNull();
+  await act(async()=>task.run());const w=FakeWorker.instances[1],trials=w.postMessage.mock.calls[0][0].trials;expect(trials).toHaveLength(8);
+  for(let index=0;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));
+  expect(task.best?.trial.tailReservationChange!.units).toBe(6);expect(task.best?.plan.metrics.loadedCount).toBe(14);await act(async()=>task.adopt());expect(props.onApply.mock.calls[0][0].looseQuantities).toEqual({a:6});
+ }finally{await root.close();}
+});
+
+it("jointly applies two order-row reservations after the entire grid finishes",async()=>{
+ const request=jointPalletTailFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request)};let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}
+ const root=await mount(Hook);try{
+  await act(async()=>{task.setSearchMode("joint");task.setChoice({id:"row:a",limit:"4"});task.setSecondChoice({id:"row:b",limit:"4"});});await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials;expect(trials).toHaveLength(24);
+  for(let index=0;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));
+  expect(task.best?.plan.metrics.loadedCount).toBe(24);expect(props.onApply).not.toHaveBeenCalled();expect(task.current?.rows.every(r=>r.allocation?.includes("TAIL-A")&&r.allocation.includes("TAIL-B"))).toBe(true);
+  await act(async()=>task.adopt());expect(props.onApply.mock.calls[0][0].looseQuantities).toEqual({a:4,b:4});expect(request.products.map(p=>p.quantity)).toEqual([12,12]);
+ }finally{await root.close();}
+});
+it("does not run an oversized joint grid and retains the original request",async()=>{
+ const request=jointPalletTailFixture();request.products.forEach(p=>p.quantity=100);const props={...defaults(),request,plan:packLoadingWorkflow(request)},before=structuredClone(request);let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}
+ const root=await mount(Hook);try{await act(async()=>{task.setSearchMode("joint");task.setChoice({id:"row:a",limit:"8"});task.setSecondChoice({id:"row:b",limit:"8"});});expect(task.jointTooLarge).toBe(true);expect(task.validLimit).toBe(false);await act(async()=>task.run());expect(FakeWorker.instances).toHaveLength(0);expect(request).toEqual(before);}finally{await root.close();}
+});
+it("drops a joint batch after a secondary-ceiling round trip",async()=>{
+ const request=jointPalletTailFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request)};let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}
+ const root=await mount(Hook);try{await act(async()=>task.setSearchMode("joint"));await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials;
+  await act(async()=>task.setSecondChoice({id:"row:b",limit:"2"}));await act(async()=>task.setSecondChoice({id:"row:b",limit:"3"}));
+  for(let index=0;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));expect(task.current).toBeNull();expect(w.terminate).toHaveBeenCalled();await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();
+ }finally{await root.close();}
+});
+it("exposes the joint and detailed controls with keyboard-accessible native fields",()=>{
+ const request=jointPalletTailFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request)};const zh=renderToStaticMarkup(<PalletTailTrial {...props}/>);expect(zh).toContain("尾数搜索范围");expect(zh).toContain("逐量细查");expect(zh).toContain("两组联合");
+ vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");const en=renderToStaticMarkup(<PalletTailTrial {...props}/>);expect(en).toContain("Two groups together");expect(en).toContain("Every quantity");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
 });

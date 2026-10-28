@@ -4,7 +4,7 @@ import {parseLoadingWorkflow,parsePalletBuild} from "./loading-workflow";
 import type {PackingRequest,PackingResult,ProductInput} from "./types";
 
 export const CAPACITY_TRIAL_CARTONS=4000;
-export type OrderCapacityTrial={request:PackingRequest;arithmeticCartons:number;budgetLimited:boolean;heightChanges?:{id:string;name:string;from:number;to:number}[];packagingSelectionChange?:{from:"ordered";to:"compact"};tailReservationChange?:{groupId:string;units:number;changes:{id:string;sku:string;from:number;to:number}[]}};
+export type OrderCapacityTrial={request:PackingRequest;arithmeticCartons:number;budgetLimited:boolean;heightChanges?:{id:string;name:string;from:number;to:number}[];packagingSelectionChange?:{from:"ordered";to:"compact"};tailReservationChange?:{groupId:string;units:number;changes:{id:string;sku:string;from:number;to:number}[];groups?:{id:string;name:string;units:number}[]}};
 
 /** Hypothetical stock only. Geometry, ratings, packaging stock and rules stay intact. */
 export function prepareOrderCapacityTrial(request:PackingRequest,volume:number,weight:number):OrderCapacityTrial{

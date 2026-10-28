@@ -188,3 +188,7 @@
 .pallet-tail-trial .pallet-capacity-table{max-width:100%;overflow-x:auto;}
 .pallet-tail-trial table{width:100%;border-collapse:collapse;font-size:12px;}
 .pallet-tail-trial th,.pallet-tail-trial td{padding:8px;text-align:start;border-bottom:1px solid var(--line);}
+.tail-search-scope{display:grid;gap:6px;max-width:340px;margin-block:12px;}
+.tail-search-scope select{min-height:40px;width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:inherit;font:inherit;}
+.tail-candidate-table{max-height:360px;overflow:auto;}
+.tail-candidate-table:focus-visible{outline:2px solid var(--accent,#287f8d);outline-offset:2px;}

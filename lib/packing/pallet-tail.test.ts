@@ -1,8 +1,8 @@
 import {expect,it} from "vitest";
 import {packagingCapacityFixture} from "../../tests/packaging-capacity-fixture";
-import {palletTailFixture} from "../../tests/pallet-tail-fixture";
+import {palletTailFixture,jointPalletTailFixture} from "../../tests/pallet-tail-fixture";
 import {packLoadingWorkflow} from "./pack-loading";
-import {preparePalletTailTrials,tailCargoGroups} from "./pallet-tail";
+import {preparePalletTailTrials,prepareJointPalletTailTrials,betterTailCandidate,tailCargoGroups} from "./pallet-tail";
 import {runOrderCapacityTrial,reviewOrderCapacityTrial} from "./order-capacity";
 import {improvesPalletTrial} from "./pallet-capacity";
 import {looseManifest} from "./loose-cargo";
@@ -70,4 +70,57 @@ it.each(["practical","maximum"] as const)("uses the registered long-carton order
 it("rejects poorer compact-tail candidates instead of assuming tails always help",()=>{
  const request=packagingCapacityFixture();request.palletBuild!.selection="compact";const baseline=packLoadingWorkflow(request),results=preparePalletTailTrials(request,baseline,"row:long",8).map(runOrderCapacityTrial);
  expect(baseline.metrics.loadedCount).toBe(299);expect(results.every(p=>!improvesPalletTrial(p,baseline))).toBe(true);
+});
+
+it("checks every quantity and finds a smaller loose reservation missed by quick sampling",()=>{
+ const request=palletTailFixture();request.container.height=600;request.container.doorHeight=600;
+ const baseline=packLoadingWorkflow(request),quick=preparePalletTailTrials(request,baseline,"row:a",8),detailed=preparePalletTailTrials(request,baseline,"row:a",8,"detailed");
+ expect(quick.map(t=>t.tailReservationChange!.units)).toEqual([1,2,4,8]);expect(detailed.map(t=>t.tailReservationChange!.units)).toEqual([1,2,3,4,5,6,7,8]);
+ const ranked=(trials:typeof quick)=>trials.map(t=>({units:t.tailReservationChange!.units,plan:runOrderCapacityTrial(t)})).filter(c=>improvesPalletTrial(c.plan,baseline)).sort((a,b)=>b.plan.metrics.loadedCount-a.plan.metrics.loadedCount||a.units-b.units)[0];
+ const a=ranked(quick),b=ranked(detailed);expect(a.plan.metrics.loadedCount).toBe(14);expect(a.units).toBe(8);expect(b.plan.metrics.loadedCount).toBe(14);expect(b.units).toBe(6);expect(looseManifest(b.plan)[0]).toMatchObject({reserved:6,loose:6,palletized:8,unloaded:6});
+});
+it("bounds a detailed scan by original whole-unit demand and rejects unknown search modes",()=>{
+ const r=palletTailFixture(),p=packLoadingWorkflow(r);expect(preparePalletTailTrials(r,p,"row:a",12,"detailed")).toHaveLength(12);expect(()=>preparePalletTailTrials(r,p,"row:a",13,"detailed")).toThrow();expect(()=>preparePalletTailTrials(r,p,"row:a",8,"bad" as "quick")).toThrow(/search mode/);
+});
+
+it.each(["practical","maximum"] as const)("jointly completes both original rows with %s without adding packaging stock",strategy=>{
+ const r=jointPalletTailFixture();r.strategy=strategy;const before=structuredClone(r),baseline=packLoadingWorkflow(r);expect(baseline.metrics.loadedCount).toBe(16);expect(baseline.summaries.map(s=>s.loaded)).toEqual([8,8]);
+ const singles=["row:a","row:b"].map(id=>preparePalletTailTrials(r,baseline,id,4,"detailed").map(runOrderCapacityTrial));expect(singles.map(rows=>Math.max(...rows.map(p=>p.metrics.loadedCount)))).toEqual([20,20]);
+ const trials=prepareJointPalletTailTrials(r,baseline,[{groupId:"row:a",limit:4},{groupId:"row:b",limit:4}]);expect(trials).toHaveLength(24);
+ let best:Parameters<typeof betterTailCandidate>[2];for(const trial of trials){const plan=runOrderCapacityTrial(trial);expect(plan.validation.valid).toBe(true);if(betterTailCandidate({trial,plan},baseline,best))best={trial,plan};}
+ expect(best!.plan.metrics.loadedCount).toBe(24);expect(best!.plan.metrics.grossWeight).toBe(290);expect(best!.plan.pallets).toHaveLength(2);expect(best!.trial.request.palletBuild!.looseQuantities).toEqual({a:4,b:4});expect(best!.plan.summaries.map(s=>s.unloaded)).toEqual([0,0]);expect(r).toEqual(before);
+ const expected=structuredClone(r);expected.palletBuild!.looseQuantities={a:4,b:4};expected.singleCartonLimit=undefined;expect(best!.trial.request).toEqual(expected);
+});
+it("includes both one-sided allocations, omits both-zero and never duplicates a joint allocation",()=>{
+ const r=jointPalletTailFixture(),p=packLoadingWorkflow(r),trials=prepareJointPalletTailTrials(r,p,[{groupId:"row:a",limit:2},{groupId:"row:b",limit:3}]),keys=trials.map(t=>JSON.stringify(t.tailReservationChange!.groups!.map(g=>g.units)));
+ expect(trials).toHaveLength(11);expect(new Set(keys).size).toBe(11);expect(keys).toContain("[0,3]");expect(keys).toContain("[2,0]");expect(keys).not.toContain("[0,0]");
+});
+it("requires a complete grid within 64 combinations and never silently truncates it",()=>{
+ const r=jointPalletTailFixture();r.products.forEach(p=>p.quantity=100);const baseline=packLoadingWorkflow(r);
+ expect(()=>prepareJointPalletTailTrials(r,baseline,[{groupId:"row:a",limit:8},{groupId:"row:b",limit:8}])).toThrow(/exceeds 64/);
+ expect(prepareJointPalletTailTrials(r,baseline,[{groupId:"row:a",limit:7},{groupId:"row:b",limit:7}])).toHaveLength(63);
+});
+it("treats the 64-carton ceiling as shared across both complete kits",()=>{
+ const r=jointPalletTailFixture();r.products.forEach((p,i)=>Object.assign(p,{length:100,width:100,height:100,weight:1,quantity:120,setCode:i?"KB":"KA",unitsPerSet:40}));r.palletBuild!.config.maxLoad=40;r.palletBuild!.additionalSpecs![0].config.maxLoad=40;
+ const p=packLoadingWorkflow(r),trials=prepareJointPalletTailTrials(r,p,[{groupId:"kit:KA",limit:1},{groupId:"kit:KB",limit:1}]);expect(trials).toHaveLength(2);expect(trials.map(t=>Object.values(t.request.palletBuild!.looseQuantities!).reduce((a,b)=>a+b,0))).toEqual([40,40]);expect(trials.every(t=>runOrderCapacityTrial(t).validation.valid)).toBe(true);
+});
+it("keeps 1:2 kit components together while comparing a second independent carton row",()=>{
+ const r=palletTailFixture();r.container.length=2000;r.products[0]={...r.products[0],length:200,width:200,height:100,quantity:10,setCode:"KIT",unitsPerSet:1};r.products.push({...r.products[0],id:"b",sku:"B",quantity:20,unitsPerSet:2},{...r.products[0],id:"c",sku:"C",quantity:10,setCode:"",unitsPerSet:1});r.palletBuild!.config.maxLoad=30;r.palletBuild!.maxPallets=2;
+ const p=packLoadingWorkflow(r),trials=prepareJointPalletTailTrials(r,p,[{groupId:"kit:KIT",limit:2},{groupId:"row:c",limit:2}]);for(const t of trials){const q=t.request.palletBuild!.looseQuantities!;expect(q.b??0).toBe((q.a??0)*2);const plan=runOrderCapacityTrial(t);expect(plan.validation.valid).toBe(true);expect(plan.summaries.find(s=>s.productId==="b")!.loaded).toBe(plan.summaries.find(s=>s.productId==="a")!.loaded*2);}
+});
+it("keeps existing loose reservations as a floor in every joint candidate",()=>{
+ const r=jointPalletTailFixture();r.palletBuild!.looseQuantities={a:1,b:1};const p=packLoadingWorkflow(r),trials=prepareJointPalletTailTrials(r,p,[{groupId:"row:a",limit:2},{groupId:"row:b",limit:2}]);expect(trials.every(t=>t.request.palletBuild!.looseQuantities!.a>=1&&t.request.palletBuild!.looseQuantities!.b>=1)).toBe(true);
+});
+it.each([{selections:[]},{selections:[{groupId:"row:a",limit:1}]},{selections:[{groupId:"row:a",limit:1},{groupId:"row:a",limit:2}]},{selections:[{groupId:"missing",limit:1},{groupId:"row:b",limit:1}]}])("rejects incomplete, duplicated or unknown joint groups: $selections",({selections})=>{const r=jointPalletTailFixture();expect(()=>prepareJointPalletTailTrials(r,packLoadingWorkflow(r),selections)).toThrow();});
+it("compares tied totals by actual reserved cartons, even when results arrive in reverse order",()=>{
+ const r=palletTailFixture();r.container.height=600;r.container.doorHeight=600;const baseline=packLoadingWorkflow(r),trials=preparePalletTailTrials(r,baseline,"row:a",8,"detailed"),six={trial:trials[5],plan:runOrderCapacityTrial(trials[5])},eight={trial:trials[7],plan:runOrderCapacityTrial(trials[7])};
+ expect(betterTailCandidate(six,baseline,eight)).toBe(true);expect(betterTailCandidate(eight,baseline,six)).toBe(false);const invalid=structuredClone(six);invalid.plan.validation.valid=false;expect(betterTailCandidate(invalid,baseline)).toBe(false);
+});
+it("restores a joint allocation using the existing workspace format without dropping unmet stock",()=>{
+ const r=jointPalletTailFixture(),baseline=packLoadingWorkflow(r),trial=prepareJointPalletTailTrials(r,baseline,[{groupId:"row:a",limit:4},{groupId:"row:b",limit:4}]).find(t=>t.request.palletBuild!.looseQuantities?.a===4&&t.request.palletBuild!.looseQuantities?.b===4)!,plan=runOrderCapacityTrial(trial),input={...trial.request,strategy:plan.strategy,practicalTargetPercent:88,customContainers:[],targetVolumePercent:85,targetWeightPercent:90,lengthUnit:"mm" as const,weightUnit:"kg" as const},raw=serializeWorkspaceBackup(input,ENGINE_VERSION,plan),restored=restoreWorkspacePlans(raw,parseWorkspaceBackup(raw))!;
+ expect(restored.placements).toEqual(plan.placements);expect(restored.pallets).toEqual(plan.pallets);expect(restored.palletBuild!.looseQuantities).toEqual({a:4,b:4});expect(restored.metrics.loadedCount).toBe(24);expect(restored.metrics.grossWeight).toBe(290);expect(parseWorkspaceBackup(raw).products.map(p=>p.quantity)).toEqual([12,12]);
+});
+it("distinguishes duplicate SKU names by stable order-row ID and reserves each row separately",()=>{
+ const r=jointPalletTailFixture();r.products[1].sku=r.products[0].sku;const p=packLoadingWorkflow(r),groups=tailCargoGroups(r,p);
+ expect(groups.map(g=>g.name)).toEqual(["TAIL-A [a]","TAIL-A [b]"]);const t=prepareJointPalletTailTrials(r,p,[{groupId:"row:a",limit:1},{groupId:"row:b",limit:1}]);expect(t.at(-1)!.request.palletBuild!.looseQuantities).toEqual({a:1,b:1});
 });
