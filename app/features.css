@@ -192,3 +192,7 @@
 .tail-search-scope select{min-height:40px;width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:inherit;font:inherit;}
 .tail-candidate-table{max-height:360px;overflow:auto;}
 .tail-candidate-table:focus-visible{outline:2px solid var(--accent,#287f8d);outline-offset:2px;}
+.tail-order-review table{min-width:680px;}
+.tail-order-review caption{text-align:start;font-weight:700;padding-block:8px;}
+.tail-order-review th[scope="row"]{text-align:start;font-weight:600;}
+.tail-order-review tfoot{font-weight:700;}

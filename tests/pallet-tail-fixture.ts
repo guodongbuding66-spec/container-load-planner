@@ -14,3 +14,18 @@ export function jointPalletTailFixture():PackingRequest{
  build.additionalSpecs=[{id:"sku-b",config:{...structuredClone(build.config),name:"SKU B pallet"},productIds:["b"],maxPallets:1,stackLayers:1,maxTopLoadKg:0}];
  return r;
 }
+
+/** Three SKU-specific pallets leave one shared strip for six original loose cartons. */
+export function triplePalletTailFixture():PackingRequest{
+ const r=jointPalletTailFixture();r.container.length=2800;r.products.forEach(p=>p.quantity=10);
+ r.products.push({...structuredClone(r.products[0]),id:"c",sku:"TAIL-C"});
+ r.palletBuild!.maxPallets=3;r.palletBuild!.additionalSpecs!.push({id:"sku-c",config:{...structuredClone(r.palletBuild!.config),name:"SKU C pallet"},productIds:["c"],maxPallets:1,stackLayers:1,maxTopLoadKg:0});
+ return r;
+}
+
+export function tripleKitPalletTailFixture():PackingRequest{
+ const r=palletTailFixture();r.container.length=2800;r.palletBuild!.config.maxLoad=30;r.palletBuild!.maxPallets=3;
+ r.products[0]={...r.products[0],length:200,width:200,height:100,quantity:10,setCode:"KIT",unitsPerSet:1};
+ r.products.push({...r.products[0],id:"b",sku:"TAIL-B",quantity:20,unitsPerSet:2},{...r.products[0],id:"c",sku:"TAIL-C",setCode:"",unitsPerSet:1},{...r.products[0],id:"d",sku:"TAIL-D",setCode:"",unitsPerSet:1});
+ return r;
+}

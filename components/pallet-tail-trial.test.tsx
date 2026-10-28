@@ -5,7 +5,7 @@ import {renderToStaticMarkup} from "react-dom/server";
 import {afterEach,expect,it,vi} from "vitest";
 import {usePalletTailTrial,PalletTailTrial} from "./pallet-tail-trial";
 import {runOrderCapacityTrial} from "../lib/packing/order-capacity";
-import {palletTailFixture,jointPalletTailFixture} from "../tests/pallet-tail-fixture";
+import {palletTailFixture,jointPalletTailFixture,triplePalletTailFixture} from "../tests/pallet-tail-fixture";
 import {packLoadingWorkflow} from "../lib/packing/pack-loading";
 import {setAppLanguage} from "./language";
 class FakeWorker{
@@ -102,4 +102,25 @@ it("drops a joint batch after a secondary-ceiling round trip",async()=>{
 it("exposes the joint and detailed controls with keyboard-accessible native fields",()=>{
  const request=jointPalletTailFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request)};const zh=renderToStaticMarkup(<PalletTailTrial {...props}/>);expect(zh).toContain("尾数搜索范围");expect(zh).toContain("逐量细查");expect(zh).toContain("两组联合");
  vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");const en=renderToStaticMarkup(<PalletTailTrial {...props}/>);expect(en).toContain("Two groups together");expect(en).toContain("Every quantity");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
+});
+
+it("adopts all three row allocations only after the complete grid",async()=>{
+ const request=triplePalletTailFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request)};let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}
+ const root=await mount(Hook);try{await act(async()=>task.setSearchMode("triple"));expect(task.jointGrid).toBe(26);await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials;expect(trials).toHaveLength(26);
+  for(let index=0;index<trials.length-1;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));expect(task.best).toBeUndefined();await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();
+  const index=trials.length-1;await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));expect(task.best?.plan.metrics.loadedCount).toBe(30);await act(async()=>task.adopt());expect(props.onApply.mock.calls[0][0].looseQuantities).toEqual({a:2,b:2,c:2});
+ }finally{await root.close();}
+});
+it.each(["ceiling","third row","mode"])("invalidates a three-group batch on %s round trip",async kind=>{
+ const request=triplePalletTailFixture();request.products.push({...request.products[2],id:"d",sku:"D"});const props={...defaults(),request,plan:packLoadingWorkflow(request)};let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}
+ const root=await mount(Hook);try{await act(async()=>task.setSearchMode("triple"));await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials;
+  if(kind==="mode"){await act(async()=>task.setSearchMode("joint"));await act(async()=>task.setSearchMode("triple"));}else{await act(async()=>task.setThirdChoice({id:kind==="third row"?"row:d":"row:c",limit:"1"}));await act(async()=>task.setThirdChoice({id:"row:c",limit:"2"}));}
+  for(let index=0;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));expect(task.current).toBeNull();expect(w.terminate).toHaveBeenCalled();await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();
+ }finally{await root.close();}
+});
+it("rejects an oversized triple grid and missing third group before creating a Worker",async()=>{
+ let request=triplePalletTailFixture();request.products.forEach(p=>p.quantity=100);let props={...defaults(),request,plan:packLoadingWorkflow(request)};let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}
+ const root=await mount(Hook);try{await act(async()=>{task.setSearchMode("triple");task.setChoice({id:"row:a",limit:"4"});task.setSecondChoice({id:"row:b",limit:"4"});task.setThirdChoice({id:"row:c",limit:"4"});});expect(task.jointGrid).toBe(124);expect(task.validLimit).toBe(false);await act(async()=>task.run());expect(FakeWorker.instances).toHaveLength(0);
+  request=jointPalletTailFixture();props={...defaults(),request,plan:packLoadingWorkflow(request)};await root.render();expect(task.thirdGroup).toBeUndefined();expect(task.validLimit).toBe(false);await act(async()=>task.run());expect(FakeWorker.instances).toHaveLength(0);
+ }finally{await root.close();}
 });

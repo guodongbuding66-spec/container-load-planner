@@ -9,9 +9,16 @@ import type {PackingRequest,PackingResult,ProductInput} from "./types";
 export const TAIL_CARTON_BUDGET=64;
 export const TAIL_CANDIDATE_LIMIT=5;
 export const TAIL_JOINT_CANDIDATE_LIMIT=64;
-export type TailSearchMode="quick"|"detailed"|"joint";
+export type TailSearchMode="quick"|"detailed"|"joint"|"triple";
 export type TailCandidate={trial:OrderCapacityTrial;plan:PackingResult};
 export type TailCargoGroup={id:string;name:string;products:ProductInput[];cartonsPerUnit:number;availableUnits:number};
+
+/** Display ledger after independent candidate review; counts actual source-row placements. */
+export function tailCandidateRows(request:PackingRequest,baseline:PackingResult,candidate:PackingResult){
+ const count=(plan:PackingResult)=>{const rows=new Map<string,{loose:number;palletized:number}>();for(const box of plan.placements){const n=rows.get(box.productId)??{loose:0,palletized:0};if(box.palletIds?.length)n.palletized++;else n.loose++;rows.set(box.productId,n);}return rows;};
+ const before=count(baseline),after=count(candidate),skus=new Map<string,number>();for(const p of request.products)skus.set(p.sku,(skus.get(p.sku)??0)+1);
+ return request.products.map(p=>{const a=before.get(p.id),b=after.get(p.id),loose=b?.loose??0,palletized=b?.palletized??0;return {id:p.id,label:(skus.get(p.sku)??0)>1?`${p.sku} [${p.id}]`:p.sku,requested:p.quantity,beforeLoaded:(a?.loose??0)+(a?.palletized??0),loaded:loose+palletized,beforeReserved:baseline.palletBuild?.looseQuantities?.[p.id]??0,reserved:candidate.palletBuild?.looseQuantities?.[p.id]??0,loose,palletized,unloaded:p.quantity-loose-palletized};});
+}
 
 /** Whole kits are one decision; no component can be silently diverted alone. */
 export function tailCargoGroups(request:PackingRequest,plan?:PackingResult|null):TailCargoGroup[]{
@@ -56,24 +63,25 @@ function tailTrial(request:PackingRequest,total:number,rows:{group:TailCargoGrou
  return {request:next,arithmeticCartons:total,budgetLimited:false,tailReservationChange:{groupId:rows[0].group.id,units:rows.reduce((n,r)=>n+r.units,0),changes,...(joint?{groups:rows.map(r=>({id:r.group.id,name:r.group.name,units:r.units}))}:{})}};
 }
 
-export function preparePalletTailTrials(request:PackingRequest,baseline:PackingResult,groupId:string,limit:number,mode:Exclude<TailSearchMode,"joint">="quick"):OrderCapacityTrial[]{
+export function preparePalletTailTrials(request:PackingRequest,baseline:PackingResult,groupId:string,limit:number,mode:Exclude<TailSearchMode,"joint"|"triple">="quick"):OrderCapacityTrial[]{
  if(mode!=="quick"&&mode!=="detailed")throw Error("尾数搜索范围无效 / Invalid tail search mode");
  const {total,groups}=checkedTailBaseline(request,baseline),group=selectedTailGroup(groups,groupId,limit);
  const amounts=mode==="detailed"?Array.from({length:limit},(_,i)=>i+1):[...new Set([1,2,4,8,limit].filter(n=>n<=limit))].sort((a,b)=>a-b).slice(0,TAIL_CANDIDATE_LIMIT);
  return amounts.map(units=>tailTrial(request,total,[{group,units}]));
 }
 
-/** Complete two-group grid, including one-sided trials; reject oversized grids. */
+/** Complete two/three-group grid, including one-sided trials; reject oversized grids. */
 export function prepareJointPalletTailTrials(request:PackingRequest,baseline:PackingResult,selections:readonly {groupId:string;limit:number}[]):OrderCapacityTrial[]{
- if(selections.length!==2||selections[0].groupId===selections[1].groupId)throw Error("请选择两个不同的订单行或套装 / Select two distinct order rows or kits");
+ if(![2,3].includes(selections.length)||new Set(selections.map(s=>s.groupId)).size!==selections.length)throw Error("请选择两到三个不同的订单行或套装 / Select two or three distinct order rows or kits");
  const {total,groups}=checkedTailBaseline(request,baseline),selected=selections.map(s=>({...s,group:selectedTailGroup(groups,s.groupId,s.limit)}));
- if((selected[0].limit+1)*(selected[1].limit+1)-1>TAIL_JOINT_CANDIDATE_LIMIT)throw Error("联合候选超过 64 个，请降低两组上限 / Joint grid exceeds 64 candidates; reduce the group ceilings");
+ if(selected.reduce((n,s)=>n*(s.limit+1),1)-1>TAIL_JOINT_CANDIDATE_LIMIT)throw Error("联合候选超过 64 个，请降低各组上限 / Joint grid exceeds 64 candidates; reduce the group ceilings");
  const allocations:{units:number[];cartons:number}[]=[];
- for(let a=0;a<=selected[0].limit;a++)for(let b=0;b<=selected[1].limit;b++){
-  const cartons=a*selected[0].group.cartonsPerUnit+b*selected[1].group.cartonsPerUnit;
-  if(cartons>0&&cartons<=TAIL_CARTON_BUDGET)allocations.push({units:[a,b],cartons});
- }
- return allocations.sort((a,b)=>a.cartons-b.cartons||a.units[0]-b.units[0]).map(a=>tailTrial(request,total,selected.map((s,i)=>({group:s.group,units:a.units[i]})),true));
+ const visit=(index:number,units:number[],cartons:number)=>{
+  if(index===selected.length){if(cartons>0)allocations.push({units,cartons});return;}
+  for(let n=0;n<=selected[index].limit;n++){const next=cartons+n*selected[index].group.cartonsPerUnit;if(next<=TAIL_CARTON_BUDGET)visit(index+1,[...units,n],next);}
+ };
+ visit(0,[],0);
+ return allocations.sort((a,b)=>a.cartons-b.cartons||a.units.reduce((diff,n,i)=>diff||n-b.units[i],0)).map(a=>tailTrial(request,total,selected.map((s,i)=>({group:s.group,units:a.units[i]})),true));
 }
 
 /** Tied totals keep the smallest reservation, not an arbitrary later allocation. */
