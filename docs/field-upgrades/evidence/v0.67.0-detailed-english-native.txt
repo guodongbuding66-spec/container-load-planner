@@ -1,0 +1,34 @@
+Trial loose tails alongside loaded pallets
+
+Reserve tails from this order's unmet demand, keeping complete kits together; rebuild and repack the remaining cargo. Positions may change. Existing loose reservations are never reduced.
+
+Tail search scope
+Quick candidates
+Every quantity
+Two groups together
+Order row / kit
+TAIL-A · 1 cartons / unit
+Maximum additional loose units
+
+This group allows up to 12 units; check integer quantities within the ceiling. Each candidate adds at most 64 loose cartons; equal loaded totals prefer fewer reserved loose cartons.
+
+Compare loose tails for this order
+Stop tail trial
+
+Tail comparison complete; the original plan is retained.
+
+Tail candidate loads 14 cartons · Original order 20 · Loaded units 1 · Gross 165 kg
+
+TAIL-A · Loose reservation: 0 → 6
+TAIL-A · Loaded loose / palletized / unloaded: 6 / 8 / 6
+Apply tail reservations and recalculate
+Extra loose units / allocation	Total cartons loaded	Loaded order rows	Review
+1	9	Retained	Model validation passed
+2	10	Retained	Model validation passed
+3	11	Retained	Model validation passed
+4	12	Retained	Model validation passed
+5	13	Retained	Model validation passed
+6	14	Retained	Model validation passed
+7	14	Retained	Model validation passed
+8	14	Retained	Model validation passed
+Order demand, packaging stock, height ceilings and ratings remain intact. Loose cartons cannot cross-support pallets or use their internal voids. Compare one or two selected rows / kits, up to 4000 ordered cartons and 30 seconds; this is not in-place insertion, an optimality proof or securing verification.

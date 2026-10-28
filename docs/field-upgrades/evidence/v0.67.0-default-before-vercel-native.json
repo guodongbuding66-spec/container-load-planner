@@ -1,0 +1,113 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.66.0",
+  "createdAt": "2026-10-28T01:38:09.377Z",
+  "inputs": {
+    "palletLayerTemplates": [],
+    "workflow": "direct",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "EUR",
+        "length": 1200,
+        "width": 800,
+        "height": 144,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 1000
+      },
+      "mix": "single",
+      "maxPallets": 50,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0
+    },
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "practical",
+    "practicalTargetPercent": 88,
+    "container": {
+      "id": "40hq",
+      "name": "40HQ 高柜",
+      "length": 12032,
+      "width": 2350,
+      "height": 2700,
+      "doorWidth": 2340,
+      "doorHeight": 2597,
+      "maxWeight": 28600
+    },
+    "clearance": 10,
+    "products": [
+      {
+        "id": "shed-101",
+        "sku": "SHED-101",
+        "name": "金属工具房主箱",
+        "length": 2200,
+        "width": 620,
+        "height": 180,
+        "weight": 42.5,
+        "quantity": 36,
+        "priority": 100,
+        "rotationPolicy": "any",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "color": "#2f7f89"
+      },
+      {
+        "id": "bed-205",
+        "sku": "BED-205",
+        "name": "耐候钢花圃",
+        "length": 1180,
+        "width": 680,
+        "height": 160,
+        "weight": 28,
+        "quantity": 56,
+        "priority": 80,
+        "rotationPolicy": "any",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "color": "#c66a3d"
+      },
+      {
+        "id": "parcel-310",
+        "sku": "PARCEL-310",
+        "name": "户外邮包箱",
+        "length": 1060,
+        "width": 570,
+        "height": 450,
+        "weight": 31,
+        "quantity": 24,
+        "priority": 60,
+        "rotationPolicy": "upright",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "color": "#d5a72f"
+      }
+    ],
+    "customContainers": [],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {}
+}

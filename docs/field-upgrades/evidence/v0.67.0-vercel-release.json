@@ -1,0 +1,73 @@
+{
+  "deployment": "dpl_RiCmXgzCF2S3D57WzaSZFDtd4pRJ",
+  "runtimeCommit": "6091642f108f632b439ca570ca56a312448429e6",
+  "state": "READY",
+  "buildEvents": [
+    {
+      "created": 1793152144335,
+      "date": 1793152144335,
+      "type": "stdout",
+      "text": "✓ Compiled successfully in 37.3s",
+      "info": {
+        "type": "build",
+        "name": "bld_jgwz9dsqw",
+        "entrypoint": "."
+      }
+    },
+    {
+      "created": 1793152103130,
+      "date": 1793152103130,
+      "type": "stdout",
+      "text": "ℹ fail 0",
+      "info": {
+        "type": "build",
+        "name": "bld_jgwz9dsqw",
+        "entrypoint": "."
+      }
+    },
+    {
+      "created": 1793152103130,
+      "date": 1793152103130,
+      "type": "stdout",
+      "text": "ℹ pass 21",
+      "info": {
+        "type": "build",
+        "name": "bld_jgwz9dsqw",
+        "entrypoint": "."
+      }
+    },
+    {
+      "created": 1793152103130,
+      "date": 1793152103130,
+      "type": "stdout",
+      "text": "ℹ tests 21",
+      "info": {
+        "type": "build",
+        "name": "bld_jgwz9dsqw",
+        "entrypoint": "."
+      }
+    },
+    {
+      "created": 1793152102831,
+      "date": 1793152102831,
+      "type": "stdout",
+      "text": "\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m1831 passed\u001b[39m\u001b[22m\u001b[90m (1831)\u001b[39m",
+      "info": {
+        "type": "build",
+        "name": "bld_jgwz9dsqw",
+        "entrypoint": "."
+      }
+    },
+    {
+      "created": 1793152102829,
+      "date": 1793152102829,
+      "type": "stdout",
+      "text": "\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m140 passed\u001b[39m\u001b[22m\u001b[90m (140)\u001b[39m",
+      "info": {
+        "type": "build",
+        "name": "bld_jgwz9dsqw",
+        "entrypoint": "."
+      }
+    }
+  ]
+}

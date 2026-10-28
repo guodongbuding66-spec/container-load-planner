@@ -1,0 +1,325 @@
+{
+  "version": "0.67.0",
+  "date": "2026-10-28",
+  "runtimeCommit": "6091642f108f632b439ca570ca56a312448429e6",
+  "checks": [
+    {
+      "name": "joint formal two sites and cross-site restored coordinates identical",
+      "passed": true
+    },
+    {
+      "name": "joint formal bound and model validation",
+      "passed": true,
+      "loaded": 24,
+      "requested": 24,
+      "grossWeightKg": 290
+    },
+    {
+      "name": "joint formal bound and model validation",
+      "passed": true,
+      "loaded": 24,
+      "requested": 24,
+      "grossWeightKg": 290
+    },
+    {
+      "name": "joint formal bound and model validation",
+      "passed": true,
+      "loaded": 24,
+      "requested": 24,
+      "grossWeightKg": 290
+    },
+    {
+      "name": "joint raw CSV byte equality",
+      "passed": true,
+      "sha256": "f087f5c6fa2e2eb132ae0403fdc872069daa06329008cf18a054d4019036ddb1"
+    },
+    {
+      "name": "detailed two sites exact placement and pallets",
+      "passed": true
+    },
+    {
+      "name": "detailed formal",
+      "passed": true,
+      "reservation": 6,
+      "loaded": 14,
+      "requested": 20,
+      "grossWeightKg": 165
+    },
+    {
+      "name": "detailed formal",
+      "passed": true,
+      "reservation": 6,
+      "loaded": 14,
+      "requested": 20,
+      "grossWeightKg": 165
+    },
+    {
+      "name": "whole-kit ratio and reservation formal",
+      "passed": true
+    },
+    {
+      "name": "native cloudflare business benchmarks",
+      "passed": true,
+      "runs": 16,
+      "jointCounts": [
+        24,
+        24
+      ],
+      "compactCounts": [
+        299,
+        299
+      ]
+    },
+    {
+      "name": "default cloudflare non-product inputs recovered",
+      "passed": true
+    },
+    {
+      "name": "default cloudflare original product fields recovered",
+      "passed": true
+    },
+    {
+      "name": "default cloudflare both formal coordinate snapshots recovered",
+      "passed": true
+    },
+    {
+      "name": "native vercel business benchmarks",
+      "passed": true,
+      "runs": 16,
+      "jointCounts": [
+        24,
+        24
+      ],
+      "compactCounts": [
+        299,
+        299
+      ]
+    },
+    {
+      "name": "default vercel non-product inputs recovered",
+      "passed": true
+    },
+    {
+      "name": "default vercel original product fields recovered",
+      "passed": true
+    },
+    {
+      "name": "default vercel both formal coordinate snapshots recovered",
+      "passed": true
+    },
+    {
+      "name": "native 8 x 8 grid = 80 nonzero allocations rejected before execution",
+      "passed": true,
+      "observed": "联合候选超过 64 个，请降低两组上限。 Run disabled"
+    },
+    {
+      "name": "native locked pallet prevented rebuild",
+      "passed": true,
+      "observed": "已有实测包络或锁定整托，已停用重新打托试算。 Run disabled"
+    },
+    {
+      "name": "native duplicate SKU labels separated by stable order ID",
+      "passed": true,
+      "observed": [
+        "TAIL-A [a]",
+        "TAIL-A [b]"
+      ],
+      "previewLoaded": 24
+    },
+    {
+      "name": "native changed joint ceiling invalidates old adoption and keyboard Enter runs batch",
+      "passed": true,
+      "observed": "second ceiling 4 -> 3 -> 4 clears adoption; Tab then Enter runs complete 24 candidates"
+    }
+  ],
+  "local": {
+    "unitTests": 1831,
+    "testFiles": 140,
+    "pageChecks": 21,
+    "build": "passed"
+  },
+  "limitations": [
+    "Original user 596 requested /16 loaded workspace unavailable; controlled test is not its fix acceptance",
+    "Native cloud Chrome reports WebGL unavailable: real GPU and other browsers PENDING",
+    "GitHub Actions run 40616828260 fails before any step on two attempts; cause not retrieved; CI NOT PASSED",
+    "Recent console error sample contains browser extension metadata errors; no claim of clean application console",
+    "Default restore preserves all existing product fields; optional product fields populated by normal import normalization"
+  ],
+  "files": [
+    {
+      "path": "v0.67.0-benchmark-cloudflare-native.json",
+      "bytes": 44079,
+      "sha256": "5eff5cede60df09e25dfa84382ad09af1756acb9c7c8923c2aade8de5946f5a3"
+    },
+    {
+      "path": "v0.67.0-benchmark-vercel-native.json",
+      "bytes": 44061,
+      "sha256": "39c00a9f936c4f6f9f5ae38430e282b501ef1aee54f87dde34c41df0e91a056f"
+    },
+    {
+      "path": "v0.67.0-cf-release.json",
+      "bytes": 144,
+      "sha256": "1a946adf19484b1b65544059dcee30c387414f7b6b2ff9ffbf2c8828c562c26e"
+    },
+    {
+      "path": "v0.67.0-ci-release.json",
+      "bytes": 883,
+      "sha256": "a2b31f779cd4e9627a3fb21f7a2c0f6e55c36c803e3d41b26e2e975384dbeae5"
+    },
+    {
+      "path": "v0.67.0-default-before-cloudflare-native.json",
+      "bytes": 2647,
+      "sha256": "e9a96782570b3150a03883c763037494bbf378a7201603cba6bd7dfe1f7127bc"
+    },
+    {
+      "path": "v0.67.0-default-before-vercel-native.json",
+      "bytes": 2647,
+      "sha256": "b6d21e3309fb47cba50c4375b4512b150e6434df18337bad760546f4c70cc54e"
+    },
+    {
+      "path": "v0.67.0-default-final-cloudflare-native.json",
+      "bytes": 134245,
+      "sha256": "ebac762757ba768cc382eb3b38550a4099e089325029466ffb2d3bcbaac4e70c"
+    },
+    {
+      "path": "v0.67.0-default-final-vercel-native.json",
+      "bytes": 134245,
+      "sha256": "a0e077206d40de5ee5e357d98076d2f4d5e52d8a939975dd6cb10156070f7c79"
+    },
+    {
+      "path": "v0.67.0-detailed-english-native.txt",
+      "bytes": 1580,
+      "sha256": "83fcb4acb17100cecb5cced65cfea0020af1e68733a34e8ee439058a6e0129b4"
+    },
+    {
+      "path": "v0.67.0-detailed-plan-cloudflare-native.json",
+      "bytes": 10550,
+      "sha256": "d5ff2ec47951ccbbed8b1c559d8f163805bd42f835698278502460af9b8f5162"
+    },
+    {
+      "path": "v0.67.0-detailed-plan-vercel-native.json",
+      "bytes": 10534,
+      "sha256": "20eb28acd7dd82d7d37a8d67c15a741f3f0bf3b100f7976dc002e76a316ce928"
+    },
+    {
+      "path": "v0.67.0-detailed-vercel-native.txt",
+      "bytes": 1386,
+      "sha256": "8468d7e1c02fefdf8dabe0e8389474ef5729cae0fcf16ebb85b835f7894ab46f"
+    },
+    {
+      "path": "v0.67.0-joint-after-cloudflare-native.json",
+      "bytes": 51779,
+      "sha256": "c7d905b69b8eb01c4a5784202d9f5b726ef7762c9be05cdb76d5a0579a10afe8"
+    },
+    {
+      "path": "v0.67.0-joint-after-vercel-native.json",
+      "bytes": 51779,
+      "sha256": "81b4be39da853ddc172b62166d5674467c8627ea387763d22ad2bdd6492e7f8e"
+    },
+    {
+      "path": "v0.67.0-joint-before-cloudflare-native.json",
+      "bytes": 42663,
+      "sha256": "4354fb8c60c538af4e2e99cc49693de698ab2c1e944b723b42d44aac853fd4b6"
+    },
+    {
+      "path": "v0.67.0-joint-cloudflare-native.txt",
+      "bytes": 2857,
+      "sha256": "7a456facbeed145d217d15a419429ed86bfed47caca5f6b533dbd42808f6dd88"
+    },
+    {
+      "path": "v0.67.0-joint-coordinates-cloudflare-native.csv",
+      "bytes": 4698,
+      "sha256": "f087f5c6fa2e2eb132ae0403fdc872069daa06329008cf18a054d4019036ddb1"
+    },
+    {
+      "path": "v0.67.0-joint-coordinates-vercel-native.csv",
+      "bytes": 4698,
+      "sha256": "f087f5c6fa2e2eb132ae0403fdc872069daa06329008cf18a054d4019036ddb1"
+    },
+    {
+      "path": "v0.67.0-joint-cross-site-plan-native.json",
+      "bytes": 15715,
+      "sha256": "fff2785544e2980ff7fc0ad762411d6c1e7a79c3a039ba7b70fffccb0cf1ea4d"
+    },
+    {
+      "path": "v0.67.0-joint-english-native.txt",
+      "bytes": 3112,
+      "sha256": "f87056b758b3b9e19275a907c601c02003a77120663c05db6815288c296288be"
+    },
+    {
+      "path": "v0.67.0-joint-plan-cloudflare-native.json",
+      "bytes": 17690,
+      "sha256": "a112cb0c60d8b00a8b1c55d6b2e2a0cd786c19344a2bf6ed926517a1b76cf80d"
+    },
+    {
+      "path": "v0.67.0-joint-plan-vercel-native.json",
+      "bytes": 17704,
+      "sha256": "8b3869c9561ebf749f89ba56d85932be950ca60afbb28a5fd101fd532cae737f"
+    },
+    {
+      "path": "v0.67.0-joint-proof.jpg",
+      "bytes": 91182,
+      "sha256": "1f1e1653fbe3c94c81c904e7c38e9e4ccdda1816d1239d57b360a2d636b01e0b"
+    },
+    {
+      "path": "v0.67.0-joint-reloaded-vercel-native.json",
+      "bytes": 3783,
+      "sha256": "45a4e8661ebeef244803dc0e7509c965b8f860d55481ca1dea9e469122ed15b4"
+    },
+    {
+      "path": "v0.67.0-kit-plan-vercel-native.json",
+      "bytes": 12980,
+      "sha256": "86610e2a0edcd81c03a00de18265de16e2de080ff553a6e62f007d7ffd32206c"
+    },
+    {
+      "path": "v0.67.0-local-checks.txt",
+      "bytes": 4565,
+      "sha256": "972de1ccc3942084943e9c5a64bffa6b62995bd5c6949f8da8346287362dc84b"
+    },
+    {
+      "path": "v0.67.0-old-quick-native.txt",
+      "bytes": 1151,
+      "sha256": "908a9674b00eab5d4f02a20d011ad93e40209a5ea187827724f01f0585619756"
+    },
+    {
+      "path": "v0.67.0-seed-compact.json",
+      "bytes": 148187,
+      "sha256": "82f9a17b5af63e8c3212e269cf0b12c376cf9235e4bd25ec6ff723fb9982838c"
+    },
+    {
+      "path": "v0.67.0-seed-detailed.json",
+      "bytes": 7307,
+      "sha256": "8ce1c3cd63fe75f173e62c8f9c75d52621f73890a843e3ab73c8beeaed563f1f"
+    },
+    {
+      "path": "v0.67.0-seed-duplicate-sku.json",
+      "bytes": 3301,
+      "sha256": "d4fef30858fd4d526c065e90261fb6e22cf899c3da4333fc39e2ad1b046a8b76"
+    },
+    {
+      "path": "v0.67.0-seed-grid-limit.json",
+      "bytes": 15564,
+      "sha256": "29eee27e66eb8898dcc791d7175e6e4b01030fb0ce9f2f231570e2cfbb1eba9a"
+    },
+    {
+      "path": "v0.67.0-seed-joint.json",
+      "bytes": 15562,
+      "sha256": "a530f699f175a43abf85a1b536dbf75669a9f5d7eb34cf585cedc6c31cf9a364"
+    },
+    {
+      "path": "v0.67.0-seed-kit-joint.json",
+      "bytes": 8476,
+      "sha256": "db29e7195e9ce545aeef02e9db809dceccbaa196097fae948714637eff5b482b"
+    },
+    {
+      "path": "v0.67.0-seed-locked.json",
+      "bytes": 7333,
+      "sha256": "5876de69f40053e8e25db4afee1c76b33c9ea5557d6334ff5e3200d0f35037b5"
+    },
+    {
+      "path": "v0.67.0-vercel-release.json",
+      "bytes": 1788,
+      "sha256": "523837c3f9eb19ab45f6749d7d16d8e8fc49c5b1d653f45eeaeb6b09ef87c0b1"
+    }
+  ]
+}

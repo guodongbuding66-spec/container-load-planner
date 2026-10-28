@@ -1,0 +1,59 @@
+Trial loose tails alongside loaded pallets
+
+Reserve tails from this order's unmet demand, keeping complete kits together; rebuild and repack the remaining cargo. Positions may change. Existing loose reservations are never reduced.
+
+Tail search scope
+Quick candidates
+Every quantity
+Two groups together
+Order row / kit
+TAIL-A · 1 cartons / unit
+TAIL-B · 1 cartons / unit
+Maximum additional loose units
+
+This group allows up to 4 units; check integer quantities within the ceiling. Each candidate adds at most 64 loose cartons; equal loaded totals prefer fewer reserved loose cartons.
+
+Second order row / kit
+TAIL-B · 1 cartons / unit
+Second maximum additional loose units
+
+Check both groups from 0 through their ceilings, excluding both zero and allocations adding more than 64 cartons. The ceiling grid may contain at most 64 nonzero pairs; reduce the ceilings rather than truncating the candidate list.
+
+Compare loose tails for this order
+Stop tail trial
+
+Tail comparison complete; the original plan is retained.
+
+Tail candidate loads 24 cartons · Original order 24 · Loaded units 2 · Gross 290 kg
+
+TAIL-A · Loose reservation: 0 → 4
+TAIL-B · Loose reservation: 0 → 4
+TAIL-A · Loaded loose / palletized / unloaded: 4 / 8 / 0
+TAIL-B · Loaded loose / palletized / unloaded: 4 / 8 / 0
+Apply tail reservations and recalculate
+Extra loose units / allocation	Total cartons loaded	Loaded order rows	Review
+TAIL-A: 0 + TAIL-B: 1	17	Retained	Model validation passed
+TAIL-A: 1 + TAIL-B: 0	17	Retained	Model validation passed
+TAIL-A: 0 + TAIL-B: 2	18	Retained	Model validation passed
+TAIL-A: 1 + TAIL-B: 1	18	Retained	Model validation passed
+TAIL-A: 2 + TAIL-B: 0	18	Retained	Model validation passed
+TAIL-A: 0 + TAIL-B: 3	19	Retained	Model validation passed
+TAIL-A: 1 + TAIL-B: 2	19	Retained	Model validation passed
+TAIL-A: 2 + TAIL-B: 1	19	Retained	Model validation passed
+TAIL-A: 3 + TAIL-B: 0	19	Retained	Model validation passed
+TAIL-A: 0 + TAIL-B: 4	20	Retained	Model validation passed
+TAIL-A: 1 + TAIL-B: 3	20	Retained	Model validation passed
+TAIL-A: 2 + TAIL-B: 2	20	Retained	Model validation passed
+TAIL-A: 3 + TAIL-B: 1	20	Retained	Model validation passed
+TAIL-A: 4 + TAIL-B: 0	20	Retained	Model validation passed
+TAIL-A: 1 + TAIL-B: 4	21	Retained	Model validation passed
+TAIL-A: 2 + TAIL-B: 3	21	Retained	Model validation passed
+TAIL-A: 3 + TAIL-B: 2	21	Retained	Model validation passed
+TAIL-A: 4 + TAIL-B: 1	21	Retained	Model validation passed
+TAIL-A: 2 + TAIL-B: 4	22	Retained	Model validation passed
+TAIL-A: 3 + TAIL-B: 3	22	Retained	Model validation passed
+TAIL-A: 4 + TAIL-B: 2	22	Retained	Model validation passed
+TAIL-A: 3 + TAIL-B: 4	23	Retained	Model validation passed
+TAIL-A: 4 + TAIL-B: 3	23	Retained	Model validation passed
+TAIL-A: 4 + TAIL-B: 4	24	Retained	Model validation passed
+Order demand, packaging stock, height ceilings and ratings remain intact. Loose cartons cannot cross-support pallets or use their internal voids. Compare one or two selected rows / kits, up to 4000 ordered cartons and 30 seconds; this is not in-place insertion, an optimality proof or securing verification.

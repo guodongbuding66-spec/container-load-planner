@@ -1,0 +1,30 @@
+{
+  "runtimeCommit": "6091642f108f632b439ca570ca56a312448429e6",
+  "runId": 40616828260,
+  "attempts": [
+    {
+      "id": 122581168901,
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "steps": [],
+      "runnerName": "",
+      "startedAt": "2026-10-28T01:44:24Z",
+      "completedAt": "2026-10-28T01:44:26Z"
+    },
+    {
+      "id": 122582047296,
+      "runAttempt": 2,
+      "status": "completed",
+      "conclusion": "failure",
+      "steps": [],
+      "runnerName": "",
+      "startedAt": "2026-10-28T01:47:13Z",
+      "completedAt": "2026-10-28T01:47:15Z"
+    }
+  ],
+  "annotations": 2,
+  "annotationReadStatus": "connector does not support annotations endpoint; browser signed out of private repository",
+  "jobLogReadStatus": "404 BlobNotFound; no job log retrieved",
+  "conclusion": "CI not passed; startup cause pending diagnosis"
+}
