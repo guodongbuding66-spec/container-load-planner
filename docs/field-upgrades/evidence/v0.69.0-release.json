@@ -1,0 +1,117 @@
+{
+  "version": "0.69.0",
+  "date": "2026-10-29",
+  "runtimeCommit": "6c5bac07c152d7450703957371cb8fee528e5cb1",
+  "runtimeTree": "638975d82fe4a22cb00ff94e0be874cd427d6f79",
+  "vercel": {
+    "id": "dpl_vkKGJohndBUnKDLV2CsZrf1z5F9z",
+    "state": "READY",
+    "alias": [
+      "container-load-planner-gray.vercel.app",
+      "container-load-planner-guodongbuding66-4957.vercel.app",
+      "container-load-planner-git-main-guodongbuding66-4957.vercel.app"
+    ],
+    "commit": "6c5bac07c152d7450703957371cb8fee528e5cb1",
+    "project": {
+      "id": "prj_r8PcBkAQNeJQIUYqywz0Mv0VYY4g",
+      "name": "container-load-planner",
+      "framework": "nextjs"
+    },
+    "target": "production"
+  },
+  "cloudflare": {
+    "deploymentId": "4d65330a-438c-41ab-889b-50788a89598d",
+    "status": "success"
+  },
+  "githubCI": {
+    "runId": 40798582946,
+    "jobs": [
+      {
+        "id": 123200926410,
+        "conclusion": "failure",
+        "steps": [],
+        "runner": "",
+        "startedAt": "2026-10-29T01:08:37Z",
+        "completedAt": "2026-10-29T01:08:39Z"
+      }
+    ],
+    "conclusion": "NOT PASSED: startup failed before any steps; root cause not retrieved"
+  },
+  "local": {
+    "verifyExit": 0,
+    "buildExit": 0,
+    "unitTests": 1860,
+    "testFiles": 143,
+    "pageChecks": 21,
+    "lintErrors": 0,
+    "existingWarnings": 2
+  },
+  "vercelBuildEvidence": [
+    {
+      "created": 1793236325889,
+      "date": 1793236325889,
+      "type": "stdout",
+      "text": "ℹ fail 0",
+      "info": {
+        "type": "build",
+        "name": "bld_kbc4aw25t",
+        "entrypoint": "."
+      }
+    },
+    {
+      "created": 1793236325889,
+      "date": 1793236325889,
+      "type": "stdout",
+      "text": "ℹ pass 21",
+      "info": {
+        "type": "build",
+        "name": "bld_kbc4aw25t",
+        "entrypoint": "."
+      }
+    },
+    {
+      "created": 1793236325889,
+      "date": 1793236325889,
+      "type": "stdout",
+      "text": "ℹ tests 21",
+      "info": {
+        "type": "build",
+        "name": "bld_kbc4aw25t",
+        "entrypoint": "."
+      }
+    },
+    {
+      "created": 1793236325623,
+      "date": 1793236325623,
+      "type": "stdout",
+      "text": "\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m1860 passed\u001b[39m\u001b[22m\u001b[90m (1860)\u001b[39m",
+      "info": {
+        "type": "build",
+        "name": "bld_kbc4aw25t",
+        "entrypoint": "."
+      }
+    },
+    {
+      "created": 1793236325620,
+      "date": 1793236325620,
+      "type": "stdout",
+      "text": "\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m143 passed\u001b[39m\u001b[22m\u001b[90m (143)\u001b[39m",
+      "info": {
+        "type": "build",
+        "name": "bld_kbc4aw25t",
+        "entrypoint": "."
+      }
+    },
+    {
+      "created": 1793236361761,
+      "date": 1793236361761,
+      "type": "stdout",
+      "text": "✓ Compiled successfully in 32.5s",
+      "info": {
+        "type": "build",
+        "name": "bld_kbc4aw25t",
+        "entrypoint": "."
+      }
+    }
+  ]
+}

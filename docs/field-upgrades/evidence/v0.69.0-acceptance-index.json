@@ -1,0 +1,170 @@
+{
+  "date": "2026-10-29",
+  "version": "0.69.0",
+  "runtimeCommit": "6c5bac07c152d7450703957371cb8fee528e5cb1",
+  "checks": [
+    {
+      "name": "cloudflare complete unapplied preview",
+      "passed": true
+    },
+    {
+      "name": "cloudflare row counts and five review states",
+      "passed": true
+    },
+    {
+      "name": "vercel complete unapplied preview",
+      "passed": true
+    },
+    {
+      "name": "vercel row counts and five review states",
+      "passed": true
+    },
+    {
+      "name": "both reports contain the same scope, all candidates and chosen result",
+      "passed": true
+    },
+    {
+      "name": "download did not apply candidate or alter baseline ID",
+      "passed": true
+    },
+    {
+      "name": "cloudflare CSV original",
+      "passed": true
+    },
+    {
+      "name": "vercel CSV original",
+      "passed": true
+    },
+    {
+      "name": "both CSVs agree on source IDs and quantities",
+      "passed": true
+    },
+    {
+      "name": "no-improvement JSON retains complete outcomes without a selected candidate",
+      "passed": true
+    },
+    {
+      "name": "cloudflare exact input restoration",
+      "passed": true
+    },
+    {
+      "name": "cloudflare final dual-strategy 116 cartons /3842 kg /no pallets",
+      "passed": true
+    },
+    {
+      "name": "cloudflare 18 native benchmark runs valid and old inputs unchanged",
+      "passed": true
+    },
+    {
+      "name": "vercel exact input restoration",
+      "passed": true
+    },
+    {
+      "name": "vercel final dual-strategy 116 cartons /3842 kg /no pallets",
+      "passed": true
+    },
+    {
+      "name": "vercel 18 native benchmark runs valid and old inputs unchanged",
+      "passed": true
+    }
+  ],
+  "nativeObservations": [
+    "English tail trial and download controls contain no Chinese labels",
+    "Third-ceiling round trip removes both stale download buttons",
+    "Importing a trial report through workspace recovery is rejected before confirmation; 24 formal cartons remain",
+    "No-improvement batch enables JSON and disables candidate CSV",
+    "Both sites explicitly show WebGL fallback; not real GPU acceptance"
+  ],
+  "limitations": [
+    "GitHub Actions startup fails before any steps, root cause unknown; CI NOT PASSED",
+    "Real GPU, other browsers and original 596 requested /16 loaded workspace acceptance remain PENDING",
+    "File is a preview report, not a workspace backup or proof of field readiness"
+  ],
+  "files": [
+    {
+      "path": "v0.69.0-benchmark-cloudflare.json",
+      "bytes": 57454,
+      "sha256": "ee60d0755fdf0d0406e16fca9a125220dd6d563fa3b0e903718c63cb90192c50"
+    },
+    {
+      "path": "v0.69.0-benchmark-vercel.json",
+      "bytes": 57389,
+      "sha256": "f4a11c9ec25403a96dd9fc955ba3875b1c8157fb17ff5250be3560679b40657e"
+    },
+    {
+      "path": "v0.69.0-default-before-cloudflare.json",
+      "bytes": 134245,
+      "sha256": "958f000c01a13ec2b98bdba52420826bd2897b0e3f9dcdedcaf850ffac76f21d"
+    },
+    {
+      "path": "v0.69.0-default-before-vercel.json",
+      "bytes": 134245,
+      "sha256": "145767bdd956585bfffc273395046df7086946b4eb06287e1321a3713f1ae8ec"
+    },
+    {
+      "path": "v0.69.0-default-final-cloudflare.json",
+      "bytes": 134245,
+      "sha256": "ca5ad701a51fd735ae77a0b3ee7094ba022c657eee937b353bafb260a54ce999"
+    },
+    {
+      "path": "v0.69.0-default-final-vercel.json",
+      "bytes": 134245,
+      "sha256": "0999125da6b290bd84507686900342bf54df06103ccea2020d54134985a64c5f"
+    },
+    {
+      "path": "v0.69.0-formal-not-applied.json",
+      "bytes": 20379,
+      "sha256": "d4bac6c4df7a88a5d8f4196aa3365da589c6aeacc3480f68412103316286d57c"
+    },
+    {
+      "path": "v0.69.0-local-checks.txt",
+      "bytes": 4115,
+      "sha256": "e1a6ca4ee15648c842e72741f203635ffd19d6b7e06bb777ee6287331a387224"
+    },
+    {
+      "path": "v0.69.0-no-improvement-report.json",
+      "bytes": 3476,
+      "sha256": "230ea261e146f5f3898b246c7559a59dacf0c4f97209604ba06100788b600d00"
+    },
+    {
+      "path": "v0.69.0-release.json",
+      "bytes": 2999,
+      "sha256": "66e2eb23b7b01a6354710035c40f1567d8e3fa89ff8c1d7b3d33db5007a8856b"
+    },
+    {
+      "path": "v0.69.0-report-cloudflare.json",
+      "bytes": 21760,
+      "sha256": "42e88524908d28bb8b0b1de2fd29320349c29401c86d9bf88cf9c6aa690f107a"
+    },
+    {
+      "path": "v0.69.0-report-proof.jpg",
+      "bytes": 105606,
+      "sha256": "a826266982da81958f863c5d0df78aa1f4cc76943fb97fa88a5fb13a4a49c5db"
+    },
+    {
+      "path": "v0.69.0-report-vercel.json",
+      "bytes": 21760,
+      "sha256": "7b2067afcd33514d7f41af2beefc38c6829446fff87a96560a6835b78b01eb95"
+    },
+    {
+      "path": "v0.69.0-rows-cloudflare-zh.csv",
+      "bytes": 821,
+      "sha256": "b07f8bc6c61ae494c01897655f27fd47ad0d460af6fe2f70e42f4f91c359a30d"
+    },
+    {
+      "path": "v0.69.0-rows-vercel-en.csv",
+      "bytes": 803,
+      "sha256": "90dd66172c10502085750a40c3478f05c9fdbbc62836ab634de7df33b95ca5aa"
+    },
+    {
+      "path": "v0.69.0-seed-no-improvement.json",
+      "bytes": 1853,
+      "sha256": "53e10e803062da4f8360dc4f8d14c9c4bd7fb079eb1d5444bb1b8c2c0612f0bd"
+    },
+    {
+      "path": "v0.69.0-seed-triple.json",
+      "bytes": 4562,
+      "sha256": "52809cccf8ced259d4f7e6c147daa3e9ec40abfff04b984e1263bade1e4f82c6"
+    }
+  ]
+}
