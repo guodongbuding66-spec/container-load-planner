@@ -5,10 +5,12 @@ import {reviewOrderCapacityTrial} from "../lib/packing/order-capacity";
 import {improvesPalletTrial} from "../lib/packing/pallet-capacity";
 import {retainsLoadedRows} from "../lib/packing/set-utils";
 import {TailCandidateReview} from "./tail-candidate-review";
+import {buildTailTrialReport,type TailComparisonRow} from "../lib/packing/pallet-tail-report";
+import {TailReportDownloads} from "./tail-report-downloads";
 import type {PackingRequest,PackingResult,PalletBuildOptions} from "../lib/packing/types";
 import {tr,useLanguage} from "./language";
 
-type Row={units:number;allocation?:string;loaded:number|null;retained:boolean;problem?:string};
+type Row=TailComparisonRow;
 type Props={request:PackingRequest;plan?:PackingResult|null;disabled:boolean;canApply:boolean;onApply?:(build:PalletBuildOptions)=>void};
 
 export function usePalletTailTrial({request,plan,disabled:inputDisabled,canApply,onApply}:Props){
@@ -44,7 +46,7 @@ export function usePalletTailTrial({request,plan,disabled:inputDisabled,canApply
     const trial=trials[index];let candidate:PackingResult|undefined,problem:string|undefined=e.data.error;
     try{if(!problem)candidate=reviewOrderCapacityTrial(trial,e.data.plan);}catch(error){problem=error instanceof Error?error.message:String(error);}
     const retained=!!candidate&&retainsLoadedRows(candidate.placements,plan.placements);
-    rows.push({units:trial.tailReservationChange!.units,allocation:trial.tailReservationChange!.groups?.map(g=>`${g.name}: ${g.units}`).join(" + "),loaded:candidate?.metrics.loadedCount??null,retained,problem});
+    rows.push({units:trial.tailReservationChange!.units,allocation:trial.tailReservationChange!.groups?.map(g=>`${g.name}: ${g.units}`).join(" + "),groups:trial.tailReservationChange!.groups??[{id:group.id,name:group.name,units:trial.tailReservationChange!.units}],loaded:candidate?.metrics.loadedCount??null,retained,problem});
     if(candidate&&betterTailCandidate({trial,plan:candidate},plan,selected))selected={trial,plan:candidate};
     index++;const finished=index===trials.length;if(finished)stop();
     setState({identity,status:finished?"done":"running",rows:[...rows],total:trials.length,...(finished?{best:selected}:{})});
@@ -55,12 +57,13 @@ export function usePalletTailTrial({request,plan,disabled:inputDisabled,canApply
  };
  const cancel=()=>{stop();setState({identity,status:"cancelled",rows:[],total:0});};
  const adopt=()=>{if(disabled||!canApply||running||!best||!plan||!improvesPalletTrial(best.plan,plan))return;onApply?.(structuredClone(best.trial.request.palletBuild!));};
- return {groups,setChoice,group,limitText,searchMode,setSearchMode,secondGroups,secondGroup,secondLimitText,setSecondChoice,thirdGroups,thirdGroup,thirdLimitText,setThirdChoice,joint,jointGrid,jointTooLarge,disabled,validLimit,run,cancel,adopt,current,running,best,blocked};
+ const getReport=()=>{if(disabled||latest.current!==identity||current?.status!=="done"||!plan||!group||!validLimit)return;const selected=[{...group,limit},...(joint&&secondGroup?[{...secondGroup,limit:secondLimit}]:[]),...(searchMode==="triple"&&thirdGroup?[{...thirdGroup,limit:thirdLimit}]:[])];return buildTailTrialReport({request,baseline:plan,mode:searchMode,groups:selected.map(g=>({id:g.id,name:g.name,limit:g.limit,cartonsPerUnit:g.cartonsPerUnit})),rows:current.rows,best,canApply});};
+ return {groups,setChoice,group,limitText,searchMode,setSearchMode,secondGroups,secondGroup,secondLimitText,setSecondChoice,thirdGroups,thirdGroup,thirdLimitText,setThirdChoice,joint,jointGrid,jointTooLarge,disabled,validLimit,run,cancel,adopt,current,running,best,blocked,getReport};
 }
 
 export function PalletTailTrial(props:Props){
  const {request,plan,canApply,onApply}=props,language=useLanguage();
- const {groups,setChoice,group,limitText,searchMode,setSearchMode,secondGroups,secondGroup,secondLimitText,setSecondChoice,thirdGroups,thirdGroup,thirdLimitText,setThirdChoice,joint,jointGrid,jointTooLarge,disabled,validLimit,run,cancel,adopt,current,running,best,blocked}=usePalletTailTrial(props);
+ const {groups,setChoice,group,limitText,searchMode,setSearchMode,secondGroups,secondGroup,secondLimitText,setSecondChoice,thirdGroups,thirdGroup,thirdLimitText,setThirdChoice,joint,jointGrid,jointTooLarge,disabled,validLimit,run,cancel,adopt,current,running,best,blocked,getReport}=usePalletTailTrial(props);
  const parts=current?.error?.split(" / "),errorText=parts?.length===2?parts[language==="en"?1:0]:current?.error;
  const problemText=(problem:string)=>{const parts=problem.split(" / ");return parts.length===2?parts[language==="en"?1:0]:language==="en"&&/[\u3400-\u9fff]/u.test(problem)?"Review geometry, support, load ratings and complete-kit rules.":problem;};
  if(request.workflow!=="palletized")return null;
@@ -85,6 +88,7 @@ export function PalletTailTrial(props:Props){
   </div>}
   {!!current?.rows.length&&<div className="pallet-capacity-table tail-candidate-table" tabIndex={0} role="region" aria-label={tr("尾数候选比较结果","Tail candidate comparison results")}><table><thead><tr><th>{tr("新增散装份数／组合","Extra loose units / allocation")}</th><th>{tr("整单已装箱数","Total cartons loaded")}</th><th>{tr("已装订单行","Loaded order rows")}</th><th>{tr("复核说明","Review")}</th></tr></thead><tbody>{current.rows.map(r=><tr key={r.allocation??r.units}><td>{r.allocation??r.units}</td><td>{r.loaded??tr("未通过复核","Not validated")}</td><td>{r.retained?tr("数量不减","Retained"):tr("不可采用","Unavailable")}</td><td>{r.problem?problemText(r.problem):r.loaded!==null&&!r.retained?tr("会减少至少一个已装订单行","Would reduce at least one loaded order row"):r.loaded!==null&&r.loaded<=(plan?.metrics.loadedCount??0)?tr("未增加总箱数","No total-carton increase"):tr("通过模型校验","Model validation passed")}</td></tr>)}</tbody></table></div>}
   {current?.status==="done"&&!best&&<p>{tr("本批次未找到总箱数增加且各已装订单行不减量的合法候选；不代表其他数量无解。","No validated candidate in this batch increased the total while retaining every loaded order row; other quantities may still work.")}</p>}
+  {current?.status==="done"&&<TailReportDownloads enabled={!disabled} hasCandidate={!!best} getReport={getReport}/>}
   {!canApply&&<p>{tr("已有交付版本，仅可预览；请在方案副本中修改。","Issued delivery versions are preview-only; change a plan copy.")}</p>}
   <small>{tr("不增加订单、包装库存、限高或承重；散箱与整托不互相承托、不占托内空隙。只比较所选的最多三组订单行／套装，30 秒，订单最多 4000 箱；不代表原位补货、最优解或运输固定核验。","Order demand, packaging stock, height ceilings and ratings remain intact. Loose cartons cannot cross-support pallets or use their internal voids. Compare up to three selected rows / kits, up to 4000 ordered cartons and 30 seconds; this is not in-place insertion, an optimality proof or securing verification.")}</small>
  </details>;

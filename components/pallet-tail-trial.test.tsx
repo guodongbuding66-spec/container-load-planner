@@ -24,9 +24,9 @@ it("waits for every candidate, keeps the original and only applies the selected 
  const props=defaults();let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}
  const root=await mount(Hook);try{
   await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials;
-  await act(async()=>w.deliver({index:0,plan:runOrderCapacityTrial(trials[0])}));expect(task.current?.best).toBeUndefined();await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();
+  await act(async()=>w.deliver({index:0,plan:runOrderCapacityTrial(trials[0])}));expect(task.current?.best).toBeUndefined();expect(task.getReport()).toBeUndefined();await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();
   for(let index=1;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));
-  expect(task.current?.status).toBe("done");expect(task.best?.plan.metrics.loadedCount).toBe(16);expect(props.plan.metrics.loadedCount).toBe(8);expect(props.request.products[0].quantity).toBe(20);expect(props.onApply).not.toHaveBeenCalled();
+  expect(task.current?.status).toBe("done");expect(task.best?.plan.metrics.loadedCount).toBe(16);expect(props.plan.metrics.loadedCount).toBe(8);expect(props.request.products[0].quantity).toBe(20);expect(props.onApply).not.toHaveBeenCalled();expect(task.getReport()?.selectedCandidate?.loaded).toBe(16);
   await act(async()=>task.adopt());expect(props.onApply.mock.calls[0][0].looseQuantities).toEqual({a:8});expect(w.terminate).toHaveBeenCalled();
  }finally{await root.close();}
 });
@@ -36,7 +36,7 @@ it.each(["cancel","timeout","worker"])("discards partial batches on %s and ignor
   await act(async()=>w.deliver({index:0,plan:runOrderCapacityTrial(trials[0])}));
   if(kind==="cancel")await act(async()=>task.cancel());else if(kind==="timeout")await act(async()=>vi.advanceTimersByTime(30001));else await act(async()=>w.onerror?.());
   for(let index=1;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));
-  expect(task.best).toBeUndefined();expect(w.terminate).toHaveBeenCalled();await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();
+  expect(task.best).toBeUndefined();expect(task.getReport()).toBeUndefined();expect(w.terminate).toHaveBeenCalled();await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();
  }finally{await root.close();}
 });
 it("invalidates a preview after a parameter round trip and rejects its old replies",async()=>{
@@ -44,7 +44,7 @@ it("invalidates a preview after a parameter round trip and rejects its old repli
  const root=await mount(Hook);try{await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials,original=props;
   props={...props,request:{...props.request,clearance:1}};await root.render();props=original;await root.render();
   for(let index=0;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));
-  expect(task.current).toBeNull();expect(w.terminate).toHaveBeenCalled();await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();
+  expect(task.current).toBeNull();expect(task.getReport()).toBeUndefined();expect(w.terminate).toHaveBeenCalled();await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();
  }finally{await root.close();}
 });
 it("independently rejects a corrupt candidate and can still select later validated results",async()=>{
@@ -96,7 +96,7 @@ it("drops a joint batch after a secondary-ceiling round trip",async()=>{
  const request=jointPalletTailFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request)};let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}
  const root=await mount(Hook);try{await act(async()=>task.setSearchMode("joint"));await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials;
   await act(async()=>task.setSecondChoice({id:"row:b",limit:"2"}));await act(async()=>task.setSecondChoice({id:"row:b",limit:"3"}));
-  for(let index=0;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));expect(task.current).toBeNull();expect(w.terminate).toHaveBeenCalled();await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();
+  for(let index=0;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));expect(task.current).toBeNull();expect(task.getReport()).toBeUndefined();expect(w.terminate).toHaveBeenCalled();await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();
  }finally{await root.close();}
 });
 it("exposes the joint and detailed controls with keyboard-accessible native fields",()=>{
@@ -115,12 +115,19 @@ it.each(["ceiling","third row","mode"])("invalidates a three-group batch on %s r
  const request=triplePalletTailFixture();request.products.push({...request.products[2],id:"d",sku:"D"});const props={...defaults(),request,plan:packLoadingWorkflow(request)};let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}
  const root=await mount(Hook);try{await act(async()=>task.setSearchMode("triple"));await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials;
   if(kind==="mode"){await act(async()=>task.setSearchMode("joint"));await act(async()=>task.setSearchMode("triple"));}else{await act(async()=>task.setThirdChoice({id:kind==="third row"?"row:d":"row:c",limit:"1"}));await act(async()=>task.setThirdChoice({id:"row:c",limit:"2"}));}
-  for(let index=0;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));expect(task.current).toBeNull();expect(w.terminate).toHaveBeenCalled();await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();
+  for(let index=0;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));expect(task.current).toBeNull();expect(task.getReport()).toBeUndefined();expect(w.terminate).toHaveBeenCalled();await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();
  }finally{await root.close();}
 });
 it("rejects an oversized triple grid and missing third group before creating a Worker",async()=>{
  let request=triplePalletTailFixture();request.products.forEach(p=>p.quantity=100);let props={...defaults(),request,plan:packLoadingWorkflow(request)};let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}
  const root=await mount(Hook);try{await act(async()=>{task.setSearchMode("triple");task.setChoice({id:"row:a",limit:"4"});task.setSecondChoice({id:"row:b",limit:"4"});task.setThirdChoice({id:"row:c",limit:"4"});});expect(task.jointGrid).toBe(124);expect(task.validLimit).toBe(false);await act(async()=>task.run());expect(FakeWorker.instances).toHaveLength(0);
   request=jointPalletTailFixture();props={...defaults(),request,plan:packLoadingWorkflow(request)};await root.render();expect(task.thirdGroup).toBeUndefined();expect(task.validLimit).toBe(false);await act(async()=>task.run());expect(FakeWorker.instances).toHaveLength(0);
+ }finally{await root.close();}
+});
+
+it("only exports a current complete report, including no-improvement batches",async()=>{
+ const request=palletTailFixture();request.palletBuild!.config.length=1200;const props={...defaults(),request,plan:packLoadingWorkflow(request)};let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}
+ const root=await mount(Hook);try{expect(task.getReport()).toBeUndefined();await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials;for(let index=0;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));const getOld=task.getReport;expect(getOld()).toMatchObject({complete:true,selectedCandidate:null,status:"preview-not-applied"});
+  await act(async()=>task.setSearchMode("detailed"));await act(async()=>task.setSearchMode("quick"));expect(getOld()).toBeUndefined();expect(task.getReport()).toBeUndefined();expect(props.onApply).not.toHaveBeenCalled();
  }finally{await root.close();}
 });
