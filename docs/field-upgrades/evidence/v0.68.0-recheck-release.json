@@ -1,0 +1,47 @@
+{
+  "runtimeCommit": "58c785bd5d98b9937308f2c40d4a2757e193d34f",
+  "runtimeTree": "f50f4e5aa47d0da6c40473464950a226e0216c12",
+  "verifiedOn": "2026-10-29",
+  "vercel": {
+    "id": "dpl_1Z25mnaxJ6SNKVKcjhkT6Bce8DxM",
+    "state": "READY",
+    "alias": [
+      "container-load-planner-gray.vercel.app",
+      "container-load-planner-guodongbuding66-4957.vercel.app",
+      "container-load-planner-git-main-guodongbuding66-4957.vercel.app"
+    ],
+    "commit": "58c785bd5d98b9937308f2c40d4a2757e193d34f",
+    "project": {
+      "id": "prj_r8PcBkAQNeJQIUYqywz0Mv0VYY4g",
+      "name": "container-load-planner",
+      "framework": "nextjs"
+    }
+  },
+  "cloudflare": {
+    "deploymentId": "86e17c6b-169e-414c-8c15-4ee3edcba727",
+    "conclusion": "success"
+  },
+  "githubCI": {
+    "runId": 40621898150,
+    "jobs": [
+      {
+        "id": 122597653906,
+        "status": "completed",
+        "conclusion": "failure",
+        "steps": [],
+        "runner": "",
+        "startedAt": "2026-10-28T02:36:08Z",
+        "completedAt": "2026-10-28T02:36:10Z"
+      }
+    ],
+    "conclusion": "NOT PASSED: startup failure, no steps, root cause not retrieved"
+  },
+  "local": {
+    "unitTests": 1847,
+    "testFiles": 141,
+    "pageChecks": 21,
+    "build": "passed",
+    "lintErrors": 0,
+    "existingLintWarnings": 2
+  }
+}

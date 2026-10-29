@@ -1,0 +1,34 @@
+﻿序号,SKU,品名,套装编码,套号,套内序号,X(mm),Y(mm),Z(mm),长(mm),宽(mm),高(mm),方向,层级,重量(kg),记录类型,托盘关联,客户,目的地,卸货站次,货物外形,圆筒轴向,顶边或顶径比例,竖壁厚度比例,横壁厚度比例,高台长度比例,低台高度比例,旋转轴符号,实体模型JSON,保护间隙(mm),装载方式,坐标用途,包装结构JSON,包装总高(mm),包装规格ID,包装规格名称,装载单元类型
+0,floor-pallet-1,Tail test pallet,,,,0,0,0,800,1000,100,LWH,0,25,pallet,floor-pallet-1,,,,box,,,,,,,,,,palletized,vehicle-loading,"{""base"":""block"",""enclosure"":""none"",""material"":""wood"",""color"":""#d4af7b"",""opacity"":0.65,""deckBoards"":5,""runners"":3,""wallThickness"":30,""lid"":true}",100,primary,Tail test pallet,complete-unit
+0,floor-pallet-2,SKU B pallet,,,,800,0,0,800,1000,100,LWH,0,25,pallet,floor-pallet-2,,,,box,,,,,,,,,,palletized,vehicle-loading,"{""base"":""block"",""enclosure"":""none"",""material"":""wood"",""color"":""#d4af7b"",""opacity"":0.65,""deckBoards"":5,""runners"":3,""wallThickness"":30,""lid"":true}",100,sku-b,SKU B pallet,complete-unit
+0,floor-pallet-3,SKU C pallet,,,,1600,0,0,800,1000,100,LWH,0,25,pallet,floor-pallet-3,,,,box,,,,,,,,,,palletized,vehicle-loading,"{""base"":""block"",""enclosure"":""none"",""material"":""wood"",""color"":""#d4af7b"",""opacity"":0.65,""deckBoards"":5,""runners"":3,""wallThickness"":30,""lid"":true}",100,sku-c,SKU C pallet,complete-unit
+1,TAIL-A,Tail carton,,,,0,0,100,400,400,200,LWH,1,10,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Tail test pallet,unit-content
+2,TAIL-A,Tail carton,,,,0,400,100,400,400,200,LWH,1,10,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Tail test pallet,unit-content
+3,TAIL-A,Tail carton,,,,0,0,300,400,400,200,LWH,2,10,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Tail test pallet,unit-content
+4,TAIL-A,Tail carton,,,,0,400,300,400,400,200,LWH,2,10,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Tail test pallet,unit-content
+5,TAIL-A,Tail carton,,,,400,0,100,400,400,200,LWH,1,10,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Tail test pallet,unit-content
+6,TAIL-A,Tail carton,,,,400,400,100,400,400,200,LWH,1,10,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Tail test pallet,unit-content
+7,TAIL-A,Tail carton,,,,400,0,300,400,400,200,LWH,2,10,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Tail test pallet,unit-content
+8,TAIL-A,Tail carton,,,,400,400,300,400,400,200,LWH,2,10,cargo,floor-pallet-1,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,primary,Tail test pallet,unit-content
+9,TAIL-B,Tail carton,,,,800,0,100,400,400,200,LWH,1,10,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-b,SKU B pallet,unit-content
+10,TAIL-B,Tail carton,,,,800,400,100,400,400,200,LWH,1,10,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-b,SKU B pallet,unit-content
+11,TAIL-B,Tail carton,,,,800,0,300,400,400,200,LWH,2,10,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-b,SKU B pallet,unit-content
+12,TAIL-B,Tail carton,,,,800,400,300,400,400,200,LWH,2,10,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-b,SKU B pallet,unit-content
+13,TAIL-B,Tail carton,,,,1200,0,100,400,400,200,LWH,1,10,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-b,SKU B pallet,unit-content
+14,TAIL-B,Tail carton,,,,1200,400,100,400,400,200,LWH,1,10,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-b,SKU B pallet,unit-content
+15,TAIL-B,Tail carton,,,,1200,0,300,400,400,200,LWH,2,10,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-b,SKU B pallet,unit-content
+16,TAIL-B,Tail carton,,,,1200,400,300,400,400,200,LWH,2,10,cargo,floor-pallet-2,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-b,SKU B pallet,unit-content
+17,TAIL-C,Tail carton,,,,1600,0,100,400,400,200,LWH,1,10,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-c,SKU C pallet,unit-content
+18,TAIL-C,Tail carton,,,,1600,400,100,400,400,200,LWH,1,10,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-c,SKU C pallet,unit-content
+19,TAIL-C,Tail carton,,,,1600,0,300,400,400,200,LWH,2,10,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-c,SKU C pallet,unit-content
+20,TAIL-C,Tail carton,,,,1600,400,300,400,400,200,LWH,2,10,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-c,SKU C pallet,unit-content
+21,TAIL-C,Tail carton,,,,2000,0,100,400,400,200,LWH,1,10,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-c,SKU C pallet,unit-content
+22,TAIL-C,Tail carton,,,,2000,400,100,400,400,200,LWH,1,10,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-c,SKU C pallet,unit-content
+23,TAIL-C,Tail carton,,,,2000,0,300,400,400,200,LWH,2,10,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-c,SKU C pallet,unit-content
+24,TAIL-C,Tail carton,,,,2000,400,300,400,400,200,LWH,2,10,cargo,floor-pallet-3,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,sku-c,SKU C pallet,unit-content
+25,TAIL-A,Tail carton,,,,2400,0,0,400,400,200,LWH,1,10,cargo,,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,,,loose-cargo
+26,TAIL-A,Tail carton,,,,2400,400,0,400,400,200,LWH,1,10,cargo,,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,,,loose-cargo
+27,TAIL-B,Tail carton,,,,2400,0,200,400,400,200,LWH,2,10,cargo,,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,,,loose-cargo
+28,TAIL-B,Tail carton,,,,2400,400,200,400,400,200,LWH,2,10,cargo,,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,,,loose-cargo
+29,TAIL-C,Tail carton,,,,2400,0,400,400,400,200,LWH,3,10,cargo,,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,,,loose-cargo
+30,TAIL-C,Tail carton,,,,2400,400,400,400,400,200,LWH,3,10,cargo,,,,,box,H,,,,,,,,,palletized,vehicle-loading,,,,,loose-cargo

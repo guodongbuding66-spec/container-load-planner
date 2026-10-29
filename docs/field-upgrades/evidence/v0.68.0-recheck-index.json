@@ -1,0 +1,146 @@
+{
+  "date": "2026-10-29",
+  "runtimeCommit": "58c785bd5d98b9937308f2c40d4a2757e193d34f",
+  "checks": [
+    {
+      "name": "both-site and restored coordinates/pallets equal",
+      "passed": true
+    },
+    {
+      "name": "formal unchanged demand and validated three-group result",
+      "passed": true
+    },
+    {
+      "name": "formal unchanged demand and validated three-group result",
+      "passed": true
+    },
+    {
+      "name": "formal unchanged demand and validated three-group result",
+      "passed": true
+    },
+    {
+      "name": "raw CSV equality",
+      "passed": true,
+      "sha256": "73f73bccb87766a859a228b70621908beedd29aa6d480bf0484aa019d35506d0"
+    },
+    {
+      "name": "cloudflare 18 benchmark runs valid",
+      "passed": true
+    },
+    {
+      "name": "cloudflare pre-existing product fields and non-product input restored",
+      "passed": true
+    },
+    {
+      "name": "cloudflare final two strategies 116 cartons 3842 kg and no pallets",
+      "passed": true
+    },
+    {
+      "name": "vercel 18 benchmark runs valid",
+      "passed": true
+    },
+    {
+      "name": "vercel pre-existing product fields and non-product input restored",
+      "passed": true
+    },
+    {
+      "name": "vercel final two strategies 116 cartons 3842 kg and no pallets",
+      "passed": true
+    }
+  ],
+  "nativeObservations": [
+    "two-group candidate 28 includes untouched C row 8 loaded and 2 unloaded",
+    "both sites complete 26 allocations and adopt 30 cartons",
+    "third-ceiling round trip clears old adoption, Tab and Enter run a complete batch",
+    "English trial text contains no Chinese labels",
+    "both sites report WebGL unavailable: real GPU PENDING"
+  ],
+  "provenance": "These are newly retained native outputs on 2026-10-29. Earlier 2026-10-28 scratch originals were lost before archiving and are not claimed as retained. Two downloads failed to materialize; only the verified replacement originals are included.",
+  "limitations": [
+    "GitHub Actions startup failed with no steps; root cause unknown",
+    "Original user 596 requested /16 loaded workspace remains unavailable; this 30-carton controlled case is not its fix acceptance",
+    "Real GPU, other browsers and field loading PENDING"
+  ],
+  "files": [
+    {
+      "path": "v0.68.0-recheck-benchmark-cloudflare.json",
+      "bytes": 57438,
+      "sha256": "3bb5d4eac80f74eeb2dc21af0ee33b953b55fdf17366432fc5abb72e14063d44"
+    },
+    {
+      "path": "v0.68.0-recheck-benchmark-vercel.json",
+      "bytes": 57350,
+      "sha256": "d9604e4b8bb7e6c3e1bd5138dac5ab465c56d4d1bf86c1787b3b9983b274ea0e"
+    },
+    {
+      "path": "v0.68.0-recheck-coordinates-cloudflare.csv",
+      "bytes": 6049,
+      "sha256": "73f73bccb87766a859a228b70621908beedd29aa6d480bf0484aa019d35506d0"
+    },
+    {
+      "path": "v0.68.0-recheck-coordinates-vercel.csv",
+      "bytes": 6049,
+      "sha256": "73f73bccb87766a859a228b70621908beedd29aa6d480bf0484aa019d35506d0"
+    },
+    {
+      "path": "v0.68.0-recheck-cross-site-plan.json",
+      "bytes": 20504,
+      "sha256": "a18796ff6aedddfba7931e1ee23e7530b8b2f8067b8edf0295b3de6d80e608bf"
+    },
+    {
+      "path": "v0.68.0-recheck-default-before-cloudflare.json",
+      "bytes": 2647,
+      "sha256": "a4c291aa96d24db1515c0def46bfbc54591b4290c189e2b1d2de529bd659ec0e"
+    },
+    {
+      "path": "v0.68.0-recheck-default-before-vercel.json",
+      "bytes": 2647,
+      "sha256": "924923166627f42f82a917d34c1c08fcf3c0fbdc0c94b0cfe385bf540a541249"
+    },
+    {
+      "path": "v0.68.0-recheck-default-final-cloudflare.json",
+      "bytes": 134245,
+      "sha256": "0e7d99ee689ad5d66f41fc1559dc656364c59ddbf15b732e177e3af56cf2f628"
+    },
+    {
+      "path": "v0.68.0-recheck-default-final-vercel.json",
+      "bytes": 134245,
+      "sha256": "6f84cf9a576947bb866bb2e8cd1b46e8e184d297ce3271944c84a448768ecff9"
+    },
+    {
+      "path": "v0.68.0-recheck-local-checks.txt",
+      "bytes": 4885,
+      "sha256": "d735490d95fdab1ce015f59451950264fff11339a8fdf7a7efd0a09ab613a881"
+    },
+    {
+      "path": "v0.68.0-recheck-plan-cloudflare.json",
+      "bytes": 22523,
+      "sha256": "a25664c8a74bec4bb82355b12376f68bf677cbf48f8770863a6a71acac867604"
+    },
+    {
+      "path": "v0.68.0-recheck-plan-vercel.json",
+      "bytes": 22509,
+      "sha256": "6b6c8ae8ae6466a4d063cff094bdf01534298cb0147f777dc5ae4104a3d98e13"
+    },
+    {
+      "path": "v0.68.0-recheck-proof.jpg",
+      "bytes": 101264,
+      "sha256": "4e217b2ca5bc0827401388fcc81472e814e38f2a56b2105660d2796361ced6cf"
+    },
+    {
+      "path": "v0.68.0-recheck-release.json",
+      "bytes": 1311,
+      "sha256": "8491e8213990c26451c557b0e194eab2feaddb8ed7cbb8e8dda2560d9c53523a"
+    },
+    {
+      "path": "v0.68.0-recheck-seed-triple.json",
+      "bytes": 4562,
+      "sha256": "f14840dc83c80270936afbfcfa7450c6735ea73f346d2dff3a4741c270047fb6"
+    },
+    {
+      "path": "v0.68.0-recheck-triple-workspace-cloudflare.json",
+      "bytes": 69090,
+      "sha256": "af9a6aa075202f634153db7483545476a9604f26ed9baeedd6c886daa3fd915a"
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> container-load-planner@0.1.0 build:pages
+> npm run verify && CF_PAGES=1 next build --webpack
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> container-load-planner@0.1.0 verify
+> npm run lint && npm run typecheck && npm run test:unit && node --test tests/rendered-html.test.mjs
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> container-load-planner@0.1.0 lint
+> bash scripts/sites-env.sh -- eslint . --ignore-pattern dist --ignore-pattern .next
+
+
+/workspace/scratch/f7970c78ab4e/container-load-planner/components/product-catalog.tsx
+  16:3553  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/workspace/scratch/f7970c78ab4e/container-load-planner/components/transport-picker.tsx
+  14:226  warning  React Hook useMemo has an unnecessary dependency: 'language'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 2 problems (0 errors, 2 warnings)
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> container-load-planner@0.1.0 typecheck
+> next typegen && tsc --noEmit
+
+Generating route types...
+✓ Types generated successfully
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> container-load-planner@0.1.0 test:unit
+> bash scripts/sites-env.sh -- vitest run --config vitest.config.ts
+
+
+ RUN  v4.1.11 /workspace/scratch/f7970c78ab4e/container-load-planner
+
+
+ Test Files  141 passed (141)
+      Tests  1847 passed (1847)
+   Start at  20:43:25
+   Duration  58.12s (transform 3.51s, setup 0ms, import 26.70s, tests 69.55s, environment 13ms)
+
+✔ declares preview metadata without relying on a stale local build (7.876082ms)
+✔ includes result-only progress and three-view interfaces (1.125379ms)
+✔ prints three-view diagrams as undistorted vector artwork (1.614618ms)
+✔ includes arbitrary multi-carton set creation and traceability (2.28512ms)
+✔ blocks stale or invalid exports and discards obsolete worker results (1.51717ms)
+✔ keeps every prediction label on the selected immutable coordinate plan (1.057878ms)
+✔ only auto-recalculates in the result step and hides stale visual data (2.912167ms)
+✔ batches all dimension fields into one committed recalculation (1.474016ms)
+✔ debounces draft persistence and recognizes a one-code multi-carton CSV as one product (1.447466ms)
+✔ defers the heavy 3D bundle until a result exists and isolates render failures (1.444762ms)
+✔ provides accessible names for mode, ranges, and product data fields (1.259552ms)
+✔ keeps unit switching canonical and removes implicit layer caps and leading-zero coercion (2.611283ms)
+✔ keeps a multi-carton product in single-product mode without carton demand input (1.851896ms)
+✔ keeps the two-column workspace contained and provides Liquid Glass fallbacks (0.763492ms)
+✔ offers a worker-executable strategy and a unit-safe real loading benchmark (2.909402ms)
+✔ runs two independent solvers and exposes actionable strategy guidance (2.563801ms)
+✔ protects mobile calculations and enforces a readable typography floor (3.284099ms)
+✔ separates utilization planning from the selected strategy capacity ceiling (1.84104ms)
+✔ uses sets as the primary visualization unit for a single multi-carton product (1.399243ms)
+✔ ships Cloudflare security headers without blocking the static Next bootstrap or packing worker (0.463099ms)
+✔ auto-calculates CBM and displays complete sets before carton details (1.4242ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 134.029868
+▲ Next.js 16.3.3 (webpack)
+✓ Running next.config.ts took 27ms
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 10.1s
+  Running TypeScript ...
+  Finished TypeScript in 14.5s ...
+  Collecting page data using 4 workers ...
+  Generating static pages using 4 workers (0/3) ...
+✓ Generating static pages using 4 workers (3/3) in 1496ms
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ○ /
+└ ○ /_not-found
+
+
+○  (Static)  prerendered as static content
+
