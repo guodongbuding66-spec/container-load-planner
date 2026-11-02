@@ -34,7 +34,7 @@ export type TailCostComparison=ReturnType<typeof compareTailCosts>;
 export function buildTailCostReport(input:TailReportInput,quote:TailCostQuote,createdAt=new Date().toISOString()){
  if(!input.best)throw Error("No selected tail candidate for cost comparison");
  if(input.baseline.workflow!=="palletized"||input.baseline.strategy!==(input.request.strategy??"practical")||JSON.stringify(parsePalletBuild(input.baseline.palletBuild))!==JSON.stringify(parsePalletBuild(input.request.palletBuild)))throw Error("Stale tail cost baseline");
- const baseline=restorePackingSnapshot(input.request,input.baseline),candidate=reviewOrderCapacityTrial(input.best.trial,input.best.plan);
+ const baseline={...restorePackingSnapshot(input.request,input.baseline),id:input.baseline.id},candidate=reviewOrderCapacityTrial(input.best.trial,input.best.plan);
  if(!baseline.validation.valid)throw Error("Invalid tail cost baseline");
  const trial=buildTailTrialReport({...input,baseline,best:{...input.best,plan:candidate}},createdAt);
  const comparison=compareTailCosts(input.request,baseline,candidate,quote);

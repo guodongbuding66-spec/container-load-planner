@@ -40,7 +40,7 @@ it("refuses incomplete, corrupt or stale cost reports even when quotes are compl
  const a=batch();a.rows.pop();expect(()=>buildTailCostReport(a,quoted)).toThrow(/complete/);const b=batch();b.best.plan.placements[0].z=-10;expect(()=>buildTailCostReport(b,quoted)).toThrow();const c=batch();c.best.trial.request.palletBuild!.config.maxLoad++;expect(()=>buildTailCostReport(c,quoted)).toThrow(/original|packaging/);
 });
 it("derives report quantities and weight from reviewed geometry instead of trusting cached metrics",()=>{
- const b=batch();b.baseline.metrics.grossWeight=999999;b.best.plan.metrics.grossWeight=888888;const r=buildTailCostReport(b,quoted);expect(r.comparison.before.grossWeightKg).toBe(105);expect(r.comparison.after.grossWeightKg).toBe(185);expect(r.trial.selectedCandidate!.grossWeightKg).toBe(185);
+ const b=batch();b.baseline.metrics.grossWeight=999999;b.best.plan.metrics.grossWeight=888888;const r=buildTailCostReport(b,quoted);expect(r.trial.baseline.id).toBe(b.baseline.id);expect(r.comparison.before.grossWeightKg).toBe(105);expect(r.comparison.after.grossWeightKg).toBe(185);expect(r.trial.selectedCandidate!.grossWeightKg).toBe(185);
  const corrupt=batch();corrupt.baseline.placements[0].z=-10;expect(()=>buildTailCostReport(corrupt,quoted)).toThrow();
 });
 it("cost CSV preserves unknown cells, free zero, bilingual scope and formula protection",()=>{
