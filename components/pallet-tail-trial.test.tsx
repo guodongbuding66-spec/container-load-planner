@@ -27,7 +27,9 @@ it("waits for every candidate, keeps the original and only applies the selected 
   await act(async()=>w.deliver({index:0,plan:runOrderCapacityTrial(trials[0])}));expect(task.current?.best).toBeUndefined();expect(task.getReport()).toBeUndefined();await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();
   for(let index=1;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));
   expect(task.current?.status).toBe("done");expect(task.best?.plan.metrics.loadedCount).toBe(16);expect(props.plan.metrics.loadedCount).toBe(8);expect(props.request.products[0].quantity).toBe(20);expect(props.onApply).not.toHaveBeenCalled();expect(task.getReport()?.selectedCandidate?.loaded).toBe(16);
+  const oldCost=task.getCostReport;expect(oldCost({freight:100,pricing:{currency:"CNY",packaging:{primary:20}}})).toMatchObject({status:"preview-not-applied",comparison:{complete:true,before:{loaded:8},after:{loaded:16}}});expect(props.onApply).not.toHaveBeenCalled();
   await act(async()=>task.adopt());expect(props.onApply.mock.calls[0][0].looseQuantities).toEqual({a:8});expect(w.terminate).toHaveBeenCalled();
+  await act(async()=>task.setSearchMode("detailed"));expect(oldCost({freight:100,pricing:{currency:"CNY",packaging:{primary:20}}})).toBeUndefined();
  }finally{await root.close();}
 });
 it.each(["cancel","timeout","worker"])("discards partial batches on %s and ignores late final results",async kind=>{
@@ -127,7 +129,7 @@ it("rejects an oversized triple grid and missing third group before creating a W
 
 it("only exports a current complete report, including no-improvement batches",async()=>{
  const request=palletTailFixture();request.palletBuild!.config.length=1200;const props={...defaults(),request,plan:packLoadingWorkflow(request)};let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}
- const root=await mount(Hook);try{expect(task.getReport()).toBeUndefined();await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials;for(let index=0;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));const getOld=task.getReport;expect(getOld()).toMatchObject({complete:true,selectedCandidate:null,status:"preview-not-applied"});
-  await act(async()=>task.setSearchMode("detailed"));await act(async()=>task.setSearchMode("quick"));expect(getOld()).toBeUndefined();expect(task.getReport()).toBeUndefined();expect(props.onApply).not.toHaveBeenCalled();
+ const root=await mount(Hook);try{expect(task.getReport()).toBeUndefined();await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials;for(let index=0;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));const getOld=task.getReport,getOldCost=task.getCostReport;expect(getOldCost({freight:100,pricing:{currency:"CNY",packaging:{}}})).toBeUndefined();expect(getOld()).toMatchObject({complete:true,selectedCandidate:null,status:"preview-not-applied"});
+  await act(async()=>task.setSearchMode("detailed"));await act(async()=>task.setSearchMode("quick"));expect(getOld()).toBeUndefined();expect(getOldCost({freight:100,pricing:{currency:"CNY",packaging:{}}})).toBeUndefined();expect(task.getReport()).toBeUndefined();expect(props.onApply).not.toHaveBeenCalled();
  }finally{await root.close();}
 });

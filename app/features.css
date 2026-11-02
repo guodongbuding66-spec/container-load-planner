@@ -196,3 +196,6 @@
 .tail-order-review caption{text-align:start;font-weight:700;padding-block:8px;}
 .tail-order-review th[scope="row"]{text-align:start;font-weight:600;}
 .tail-order-review tfoot{font-weight:700;}
+
+.tail-cost-comparison table{font-variant-numeric:tabular-nums}
+.tail-cost-comparison>summary{font-weight:600}

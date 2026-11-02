@@ -9,10 +9,10 @@ import type {PackingRequest,PackingResult} from "./types";
 
 export type TailReportGroup={id:string;name:string;limit:number;cartonsPerUnit:number};
 export type TailComparisonRow={units:number;allocation?:string;groups:{id:string;name:string;units:number}[];loaded:number|null;retained:boolean;problem?:string};
-type ReportInput={request:PackingRequest;baseline:PackingResult;mode:TailSearchMode;groups:TailReportGroup[];rows:TailComparisonRow[];best?:TailCandidate;canApply:boolean};
+export type TailReportInput={request:PackingRequest;baseline:PackingResult;mode:TailSearchMode;groups:TailReportGroup[];rows:TailComparisonRow[];best?:TailCandidate;canApply:boolean};
 
 /** Serialize a complete current batch; this format is intentionally separate from workspace backups. */
-export function buildTailTrialReport({request,baseline,mode,groups,rows,best,canApply}:ReportInput,createdAt=new Date().toISOString()){
+export function buildTailTrialReport({request,baseline,mode,groups,rows,best,canApply}:TailReportInput,createdAt=new Date().toISOString()){
  const count=mode==="joint"?2:mode==="triple"?3:1;
  if(!["quick","detailed","joint","triple"].includes(mode)||groups.length!==count||new Set(groups.map(g=>g.id)).size!==count||groups.some(g=>!Number.isSafeInteger(g.limit)||g.limit<1||g.limit>64||!Number.isSafeInteger(g.cartonsPerUnit)||g.cartonsPerUnit<1)||!baseline.validation.valid)throw Error("Invalid tail report scope");
  const eligible=tailCargoGroups(request,baseline);if(groups.some(g=>!eligible.some(e=>e.id===g.id&&e.cartonsPerUnit===g.cartonsPerUnit&&e.name===g.name&&g.limit<=e.availableUnits)))throw Error("Tail report groups differ from original demand");
