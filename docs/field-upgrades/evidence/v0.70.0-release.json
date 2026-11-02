@@ -1,0 +1,128 @@
+{
+  "date": "2026-11-02",
+  "runtimeCommit": "297e325149cf84b3bba170b49608ac39d4844ba9",
+  "runtimeTree": "d3f1ecc3572ecfaa32297168526e0313fe3e9be2",
+  "local": {
+    "unitTests": 1875,
+    "testFiles": 145,
+    "pageChecks": 21,
+    "lintErrors": 0,
+    "existingLintWarnings": 2,
+    "typecheck": "passed",
+    "productionBuild": "passed"
+  },
+  "cloudflare": {
+    "id": "2643d522-b82f-43bb-bb09-42906f7c0848",
+    "conclusion": "success"
+  },
+  "vercel": {
+    "id": "dpl_7FCiaWkdn1WgBHfM621AsgEFqScL",
+    "state": "READY",
+    "sha": "297e325149cf84b3bba170b49608ac39d4844ba9",
+    "aliases": [
+      "container-load-planner-gray.vercel.app",
+      "container-load-planner-guodongbuding66-4957.vercel.app",
+      "container-load-planner-git-main-guodongbuding66-4957.vercel.app"
+    ],
+    "buildEvidence": [
+      {
+        "date": 1793624581811,
+        "text": "ℹ pass 21"
+      },
+      {
+        "date": 1793624581443,
+        "text": "      Tests  1875 passed (1875)"
+      },
+      {
+        "date": 1793624581437,
+        "text": " Test Files  145 passed (145)"
+      },
+      {
+        "date": 1793624690161,
+        "text": "Deployment completed"
+      },
+      {
+        "date": 1793624688393,
+        "text": "○  (Static)  prerendered as static content"
+      },
+      {
+        "date": 1793624631487,
+        "text": "✓ Compiled successfully in 45s"
+      }
+    ]
+  },
+  "githubActions": {
+    "runId": 41448945107,
+    "jobs": [
+      {
+        "id": 125289016285,
+        "status": "completed",
+        "conclusion": "success",
+        "runner_name": "GitHub Actions 1000040535",
+        "started_at": "2026-11-02T12:58:03Z",
+        "completed_at": "2026-11-02T13:01:26Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm ci",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm run build:pages",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ]
+  },
+  "pending": [
+    "Real GPU and multiple browsers",
+    "Original 596-to-16 full workspace acceptance",
+    "Automatic economic tail search and cross-container optimization"
+  ],
+  "excluded": [
+    "Forklift operation simulation"
+  ],
+  "futureDisabled": [
+    "Accounts",
+    "Membership",
+    "Payments"
+  ],
+  "preAcceptanceFix": {
+    "commit": "051194b63af596dbf32c93e2cbf6d15379893657",
+    "problem": "Independent review generated a fresh baseline ID; detected by native JSON comparison before acceptance.",
+    "fixedBy": "297e325149cf84b3bba170b49608ac39d4844ba9",
+    "finalArtifacts": "Trial, formal plan, CSV, missing/free/currency-reset, benchmark and restored workspace downloads all repeated on final runtime."
+  }
+}

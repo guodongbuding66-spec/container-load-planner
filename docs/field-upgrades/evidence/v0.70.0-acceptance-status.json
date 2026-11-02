@@ -1,0 +1,57 @@
+{
+  "date": "2026-11-02",
+  "runtimeCommit": "297e325149cf84b3bba170b49608ac39d4844ba9",
+  "software": "passed",
+  "nativeAcceptance": {
+    "passedAssertions": 26,
+    "sites": 2,
+    "benchmarkRunsPerSite": 18,
+    "trialBaselineCartons": 24,
+    "trialCandidateCartons": 30,
+    "configuredTotalCny": 1250,
+    "formalPlanIdsMatchReports": true,
+    "originalDraftRestored": {
+      "cartons": 116,
+      "kg": 3842,
+      "pallets": 0
+    },
+    "normalization": "Original fields preserved; previously omitted existing defaults made explicit."
+  },
+  "rawArtifactArchive": {
+    "status": "PENDING",
+    "reason": "Execution environment became unavailable during final documentation and archive step; original downloads and screenshot cannot currently be retrieved.",
+    "generatedManifest": {
+      "fileCount": 19,
+      "bytes": 664630
+    },
+    "recovery": {
+      "workspace": "/workspace/scratch/f7970c78ab4e",
+      "artifactDirectory": "container-load-planner/docs/field-upgrades/evidence",
+      "manifest": "v0.70.0-acceptance-index.json",
+      "browserDownloadDirectory": "/workspace/scratch/53d524e8-24f0-47b6-a762-99751e8ed2c1",
+      "lastDownloadIds": {
+        "before-cloudflare": "dd4a4f52-2e14-4a75-a099-91b1cbd4e50b",
+        "before-vercel": "8a25622f-3581-45d5-837a-05d42a2a296c",
+        "cost-missing-cloudflare": "c0d8b7e9-89be-4303-8bc4-851ab3e61c79",
+        "cost-full-cloudflare": "7662527f-1970-44af-9ffa-6725b3a9110c",
+        "cost-full-vercel": "7d4ba13e-e49a-456d-876d-e6c9dc328251",
+        "cost-rows-cloudflare-zh": "67d1363e-8bdd-4ce3-b05f-ad7499623fce",
+        "cost-rows-vercel-en": "116279fb-56dd-4ae1-84f8-185a96f74be6",
+        "cost-free-cloudflare": "f98ee969-69d9-4f4d-b9af-a056c2e5f03b",
+        "cost-currency-reset-cloudflare": "75348988-60d6-4d3d-9aab-992a121e5798",
+        "formal-not-applied": "359555f1-afbb-4e71-a694-2b9f4f7d1b14",
+        "formal-not-applied-vercel": "0a31e02a-26a6-4f16-93f9-fd18feb1d490",
+        "benchmark-cloudflare": "dc7bf7d0-cb34-4115-a619-c8f49d6a6e3d",
+        "benchmark-vercel": "69b4599c-287b-4fd9-bcfa-e762a956d9c5",
+        "default-final-cloudflare": "6b47255b-a1da-4f7e-8dd5-6e65fe66a87b",
+        "default-final-vercel": "765cdedd-8c20-4308-9bd2-c91f99738046"
+      }
+    },
+    "next": "Recover and verify original bytes if available. Otherwise rerun controlled native acceptance and record fresh provenance; do not reconstruct expected reports or screenshots."
+  },
+  "pending": [
+    "Original 596-to-16 workspace acceptance",
+    "Real GPU/multiple browsers",
+    "Economic tail search, automatic repacking and cross-container optimization"
+  ]
+}
