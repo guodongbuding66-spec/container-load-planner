@@ -4,14 +4,16 @@ import {compareTailCosts,buildTailCostCsv,type TailCostQuote,type TailCostReport
 import {priceTailCandidates,buildTailCandidateCostCsv} from "../lib/packing/tail-cost-table";
 import type {TailComparisonRow} from "../lib/packing/pallet-tail-report";
 import {TailCandidateCostTable} from "./tail-candidate-cost-table";
+import {TailEconomicPreview} from "./tail-economic-preview";
+import type {TailReportInput} from "../lib/packing/pallet-tail-report";
 import {FleetPackagingPrices} from "./fleet-packaging";
 import {NumericInput} from "./numeric-input";
 import {TailPricingFiles} from "./tail-pricing-files";
 import {tr,useLanguage} from "./language";
 import type {PackingRequest,PackingResult} from "../lib/packing/types";
 
-type Props={request:PackingRequest;baseline:PackingResult;candidate:PackingResult;disabled:boolean;getReport:(quote:TailCostQuote)=>TailCostReport|undefined;rows?:TailComparisonRow[];selectedGroups?:{id:string;units:number}[];canApply?:boolean;onAdopt?:(row:TailComparisonRow)=>boolean};
-export function TailCostComparison({request,baseline,candidate,disabled,getReport,rows,selectedGroups,canApply=false,onAdopt}:Props){
+type Props={request:PackingRequest;baseline:PackingResult;candidate:PackingResult;disabled:boolean;getReport:(quote:TailCostQuote)=>TailCostReport|undefined;getTrialInput?:()=>TailReportInput|undefined;rows?:TailComparisonRow[];selectedGroups?:{id:string;units:number}[];canApply?:boolean;onAdopt?:(row:TailComparisonRow)=>boolean};
+export function TailCostComparison({request,baseline,candidate,disabled,getReport,getTrialInput,rows,selectedGroups,canApply=false,onAdopt}:Props){
  const language=useLanguage(),[quote,setQuote]=useState<TailCostQuote>({freight:0,pricing:{currency:"CNY",packaging:{}}}),[validity,setValidity]=useState<Record<string,boolean>>({}),[failed,setFailed]=useState(false),[quoteRevision,setQuoteRevision]=useState(0);
  const invalid=Object.values(validity).some(v=>!v),costs=useMemo(()=>{try{return compareTailCosts(request,baseline,candidate,quote);}catch{return null;}},[request,baseline,candidate,quote]);
  const table=useMemo(()=>{try{return rows&&selectedGroups?priceTailCandidates(request,baseline,candidate,rows,quote,selectedGroups):null;}catch{return null;}},[request,baseline,candidate,rows,quote,selectedGroups]);
@@ -40,6 +42,7 @@ export function TailCostComparison({request,baseline,candidate,disabled,getRepor
    {!!costs.after.costs.lines?.length&&<div className="upgrade-table-wrap"><table><thead><tr><th>{tr("附加项目","Additional charge")}</th><th>{tr("原数量／费用","Before quantity / cost")}</th><th>{tr("候选数量／费用","Candidate quantity / cost")}</th></tr></thead><tbody>{costs.after.costs.lines.map((l,i)=><tr key={l.id}><th>{l.label}</th><td>{costs.before.costs.lines![i].quantity} / {money(costs.before.costs.lines![i].subtotal)}</td><td>{l.quantity} / {money(l.subtotal)}</td></tr>)}</tbody></table></div>}
   </>}
   {table&&!invalid&&<TailCandidateCostTable table={table} rows={rows!} disabled={disabled} canApply={canApply} onAdopt={onAdopt}/>}
+  {table&&getTrialInput&&<TailEconomicPreview sourceKey={JSON.stringify([request,baseline,candidate,rows,selectedGroups,quoteRevision])} quote={quote} enabled={!disabled&&!invalid&&table.canRank} canApply={canApply} getInput={getTrialInput} onAdopt={onAdopt}/>}
   <div className="upgrade-actions"><button type="button" className="button" disabled={disabled||invalid||!costs} onClick={()=>download("json")}>{tr("下载尾数费用 JSON","Download tail cost JSON")}</button><button type="button" className="button" disabled={disabled||invalid||!costs} onClick={()=>download("csv")}>{tr("下载尾数费用 CSV","Download tail cost CSV")}</button>{table&&<button type="button" className="button" disabled={disabled||invalid||!costs} onClick={()=>download("candidates")}>{tr("下载候选费用 CSV","Download candidate cost CSV")}</button>}</div>
   <small>{tr("费用报告标记为未采用预览，JSON 包含当前完整试算、逐行数量、五项复核和各候选费用。费用 CSV 中空值表示未核算。","Cost reports are unapplied previews. JSON includes the complete trial, row quantities, five reviews and candidate costs. Empty cost CSV cells mean unknown.")}</small>
   {failed&&<p role="alert">{tr("费用报告导出失败，请重新运行当前试算后重试。","Cost report export failed; rerun the current trial and try again.")}</p>}

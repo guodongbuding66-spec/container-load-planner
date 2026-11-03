@@ -11,8 +11,9 @@ import {reviewOrderCapacityTrial} from "./order-capacity";
 import type {PackingRequest,PackingResult} from "./types";
 
 export {parseTailCostQuote,type TailCostQuote} from "./tail-cost-quote";
-/** Accounting only: selection remains quantity-first, and the remaining order is outside this scope. */
-export function compareTailCosts(request:PackingRequest,baseline:PackingResult,candidate:PackingResult,quote:TailCostQuote){
+export type TailCostSelection="quantity-first"|"quantity-first-then-equal-delivery-cost";
+/** Account for the selected preview; the remaining order is outside this scope. */
+export function compareTailCosts(request:PackingRequest,baseline:PackingResult,candidate:PackingResult,quote:TailCostQuote,selection:TailCostSelection="quantity-first"){
  if(request.workflow!=="palletized"||!baseline.validation.valid||!candidate.validation.valid||!improvesPalletTrial(candidate,baseline))throw Error("Invalid tail cost candidate");
  const {pricing}=parseTailCostQuote(quote,request);
  const specs=palletSpecifications(parsePalletBuild(request.palletBuild)),ids=new Set(specs.map(s=>s.id));
@@ -26,18 +27,18 @@ export function compareTailCosts(request:PackingRequest,baseline:PackingResult,c
   const beforeQuantity=(baseline.pallets??[]).filter(p=>(p.specificationId??"primary")===s.id).length,quantity=(candidate.pallets??[]).filter(p=>(p.specificationId??"primary")===s.id).length,unitPrice=pricing.packaging[s.id]??null;
   return {id:s.id,name:s.config.name,beforeQuantity,quantity,unitPrice,beforeSubtotal:beforeQuantity===0?0:unitPrice===null?null:unitPrice*beforeQuantity,subtotal:quantity===0?0:unitPrice===null?null:unitPrice*quantity};
  });
- return {scope:"configured-single-container-costs" as const,selection:"quantity-first" as const,currency:pricing.currency,quote:structuredClone({freight:quote.freight,pricing}),before,after,packages,complete:before.costs.complete&&after.costs.complete,costDifference:before.costs.total!==null&&after.costs.total!==null?after.costs.total-before.costs.total:null};
+ return {scope:"configured-single-container-costs" as const,selection,currency:pricing.currency,quote:structuredClone({freight:quote.freight,pricing}),before,after,packages,complete:before.costs.complete&&after.costs.complete,costDifference:before.costs.total!==null&&after.costs.total!==null?after.costs.total-before.costs.total:null};
 }
 export type TailCostComparison=ReturnType<typeof compareTailCosts>;
 
 /** Rebuild and independently review the current complete trial before exporting accounting. */
-export function buildTailCostReport(input:TailReportInput,quote:TailCostQuote,createdAt=new Date().toISOString()){
+export function buildTailCostReport(input:TailReportInput,quote:TailCostQuote,createdAt=new Date().toISOString(),selection:TailCostSelection="quantity-first"){
  if(!input.best)throw Error("No selected tail candidate for cost comparison");
  if(input.baseline.workflow!=="palletized"||input.baseline.strategy!==(input.request.strategy??"practical")||JSON.stringify(parsePalletBuild(input.baseline.palletBuild))!==JSON.stringify(parsePalletBuild(input.request.palletBuild)))throw Error("Stale tail cost baseline");
  const baseline={...restorePackingSnapshot(input.request,input.baseline),id:input.baseline.id},candidate=reviewOrderCapacityTrial(input.best.trial,input.best.plan);
  if(!baseline.validation.valid)throw Error("Invalid tail cost baseline");
  const trial=buildTailTrialReport({...input,baseline,best:{...input.best,plan:candidate}},createdAt);
- const comparison=compareTailCosts(input.request,baseline,candidate,quote);
+ const comparison=compareTailCosts(input.request,baseline,candidate,quote,selection);
  return {format:"cargo-fit-tail-cost-report" as const,version:1 as const,engineVersion:trial.engineVersion,createdAt,status:"preview-not-applied" as const,comparison,trial,candidateCosts:priceTailCandidates(input.request,baseline,candidate,input.rows,quote,input.best.trial.tailReservationChange!.groups??[{id:input.groups[0].id,units:input.best.trial.tailReservationChange!.units}])};
 }
 export type TailCostReport=ReturnType<typeof buildTailCostReport>;

@@ -79,12 +79,12 @@ export function usePalletTailTrial({request,plan,disabled:inputDisabled,canApply
  };
  const getReport=()=>{const input=getReportInput();return input?buildTailTrialReport(input):undefined;};
  const getCostReport=(quote:TailCostQuote)=>{const input=getReportInput();return input?.best?buildTailCostReport(input,quote):undefined;};
- return {groups,setChoice,group,limitText,searchMode,setSearchMode,secondGroups,secondGroup,secondLimitText,setSecondChoice,thirdGroups,thirdGroup,thirdLimitText,setThirdChoice,fourthGroups,fourthGroup,fourthLimitText,setFourthChoice,three,four,joint,jointGrid,jointTooLarge,disabled,validLimit,run,cancel,adopt,current,running,best,blocked,getReport,getCostReport,selectedGroups,adoptCandidate};
+ return {groups,setChoice,group,limitText,searchMode,setSearchMode,secondGroups,secondGroup,secondLimitText,setSecondChoice,thirdGroups,thirdGroup,thirdLimitText,setThirdChoice,fourthGroups,fourthGroup,fourthLimitText,setFourthChoice,three,four,joint,jointGrid,jointTooLarge,disabled,validLimit,run,cancel,adopt,current,running,best,blocked,getReport,getReportInput,getCostReport,selectedGroups,adoptCandidate};
 }
 
 export function PalletTailTrial(props:Props){
  const {request,plan,canApply,onApply}=props,language=useLanguage();
- const {groups,setChoice,group,limitText,searchMode,setSearchMode,secondGroups,secondGroup,secondLimitText,setSecondChoice,thirdGroups,thirdGroup,thirdLimitText,setThirdChoice,fourthGroups,fourthGroup,fourthLimitText,setFourthChoice,three,four,joint,jointGrid,jointTooLarge,disabled,validLimit,run,cancel,adopt,current,running,best,blocked,getReport,getCostReport,selectedGroups,adoptCandidate}=usePalletTailTrial(props);
+ const {groups,setChoice,group,limitText,searchMode,setSearchMode,secondGroups,secondGroup,secondLimitText,setSecondChoice,thirdGroups,thirdGroup,thirdLimitText,setThirdChoice,fourthGroups,fourthGroup,fourthLimitText,setFourthChoice,three,four,joint,jointGrid,jointTooLarge,disabled,validLimit,run,cancel,adopt,current,running,best,blocked,getReport,getReportInput,getCostReport,selectedGroups,adoptCandidate}=usePalletTailTrial(props);
  const parts=current?.error?.split(" / "),errorText=parts?.length===2?parts[language==="en"?1:0]:current?.error;
  const problemText=(problem:string)=>{const parts=problem.split(" / ");return parts.length===2?parts[language==="en"?1:0]:language==="en"&&/[\u3400-\u9fff]/u.test(problem)?"Review geometry, support, load ratings and complete-kit rules.":problem;};
  if(request.workflow!=="palletized")return null;
@@ -106,7 +106,7 @@ export function PalletTailTrial(props:Props){
   {errorText&&<p role="alert">{errorText}</p>}
   {best&&<div className="capacity-trial-result"><p><strong>{tr("尾数候选可装","Tail candidate loads")} {best.plan.metrics.loadedCount} {tr("箱","cartons")}</strong> · {tr("原订单","Original order")} {best.plan.metrics.requestedCount} · {tr("整托","Loaded units")} {best.plan.pallets?.length??0} · {tr("毛重","Gross")} {best.plan.metrics.grossWeight} kg</p>
    {plan&&<TailCandidateReview request={request} baseline={plan} candidate={best.plan}/>}
-   {plan&&<TailCostComparison request={request} baseline={plan} candidate={best.plan} disabled={disabled} getReport={getCostReport} rows={current?.status==="done"?current.rows:undefined} selectedGroups={selectedGroups} canApply={canApply&&!!onApply} onAdopt={adoptCandidate}/>}
+   {plan&&<TailCostComparison request={request} baseline={plan} candidate={best.plan} disabled={disabled} getReport={getCostReport} getTrialInput={getReportInput} rows={current?.status==="done"?current.rows:undefined} selectedGroups={selectedGroups} canApply={canApply&&!!onApply} onAdopt={adoptCandidate}/>}
    <button type="button" className="button primary" disabled={disabled||!canApply||!onApply||running} onClick={adopt}>{tr("采用尾数预留并重新计算","Apply tail reservations and recalculate")}</button>
   </div>}
   {!!current?.rows.length&&<div className="pallet-capacity-table tail-candidate-table" tabIndex={0} role="region" aria-label={tr("尾数候选比较结果","Tail candidate comparison results")}><table><thead><tr><th>{tr("新增散装份数／组合","Extra loose units / allocation")}</th><th>{tr("整单已装箱数","Total cartons loaded")}</th><th>{tr("已装订单行","Loaded order rows")}</th><th>{tr("复核说明","Review")}</th></tr></thead><tbody>{current.rows.map(r=><tr key={r.allocation??r.units}><td>{r.allocation??r.units}</td><td>{r.loaded??tr("未通过复核","Not validated")}</td><td>{r.retained?tr("数量不减","Retained"):tr("不可采用","Unavailable")}</td><td>{r.problem?problemText(r.problem):r.loaded!==null&&!r.retained?tr("会减少至少一个已装订单行","Would reduce at least one loaded order row"):r.loaded!==null&&r.loaded<=(plan?.metrics.loadedCount??0)?tr("未增加总箱数","No total-carton increase"):tr("通过模型校验","Model validation passed")}</td></tr>)}</tbody></table></div>}
