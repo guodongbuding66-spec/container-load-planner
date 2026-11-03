@@ -1,0 +1,161 @@
+{
+  "format": "cargo-fit-tail-pricing",
+  "version": 1,
+  "engineVersion": "0.71.0",
+  "createdAt": "2026-11-03T00:39:19.619Z",
+  "context": {
+    "container": {
+      "category": "other",
+      "loadingAccess": "rear",
+      "id": "tail-test",
+      "name": "Tail test vehicle",
+      "length": 2800,
+      "width": 1000,
+      "height": 1000,
+      "doorWidth": 1000,
+      "doorHeight": 1000,
+      "maxWeight": 10000,
+      "exclusions": []
+    },
+    "packaging": [
+      {
+        "id": "primary",
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "Tail test pallet",
+          "length": 800,
+          "width": 1000,
+          "height": 100,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 400
+        }
+      },
+      {
+        "id": "sku-b",
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "SKU B pallet",
+          "length": 800,
+          "width": 1000,
+          "height": 100,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 400
+        }
+      },
+      {
+        "id": "sku-c",
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "SKU C pallet",
+          "length": 800,
+          "width": 1000,
+          "height": 100,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 400
+        }
+      }
+    ],
+    "orderRows": [
+      {
+        "id": "a",
+        "sku": "TAIL-A",
+        "orderLine": null,
+        "setCode": "",
+        "unitsPerSet": 1
+      },
+      {
+        "id": "b",
+        "sku": "TAIL-B",
+        "orderLine": null,
+        "setCode": "",
+        "unitsPerSet": 1
+      },
+      {
+        "id": "c",
+        "sku": "TAIL-C",
+        "orderLine": null,
+        "setCode": "",
+        "unitsPerSet": 1
+      }
+    ],
+    "delivery": null
+  },
+  "quote": {
+    "freight": 1000,
+    "pricing": {
+      "currency": "CNY",
+      "packaging": {
+        "primary": 50,
+        "sku-b": 60,
+        "sku-c": 70
+      },
+      "charges": [
+        {
+          "id": "charge-bb2ef649-a3e4-4b52-8897-346b90ced9c7",
+          "label": "QA labor",
+          "category": "labor",
+          "basis": "container",
+          "amount": 10,
+          "currency": "USD",
+          "source": "QA quote 2026-11-03"
+        }
+      ],
+      "exchangeRates": [
+        {
+          "currency": "USD",
+          "rate": 7,
+          "source": "QA treasury",
+          "date": "2026-11-03"
+        }
+      ]
+    }
+  }
+}

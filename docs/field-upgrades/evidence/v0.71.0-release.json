@@ -1,0 +1,126 @@
+{
+  "date": "2026-11-03",
+  "runtimeCommit": "2595c856edcda5aa24360f82feaa3bd358c20faa",
+  "runtimeTree": "257fcb7e1b47214b6f6b3fa6747b8a05b1de6bbf",
+  "local": {
+    "unitTests": 1905,
+    "testFiles": 147,
+    "pageChecks": 21,
+    "newTests": 30,
+    "focusedTests": 45,
+    "finalUiTests": 11,
+    "lintErrors": 0,
+    "existingLintWarnings": 2,
+    "typecheck": "passed",
+    "productionBuild": "passed"
+  },
+  "cloudflare": {
+    "id": "bdcef64e-9589-4071-aeb5-3a649d6092d9",
+    "conclusion": "success"
+  },
+  "vercel": {
+    "id": "dpl_9T4n4vEfUwarZkeqEec14Wfp9cs2",
+    "state": "READY",
+    "sha": "2595c856edcda5aa24360f82feaa3bd358c20faa",
+    "aliases": [
+      "container-load-planner-gray.vercel.app",
+      "container-load-planner-guodongbuding66-4957.vercel.app",
+      "container-load-planner-git-main-guodongbuding66-4957.vercel.app"
+    ],
+    "buildEvidence": [
+      {
+        "date": 1793666209908,
+        "text": "✓ Compiled successfully in 29.8s"
+      },
+      {
+        "date": 1793666176564,
+        "text": "ℹ pass 21"
+      },
+      {
+        "date": 1793666176301,
+        "text": "      Tests  1905 passed (1905)"
+      },
+      {
+        "date": 1793666176297,
+        "text": " Test Files  147 passed (147)"
+      },
+      {
+        "date": 1793666248592,
+        "text": "Deployment completed"
+      },
+      {
+        "date": 1793666246994,
+        "text": "○  (Static)  prerendered as static content"
+      }
+    ]
+  },
+  "githubActions": {
+    "runId": 41553623883,
+    "jobs": [
+      {
+        "id": 125647027676,
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-03T00:32:59Z",
+        "completed_at": "2026-11-03T00:38:09Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm ci",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm run build:pages",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ]
+  },
+  "priorArchiveCommit": "1f7870c853e5c98ed4d074e2ee09ff67f8d557e8",
+  "pending": [
+    "Real GPU / multiple browsers",
+    "Original 596-to-16 workspace acceptance",
+    "Automatic quote caching / cloud sync",
+    "Economic tail search / cross-container optimization"
+  ],
+  "excluded": [
+    "Forklift operation simulation"
+  ],
+  "futureDisabled": [
+    "Accounts",
+    "Membership",
+    "Payments"
+  ]
+}

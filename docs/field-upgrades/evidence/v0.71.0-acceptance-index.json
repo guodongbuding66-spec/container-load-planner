@@ -1,0 +1,242 @@
+{
+  "date": "2026-11-03",
+  "runtimeCommit": "2595c856edcda5aa24360f82feaa3bd358c20faa",
+  "passedAssertions": 30,
+  "assertions": [
+    {
+      "id": "complete-current-report-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "current-geometry-counts-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "current-costs-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "formal-id-and-not-applied-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "independent-pricing-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "review-not-imported-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "complete-current-report-vercel",
+      "passed": true
+    },
+    {
+      "id": "current-geometry-counts-vercel",
+      "passed": true
+    },
+    {
+      "id": "current-costs-vercel",
+      "passed": true
+    },
+    {
+      "id": "formal-id-and-not-applied-vercel",
+      "passed": true
+    },
+    {
+      "id": "independent-pricing-vercel",
+      "passed": true
+    },
+    {
+      "id": "review-not-imported-vercel",
+      "passed": true
+    },
+    {
+      "id": "cross-site-pricing-equality",
+      "passed": true
+    },
+    {
+      "id": "row-conservation",
+      "passed": true
+    },
+    {
+      "id": "bilingual-csv-values",
+      "passed": true
+    },
+    {
+      "id": "benchmark-18-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "benchmark-18-vercel",
+      "passed": true
+    },
+    {
+      "id": "benchmark-input-equality",
+      "passed": true
+    },
+    {
+      "id": "original-inputs-exactly-restored-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "default-116-3842-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "original-inputs-exactly-restored-vercel",
+      "passed": true
+    },
+    {
+      "id": "default-116-3842-vercel",
+      "passed": true
+    },
+    {
+      "id": "native-preview-before-explicit-adoption",
+      "passed": true
+    },
+    {
+      "id": "native-same-amount-invalid-draft-cleared",
+      "passed": true
+    },
+    {
+      "id": "native-wrong-context-retains-quotes",
+      "passed": true
+    },
+    {
+      "id": "native-malformed-file-retains-quotes",
+      "passed": true
+    },
+    {
+      "id": "native-changed-quotes-invalidate-preview-roundtrip",
+      "passed": true
+    },
+    {
+      "id": "native-old-results-9999-and-999999-ignored",
+      "passed": true
+    },
+    {
+      "id": "native-english-import-preview",
+      "passed": true
+    },
+    {
+      "id": "native-pricing-file-not-workspace",
+      "passed": true
+    }
+  ],
+  "nativeNotes": [
+    "Old cost report preview retains unknown current cost until explicit adoption",
+    "Same underlying freight 1000 with invalid oops text clears to 1000 / aria-invalid=false on adoption",
+    "Wrong packaging context and malformed JSON retain 1250 and show no adoption control",
+    "Editing freight to 1001 then back to 1000 does not revive old preview",
+    "Fixture stored count 9999 / total 999999 ignored; current model remains 24 / 30 and 1250",
+    "English standalone pricing imported across sites; order inputs and formal plan IDs stay current"
+  ],
+  "unitOnly": [
+    "Controlled delayed read races",
+    "Unmounted handlers",
+    "5 MB and multibyte byte limit",
+    "Demand / stock and context matrix"
+  ],
+  "limitations": [
+    "Chrome WebGL fallback; real GPU and multiple browsers pending",
+    "Original 596-to-16 user workspace unavailable"
+  ],
+  "artifacts": [
+    {
+      "path": "v0.71.0-benchmark-cloudflare.json",
+      "bytes": 57299,
+      "sha256": "4a20473083571a76fef38c010b82b31d671fcc250deaec8edd0ee6c37232bd8a"
+    },
+    {
+      "path": "v0.71.0-benchmark-vercel.json",
+      "bytes": 57341,
+      "sha256": "9b3014f6efb9b10466ebc952ccaaaa33d0f6b368283ac1a96da8f0bb9402cda5"
+    },
+    {
+      "path": "v0.71.0-csv-cloudflare.csv",
+      "bytes": 3194,
+      "sha256": "ea8b51a2eb529a0cacdcd1591e2669a3470f88016e49c617de11571053ff4d64"
+    },
+    {
+      "path": "v0.71.0-csv-vercel.csv",
+      "bytes": 3166,
+      "sha256": "0371b88b21d56085aff569b46d593013ca4894d29ac35d15db6b9c050b282430"
+    },
+    {
+      "path": "v0.71.0-final-cloudflare.json",
+      "bytes": 134245,
+      "sha256": "951453617194693906cff19f0a51a7df815ccbbeb8698d6c6c9f51b7ef52606a"
+    },
+    {
+      "path": "v0.71.0-final-vercel.json",
+      "bytes": 134245,
+      "sha256": "398bae0f8a859e6c27a49d95f2356bd464145bebae6ab352e501884a702a94a2"
+    },
+    {
+      "path": "v0.71.0-formal-cloudflare.json",
+      "bytes": 20380,
+      "sha256": "2af7bf929acae3a5cff2c16f9df8944be3f6971242a5c370ad273efadaa297c9"
+    },
+    {
+      "path": "v0.71.0-formal-vercel.json",
+      "bytes": 20378,
+      "sha256": "dc9f3264f76c7a97fa46f37354f3bb1c8e66d846967ffab9ee450e035eacce22"
+    },
+    {
+      "path": "v0.71.0-full-cloudflare.json",
+      "bytes": 27270,
+      "sha256": "d6756522166e89b3f03905e0f1ef32c9fca7ee11d488e7ef5a2bf608a28c04dc"
+    },
+    {
+      "path": "v0.71.0-full-vercel.json",
+      "bytes": 27270,
+      "sha256": "e791d65b2dee050ddefcca46f9dc4e729a993b99bd141155880b40c806853158"
+    },
+    {
+      "path": "v0.71.0-ignored-results-fixture.json",
+      "bytes": 27270,
+      "sha256": "f28e59946ad7543cbe6cfd34f7a0958df16b2a74f1ef39d5306fda9212d2c427"
+    },
+    {
+      "path": "v0.71.0-local-checks.txt",
+      "bytes": 5983,
+      "sha256": "ade11e94565decf00a7ce10c5d0e56bb727aa533707dc0883bc6f72f3b99b7f6"
+    },
+    {
+      "path": "v0.71.0-malformed-json-fixture.txt",
+      "bytes": 9,
+      "sha256": "aa240a0ccab83012343d3c5968854e2015e18ba9061a9dff49e2b115ce86f98a"
+    },
+    {
+      "path": "v0.71.0-pricing-cloudflare.json",
+      "bytes": 3725,
+      "sha256": "c19b89e4cbd635e824dd8b2c04057ffac586e00315f278cdd0adccb5f5949ed0"
+    },
+    {
+      "path": "v0.71.0-pricing-preview-proof.jpg",
+      "bytes": 93356,
+      "sha256": "72b229cd1bbd24c4cb29de1be0a7757c20762c83b01e7fa913268ce964a63b5a"
+    },
+    {
+      "path": "v0.71.0-pricing-vercel.json",
+      "bytes": 3725,
+      "sha256": "17fd1ec7f3ca576bc98c3dad3665ea75cc2d3f17b68d7d9449d5c2831d3aa914"
+    },
+    {
+      "path": "v0.71.0-release.json",
+      "bytes": 3294,
+      "sha256": "b80331a488b890c3175aa7ab9ea726f2ea9634255c99236f3da24f0630568c88"
+    },
+    {
+      "path": "v0.71.0-seed.json",
+      "bytes": 4562,
+      "sha256": "52809cccf8ced259d4f7e6c147daa3e9ec40abfff04b984e1263bade1e4f82c6"
+    },
+    {
+      "path": "v0.71.0-wrong-context-fixture.json",
+      "bytes": 27270,
+      "sha256": "c95c9397bcef9308b433feea46c6d05da1e2126317b4eb9473f6f866142d594e"
+    }
+  ]
+}

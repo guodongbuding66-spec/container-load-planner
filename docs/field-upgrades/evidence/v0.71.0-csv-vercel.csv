@@ -1,0 +1,21 @@
+﻿Status,Engine,Created,Currency,Scope,Item ID,Item,Unit,Before,Candidate,Difference
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,loaded,Loaded cartons,cartons,24,30,6
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,loose,Loaded loose cartons,cartons,0,6,6
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,gross-weight,Planned gross weight,kg,315,375,60
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,packaging:primary:quantity,Tail test pallet,units,1,1,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,packaging:primary:price,Tail test pallet,CNY,50,50,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,packaging:primary:subtotal,Tail test pallet,CNY,50,50,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,packaging:sku-b:quantity,SKU B pallet,units,1,1,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,packaging:sku-b:price,SKU B pallet,CNY,60,60,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,packaging:sku-b:subtotal,SKU B pallet,CNY,60,60,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,packaging:sku-c:quantity,SKU C pallet,units,1,1,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,packaging:sku-c:price,SKU C pallet,CNY,70,70,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,packaging:sku-c:subtotal,SKU C pallet,CNY,70,70,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,freight,Freight (zero means unquoted),CNY,1000,1000,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,charge:charge-bb2ef649-a3e4-4b52-8897-346b90ced9c7:quantity,QA labor,container,1,1,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,charge:charge-bb2ef649-a3e4-4b52-8897-346b90ced9c7:price,QA labor,USD,10,10,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,charge:charge-bb2ef649-a3e4-4b52-8897-346b90ced9c7:rate,QA labor,base / foreign,7,7,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,charge:charge-bb2ef649-a3e4-4b52-8897-346b90ced9c7:subtotal,QA labor,CNY,70,70,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,known-subtotal,Known subtotal (incomplete quotes remain unknown),CNY,1250,1250,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,quoted-total,Total of configured quotes,CNY,1250,1250,0
+Preview - not applied,0.71.0,2026-11-03T00:42:08.290Z,CNY,configured-single-container-costs,per-loaded-carton,Configured cost per loaded carton,CNY,52.083333333333336,41.666666666666664,-10.416666666666671

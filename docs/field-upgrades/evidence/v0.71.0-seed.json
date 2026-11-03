@@ -1,0 +1,187 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.69.0",
+  "createdAt": "2026-10-28T01:35:13.896Z",
+  "inputs": {
+    "mode": "mixed",
+    "workflow": "palletized",
+    "strategy": "practical",
+    "container": {
+      "id": "tail-test",
+      "name": "Tail test vehicle",
+      "category": "other",
+      "loadingAccess": "rear",
+      "length": 2800,
+      "width": 1000,
+      "height": 1000,
+      "doorWidth": 1000,
+      "doorHeight": 1000,
+      "maxWeight": 10000
+    },
+    "clearance": 0,
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "Tail test pallet",
+        "length": 800,
+        "width": 1000,
+        "height": 100,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 400
+      },
+      "mix": "single",
+      "maxPallets": 3,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "primaryRule": {
+        "maxPallets": 1,
+        "productIds": [
+          "a"
+        ]
+      },
+      "additionalSpecs": [
+        {
+          "id": "sku-b",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "SKU B pallet",
+            "length": 800,
+            "width": 1000,
+            "height": 100,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "productIds": [
+            "b"
+          ],
+          "maxPallets": 1,
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        },
+        {
+          "id": "sku-c",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "SKU C pallet",
+            "length": 800,
+            "width": 1000,
+            "height": 100,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "productIds": [
+            "c"
+          ],
+          "maxPallets": 1,
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        }
+      ]
+    },
+    "products": [
+      {
+        "id": "a",
+        "sku": "TAIL-A",
+        "name": "Tail carton",
+        "length": 400,
+        "width": 400,
+        "height": 200,
+        "weight": 10,
+        "quantity": 10,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxTopLoadKg": 1000,
+        "maxStackLayers": 0,
+        "color": "#2f7f89"
+      },
+      {
+        "id": "b",
+        "sku": "TAIL-B",
+        "name": "Tail carton",
+        "length": 400,
+        "width": 400,
+        "height": 200,
+        "weight": 10,
+        "quantity": 10,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxTopLoadKg": 1000,
+        "maxStackLayers": 0,
+        "color": "#2f7f89"
+      },
+      {
+        "id": "c",
+        "sku": "TAIL-C",
+        "name": "Tail carton",
+        "length": 400,
+        "width": 400,
+        "height": 200,
+        "weight": 10,
+        "quantity": 10,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxTopLoadKg": 1000,
+        "maxStackLayers": 0,
+        "color": "#2f7f89"
+      }
+    ],
+    "practicalTargetPercent": 88,
+    "customContainers": [],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  }
+}
