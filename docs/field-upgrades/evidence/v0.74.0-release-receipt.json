@@ -1,0 +1,147 @@
+{
+  "engineVersion": "0.74.0",
+  "runtimeCommit": "543f5134cf53cbf00181ad133f7147327b82bb15",
+  "runtimeTree": "ddb72c66b9758d9538a576c1bef0746c854314a4",
+  "githubCI": [
+    {
+      "id": 125921858660,
+      "runId": 41637373921,
+      "name": "verify",
+      "status": "completed",
+      "conclusion": "success",
+      "headSha": "543f5134cf53cbf00181ad133f7147327b82bb15",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-03T12:38:11Z",
+          "completed_at": "2026-11-03T12:38:12Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-03T12:38:12Z",
+          "completed_at": "2026-11-03T12:38:16Z"
+        },
+        {
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-03T12:38:16Z",
+          "completed_at": "2026-11-03T12:38:22Z"
+        },
+        {
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-03T12:38:22Z",
+          "completed_at": "2026-11-03T12:38:43Z"
+        },
+        {
+          "name": "Run npm run build:pages",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-03T12:38:43Z",
+          "completed_at": "2026-11-03T12:43:43Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-03T12:43:43Z",
+          "completed_at": "2026-11-03T12:43:43Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-03T12:43:43Z",
+          "completed_at": "2026-11-03T12:43:43Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-03T12:43:43Z",
+          "completed_at": "2026-11-03T12:43:43Z"
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": 125924299494,
+      "name": "Cloudflare Pages",
+      "status": "completed",
+      "conclusion": "success",
+      "headSha": "543f5134cf53cbf00181ad133f7147327b82bb15",
+      "externalId": "cc9c8e4f-4488-4b65-a89b-c60d682c78d9",
+      "detailsUrl": "https://dash.cloudflare.com/?to=/bf21b14200f1ef0bfb82f48d3663411c/pages/view/container-load-planner/cc9c8e4f-4488-4b65-a89b-c60d682c78d9",
+      "startedAt": "2026-11-03T12:43:19Z",
+      "completedAt": "2026-11-03T12:43:19Z"
+    },
+    {
+      "id": 125921858660,
+      "name": "verify",
+      "status": "completed",
+      "conclusion": "success",
+      "headSha": "543f5134cf53cbf00181ad133f7147327b82bb15",
+      "externalId": "1721abfb-d123-54d9-baaa-b57ca545136d",
+      "detailsUrl": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/41637373921/job/125921858660",
+      "startedAt": "2026-11-03T12:38:10Z",
+      "completedAt": "2026-11-03T12:43:47Z"
+    }
+  ],
+  "vercel": {
+    "id": "dpl_2xacY2hhMB3EHdpEFRJvqDExmBrp",
+    "state": "READY",
+    "url": "container-load-planner-j5pzz6vsm-guodongbuding66-4957.vercel.app",
+    "alias": [
+      "container-load-planner-gray.vercel.app",
+      "container-load-planner-guodongbuding66-4957.vercel.app",
+      "container-load-planner-git-main-guodongbuding66-4957.vercel.app"
+    ],
+    "gitCommit": "543f5134cf53cbf00181ad133f7147327b82bb15",
+    "projectId": "prj_r8PcBkAQNeJQIUYqywz0Mv0VYY4g"
+  },
+  "vercelBuildProof": [
+    {
+      "date": 1793709816326,
+      "text": "Deployment completed"
+    },
+    {
+      "date": 1793709814966,
+      "text": "Build Completed in /vercel/output [5m]"
+    },
+    {
+      "date": 1793709773065,
+      "text": "✓ Compiled successfully in 31.7s"
+    },
+    {
+      "date": 1793709737877,
+      "text": "ℹ pass 21"
+    },
+    {
+      "date": 1793709737876,
+      "text": "ℹ tests 21"
+    },
+    {
+      "date": 1793709737581,
+      "text": "      Tests  1984 passed (1984)"
+    },
+    {
+      "date": 1793709737578,
+      "text": " Test Files  152 passed (152)"
+    }
+  ]
+}

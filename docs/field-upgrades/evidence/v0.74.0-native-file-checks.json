@@ -1,0 +1,58 @@
+{
+  "engineVersion": "0.74.0",
+  "passed": 13,
+  "checks": [
+    {
+      "name": "main: economic JSON preserves source-row delivery, quote and independent recheck",
+      "passed": true
+    },
+    {
+      "name": "main: economic CSV contains both totals and the selected quota",
+      "passed": true
+    },
+    {
+      "name": "main: applied native workspace retains order and packaging stock",
+      "passed": true
+    },
+    {
+      "name": "main: all twenty native business benchmark runs pass",
+      "passed": true
+    },
+    {
+      "name": "main: original native input restored",
+      "passed": true
+    },
+    {
+      "name": "secondary: economic JSON preserves source-row delivery, quote and independent recheck",
+      "passed": true
+    },
+    {
+      "name": "secondary: economic CSV contains both totals and the selected quota",
+      "passed": true
+    },
+    {
+      "name": "secondary: applied native workspace retains order and packaging stock",
+      "passed": true
+    },
+    {
+      "name": "secondary: all twenty native business benchmark runs pass",
+      "passed": true
+    },
+    {
+      "name": "secondary: original native input restored",
+      "passed": true
+    },
+    {
+      "name": "secondary English economic CSV has translated headings",
+      "passed": true
+    },
+    {
+      "name": "cross-site native placement CSVs are identical",
+      "passed": true
+    },
+    {
+      "name": "secondary refresh retains the economic quota and recomputes the same fourteen-carton plan",
+      "passed": true
+    }
+  ]
+}

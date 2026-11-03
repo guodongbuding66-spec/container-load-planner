@@ -1,0 +1,253 @@
+{
+  "engineVersion": "0.74.0",
+  "runtimeCommit": "543f5134cf53cbf00181ad133f7147327b82bb15",
+  "runtimeTree": "ddb72c66b9758d9538a576c1bef0746c854314a4",
+  "sourceRecoveredFromSameTree": true,
+  "localSoftwareChecks": {
+    "unitTests": 1984,
+    "testFiles": 152,
+    "newTests": 35,
+    "htmlChecks": 21,
+    "productionBuild": "passed",
+    "lintErrors": 0,
+    "existingLintWarnings": 2
+  },
+  "nativeFileChecks": {
+    "engineVersion": "0.74.0",
+    "passed": 13,
+    "checks": [
+      {
+        "name": "main: economic JSON preserves source-row delivery, quote and independent recheck",
+        "passed": true
+      },
+      {
+        "name": "main: economic CSV contains both totals and the selected quota",
+        "passed": true
+      },
+      {
+        "name": "main: applied native workspace retains order and packaging stock",
+        "passed": true
+      },
+      {
+        "name": "main: all twenty native business benchmark runs pass",
+        "passed": true
+      },
+      {
+        "name": "main: original native input restored",
+        "passed": true
+      },
+      {
+        "name": "secondary: economic JSON preserves source-row delivery, quote and independent recheck",
+        "passed": true
+      },
+      {
+        "name": "secondary: economic CSV contains both totals and the selected quota",
+        "passed": true
+      },
+      {
+        "name": "secondary: applied native workspace retains order and packaging stock",
+        "passed": true
+      },
+      {
+        "name": "secondary: all twenty native business benchmark runs pass",
+        "passed": true
+      },
+      {
+        "name": "secondary: original native input restored",
+        "passed": true
+      },
+      {
+        "name": "secondary English economic CSV has translated headings",
+        "passed": true
+      },
+      {
+        "name": "cross-site native placement CSVs are identical",
+        "passed": true
+      },
+      {
+        "name": "secondary refresh retains the economic quota and recomputes the same fourteen-carton plan",
+        "passed": true
+      }
+    ]
+  },
+  "nativeObservations": {
+    "bothSitesVersion": "0.74.0",
+    "baselineLoaded": 8,
+    "demand": 14,
+    "completeCandidatesPerSite": 6,
+    "missingQuotesDisablePreview": true,
+    "quantityCandidate": {
+      "loaded": 14,
+      "pallets": 2,
+      "loose": 1,
+      "configuredCNY": 140
+    },
+    "economicCandidate": {
+      "loaded": 14,
+      "pallets": 1,
+      "loose": 6,
+      "configuredCNY": 120
+    },
+    "mainQuoteRoundTrip": {
+      "freight": [
+        100,
+        101,
+        100
+      ],
+      "oldApplyAndExportsRemoved": true
+    },
+    "adoptionBothStrategies": {
+      "loaded": 14,
+      "grossKg": 165,
+      "pallets": 1,
+      "looseQuota": {
+        "a": 6
+      },
+      "originalDemand": 14,
+      "originalPackagingStock": 2
+    },
+    "englishEconomicPanelHasChinese": false,
+    "crossSiteChinesePlacementCsvBytesEqual": true,
+    "secondaryRefreshRecalculation": {
+      "loaded": 14,
+      "grossKg": 165,
+      "pallets": 1,
+      "looseQuota": {
+        "a": 6
+      }
+    },
+    "nativeBenchmarkRunsPerSite": 20,
+    "allBenchmarkRowsModelValid": true,
+    "restoredOriginalInputsBothSites": true,
+    "restoredBothStrategies": {
+      "loaded": 116,
+      "grossKg": 3842,
+      "pallets": 0,
+      "language": "zh",
+      "lengthUnit": "mm",
+      "weightUnit": "kg"
+    },
+    "consoleScope": "Latest 10 errors per site were extension metadata errors; no exhaustive all-log claim",
+    "webgl": "Browser UI explicitly reported WebGL unavailable; hardware GPU remains pending"
+  },
+  "remaining": [
+    "Wider economic quota search outside evaluated batch",
+    "Cross-container optimization",
+    "Original user 596-to-16 full workspace validation",
+    "Real GPU / multi-browser / field trials",
+    "All other open U01-U24 items",
+    "Account / membership / payment not enabled"
+  ],
+  "files": [
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-economic-baseline-workspace.json",
+      "bytes": 7606,
+      "sha256": "9f8d05d0ec85df860c90aeede547f0f4ce7d134dabb846e6c697f0f6ed9cabc0"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-economic-pricing.json",
+      "bytes": 1516,
+      "sha256": "59295e97938c7472e05115197efcfc90bbb70adf3581baa8dd243b4de72ee547"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-original-workspace.json",
+      "bytes": 2647,
+      "sha256": "677d24680af94202a1eaee058861b345b7ed796f78727e3bfa83464a0d440395"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-secondary-original-workspace.json",
+      "bytes": 2647,
+      "sha256": "98db32d00dd75a01fa989f74fe0cfcc21e71305de12f938017b79b831daeda1b"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-main-economic.json",
+      "bytes": 18419,
+      "sha256": "e1759e65b11d429b46c326179b2ec42c563409d0cfba6ba4527ccb8e0e84ab10"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-main-economic.csv",
+      "bytes": 2445,
+      "sha256": "1eed220581bafe2e73b30674a81a9fdf5f5d107dba68c5bc7a8953d3a56ab7fe"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-main-applied-workspace.json",
+      "bytes": 26546,
+      "sha256": "400094eb87ef936c25fb3bdac0b83e2cae475bdca13224cc3c818c3b50fba0a1"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-main-applied.csv",
+      "bytes": 2571,
+      "sha256": "811f512d7c9748f4a8058b884a3740519920b762de71de5ff7748b398a20b503"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-main-benchmarks.json",
+      "bytes": 73887,
+      "sha256": "e34829cb9aba6ef586b389ed5db85e142af723967f311cccfb0fe5ff033297ca"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-main-restored-workspace.json",
+      "bytes": 134245,
+      "sha256": "1b0877ffa12fa570a86dfa76740945aae420550d3141f81a6c970b95da79fbd1"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-secondary-economic.json",
+      "bytes": 18419,
+      "sha256": "b2f79b415c2e77c35f95e967b46d3cb17934ff5b29e810457c26a6c486bb1608"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-secondary-economic.csv",
+      "bytes": 2476,
+      "sha256": "cb49a0b65147f32ae4f3c43a972e6fe119eadc10e16cd3fe5d9843a250a69cf8"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-secondary-applied-workspace.json",
+      "bytes": 26546,
+      "sha256": "52a7ba63a34927e17cf182aa757acc86194743186b778f6427d86881286aa8f0"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-secondary-applied.csv",
+      "bytes": 2571,
+      "sha256": "811f512d7c9748f4a8058b884a3740519920b762de71de5ff7748b398a20b503"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-secondary-benchmarks.json",
+      "bytes": 73902,
+      "sha256": "e031f50a643a07285ae291da4364eaa4327b89d58f3af7e76d522c13f1f1e576"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-secondary-cross-restored.csv",
+      "bytes": 2571,
+      "sha256": "811f512d7c9748f4a8058b884a3740519920b762de71de5ff7748b398a20b503"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-secondary-refreshed-workspace.json",
+      "bytes": 26546,
+      "sha256": "8e9ffc1adc6a6c6c51c0383510a57cb69b1886f802d2f288b0cfa9c9befab676"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-secondary-restored-workspace.json",
+      "bytes": 134245,
+      "sha256": "bbdfd4eff37301ab1e6447979d8b0a698632176cc55cdb96f9244195a90ca78f"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-economic-main-proof.jpg",
+      "bytes": 100939,
+      "sha256": "e93b7b48f86072c4b1e8bb08c4d6566eab4a6a488dd9b7f261c7f2fd09322804"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-native-file-checks.json",
+      "bytes": 1543,
+      "sha256": "4090f88e6116f8c21430f70a0d78da627e7bdb7526e72f9ecabdaa78cf318b21"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-release-receipt.json",
+      "bytes": 4502,
+      "sha256": "d746e5b9df32e05831940a0f6cb8bdae8eecfc25d43018edaceee8978d6d8b06"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.74.0-local-build.txt",
+      "bytes": 4888,
+      "sha256": "a33c1e3821b8f55ccaa05fc30121e0c87f8c6e897e1111db94388dd3677a2425"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+﻿Status,Engine,Created,Currency,Scope,Item ID,Item,Unit,Before,Candidate,Difference
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,configured-single-container-costs,loaded,Loaded cartons,cartons,8,14,6
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,configured-single-container-costs,loose,Loaded loose cartons,cartons,0,6,6
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,configured-single-container-costs,gross-weight,Planned gross weight,kg,105,165,60
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,configured-single-container-costs,packaging:primary:quantity,Tail test pallet,units,1,1,0
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,configured-single-container-costs,packaging:primary:price,Tail test pallet,CNY,20,20,0
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,configured-single-container-costs,packaging:primary:subtotal,Tail test pallet,CNY,20,20,0
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,configured-single-container-costs,freight,Freight (zero means unquoted),CNY,100,100,0
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,configured-single-container-costs,known-subtotal,Known subtotal (incomplete quotes remain unknown),CNY,120,120,0
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,configured-single-container-costs,quoted-total,Total of configured quotes,CNY,120,120,0
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,configured-single-container-costs,per-loaded-carton,Configured cost per loaded carton,CNY,15,8.571428571428571,-6.428571428571429
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,evaluated-same-order-row-batch,economic:0,Economic choice versus quantity candidate,,,quantity-first-then-equal-delivery-cost,
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,evaluated-same-order-row-batch,economic:1,Quantity candidate configured total,CNY,,140,
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,evaluated-same-order-row-batch,economic:2,Economic candidate configured total,CNY,,120,
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,evaluated-same-order-row-batch,economic:3,Configured savings,CNY,,20,
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,evaluated-same-order-row-batch,economic:4,Comparable candidates,candidates,,6,
+Preview - not applied,0.74.0,2026-11-03T12:48:18.254Z,CNY,evaluated-same-order-row-batch,economic:5,Economic allocation,,,"[[""row:a"",6]]",
