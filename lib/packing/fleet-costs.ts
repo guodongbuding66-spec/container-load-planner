@@ -39,11 +39,19 @@ export function requireFleetQuotes(request:PackingRequest,pricing:FleetPricing|u
  const b=parsePalletBuild(request.palletBuild);
  if(request.products.some(p=>p.quantity>(b.looseQuantities?.[p.id]??0))&&palletSpecifications(b).some(s=>s.maxPallets>0&&pricing?.packaging[s.id]==null))throw Error("费用优先须填写可用包装规格的单价，免费请明确报价为 0 / Quote all available packaging for cost priority; explicitly enter zero for free packaging");
 }
+/** Small accounting basis captured from an independently validated plan. */
+export type FleetCostUsage={cost:number;packagingIds:string[];accessories:{id:string;quantity:number}[]};
+export function planCostUsage(plan:FleetLoad["plan"],cost:number):FleetCostUsage{
+ return {cost,packagingIds:(plan.pallets??[]).map(p=>p.specificationId??(plan.palletization?"primary":"floor")),accessories:(plan.container.exclusions??[]).filter(e=>e.kind==="obstacle"&&e.accessory).map(e=>({id:e.id,quantity:e.accessory!.quantity}))};
+}
 export function fleetCosts(loads:readonly FleetLoad[],pricing?:FleetPricing):FleetCosts{
+ return fleetCostsFromUsage(loads.map(l=>planCostUsage(l.plan,l.cost)),pricing);
+}
+export function fleetCostsFromUsage(loads:readonly FleetCostUsage[],pricing?:FleetPricing):FleetCosts{
  let freight=0,knownPackagingSubtotal=0;const missing=new Set<string>();if(!loads.length)missing.add("no-loads");
- loads.forEach((l,i)=>{freight+=l.cost;if(l.cost===0)missing.add(`freight:${i+1}`);for(const p of l.plan.pallets??[]){const id=p.specificationId??(l.plan.palletization?"primary":"floor"),price=pricing?.packaging[id];if(price==null)missing.add(`packaging:${id}`);else knownPackagingSubtotal+=price;}});
+ loads.forEach((l,i)=>{freight+=l.cost;if(l.cost===0)missing.add(`freight:${i+1}`);for(const id of l.packagingIds){const price=pricing?.packaging[id];if(price==null)missing.add(`packaging:${id}`);else knownPackagingSubtotal+=price;}});
  const lines:CostLine[]=(pricing?.charges??[]).map(c=>{
-  const quantity=c.basis==="order"?Number(loads.length>0):c.basis==="container"?loads.length:c.basis==="packaging"?loads.reduce((n,l)=>n+(l.plan.pallets??[]).filter(p=>!c.refId||(p.specificationId??(l.plan.palletization?"primary":"floor"))===c.refId).length,0):loads.reduce((n,l)=>n+(l.plan.container.exclusions??[]).filter(e=>e.id===c.refId&&e.kind==="obstacle"&&e.accessory).reduce((s,e)=>s+(e.accessory?.quantity??0),0),0);
+  const quantity=c.basis==="order"?Number(loads.length>0):c.basis==="container"?loads.length:c.basis==="packaging"?loads.reduce((n,l)=>n+l.packagingIds.filter(id=>!c.refId||id===c.refId).length,0):loads.reduce((n,l)=>n+l.accessories.filter(e=>e.id===c.refId).reduce((s,e)=>s+e.quantity,0),0);
   const exchangeRate=c.currency===pricing!.currency?1:pricing!.exchangeRates?.find(r=>r.currency===c.currency)?.rate??null;
   const subtotal=quantity===0?0:c.amount===null||exchangeRate===null?null:c.amount*quantity*exchangeRate;
   if(subtotal!==null&&(!Number.isFinite(subtotal)||subtotal>1e12))throw Error("费用超出可核算范围 / Cost exceeds supported accounting range");

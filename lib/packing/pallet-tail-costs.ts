@@ -1,4 +1,6 @@
-import {fleetCosts,parseFleetPricing,type FleetPricing} from "./fleet-costs";
+import {parseTailCostQuote,type TailCostQuote} from "./tail-cost-quote";
+import {priceTailCandidates} from "./tail-cost-table";
+import {fleetCosts} from "./fleet-costs";
 import {palletSpecifications} from "./pallet-specifications";
 import {parsePalletBuild} from "./loading-workflow";
 import {improvesPalletTrial} from "./pallet-capacity";
@@ -8,14 +10,7 @@ import {restorePackingSnapshot} from "./engine";
 import {reviewOrderCapacityTrial} from "./order-capacity";
 import type {PackingRequest,PackingResult} from "./types";
 
-export type TailCostQuote={freight:number;pricing:FleetPricing};
-export function parseTailCostQuote(value:unknown,request:PackingRequest):TailCostQuote{
- if(!value||typeof value!=="object"||Array.isArray(value))throw Error("费用报价无效 / Invalid tail pricing");
- const quote=value as TailCostQuote;
- if(typeof quote.freight!=="number"||!Number.isFinite(quote.freight)||quote.freight<0||quote.freight>1e9)throw Error("Invalid freight quote");
- const pricing=parseFleetPricing(quote.pricing,request);if(!pricing)throw Error("Missing tail pricing");
- return {freight:quote.freight,pricing};
-}
+export {parseTailCostQuote,type TailCostQuote} from "./tail-cost-quote";
 /** Accounting only: selection remains quantity-first, and the remaining order is outside this scope. */
 export function compareTailCosts(request:PackingRequest,baseline:PackingResult,candidate:PackingResult,quote:TailCostQuote){
  if(request.workflow!=="palletized"||!baseline.validation.valid||!candidate.validation.valid||!improvesPalletTrial(candidate,baseline))throw Error("Invalid tail cost candidate");
@@ -43,7 +38,7 @@ export function buildTailCostReport(input:TailReportInput,quote:TailCostQuote,cr
  if(!baseline.validation.valid)throw Error("Invalid tail cost baseline");
  const trial=buildTailTrialReport({...input,baseline,best:{...input.best,plan:candidate}},createdAt);
  const comparison=compareTailCosts(input.request,baseline,candidate,quote);
- return {format:"cargo-fit-tail-cost-report" as const,version:1 as const,engineVersion:trial.engineVersion,createdAt,status:"preview-not-applied" as const,comparison,trial};
+ return {format:"cargo-fit-tail-cost-report" as const,version:1 as const,engineVersion:trial.engineVersion,createdAt,status:"preview-not-applied" as const,comparison,trial,candidateCosts:priceTailCandidates(input.request,baseline,candidate,input.rows,quote,input.best.trial.tailReservationChange!.groups??[{id:input.groups[0].id,units:input.best.trial.tailReservationChange!.units}])};
 }
 export type TailCostReport=ReturnType<typeof buildTailCostReport>;
 

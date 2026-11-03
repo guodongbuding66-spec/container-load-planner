@@ -5,7 +5,7 @@ import {renderToStaticMarkup} from "react-dom/server";
 import {afterEach,expect,it,vi} from "vitest";
 import {usePalletTailTrial,PalletTailTrial} from "./pallet-tail-trial";
 import {runOrderCapacityTrial} from "../lib/packing/order-capacity";
-import {palletTailFixture,jointPalletTailFixture,triplePalletTailFixture} from "../tests/pallet-tail-fixture";
+import {palletTailFixture,jointPalletTailFixture,triplePalletTailFixture,economicTailFixture} from "../tests/pallet-tail-fixture";
 import {packLoadingWorkflow} from "../lib/packing/pack-loading";
 import {setAppLanguage} from "./language";
 class FakeWorker{
@@ -132,4 +132,19 @@ it("only exports a current complete report, including no-improvement batches",as
  const root=await mount(Hook);try{expect(task.getReport()).toBeUndefined();await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials;for(let index=0;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));const getOld=task.getReport,getOldCost=task.getCostReport;expect(getOldCost({freight:100,pricing:{currency:"CNY",packaging:{}}})).toBeUndefined();expect(getOld()).toMatchObject({complete:true,selectedCandidate:null,status:"preview-not-applied"});
   await act(async()=>task.setSearchMode("detailed"));await act(async()=>task.setSearchMode("quick"));expect(getOld()).toBeUndefined();expect(getOldCost({freight:100,pricing:{currency:"CNY",packaging:{}}})).toBeUndefined();expect(task.getReport()).toBeUndefined();expect(props.onApply).not.toHaveBeenCalled();
  }finally{await root.close();}
+});
+
+it("retains actual usage for every reviewed tail and explicitly applies a cheaper same-delivery allocation",async()=>{
+ const {request,baseline}=economicTailFixture(),props={request,plan:baseline,disabled:false,canApply:true,onApply:vi.fn()};let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}
+ const root=await mount(Hook);try{await act(async()=>task.setSearchMode("detailed"));await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials;
+  for(let index=0;index<trials.length-1;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));expect(task.adoptCandidate(task.current!.rows[0])).toBe(false);
+  const last=trials.length-1;await act(async()=>w.deliver({index:last,plan:runOrderCapacityTrial(trials[last])}));expect(task.current!.rows).toHaveLength(6);expect(task.best!.trial.tailReservationChange!.units).toBe(1);const row=task.current!.rows[5];expect(row.costBasis).toMatchObject({loose:6,packagingIds:["primary"],rows:[{id:"a",loaded:14}]});expect(task.adoptCandidate(structuredClone(row))).toBe(false);expect(props.onApply).not.toHaveBeenCalled();await act(async()=>{expect(task.adoptCandidate(row)).toBe(true);});const build=props.onApply.mock.calls[0][0];expect(build.looseQuantities).toEqual({a:6});expect(build.maxPallets).toBe(2);expect(request.products[0].quantity).toBe(14);expect(baseline.metrics.loadedCount).toBe(8);
+ }finally{await root.close();}
+});
+it.each(["rerun","round trip","issued","unmount","cancel"])("rejects captured adoption and report methods after %s",async kind=>{
+ const {request,baseline}=economicTailFixture();let props={request,plan:baseline,disabled:false,canApply:true,onApply:vi.fn()},task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}
+ const root=await mount(Hook);let closed=false;try{await act(async()=>task.setSearchMode("detailed"));await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials;for(let index=0;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));const oldAdopt=task.adoptCandidate,oldQuantityAdopt=task.adopt,oldReport=task.getReport,oldCost=task.getCostReport,row=task.current!.rows[5];
+  if(kind==="rerun")await act(async()=>task.run());else if(kind==="round trip"){await act(async()=>task.setChoice({id:"row:a",limit:"5"}));await act(async()=>task.setChoice({id:"row:a",limit:"6"}));}else if(kind==="issued"){props={...props,canApply:false};await root.render();}else if(kind==="unmount"){await root.close();closed=true;}else await act(async()=>task.cancel());
+  expect(oldAdopt(row)).toBe(false);oldQuantityAdopt();expect(oldReport()).toBeUndefined();expect(oldCost({freight:100,pricing:{currency:"CNY",packaging:{primary:20}}})).toBeUndefined();expect(props.onApply).not.toHaveBeenCalled();
+ }finally{if(!closed)await root.close();}
 });

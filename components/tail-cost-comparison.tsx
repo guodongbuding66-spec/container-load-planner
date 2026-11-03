@@ -1,19 +1,23 @@
 "use client";
 import {useMemo,useState} from "react";
 import {compareTailCosts,buildTailCostCsv,type TailCostQuote,type TailCostReport} from "../lib/packing/pallet-tail-costs";
+import {priceTailCandidates,buildTailCandidateCostCsv} from "../lib/packing/tail-cost-table";
+import type {TailComparisonRow} from "../lib/packing/pallet-tail-report";
+import {TailCandidateCostTable} from "./tail-candidate-cost-table";
 import {FleetPackagingPrices} from "./fleet-packaging";
 import {NumericInput} from "./numeric-input";
 import {TailPricingFiles} from "./tail-pricing-files";
 import {tr,useLanguage} from "./language";
 import type {PackingRequest,PackingResult} from "../lib/packing/types";
 
-type Props={request:PackingRequest;baseline:PackingResult;candidate:PackingResult;disabled:boolean;getReport:(quote:TailCostQuote)=>TailCostReport|undefined};
-export function TailCostComparison({request,baseline,candidate,disabled,getReport}:Props){
+type Props={request:PackingRequest;baseline:PackingResult;candidate:PackingResult;disabled:boolean;getReport:(quote:TailCostQuote)=>TailCostReport|undefined;rows?:TailComparisonRow[];selectedGroups?:{id:string;units:number}[];canApply?:boolean;onAdopt?:(row:TailComparisonRow)=>boolean};
+export function TailCostComparison({request,baseline,candidate,disabled,getReport,rows,selectedGroups,canApply=false,onAdopt}:Props){
  const language=useLanguage(),[quote,setQuote]=useState<TailCostQuote>({freight:0,pricing:{currency:"CNY",packaging:{}}}),[validity,setValidity]=useState<Record<string,boolean>>({}),[failed,setFailed]=useState(false),[quoteRevision,setQuoteRevision]=useState(0);
  const invalid=Object.values(validity).some(v=>!v),costs=useMemo(()=>{try{return compareTailCosts(request,baseline,candidate,quote);}catch{return null;}},[request,baseline,candidate,quote]);
+ const table=useMemo(()=>{try{return rows&&selectedGroups?priceTailCandidates(request,baseline,candidate,rows,quote,selectedGroups):null;}catch{return null;}},[request,baseline,candidate,rows,quote,selectedGroups]);
  const money=(n:number|null|undefined)=>n==null?tr("未核算","Unknown"):n.toFixed(2);
  const changeCurrency=(currency:string)=>{setQuote({freight:0,pricing:{...quote.pricing,currency,packaging:{},exchangeRates:undefined}});setValidity({});};
- const download=(format:"json"|"csv")=>{setFailed(false);try{if(disabled||invalid||!costs)return;const report=getReport(quote);if(!report)return;const text=format==="json"?JSON.stringify(report,null,2):buildTailCostCsv(report,language==="en"),url=URL.createObjectURL(new Blob([text],{type:format==="json"?"application/json;charset=utf-8":"text/csv;charset=utf-8"})),a=document.createElement("a");a.href=url;a.download=`tail-cost-${report.engineVersion}.${format}`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch{setFailed(true);}};
+ const download=(format:"json"|"csv"|"candidates")=>{setFailed(false);try{if(disabled||invalid||!costs)return;const report=getReport(quote);if(!report)return;if(format==="candidates"&&!table)return;const text=format==="json"?JSON.stringify(report,null,2):format==="candidates"?buildTailCandidateCostCsv(report.candidateCosts,report.engineVersion,report.createdAt,language==="en"):buildTailCostCsv(report,language==="en"),url=URL.createObjectURL(new Blob([text],{type:format==="json"?"application/json;charset=utf-8":"text/csv;charset=utf-8"})),a=document.createElement("a");a.href=url;a.download=`tail-cost-${report.engineVersion}${format==="candidates"?"-candidates":""}.${format==="json"?"json":"csv"}`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch{setFailed(true);}};
  return <details className="tail-cost-comparison"><summary>{tr("原方案与尾数候选费用对照","Compare baseline and tail candidate costs")}</summary>
   <p className="helper-text">{tr("核算当前数量优先候选，报价不改变候选或自动采用。每边按一柜计费，每订单项目各计一次；余货后续运费、未配置项目及税费不在范围内。报价仅用于本次对照，请下载费用报告留存。","Account for the current quantity-first candidate; quotes do not change or apply it. Each side charges one container and each order charge once. Remaining shipments, unconfigured charges and taxes are outside scope. Quotes are for this comparison; download a cost report to retain them.")}</p>
   <TailPricingFiles request={request} value={quote} draftInvalid={invalid} disabled={disabled} onApply={next=>{setQuote(next);setValidity({});setFailed(false);setQuoteRevision(n=>n+1);}}/>
@@ -35,8 +39,9 @@ export function TailCostComparison({request,baseline,candidate,disabled,getRepor
    <div className="upgrade-table-wrap"><table><thead><tr><th>{tr("包装规格","Packaging specification")}</th><th>{tr("原数量","Before units")}</th><th>{tr("候选数量","Candidate units")}</th><th>{tr("包装单价","Packaging price")}</th><th>{tr("原费用","Before cost")}</th><th>{tr("候选费用","Candidate cost")}</th></tr></thead><tbody>{costs.packages.map(p=><tr key={p.id}><th>{p.name}</th><td>{p.beforeQuantity}</td><td>{p.quantity}</td><td>{money(p.unitPrice)}</td><td>{money(p.beforeSubtotal)}</td><td>{money(p.subtotal)}</td></tr>)}</tbody></table></div>
    {!!costs.after.costs.lines?.length&&<div className="upgrade-table-wrap"><table><thead><tr><th>{tr("附加项目","Additional charge")}</th><th>{tr("原数量／费用","Before quantity / cost")}</th><th>{tr("候选数量／费用","Candidate quantity / cost")}</th></tr></thead><tbody>{costs.after.costs.lines.map((l,i)=><tr key={l.id}><th>{l.label}</th><td>{costs.before.costs.lines![i].quantity} / {money(costs.before.costs.lines![i].subtotal)}</td><td>{l.quantity} / {money(l.subtotal)}</td></tr>)}</tbody></table></div>}
   </>}
-  <div className="upgrade-actions"><button type="button" className="button" disabled={disabled||invalid||!costs} onClick={()=>download("json")}>{tr("下载尾数费用 JSON","Download tail cost JSON")}</button><button type="button" className="button" disabled={disabled||invalid||!costs} onClick={()=>download("csv")}>{tr("下载尾数费用 CSV","Download tail cost CSV")}</button></div>
-  <small>{tr("费用报告标记为未采用预览，JSON 包含当前完整试算、逐行数量与五项复核。费用 CSV 中空值表示未核算。","Cost reports are unapplied previews. JSON includes the complete trial, row quantities and five reviews. Empty cost CSV cells mean unknown.")}</small>
+  {table&&!invalid&&<TailCandidateCostTable table={table} rows={rows!} disabled={disabled} canApply={canApply} onAdopt={onAdopt}/>}
+  <div className="upgrade-actions"><button type="button" className="button" disabled={disabled||invalid||!costs} onClick={()=>download("json")}>{tr("下载尾数费用 JSON","Download tail cost JSON")}</button><button type="button" className="button" disabled={disabled||invalid||!costs} onClick={()=>download("csv")}>{tr("下载尾数费用 CSV","Download tail cost CSV")}</button>{table&&<button type="button" className="button" disabled={disabled||invalid||!costs} onClick={()=>download("candidates")}>{tr("下载候选费用 CSV","Download candidate cost CSV")}</button>}</div>
+  <small>{tr("费用报告标记为未采用预览，JSON 包含当前完整试算、逐行数量、五项复核和各候选费用。费用 CSV 中空值表示未核算。","Cost reports are unapplied previews. JSON includes the complete trial, row quantities, five reviews and candidate costs. Empty cost CSV cells mean unknown.")}</small>
   {failed&&<p role="alert">{tr("费用报告导出失败，请重新运行当前试算后重试。","Cost report export failed; rerun the current trial and try again.")}</p>}
  </details>;
 }

@@ -7,6 +7,7 @@ import {retainsLoadedRows} from "../lib/packing/set-utils";
 import {TailCandidateReview} from "./tail-candidate-review";
 import {buildTailTrialReport,type TailComparisonRow} from "../lib/packing/pallet-tail-report";
 import {buildTailCostReport,type TailCostQuote} from "../lib/packing/pallet-tail-costs";
+import {captureTailCostBasis,priceTailCandidates,tailAllocationKey} from "../lib/packing/tail-cost-table";
 import {TailCostComparison} from "./tail-cost-comparison";
 import {TailReportDownloads} from "./tail-report-downloads";
 import type {PackingRequest,PackingResult,PalletBuildOptions} from "../lib/packing/types";
@@ -26,48 +27,61 @@ export function usePalletTailTrial({request,plan,disabled:inputDisabled,canApply
  const secondLimitText=secondChoice&&secondChoice.id===secondGroup?.id?secondChoice.limit:String(Math.min(defaultLimit,secondGroup?.availableUnits??0)),secondLimit=Number(secondLimitText);
  const thirdLimitText=thirdChoice&&thirdChoice.id===thirdGroup?.id?thirdChoice.limit:String(Math.min(2,thirdGroup?.availableUnits??0)),thirdLimit=Number(thirdLimitText);
  const blocked=!!plan?.pallets?.some(p=>p.measuredEnvelope||p.locked),disabled=inputDisabled||blocked||!plan;
- const inputKey=JSON.stringify([request,group?.id,limitText,searchMode,joint?[secondGroup?.id,secondLimitText]:null,searchMode==="triple"?[thirdGroup?.id,thirdLimitText]:null]),identity=useMemo(()=>({inputKey,plan,disabled,canApply}),[inputKey,plan,disabled,canApply]),latest=useRef(identity);
+ const inputKey=JSON.stringify([request,group?.id,limitText,searchMode,joint?[secondGroup?.id,secondLimitText]:null,searchMode==="triple"?[thirdGroup?.id,thirdLimitText]:null]),identity=useMemo(()=>({inputKey,plan,disabled,canApply}),[inputKey,plan,disabled,canApply]),latest=useRef<typeof identity|null>(identity);
+ const batch=useRef(0);
  const worker=useRef<Worker|null>(null),timer=useRef<ReturnType<typeof setTimeout>|null>(null);
- const [state,setState]=useState<{identity:typeof identity;status:"running"|"done"|"cancelled"|"timeout"|"error";rows:Row[];total:number;best?:TailCandidate;error?:string}|null>(null);
+ const [state,setState]=useState<{identity:typeof identity;batch:number;status:"running"|"done"|"cancelled"|"timeout"|"error";rows:Row[];total:number;best?:TailCandidate;error?:string}|null>(null);
  const stop=()=>{worker.current?.terminate();worker.current=null;if(timer.current)clearTimeout(timer.current);timer.current=null;};
- useLayoutEffect(()=>{latest.current=identity;return()=>{worker.current?.terminate();worker.current=null;if(timer.current)clearTimeout(timer.current);};},[identity]);
+ useLayoutEffect(()=>{latest.current=identity;return()=>{latest.current=null;worker.current?.terminate();worker.current=null;if(timer.current)clearTimeout(timer.current);};},[identity]);
  const current=state?.identity===identity?state:null,running=current?.status==="running",best=current?.best;
  const jointGrid=joint?(limit+1)*(secondLimit+1)*(searchMode==="triple"?thirdLimit+1:1)-1:0,jointTooLarge=joint&&jointGrid>TAIL_JOINT_CANDIDATE_LIMIT;
  const validLimit=Number.isSafeInteger(limit)&&limit>=1&&!!group&&limit<=group.availableUnits&&(!joint||!!secondGroup&&Number.isSafeInteger(secondLimit)&&secondLimit>=1&&secondLimit<=secondGroup.availableUnits&&!jointTooLarge)&&(searchMode!=="triple"||!!thirdGroup&&Number.isSafeInteger(thirdLimit)&&thirdLimit>=1&&thirdLimit<=thirdGroup.availableUnits);
+ const prepare=()=>searchMode==="quick"||searchMode==="detailed"?preparePalletTailTrials(request,plan!,group!.id,limit,searchMode):prepareJointPalletTailTrials(request,plan!,[{groupId:group!.id,limit},{groupId:secondGroup!.id,limit:secondLimit},...(searchMode==="triple"?[{groupId:thirdGroup!.id,limit:thirdLimit}]:[])]);
+ const observedBatch=state?.batch??0;
  const run=()=>{
-  stop();if(disabled||!plan||!group||!validLimit)return;
+  if(observedBatch!==batch.current||latest.current!==identity||disabled||!plan||!group||!validLimit)return;stop();batch.current++;
   try{
-   const trials=searchMode==="quick"||searchMode==="detailed"?preparePalletTailTrials(request,plan,group.id,limit,searchMode):prepareJointPalletTailTrials(request,plan,[{groupId:group.id,limit},{groupId:secondGroup!.id,limit:secondLimit},...(searchMode==="triple"?[{groupId:thirdGroup!.id,limit:thirdLimit}]:[])]),w=new Worker(new URL("../lib/packing/pallet-tail.worker.ts",import.meta.url),{type:"module"});
+   const trials=prepare(),w=new Worker(new URL("../lib/packing/pallet-tail.worker.ts",import.meta.url),{type:"module"});
    worker.current=w;let index=0,selected:TailCandidate|undefined;const rows:Row[]=[];
-   setState({identity,status:"running",rows:[],total:trials.length});
+   setState({identity,batch:batch.current,status:"running",rows:[],total:trials.length});
    const active=()=>worker.current===w&&latest.current===identity;
-   timer.current=setTimeout(()=>{if(!active())return;stop();setState({identity,status:"timeout",rows:[...rows],total:trials.length});},30000);
+   timer.current=setTimeout(()=>{if(!active())return;stop();setState({identity,batch:batch.current,status:"timeout",rows:[...rows],total:trials.length});},30000);
    w.onmessage=e=>{
     if(!active())return;
-    if(e.data.index!==index){stop();setState({identity,status:"error",rows:[],total:trials.length});return;}
+    if(e.data.index!==index){stop();setState({identity,batch:batch.current,status:"error",rows:[],total:trials.length});return;}
     const trial=trials[index];let candidate:PackingResult|undefined,problem:string|undefined=e.data.error;
     try{if(!problem)candidate=reviewOrderCapacityTrial(trial,e.data.plan);}catch(error){problem=error instanceof Error?error.message:String(error);}
     const retained=!!candidate&&retainsLoadedRows(candidate.placements,plan.placements);
-    rows.push({units:trial.tailReservationChange!.units,allocation:trial.tailReservationChange!.groups?.map(g=>`${g.name}: ${g.units}`).join(" + "),groups:trial.tailReservationChange!.groups??[{id:group.id,name:group.name,units:trial.tailReservationChange!.units}],loaded:candidate?.metrics.loadedCount??null,retained,problem});
+    rows.push({units:trial.tailReservationChange!.units,allocation:trial.tailReservationChange!.groups?.map(g=>`${g.name}: ${g.units}`).join(" + "),groups:trial.tailReservationChange!.groups??[{id:group.id,name:group.name,units:trial.tailReservationChange!.units}],loaded:candidate?.metrics.loadedCount??null,retained,problem,...(candidate?{costBasis:captureTailCostBasis(request,candidate)}:{})});
     if(candidate&&betterTailCandidate({trial,plan:candidate},plan,selected))selected={trial,plan:candidate};
     index++;const finished=index===trials.length;if(finished)stop();
-    setState({identity,status:finished?"done":"running",rows:[...rows],total:trials.length,...(finished?{best:selected}:{})});
+    setState({identity,batch:batch.current,status:finished?"done":"running",rows:[...rows],total:trials.length,...(finished?{best:selected}:{})});
    };
-   w.onerror=()=>{if(!active())return;stop();setState({identity,status:"error",rows:[...rows],total:trials.length});};
+   w.onerror=()=>{if(!active())return;stop();setState({identity,batch:batch.current,status:"error",rows:[...rows],total:trials.length});};
    w.postMessage({trials});
-  }catch(error){setState({identity,status:"error",rows:[],total:0,error:error instanceof Error?error.message:String(error)});}
+  }catch(error){setState({identity,batch:batch.current,status:"error",rows:[],total:0,error:error instanceof Error?error.message:String(error)});}
  };
- const cancel=()=>{stop();setState({identity,status:"cancelled",rows:[],total:0});};
- const adopt=()=>{if(disabled||!canApply||running||!best||!plan||!improvesPalletTrial(best.plan,plan))return;onApply?.(structuredClone(best.trial.request.palletBuild!));};
- const getReportInput=()=>{if(disabled||latest.current!==identity||current?.status!=="done"||!plan||!group||!validLimit)return;const selected=[{...group,limit},...(joint&&secondGroup?[{...secondGroup,limit:secondLimit}]:[]),...(searchMode==="triple"&&thirdGroup?[{...thirdGroup,limit:thirdLimit}]:[])];return {request,baseline:plan,mode:searchMode,groups:selected.map(g=>({id:g.id,name:g.name,limit:g.limit,cartonsPerUnit:g.cartonsPerUnit})),rows:current.rows,best,canApply};};
+ const cancel=()=>{if(observedBatch!==batch.current||latest.current!==identity)return;stop();batch.current++;setState({identity,batch:batch.current,status:"cancelled",rows:[],total:0});};
+ const adopt=()=>{if(disabled||latest.current!==identity||state?.batch!==batch.current||current?.status!=="done"||!canApply||!best||!plan||!improvesPalletTrial(best.plan,plan))return;onApply?.(structuredClone(best.trial.request.palletBuild!));};
+ const getReportInput=()=>{if(disabled||latest.current!==identity||state?.batch!==batch.current||current?.status!=="done"||!plan||!group||!validLimit)return;const selected=[{...group,limit},...(joint&&secondGroup?[{...secondGroup,limit:secondLimit}]:[]),...(searchMode==="triple"&&thirdGroup?[{...thirdGroup,limit:thirdLimit}]:[])];return {request,baseline:plan,mode:searchMode,groups:selected.map(g=>({id:g.id,name:g.name,limit:g.limit,cartonsPerUnit:g.cartonsPerUnit})),rows:current.rows,best,canApply};};
+ const selectedGroups=best?.trial.tailReservationChange?.groups??(best&&group?[{id:group.id,name:group.name,units:best.trial.tailReservationChange!.units}]:[]);
+ const adoptCandidate=(row:Row)=>{
+  if(disabled||latest.current!==identity||state?.batch!==batch.current||current?.status!=="done"||!canApply||!onApply||!plan||!best||!current.rows.includes(row))return false;
+  try{
+   const table=priceTailCandidates(request,plan,best.plan,current.rows,{freight:0,pricing:{currency:"CNY",packaging:{}}},selectedGroups),priced=table.rows[current.rows.indexOf(row)];
+   if(!priced?.available||!priced.sameDelivery)return false;
+   const key=tailAllocationKey(row.groups),trial=prepare().find(t=>tailAllocationKey(t.tailReservationChange!.groups??[{id:group!.id,units:t.tailReservationChange!.units}])===key);
+   if(!trial)return false;onApply(structuredClone(trial.request.palletBuild!));return true;
+  }catch{return false;}
+ };
  const getReport=()=>{const input=getReportInput();return input?buildTailTrialReport(input):undefined;};
  const getCostReport=(quote:TailCostQuote)=>{const input=getReportInput();return input?.best?buildTailCostReport(input,quote):undefined;};
- return {groups,setChoice,group,limitText,searchMode,setSearchMode,secondGroups,secondGroup,secondLimitText,setSecondChoice,thirdGroups,thirdGroup,thirdLimitText,setThirdChoice,joint,jointGrid,jointTooLarge,disabled,validLimit,run,cancel,adopt,current,running,best,blocked,getReport,getCostReport};
+ return {groups,setChoice,group,limitText,searchMode,setSearchMode,secondGroups,secondGroup,secondLimitText,setSecondChoice,thirdGroups,thirdGroup,thirdLimitText,setThirdChoice,joint,jointGrid,jointTooLarge,disabled,validLimit,run,cancel,adopt,current,running,best,blocked,getReport,getCostReport,selectedGroups,adoptCandidate};
 }
 
 export function PalletTailTrial(props:Props){
  const {request,plan,canApply,onApply}=props,language=useLanguage();
- const {groups,setChoice,group,limitText,searchMode,setSearchMode,secondGroups,secondGroup,secondLimitText,setSecondChoice,thirdGroups,thirdGroup,thirdLimitText,setThirdChoice,joint,jointGrid,jointTooLarge,disabled,validLimit,run,cancel,adopt,current,running,best,blocked,getReport,getCostReport}=usePalletTailTrial(props);
+ const {groups,setChoice,group,limitText,searchMode,setSearchMode,secondGroups,secondGroup,secondLimitText,setSecondChoice,thirdGroups,thirdGroup,thirdLimitText,setThirdChoice,joint,jointGrid,jointTooLarge,disabled,validLimit,run,cancel,adopt,current,running,best,blocked,getReport,getCostReport,selectedGroups,adoptCandidate}=usePalletTailTrial(props);
  const parts=current?.error?.split(" / "),errorText=parts?.length===2?parts[language==="en"?1:0]:current?.error;
  const problemText=(problem:string)=>{const parts=problem.split(" / ");return parts.length===2?parts[language==="en"?1:0]:language==="en"&&/[\u3400-\u9fff]/u.test(problem)?"Review geometry, support, load ratings and complete-kit rules.":problem;};
  if(request.workflow!=="palletized")return null;
@@ -88,7 +102,7 @@ export function PalletTailTrial(props:Props){
   {errorText&&<p role="alert">{errorText}</p>}
   {best&&<div className="capacity-trial-result"><p><strong>{tr("尾数候选可装","Tail candidate loads")} {best.plan.metrics.loadedCount} {tr("箱","cartons")}</strong> · {tr("原订单","Original order")} {best.plan.metrics.requestedCount} · {tr("整托","Loaded units")} {best.plan.pallets?.length??0} · {tr("毛重","Gross")} {best.plan.metrics.grossWeight} kg</p>
    {plan&&<TailCandidateReview request={request} baseline={plan} candidate={best.plan}/>}
-   {plan&&<TailCostComparison request={request} baseline={plan} candidate={best.plan} disabled={disabled} getReport={getCostReport}/>}
+   {plan&&<TailCostComparison request={request} baseline={plan} candidate={best.plan} disabled={disabled} getReport={getCostReport} rows={current?.status==="done"?current.rows:undefined} selectedGroups={selectedGroups} canApply={canApply&&!!onApply} onAdopt={adoptCandidate}/>}
    <button type="button" className="button primary" disabled={disabled||!canApply||!onApply||running} onClick={adopt}>{tr("采用尾数预留并重新计算","Apply tail reservations and recalculate")}</button>
   </div>}
   {!!current?.rows.length&&<div className="pallet-capacity-table tail-candidate-table" tabIndex={0} role="region" aria-label={tr("尾数候选比较结果","Tail candidate comparison results")}><table><thead><tr><th>{tr("新增散装份数／组合","Extra loose units / allocation")}</th><th>{tr("整单已装箱数","Total cartons loaded")}</th><th>{tr("已装订单行","Loaded order rows")}</th><th>{tr("复核说明","Review")}</th></tr></thead><tbody>{current.rows.map(r=><tr key={r.allocation??r.units}><td>{r.allocation??r.units}</td><td>{r.loaded??tr("未通过复核","Not validated")}</td><td>{r.retained?tr("数量不减","Retained"):tr("不可采用","Unavailable")}</td><td>{r.problem?problemText(r.problem):r.loaded!==null&&!r.retained?tr("会减少至少一个已装订单行","Would reduce at least one loaded order row"):r.loaded!==null&&r.loaded<=(plan?.metrics.loadedCount??0)?tr("未增加总箱数","No total-carton increase"):tr("通过模型校验","Model validation passed")}</td></tr>)}</tbody></table></div>}

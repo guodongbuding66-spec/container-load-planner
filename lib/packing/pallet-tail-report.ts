@@ -7,8 +7,10 @@ import {reviewPlan,REVIEW_STATES,type PlanReview} from "./plan-review";
 import {tailCargoGroups,tailCandidateRows,TAIL_CARTON_BUDGET,TAIL_JOINT_CANDIDATE_LIMIT,type TailCandidate,type TailSearchMode} from "./pallet-tail";
 import type {PackingRequest,PackingResult} from "./types";
 
+import type {TailCostBasis} from "./tail-cost-table";
+
 export type TailReportGroup={id:string;name:string;limit:number;cartonsPerUnit:number};
-export type TailComparisonRow={units:number;allocation?:string;groups:{id:string;name:string;units:number}[];loaded:number|null;retained:boolean;problem?:string};
+export type TailComparisonRow={units:number;allocation?:string;groups:{id:string;name:string;units:number}[];loaded:number|null;retained:boolean;problem?:string;costBasis?:TailCostBasis};
 export type TailReportInput={request:PackingRequest;baseline:PackingResult;mode:TailSearchMode;groups:TailReportGroup[];rows:TailComparisonRow[];best?:TailCandidate;canApply:boolean};
 
 /** Serialize a complete current batch; this format is intentionally separate from workspace backups. */

@@ -1,3 +1,5 @@
+import {packLoadingWorkflow} from "../lib/packing/pack-loading";
+import {restorePackingSnapshot} from "../lib/packing/engine";
 import {DEFAULT_PALLET_BUILD} from "../lib/packing/loading-workflow";
 import type {PackingRequest} from "../lib/packing/types";
 export function palletTailFixture():PackingRequest{
@@ -28,4 +30,12 @@ export function tripleKitPalletTailFixture():PackingRequest{
  r.products[0]={...r.products[0],length:200,width:200,height:100,quantity:10,setCode:"KIT",unitsPerSet:1};
  r.products.push({...r.products[0],id:"b",sku:"TAIL-B",quantity:20,unitsPerSet:2},{...r.products[0],id:"c",sku:"TAIL-C",setCode:"",unitsPerSet:1},{...r.products[0],id:"d",sku:"TAIL-D",setCode:"",unitsPerSet:1});
  return r;
+}
+
+/** A valid manual partial plan: one loaded pallet, with six original cartons unmet. */
+export function economicTailFixture(){
+ const request=palletTailFixture();request.products[0].quantity=14;request.container.length=2000;request.container.height=600;request.container.doorHeight=600;request.palletBuild!.maxPallets=2;
+ const partial=packLoadingWorkflow(request),removed=partial.pallets![1].id;partial.pallets=partial.pallets!.slice(0,1);partial.placements=partial.placements.filter(p=>!p.palletIds?.includes(removed));
+ const baseline=restorePackingSnapshot(request,partial);
+ return {request,baseline};
 }
