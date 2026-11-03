@@ -1,0 +1,205 @@
+{
+  "date": "2026-11-03",
+  "sourceCommit": "6dd67c6ba404d3fede193384000a0e7e8e124518",
+  "runtimeCodeCommit": "297e325149cf84b3bba170b49608ac39d4844ba9",
+  "provenance": "Fresh native rerun after old raw downloads were lost. Not reconstructed Nov 2 artifacts. Software checks refer to the existing release record; current unchanged source restored with exact Git blob/tree hashes.",
+  "passedAssertions": 26,
+  "assertions": [
+    {
+      "id": "complete-preview-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "counts-and-costs-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "sources-and-packaging-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "formal-id-and-no-adoption-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "source-row-conservation-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "five-review-states-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "complete-preview-vercel",
+      "passed": true
+    },
+    {
+      "id": "counts-and-costs-vercel",
+      "passed": true
+    },
+    {
+      "id": "sources-and-packaging-vercel",
+      "passed": true
+    },
+    {
+      "id": "formal-id-and-no-adoption-vercel",
+      "passed": true
+    },
+    {
+      "id": "source-row-conservation-vercel",
+      "passed": true
+    },
+    {
+      "id": "five-review-states-vercel",
+      "passed": true
+    },
+    {
+      "id": "dual-site-equality",
+      "passed": true
+    },
+    {
+      "id": "bilingual-csv-values",
+      "passed": true
+    },
+    {
+      "id": "missing-is-unknown",
+      "passed": true
+    },
+    {
+      "id": "explicit-free",
+      "passed": true
+    },
+    {
+      "id": "currency-reset",
+      "passed": true
+    },
+    {
+      "id": "benchmark-18-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "benchmark-18-vercel",
+      "passed": true
+    },
+    {
+      "id": "benchmark-input-equality",
+      "passed": true
+    },
+    {
+      "id": "original-fields-restored-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "default-116-3842-cloudflare",
+      "passed": true
+    },
+    {
+      "id": "original-fields-restored-vercel",
+      "passed": true
+    },
+    {
+      "id": "default-116-3842-vercel",
+      "passed": true
+    },
+    {
+      "id": "native-invalid-and-stale-guards",
+      "passed": true
+    },
+    {
+      "id": "native-cost-file-workspace-rejection",
+      "passed": true
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "v0.70.0-recheck-before-cloudflare.json",
+      "bytes": 2647,
+      "sha256": "646247a5469a9ea1d215d78efe1fd9ae5c6c339588e78dd203e79c4f2995b24b"
+    },
+    {
+      "path": "v0.70.0-recheck-before-vercel.json",
+      "bytes": 2647,
+      "sha256": "232d001e1c5a655bb93534376798a11a5309189fc5c7b9b0c4c27ea5c33db597"
+    },
+    {
+      "path": "v0.70.0-recheck-benchmark-cloudflare.json",
+      "bytes": 57335,
+      "sha256": "25ee17847f672745b9707521431ae730476a8b0a12b030bf9ef9aa2d515fb382"
+    },
+    {
+      "path": "v0.70.0-recheck-benchmark-vercel.json",
+      "bytes": 57314,
+      "sha256": "7d55956dbcac6fc586a92f377aae0c2a3d6fe683f084ceeb41c46de1f631cd49"
+    },
+    {
+      "path": "v0.70.0-recheck-csv-cloudflare.csv",
+      "bytes": 3194,
+      "sha256": "73b815a531c9754f927935cee8a3a73d5cd5afafccb4b162c4b8b94a43e5188d"
+    },
+    {
+      "path": "v0.70.0-recheck-csv-vercel.csv",
+      "bytes": 3166,
+      "sha256": "8b9c8b5e059268869f8e78f3501f25df12cc3c55968d9ec25631d714a658fc65"
+    },
+    {
+      "path": "v0.70.0-recheck-final-cloudflare.json",
+      "bytes": 134245,
+      "sha256": "6855bbcfdf780773cbae35bd66a29273b424abbf46dfec89b9ad9f9dfa0f0898"
+    },
+    {
+      "path": "v0.70.0-recheck-final-vercel.json",
+      "bytes": 134245,
+      "sha256": "53ceb70c3a145d6abe46df43d6b3e219d60e8d0655bf55e2326ac8c07fd36015"
+    },
+    {
+      "path": "v0.70.0-recheck-formal-cloudflare.json",
+      "bytes": 20366,
+      "sha256": "72934f458d3ab2ba470db5226e70cc663901500202b3d1965c6d518019f151f8"
+    },
+    {
+      "path": "v0.70.0-recheck-formal-vercel.json",
+      "bytes": 20381,
+      "sha256": "a1fd6024f9d846dacd3d4ab15c5b65eaa5f9d78a2fd7d07aba122e3f351d4730"
+    },
+    {
+      "path": "v0.70.0-recheck-free.json",
+      "bytes": 27234,
+      "sha256": "7c7501e4a3086724c5b4d6b838d89dbc9a8b759c520006ecbc6334832553922d"
+    },
+    {
+      "path": "v0.70.0-recheck-full-cloudflare.json",
+      "bytes": 27270,
+      "sha256": "584c2ab90b4ee237c897384f4944491a586e6875cf6fe94a56b55ad54450d213"
+    },
+    {
+      "path": "v0.70.0-recheck-full-vercel.json",
+      "bytes": 27270,
+      "sha256": "16aa3b32535888a40436ac6f820ab927f97426452d5198332599d266dcd1b31e"
+    },
+    {
+      "path": "v0.70.0-recheck-missing.json",
+      "bytes": 25956,
+      "sha256": "516a1b92f881cc0b6d37f16e9c90005bde7fd9104452e9ee77605fcf5e67071d"
+    },
+    {
+      "path": "v0.70.0-recheck-proof.jpg",
+      "bytes": 81342,
+      "sha256": "6cc543537e48bf9971f02de01b2dc5382022fc0938d17df35825f7b1ce750535"
+    },
+    {
+      "path": "v0.70.0-recheck-reset.json",
+      "bytes": 27364,
+      "sha256": "eaada6c35687d8c51814b8f58b82255bb77f9f0951e6232ef541ac2dcd248d15"
+    },
+    {
+      "path": "v0.70.0-recheck-seed.json",
+      "bytes": 4562,
+      "sha256": "52809cccf8ced259d4f7e6c147daa3e9ec40abfff04b984e1263bade1e4f82c6"
+    }
+  ],
+  "limitations": [
+    "Chrome WebGL fallback, no real GPU proof",
+    "Original 596-to-16 user workspace remains unavailable",
+    "Existing defaults are made explicit when restoring a fresh default order"
+  ]
+}

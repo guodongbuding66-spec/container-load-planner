@@ -1,0 +1,21 @@
+﻿报告状态,引擎,生成时间,币种,核算范围,项目ID,项目,单位,原方案,候选,差额
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,loaded,已装箱数,箱,24,30,6
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,loose,实际散箱,箱,0,6,6
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,gross-weight,计划毛重,kg,315,375,60
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,packaging:primary:quantity,Tail test pallet,个,1,1,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,packaging:primary:price,Tail test pallet,CNY,50,50,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,packaging:primary:subtotal,Tail test pallet,CNY,50,50,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,packaging:sku-b:quantity,SKU B pallet,个,1,1,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,packaging:sku-b:price,SKU B pallet,CNY,60,60,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,packaging:sku-b:subtotal,SKU B pallet,CNY,60,60,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,packaging:sku-c:quantity,SKU C pallet,个,1,1,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,packaging:sku-c:price,SKU C pallet,CNY,70,70,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,packaging:sku-c:subtotal,SKU C pallet,CNY,70,70,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,freight,运费（0 为未报价）,CNY,1000,1000,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,charge:charge-bb2ef649-a3e4-4b52-8897-346b90ced9c7:quantity,QA labor,container,1,1,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,charge:charge-bb2ef649-a3e4-4b52-8897-346b90ced9c7:price,QA labor,USD,10,10,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,charge:charge-bb2ef649-a3e4-4b52-8897-346b90ced9c7:rate,QA labor,本位币／外币,7,7,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,charge:charge-bb2ef649-a3e4-4b52-8897-346b90ced9c7:subtotal,QA labor,CNY,70,70,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,known-subtotal,已知小计（缺报价仍未核算）,CNY,1250,1250,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,quoted-total,已配置项目完整合计,CNY,1250,1250,0
+试算预览－未采用,0.70.0,2026-11-03T00:17:21.293Z,CNY,configured-single-container-costs,per-loaded-carton,已装每箱配置费用,CNY,52.083333333333336,41.666666666666664,-10.416666666666671
