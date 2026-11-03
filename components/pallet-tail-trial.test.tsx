@@ -5,7 +5,7 @@ import {renderToStaticMarkup} from "react-dom/server";
 import {afterEach,expect,it,vi} from "vitest";
 import {usePalletTailTrial,PalletTailTrial} from "./pallet-tail-trial";
 import {runOrderCapacityTrial} from "../lib/packing/order-capacity";
-import {palletTailFixture,jointPalletTailFixture,triplePalletTailFixture,economicTailFixture} from "../tests/pallet-tail-fixture";
+import {palletTailFixture,jointPalletTailFixture,triplePalletTailFixture,economicTailFixture,quadruplePalletTailFixture} from "../tests/pallet-tail-fixture";
 import {packLoadingWorkflow} from "../lib/packing/pack-loading";
 import {setAppLanguage} from "./language";
 class FakeWorker{
@@ -147,4 +147,18 @@ it.each(["rerun","round trip","issued","unmount","cancel"])("rejects captured ad
   if(kind==="rerun")await act(async()=>task.run());else if(kind==="round trip"){await act(async()=>task.setChoice({id:"row:a",limit:"5"}));await act(async()=>task.setChoice({id:"row:a",limit:"6"}));}else if(kind==="issued"){props={...props,canApply:false};await root.render();}else if(kind==="unmount"){await root.close();closed=true;}else await act(async()=>task.cancel());
   expect(oldAdopt(row)).toBe(false);oldQuantityAdopt();expect(oldReport()).toBeUndefined();expect(oldCost({freight:100,pricing:{currency:"CNY",packaging:{primary:20}}})).toBeUndefined();expect(props.onApply).not.toHaveBeenCalled();
  }finally{if(!closed)await root.close();}
+});
+
+it("adopts four original rows only after all fifteen independently reviewed allocations finish",async()=>{
+ const request=quadruplePalletTailFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request)};let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}const root=await mount(Hook);try{await act(async()=>task.setSearchMode("quad"));expect(task.jointGrid).toBe(15);expect(task.fourthGroup?.id).toBe("row:d");await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials;expect(trials).toHaveLength(15);for(let index=0;index<14;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));await act(async()=>task.adopt());expect(props.onApply).not.toHaveBeenCalled();await act(async()=>w.deliver({index:14,plan:runOrderCapacityTrial(trials[14])}));expect(task.best!.plan.metrics.loadedCount).toBe(36);expect(task.getReport()!.scope.groups).toHaveLength(4);expect(task.getReport()!.scope.mode).toBe("quad");await act(async()=>task.adopt());expect(props.onApply.mock.calls[0][0].looseQuantities).toEqual({a:1,b:1,c:1,d:1});expect(request.products.map(p=>p.quantity)).toEqual([9,9,9,9]);}finally{await root.close();}
+});
+it.each(["fourth ceiling","fourth row","mode"])("invalidates complete four-group results after a %s round trip",async kind=>{
+ const request=quadruplePalletTailFixture();request.products.push({...request.products[3],id:"e",sku:"TAIL-E"});const props={...defaults(),request,plan:packLoadingWorkflow(request)};let task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}const root=await mount(Hook);try{await act(async()=>task.setSearchMode("quad"));await act(async()=>task.run());const w=FakeWorker.instances[0],trials=w.postMessage.mock.calls[0][0].trials;for(let index=0;index<trials.length;index++)await act(async()=>w.deliver({index,plan:runOrderCapacityTrial(trials[index])}));const oldReport=task.getReport,oldAdopt=task.adopt;
+ if(kind==="mode"){await act(async()=>task.setSearchMode("triple"));await act(async()=>task.setSearchMode("quad"));}else{await act(async()=>task.setFourthChoice({id:kind==="fourth row"?"row:e":"row:d",limit:"0"}));await act(async()=>task.setFourthChoice({id:"row:d",limit:"1"}));}expect(oldReport()).toBeUndefined();oldAdopt();expect(task.current).toBeNull();expect(props.onApply).not.toHaveBeenCalled();}finally{await root.close();}
+});
+it("blocks a missing fourth group and an eighty-allocation grid before starting a worker",async()=>{
+ let request=quadruplePalletTailFixture();request.products.forEach(p=>p.quantity=20);let props={...defaults(),request,plan:packLoadingWorkflow(request)},task!:ReturnType<typeof usePalletTailTrial>;function Hook(){task=usePalletTailTrial(props);return <group/>;}const root=await mount(Hook);try{await act(async()=>{task.setSearchMode("quad");task.setChoice({id:"row:a",limit:"2"});task.setSecondChoice({id:"row:b",limit:"2"});task.setThirdChoice({id:"row:c",limit:"2"});task.setFourthChoice({id:"row:d",limit:"2"});});expect(task.jointGrid).toBe(80);expect(task.validLimit).toBe(false);await act(async()=>task.run());expect(FakeWorker.instances).toHaveLength(0);request=triplePalletTailFixture();props={...defaults(),request,plan:packLoadingWorkflow(request)};await root.render();expect(task.fourthGroup).toBeUndefined();expect(task.validLimit).toBe(false);await act(async()=>task.run());expect(FakeWorker.instances).toHaveLength(0);}finally{await root.close();}
+});
+it("translates and exposes the four-group scope without Chinese labels in English",()=>{
+ const request=quadruplePalletTailFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request)};expect(renderToStaticMarkup(<PalletTailTrial {...props}/>)).toContain("四组联合");vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");const html=renderToStaticMarkup(<PalletTailTrial {...props}/>);expect(html).toContain("Four groups together");expect(html).not.toMatch(/[\u3400-\u9fff]/u);
 });

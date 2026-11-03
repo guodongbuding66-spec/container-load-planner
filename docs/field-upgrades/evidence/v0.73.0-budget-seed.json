@@ -1,0 +1,2334 @@
+{
+  "format": "cargo-fit-workspace",
+  "version": 1,
+  "engineVersion": "0.73.0",
+  "createdAt": "2026-11-03T05:37:59.446Z",
+  "inputs": {
+    "palletLayerTemplates": [],
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "Tail test pallet",
+        "length": 800,
+        "width": 1000,
+        "height": 100,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 400
+      },
+      "mix": "single",
+      "maxPallets": 4,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "primaryRule": {
+        "maxPallets": 1,
+        "productIds": [
+          "a"
+        ]
+      },
+      "additionalSpecs": [
+        {
+          "id": "sku-b",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "SKU B pallet",
+            "length": 800,
+            "width": 1000,
+            "height": 100,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "productIds": [
+            "b"
+          ],
+          "maxPallets": 1,
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        },
+        {
+          "id": "sku-c",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "SKU C pallet",
+            "length": 800,
+            "width": 1000,
+            "height": 100,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "productIds": [
+            "c"
+          ],
+          "maxPallets": 1,
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        },
+        {
+          "id": "sku-d",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "SKU D pallet",
+            "length": 800,
+            "width": 1000,
+            "height": 100,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "productIds": [
+            "d"
+          ],
+          "maxPallets": 1,
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        }
+      ]
+    },
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "practical",
+    "practicalTargetPercent": 88,
+    "container": {
+      "id": "tail-test",
+      "name": "Tail test vehicle",
+      "category": "other",
+      "loadingAccess": "rear",
+      "length": 3600,
+      "width": 1000,
+      "height": 1000,
+      "doorWidth": 1000,
+      "doorHeight": 1000,
+      "maxWeight": 10000
+    },
+    "clearance": 0,
+    "products": [
+      {
+        "id": "a",
+        "sku": "TAIL-A",
+        "name": "Tail carton",
+        "length": 400,
+        "width": 400,
+        "height": 200,
+        "weight": 10,
+        "quantity": 20,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxTopLoadKg": 1000,
+        "maxStackLayers": 0,
+        "color": "#2f7f89"
+      },
+      {
+        "id": "b",
+        "sku": "TAIL-B",
+        "name": "Tail carton",
+        "length": 400,
+        "width": 400,
+        "height": 200,
+        "weight": 10,
+        "quantity": 20,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxTopLoadKg": 1000,
+        "maxStackLayers": 0,
+        "color": "#2f7f89"
+      },
+      {
+        "id": "c",
+        "sku": "TAIL-C",
+        "name": "Tail carton",
+        "length": 400,
+        "width": 400,
+        "height": 200,
+        "weight": 10,
+        "quantity": 20,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxTopLoadKg": 1000,
+        "maxStackLayers": 0,
+        "color": "#2f7f89"
+      },
+      {
+        "id": "d",
+        "sku": "TAIL-D",
+        "name": "Tail carton",
+        "length": 400,
+        "width": 400,
+        "height": 200,
+        "weight": 10,
+        "quantity": 20,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxTopLoadKg": 1000,
+        "maxStackLayers": 0,
+        "color": "#2f7f89"
+      }
+    ],
+    "customContainers": [
+      {
+        "id": "tail-test",
+        "name": "Tail test vehicle",
+        "category": "other",
+        "loadingAccess": "rear",
+        "length": 3600,
+        "width": 1000,
+        "height": 1000,
+        "doorWidth": 1000,
+        "doorHeight": 1000,
+        "maxWeight": 10000
+      }
+    ],
+    "targetVolumePercent": 85,
+    "targetWeightPercent": 90,
+    "lengthUnit": "mm",
+    "weightUnit": "kg"
+  },
+  "coordinatePlans": {
+    "practical": {
+      "workflow": "palletized",
+      "palletBuild": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "Tail test pallet",
+          "length": 800,
+          "width": 1000,
+          "height": 100,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 400
+        },
+        "mix": "single",
+        "maxPallets": 4,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "primaryRule": {
+          "maxPallets": 1,
+          "productIds": [
+            "a"
+          ]
+        },
+        "additionalSpecs": [
+          {
+            "id": "sku-b",
+            "config": {
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "SKU B pallet",
+              "length": 800,
+              "width": 1000,
+              "height": 100,
+              "weight": 25,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 400
+            },
+            "maxPallets": 1,
+            "productIds": [
+              "b"
+            ],
+            "stackLayers": 1,
+            "maxTopLoadKg": 0
+          },
+          {
+            "id": "sku-c",
+            "config": {
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "SKU C pallet",
+              "length": 800,
+              "width": 1000,
+              "height": 100,
+              "weight": 25,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 400
+            },
+            "maxPallets": 1,
+            "productIds": [
+              "c"
+            ],
+            "stackLayers": 1,
+            "maxTopLoadKg": 0
+          },
+          {
+            "id": "sku-d",
+            "config": {
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "SKU D pallet",
+              "length": 800,
+              "width": 1000,
+              "height": 100,
+              "weight": 25,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 400
+            },
+            "maxPallets": 1,
+            "productIds": [
+              "d"
+            ],
+            "stackLayers": 1,
+            "maxTopLoadKg": 0
+          }
+        ]
+      },
+      "strategy": "practical",
+      "placements": [
+        {
+          "id": "prebuilt-1",
+          "productId": "a",
+          "sku": "TAIL-A",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-2",
+          "productId": "a",
+          "sku": "TAIL-A",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 400,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-3",
+          "productId": "a",
+          "sku": "TAIL-A",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 0,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-4",
+          "productId": "a",
+          "sku": "TAIL-A",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 0,
+          "y": 400,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-5",
+          "productId": "a",
+          "sku": "TAIL-A",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 400,
+          "y": 0,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-6",
+          "productId": "a",
+          "sku": "TAIL-A",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 400,
+          "y": 400,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-7",
+          "productId": "a",
+          "sku": "TAIL-A",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 400,
+          "y": 0,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-8",
+          "productId": "a",
+          "sku": "TAIL-A",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 400,
+          "y": 400,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-1"
+          ]
+        },
+        {
+          "id": "prebuilt-9",
+          "productId": "b",
+          "sku": "TAIL-B",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 800,
+          "y": 0,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-10",
+          "productId": "b",
+          "sku": "TAIL-B",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 800,
+          "y": 400,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-11",
+          "productId": "b",
+          "sku": "TAIL-B",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 800,
+          "y": 0,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-12",
+          "productId": "b",
+          "sku": "TAIL-B",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 800,
+          "y": 400,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-13",
+          "productId": "b",
+          "sku": "TAIL-B",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 1200,
+          "y": 0,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-14",
+          "productId": "b",
+          "sku": "TAIL-B",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 1200,
+          "y": 400,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-15",
+          "productId": "b",
+          "sku": "TAIL-B",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 1200,
+          "y": 0,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-16",
+          "productId": "b",
+          "sku": "TAIL-B",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 1200,
+          "y": 400,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-2"
+          ]
+        },
+        {
+          "id": "prebuilt-17",
+          "productId": "c",
+          "sku": "TAIL-C",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 1600,
+          "y": 0,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-3"
+          ]
+        },
+        {
+          "id": "prebuilt-18",
+          "productId": "c",
+          "sku": "TAIL-C",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 1600,
+          "y": 400,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-3"
+          ]
+        },
+        {
+          "id": "prebuilt-19",
+          "productId": "c",
+          "sku": "TAIL-C",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 1600,
+          "y": 0,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-3"
+          ]
+        },
+        {
+          "id": "prebuilt-20",
+          "productId": "c",
+          "sku": "TAIL-C",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 1600,
+          "y": 400,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-3"
+          ]
+        },
+        {
+          "id": "prebuilt-21",
+          "productId": "c",
+          "sku": "TAIL-C",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 2000,
+          "y": 0,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-3"
+          ]
+        },
+        {
+          "id": "prebuilt-22",
+          "productId": "c",
+          "sku": "TAIL-C",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 2000,
+          "y": 400,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-3"
+          ]
+        },
+        {
+          "id": "prebuilt-23",
+          "productId": "c",
+          "sku": "TAIL-C",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 2000,
+          "y": 0,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-3"
+          ]
+        },
+        {
+          "id": "prebuilt-24",
+          "productId": "c",
+          "sku": "TAIL-C",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 2000,
+          "y": 400,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-3"
+          ]
+        },
+        {
+          "id": "prebuilt-25",
+          "productId": "d",
+          "sku": "TAIL-D",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 2400,
+          "y": 0,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-4"
+          ]
+        },
+        {
+          "id": "prebuilt-26",
+          "productId": "d",
+          "sku": "TAIL-D",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 2400,
+          "y": 400,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-4"
+          ]
+        },
+        {
+          "id": "prebuilt-27",
+          "productId": "d",
+          "sku": "TAIL-D",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 2400,
+          "y": 0,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-4"
+          ]
+        },
+        {
+          "id": "prebuilt-28",
+          "productId": "d",
+          "sku": "TAIL-D",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 2400,
+          "y": 400,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-4"
+          ]
+        },
+        {
+          "id": "prebuilt-29",
+          "productId": "d",
+          "sku": "TAIL-D",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 2800,
+          "y": 0,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-4"
+          ]
+        },
+        {
+          "id": "prebuilt-30",
+          "productId": "d",
+          "sku": "TAIL-D",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 2800,
+          "y": 400,
+          "z": 100,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 1,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-4"
+          ]
+        },
+        {
+          "id": "prebuilt-31",
+          "productId": "d",
+          "sku": "TAIL-D",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 2800,
+          "y": 0,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-4"
+          ]
+        },
+        {
+          "id": "prebuilt-32",
+          "productId": "d",
+          "sku": "TAIL-D",
+          "name": "Tail carton",
+          "color": "#2f7f89",
+          "x": 2800,
+          "y": 400,
+          "z": 300,
+          "dx": 400,
+          "dy": 400,
+          "dz": 200,
+          "weight": 10,
+          "layer": 2,
+          "orientation": "LWH",
+          "palletIds": [
+            "floor-pallet-4"
+          ]
+        }
+      ],
+      "pallets": [
+        {
+          "id": "floor-pallet-1",
+          "presetId": "eur-1200-800",
+          "name": "Tail test pallet",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "dx": 800,
+          "dy": 1000,
+          "dz": 100,
+          "weight": 25,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "specificationId": "primary",
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          }
+        },
+        {
+          "id": "floor-pallet-2",
+          "presetId": "eur-1200-800",
+          "name": "SKU B pallet",
+          "x": 800,
+          "y": 0,
+          "z": 0,
+          "dx": 800,
+          "dy": 1000,
+          "dz": 100,
+          "weight": 25,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "specificationId": "sku-b",
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          }
+        },
+        {
+          "id": "floor-pallet-3",
+          "presetId": "eur-1200-800",
+          "name": "SKU C pallet",
+          "x": 1600,
+          "y": 0,
+          "z": 0,
+          "dx": 800,
+          "dy": 1000,
+          "dz": 100,
+          "weight": 25,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "specificationId": "sku-c",
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          }
+        },
+        {
+          "id": "floor-pallet-4",
+          "presetId": "eur-1200-800",
+          "name": "SKU D pallet",
+          "x": 2400,
+          "y": 0,
+          "z": 0,
+          "dx": 800,
+          "dy": 1000,
+          "dz": 100,
+          "weight": 25,
+          "maxLoad": 1000,
+          "orientation": "LWH",
+          "specificationId": "sku-d",
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          }
+        }
+      ],
+      "palletization": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "Tail test pallet",
+          "length": 800,
+          "width": 1000,
+          "height": 100,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 400
+        },
+        "mix": "single",
+        "stackLayers": 1,
+        "maxTopLoadKg": 0,
+        "preparedCount": 4,
+        "bounded": true,
+        "only": false,
+        "specifications": [
+          {
+            "id": "primary",
+            "config": {
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "Tail test pallet",
+              "length": 800,
+              "width": 1000,
+              "height": 100,
+              "weight": 25,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 400
+            },
+            "maxPallets": 1,
+            "productIds": [
+              "a"
+            ],
+            "stackLayers": 1,
+            "maxTopLoadKg": 0
+          },
+          {
+            "id": "sku-b",
+            "config": {
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "SKU B pallet",
+              "length": 800,
+              "width": 1000,
+              "height": 100,
+              "weight": 25,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 400
+            },
+            "maxPallets": 1,
+            "productIds": [
+              "b"
+            ],
+            "stackLayers": 1,
+            "maxTopLoadKg": 0
+          },
+          {
+            "id": "sku-c",
+            "config": {
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "SKU C pallet",
+              "length": 800,
+              "width": 1000,
+              "height": 100,
+              "weight": 25,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 400
+            },
+            "maxPallets": 1,
+            "productIds": [
+              "c"
+            ],
+            "stackLayers": 1,
+            "maxTopLoadKg": 0
+          },
+          {
+            "id": "sku-d",
+            "config": {
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "SKU D pallet",
+              "length": 800,
+              "width": 1000,
+              "height": 100,
+              "weight": 25,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 400
+            },
+            "maxPallets": 1,
+            "productIds": [
+              "d"
+            ],
+            "stackLayers": 1,
+            "maxTopLoadKg": 0
+          }
+        ],
+        "preparedBySpecification": {
+          "primary": 1,
+          "sku-b": 1,
+          "sku-c": 1,
+          "sku-d": 1
+        }
+      }
+    }
+  },
+  "coordinatePlan": {
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "Tail test pallet",
+        "length": 800,
+        "width": 1000,
+        "height": 100,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 400
+      },
+      "mix": "single",
+      "maxPallets": 4,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "primaryRule": {
+        "maxPallets": 1,
+        "productIds": [
+          "a"
+        ]
+      },
+      "additionalSpecs": [
+        {
+          "id": "sku-b",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "SKU B pallet",
+            "length": 800,
+            "width": 1000,
+            "height": 100,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "maxPallets": 1,
+          "productIds": [
+            "b"
+          ],
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        },
+        {
+          "id": "sku-c",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "SKU C pallet",
+            "length": 800,
+            "width": 1000,
+            "height": 100,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "maxPallets": 1,
+          "productIds": [
+            "c"
+          ],
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        },
+        {
+          "id": "sku-d",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "SKU D pallet",
+            "length": 800,
+            "width": 1000,
+            "height": 100,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "maxPallets": 1,
+          "productIds": [
+            "d"
+          ],
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        }
+      ]
+    },
+    "strategy": "practical",
+    "placements": [
+      {
+        "id": "prebuilt-1",
+        "productId": "a",
+        "sku": "TAIL-A",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-2",
+        "productId": "a",
+        "sku": "TAIL-A",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 400,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-3",
+        "productId": "a",
+        "sku": "TAIL-A",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 0,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-4",
+        "productId": "a",
+        "sku": "TAIL-A",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 0,
+        "y": 400,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-5",
+        "productId": "a",
+        "sku": "TAIL-A",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 400,
+        "y": 0,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-6",
+        "productId": "a",
+        "sku": "TAIL-A",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 400,
+        "y": 400,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-7",
+        "productId": "a",
+        "sku": "TAIL-A",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 400,
+        "y": 0,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-8",
+        "productId": "a",
+        "sku": "TAIL-A",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 400,
+        "y": 400,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-1"
+        ]
+      },
+      {
+        "id": "prebuilt-9",
+        "productId": "b",
+        "sku": "TAIL-B",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 800,
+        "y": 0,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-10",
+        "productId": "b",
+        "sku": "TAIL-B",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 800,
+        "y": 400,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-11",
+        "productId": "b",
+        "sku": "TAIL-B",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 800,
+        "y": 0,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-12",
+        "productId": "b",
+        "sku": "TAIL-B",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 800,
+        "y": 400,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-13",
+        "productId": "b",
+        "sku": "TAIL-B",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 1200,
+        "y": 0,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-14",
+        "productId": "b",
+        "sku": "TAIL-B",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 1200,
+        "y": 400,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-15",
+        "productId": "b",
+        "sku": "TAIL-B",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 1200,
+        "y": 0,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-16",
+        "productId": "b",
+        "sku": "TAIL-B",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 1200,
+        "y": 400,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-2"
+        ]
+      },
+      {
+        "id": "prebuilt-17",
+        "productId": "c",
+        "sku": "TAIL-C",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 1600,
+        "y": 0,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-3"
+        ]
+      },
+      {
+        "id": "prebuilt-18",
+        "productId": "c",
+        "sku": "TAIL-C",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 1600,
+        "y": 400,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-3"
+        ]
+      },
+      {
+        "id": "prebuilt-19",
+        "productId": "c",
+        "sku": "TAIL-C",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 1600,
+        "y": 0,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-3"
+        ]
+      },
+      {
+        "id": "prebuilt-20",
+        "productId": "c",
+        "sku": "TAIL-C",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 1600,
+        "y": 400,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-3"
+        ]
+      },
+      {
+        "id": "prebuilt-21",
+        "productId": "c",
+        "sku": "TAIL-C",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 2000,
+        "y": 0,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-3"
+        ]
+      },
+      {
+        "id": "prebuilt-22",
+        "productId": "c",
+        "sku": "TAIL-C",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 2000,
+        "y": 400,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-3"
+        ]
+      },
+      {
+        "id": "prebuilt-23",
+        "productId": "c",
+        "sku": "TAIL-C",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 2000,
+        "y": 0,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-3"
+        ]
+      },
+      {
+        "id": "prebuilt-24",
+        "productId": "c",
+        "sku": "TAIL-C",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 2000,
+        "y": 400,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-3"
+        ]
+      },
+      {
+        "id": "prebuilt-25",
+        "productId": "d",
+        "sku": "TAIL-D",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 2400,
+        "y": 0,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-4"
+        ]
+      },
+      {
+        "id": "prebuilt-26",
+        "productId": "d",
+        "sku": "TAIL-D",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 2400,
+        "y": 400,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-4"
+        ]
+      },
+      {
+        "id": "prebuilt-27",
+        "productId": "d",
+        "sku": "TAIL-D",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 2400,
+        "y": 0,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-4"
+        ]
+      },
+      {
+        "id": "prebuilt-28",
+        "productId": "d",
+        "sku": "TAIL-D",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 2400,
+        "y": 400,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-4"
+        ]
+      },
+      {
+        "id": "prebuilt-29",
+        "productId": "d",
+        "sku": "TAIL-D",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 2800,
+        "y": 0,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-4"
+        ]
+      },
+      {
+        "id": "prebuilt-30",
+        "productId": "d",
+        "sku": "TAIL-D",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 2800,
+        "y": 400,
+        "z": 100,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 1,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-4"
+        ]
+      },
+      {
+        "id": "prebuilt-31",
+        "productId": "d",
+        "sku": "TAIL-D",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 2800,
+        "y": 0,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-4"
+        ]
+      },
+      {
+        "id": "prebuilt-32",
+        "productId": "d",
+        "sku": "TAIL-D",
+        "name": "Tail carton",
+        "color": "#2f7f89",
+        "x": 2800,
+        "y": 400,
+        "z": 300,
+        "dx": 400,
+        "dy": 400,
+        "dz": 200,
+        "weight": 10,
+        "layer": 2,
+        "orientation": "LWH",
+        "palletIds": [
+          "floor-pallet-4"
+        ]
+      }
+    ],
+    "pallets": [
+      {
+        "id": "floor-pallet-1",
+        "presetId": "eur-1200-800",
+        "name": "Tail test pallet",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "dx": 800,
+        "dy": 1000,
+        "dz": 100,
+        "weight": 25,
+        "maxLoad": 1000,
+        "orientation": "LWH",
+        "specificationId": "primary",
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        }
+      },
+      {
+        "id": "floor-pallet-2",
+        "presetId": "eur-1200-800",
+        "name": "SKU B pallet",
+        "x": 800,
+        "y": 0,
+        "z": 0,
+        "dx": 800,
+        "dy": 1000,
+        "dz": 100,
+        "weight": 25,
+        "maxLoad": 1000,
+        "orientation": "LWH",
+        "specificationId": "sku-b",
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        }
+      },
+      {
+        "id": "floor-pallet-3",
+        "presetId": "eur-1200-800",
+        "name": "SKU C pallet",
+        "x": 1600,
+        "y": 0,
+        "z": 0,
+        "dx": 800,
+        "dy": 1000,
+        "dz": 100,
+        "weight": 25,
+        "maxLoad": 1000,
+        "orientation": "LWH",
+        "specificationId": "sku-c",
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        }
+      },
+      {
+        "id": "floor-pallet-4",
+        "presetId": "eur-1200-800",
+        "name": "SKU D pallet",
+        "x": 2400,
+        "y": 0,
+        "z": 0,
+        "dx": 800,
+        "dy": 1000,
+        "dz": 100,
+        "weight": 25,
+        "maxLoad": 1000,
+        "orientation": "LWH",
+        "specificationId": "sku-d",
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        }
+      }
+    ],
+    "palletization": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "Tail test pallet",
+        "length": 800,
+        "width": 1000,
+        "height": 100,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 400
+      },
+      "mix": "single",
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "preparedCount": 4,
+      "bounded": true,
+      "only": false,
+      "specifications": [
+        {
+          "id": "primary",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "Tail test pallet",
+            "length": 800,
+            "width": 1000,
+            "height": 100,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "maxPallets": 1,
+          "productIds": [
+            "a"
+          ],
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        },
+        {
+          "id": "sku-b",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "SKU B pallet",
+            "length": 800,
+            "width": 1000,
+            "height": 100,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "maxPallets": 1,
+          "productIds": [
+            "b"
+          ],
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        },
+        {
+          "id": "sku-c",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "SKU C pallet",
+            "length": 800,
+            "width": 1000,
+            "height": 100,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "maxPallets": 1,
+          "productIds": [
+            "c"
+          ],
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        },
+        {
+          "id": "sku-d",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "SKU D pallet",
+            "length": 800,
+            "width": 1000,
+            "height": 100,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "maxPallets": 1,
+          "productIds": [
+            "d"
+          ],
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        }
+      ],
+      "preparedBySpecification": {
+        "primary": 1,
+        "sku-b": 1,
+        "sku-c": 1,
+        "sku-d": 1
+      }
+    }
+  }
+}

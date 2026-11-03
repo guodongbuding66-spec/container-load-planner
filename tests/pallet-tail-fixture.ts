@@ -39,3 +39,8 @@ export function economicTailFixture(){
  const baseline=restorePackingSnapshot(request,partial);
  return {request,baseline};
 }
+
+/** Four distinct SKU-specific pallets, each with one original carton still unmet. */
+export function quadruplePalletTailFixture():PackingRequest{
+ const r=triplePalletTailFixture();r.container.length=3600;r.products.forEach(p=>p.quantity=9);r.products.push({...structuredClone(r.products[2]),id:"d",sku:"TAIL-D"});r.palletBuild!.maxPallets=4;r.palletBuild!.additionalSpecs!.push({id:"sku-d",config:{...structuredClone(r.palletBuild!.config),name:"SKU D pallet"},productIds:["d"],maxPallets:1,stackLayers:1,maxTopLoadKg:0});return r;
+}

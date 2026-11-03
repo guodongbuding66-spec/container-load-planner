@@ -137,7 +137,7 @@ it.each(["practical","maximum"] as const)("three-group allocation completes the 
 it("checks all 63 three-group combinations and refuses a larger ceiling grid",()=>{
  const r=triplePalletTailFixture();r.products.forEach(p=>p.quantity=100);const plan=packLoadingWorkflow(r),selection=r.products.map(p=>({groupId:`row:${p.id}`,limit:3}));expect(prepareJointPalletTailTrials(r,plan,selection)).toHaveLength(63);
  expect(()=>prepareJointPalletTailTrials(r,plan,selection.map(s=>({...s,limit:4})))).toThrow(/exceeds 64/);
- expect(()=>prepareJointPalletTailTrials(r,plan,[...selection,{groupId:"row:d",limit:1}])).toThrow(/two or three/);
+ expect(()=>prepareJointPalletTailTrials(r,plan,[...selection,{groupId:"row:d",limit:1},{groupId:"row:e",limit:1}])).toThrow(/two to four/);
  expect(()=>prepareJointPalletTailTrials(r,plan,[selection[0],selection[1],selection[0]])).toThrow(/distinct/);
 });
 it("shares the 64-carton budget across three whole-kit groups",()=>{

@@ -9,7 +9,7 @@ import type {PackingRequest,PackingResult,ProductInput} from "./types";
 export const TAIL_CARTON_BUDGET=64;
 export const TAIL_CANDIDATE_LIMIT=5;
 export const TAIL_JOINT_CANDIDATE_LIMIT=64;
-export type TailSearchMode="quick"|"detailed"|"joint"|"triple";
+export type TailSearchMode="quick"|"detailed"|"joint"|"triple"|"quad";
 export type TailCandidate={trial:OrderCapacityTrial;plan:PackingResult};
 export type TailCargoGroup={id:string;name:string;products:ProductInput[];cartonsPerUnit:number;availableUnits:number};
 
@@ -63,16 +63,16 @@ function tailTrial(request:PackingRequest,total:number,rows:{group:TailCargoGrou
  return {request:next,arithmeticCartons:total,budgetLimited:false,tailReservationChange:{groupId:rows[0].group.id,units:rows.reduce((n,r)=>n+r.units,0),changes,...(joint?{groups:rows.map(r=>({id:r.group.id,name:r.group.name,units:r.units}))}:{})}};
 }
 
-export function preparePalletTailTrials(request:PackingRequest,baseline:PackingResult,groupId:string,limit:number,mode:Exclude<TailSearchMode,"joint"|"triple">="quick"):OrderCapacityTrial[]{
+export function preparePalletTailTrials(request:PackingRequest,baseline:PackingResult,groupId:string,limit:number,mode:Exclude<TailSearchMode,"joint"|"triple"|"quad">="quick"):OrderCapacityTrial[]{
  if(mode!=="quick"&&mode!=="detailed")throw Error("尾数搜索范围无效 / Invalid tail search mode");
  const {total,groups}=checkedTailBaseline(request,baseline),group=selectedTailGroup(groups,groupId,limit);
  const amounts=mode==="detailed"?Array.from({length:limit},(_,i)=>i+1):[...new Set([1,2,4,8,limit].filter(n=>n<=limit))].sort((a,b)=>a-b).slice(0,TAIL_CANDIDATE_LIMIT);
  return amounts.map(units=>tailTrial(request,total,[{group,units}]));
 }
 
-/** Complete two/three-group grid, including one-sided trials; reject oversized grids. */
+/** Complete two/three/four-group grid, including one-sided trials; reject oversized grids. */
 export function prepareJointPalletTailTrials(request:PackingRequest,baseline:PackingResult,selections:readonly {groupId:string;limit:number}[]):OrderCapacityTrial[]{
- if(![2,3].includes(selections.length)||new Set(selections.map(s=>s.groupId)).size!==selections.length)throw Error("请选择两到三个不同的订单行或套装 / Select two or three distinct order rows or kits");
+ if(![2,3,4].includes(selections.length)||new Set(selections.map(s=>s.groupId)).size!==selections.length)throw Error("请选择两到四个不同的订单行或套装 / Select two to four distinct order rows or kits");
  const {total,groups}=checkedTailBaseline(request,baseline),selected=selections.map(s=>({...s,group:selectedTailGroup(groups,s.groupId,s.limit)}));
  if(selected.reduce((n,s)=>n*(s.limit+1),1)-1>TAIL_JOINT_CANDIDATE_LIMIT)throw Error("联合候选超过 64 个，请降低各组上限 / Joint grid exceeds 64 candidates; reduce the group ceilings");
  const allocations:{units:number[];cartons:number}[]=[];
