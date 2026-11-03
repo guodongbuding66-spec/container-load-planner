@@ -9,12 +9,17 @@ import {reviewOrderCapacityTrial} from "./order-capacity";
 import type {PackingRequest,PackingResult} from "./types";
 
 export type TailCostQuote={freight:number;pricing:FleetPricing};
+export function parseTailCostQuote(value:unknown,request:PackingRequest):TailCostQuote{
+ if(!value||typeof value!=="object"||Array.isArray(value))throw Error("费用报价无效 / Invalid tail pricing");
+ const quote=value as TailCostQuote;
+ if(typeof quote.freight!=="number"||!Number.isFinite(quote.freight)||quote.freight<0||quote.freight>1e9)throw Error("Invalid freight quote");
+ const pricing=parseFleetPricing(quote.pricing,request);if(!pricing)throw Error("Missing tail pricing");
+ return {freight:quote.freight,pricing};
+}
 /** Accounting only: selection remains quantity-first, and the remaining order is outside this scope. */
 export function compareTailCosts(request:PackingRequest,baseline:PackingResult,candidate:PackingResult,quote:TailCostQuote){
  if(request.workflow!=="palletized"||!baseline.validation.valid||!candidate.validation.valid||!improvesPalletTrial(candidate,baseline))throw Error("Invalid tail cost candidate");
- if(!Number.isFinite(quote.freight)||quote.freight<0||quote.freight>1e9)throw Error("Invalid freight quote");
- const pricing=parseFleetPricing(quote.pricing,request)!;
- if(!pricing)throw Error("Missing tail pricing");
+ const {pricing}=parseTailCostQuote(quote,request);
  const specs=palletSpecifications(parsePalletBuild(request.palletBuild)),ids=new Set(specs.map(s=>s.id));
  for(const plan of [baseline,candidate])if((plan.pallets??[]).some(p=>!ids.has(p.specificationId??"primary")))throw Error("Stale packaging specification");
  const summarize=(plan:PackingResult)=>{

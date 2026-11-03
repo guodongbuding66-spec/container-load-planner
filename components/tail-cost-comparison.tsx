@@ -3,20 +3,22 @@ import {useMemo,useState} from "react";
 import {compareTailCosts,buildTailCostCsv,type TailCostQuote,type TailCostReport} from "../lib/packing/pallet-tail-costs";
 import {FleetPackagingPrices} from "./fleet-packaging";
 import {NumericInput} from "./numeric-input";
+import {TailPricingFiles} from "./tail-pricing-files";
 import {tr,useLanguage} from "./language";
 import type {PackingRequest,PackingResult} from "../lib/packing/types";
 
 type Props={request:PackingRequest;baseline:PackingResult;candidate:PackingResult;disabled:boolean;getReport:(quote:TailCostQuote)=>TailCostReport|undefined};
 export function TailCostComparison({request,baseline,candidate,disabled,getReport}:Props){
- const language=useLanguage(),[quote,setQuote]=useState<TailCostQuote>({freight:0,pricing:{currency:"CNY",packaging:{}}}),[validity,setValidity]=useState<Record<string,boolean>>({}),[failed,setFailed]=useState(false);
+ const language=useLanguage(),[quote,setQuote]=useState<TailCostQuote>({freight:0,pricing:{currency:"CNY",packaging:{}}}),[validity,setValidity]=useState<Record<string,boolean>>({}),[failed,setFailed]=useState(false),[quoteRevision,setQuoteRevision]=useState(0);
  const invalid=Object.values(validity).some(v=>!v),costs=useMemo(()=>{try{return compareTailCosts(request,baseline,candidate,quote);}catch{return null;}},[request,baseline,candidate,quote]);
  const money=(n:number|null|undefined)=>n==null?tr("未核算","Unknown"):n.toFixed(2);
  const changeCurrency=(currency:string)=>{setQuote({freight:0,pricing:{...quote.pricing,currency,packaging:{},exchangeRates:undefined}});setValidity({});};
  const download=(format:"json"|"csv")=>{setFailed(false);try{if(disabled||invalid||!costs)return;const report=getReport(quote);if(!report)return;const text=format==="json"?JSON.stringify(report,null,2):buildTailCostCsv(report,language==="en"),url=URL.createObjectURL(new Blob([text],{type:format==="json"?"application/json;charset=utf-8":"text/csv;charset=utf-8"})),a=document.createElement("a");a.href=url;a.download=`tail-cost-${report.engineVersion}.${format}`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch{setFailed(true);}};
  return <details className="tail-cost-comparison"><summary>{tr("原方案与尾数候选费用对照","Compare baseline and tail candidate costs")}</summary>
   <p className="helper-text">{tr("核算当前数量优先候选，报价不改变候选或自动采用。每边按一柜计费，每订单项目各计一次；余货后续运费、未配置项目及税费不在范围内。报价仅用于本次对照，请下载费用报告留存。","Account for the current quantity-first candidate; quotes do not change or apply it. Each side charges one container and each order charge once. Remaining shipments, unconfigured charges and taxes are outside scope. Quotes are for this comparison; download a cost report to retain them.")}</p>
-  <fieldset disabled={disabled}><legend>{tr("本柜运费","Freight for this container")}</legend><NumericInput key={quote.pricing.currency} ariaLabel={tr("尾数比较本柜运费","Tail comparison freight")} value={quote.freight} min={0} max={1e9} precision={4} onValueChange={freight=>setQuote({...quote,freight})} onValidityChange={v=>setValidity(a=>({...a,freight:v}))}/><small>{tr("0 表示未报价；缺报价时不计算完整合计、差额和每箱费用。","Zero means unquoted. Missing quotes leave the total, difference and per-carton cost unknown.")}</small></fieldset>
-  <FleetPackagingPrices key={quote.pricing.currency} request={request} value={quote.pricing} onChange={pricing=>setQuote({...quote,pricing})} onCurrencyChange={changeCurrency} onValidity={(k,v)=>setValidity(a=>({...a,[k]:v}))} disabled={disabled}/>
+  <TailPricingFiles request={request} value={quote} draftInvalid={invalid} disabled={disabled} onApply={next=>{setQuote(next);setValidity({});setFailed(false);setQuoteRevision(n=>n+1);}}/>
+  <fieldset disabled={disabled}><legend>{tr("本柜运费","Freight for this container")}</legend><NumericInput key={`${quote.pricing.currency}:${quoteRevision}`} ariaLabel={tr("尾数比较本柜运费","Tail comparison freight")} value={quote.freight} min={0} max={1e9} precision={4} onValueChange={freight=>setQuote({...quote,freight})} onValidityChange={v=>setValidity(a=>({...a,freight:v}))}/><small>{tr("0 表示未报价；缺报价时不计算完整合计、差额和每箱费用。","Zero means unquoted. Missing quotes leave the total, difference and per-carton cost unknown.")}</small></fieldset>
+  <FleetPackagingPrices key={`${quote.pricing.currency}:${quoteRevision}`} request={request} value={quote.pricing} onChange={pricing=>setQuote({...quote,pricing})} onCurrencyChange={changeCurrency} onValidity={(k,v)=>setValidity(a=>({...a,[k]:v}))} disabled={disabled}/>
   {(!costs||invalid)&&<p role="alert">{tr("请修正费用输入；附加报价需要有效名称、币种和来源，外币换算需要来源与日期。","Correct the cost inputs. Additional quotes need a valid name, currency and source; foreign rates need a source and date.")}</p>}
   {costs&&!invalid&&<>
    <p role="status">{costs.complete?tr("已配置项目报价完整；完整交付总成本仍取决于未配置项目和余货。","Configured quotes are complete; full delivery cost still depends on unconfigured items and remaining cargo."):tr("报价未完整：已知小计保留，完整合计与差额显示未核算。","Quotes are incomplete: known subtotals are retained; totals and differences remain unknown.")} {tr("币种","Currency")}: {costs.currency}</p>
