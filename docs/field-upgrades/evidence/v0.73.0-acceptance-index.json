@@ -1,0 +1,192 @@
+{
+  "engineVersion": "0.73.0",
+  "runtimeCommit": "212e9b3786765f19ccda6fc973ad3638619dfc9e",
+  "runtimeTree": "a47267e8eb4f51a6b39dd99ae2db4fde610b624f",
+  "scope": "bounded four-source-row or complete-kit tail comparison",
+  "uiAssertions": 16,
+  "nativeFileAssertions": 36,
+  "totalAssertions": 52,
+  "software": {
+    "unitTests": 1949,
+    "unitFiles": 150,
+    "pageChecks": 21,
+    "productionBuild": "passed"
+  },
+  "nativeBenchmarks": {
+    "caseVersion": "business-2026-11-v5",
+    "cloudflare": 20,
+    "vercel": 20,
+    "allModelValid": true
+  },
+  "controlledFixture": {
+    "demand": 36,
+    "baselineLoaded": 32,
+    "oldActualTripleCandidate": 35,
+    "quadCandidate": 36,
+    "pallets": 4,
+    "loose": 4,
+    "grossKg": 460,
+    "eachSourceDemand": 9,
+    "stockLimit": 4,
+    "quotaPerGroup": 1,
+    "candidateCount": 15
+  },
+  "boundedGrid": {
+    "rejectedCeilings": [
+      2,
+      2,
+      2,
+      2
+    ],
+    "rejectedGrid": 80,
+    "completedCeilings": [
+      2,
+      2,
+      2,
+      1
+    ],
+    "completedCandidates": 53,
+    "demand": 80,
+    "baselineLoaded": 32,
+    "candidateLoaded": 39,
+    "budgetMs": 30000
+  },
+  "notes": [
+    "One immediate language-switch action after adoption did not switch to Chinese; the current English page confirmed both solvers at 36, and a subsequent stable click restored Chinese. No app code changed for this automation recovery.",
+    "Raw before and after inputs are retained. Equality uses existing UI defaults and automatically calculated CBM.",
+    "Software covers kits, missing groups, larger grids and captured-method invalidation; native checks are listed separately.",
+    "Cloud Chrome uses a WebGL fallback; this is not real GPU acceptance."
+  ],
+  "pending": [
+    "original user 596-to-16 workspace exact reproduction",
+    "real GPU and multi-browser acceptance",
+    "five or more tail groups and broader joint optimization"
+  ],
+  "artifacts": [
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-adopted-cloudflare.json",
+      "bytes": 86697,
+      "sha256": "3622fa008f19ecfbcf37d838927c98e0f309c49021f78d17c52662e14e110c59"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-adopted-vercel.json",
+      "bytes": 86697,
+      "sha256": "37e508d1ab29d718378fcb3fe12bab909743e4a7bbbe817a69aa3a01d630d2a8"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-baseline-formal-cloudflare.json",
+      "bytes": 25789,
+      "sha256": "7a5625739b541df772ed6956c2ce8de9674efad497a731c6c8d1031356e863b1"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-before-cloudflare.json",
+      "bytes": 2647,
+      "sha256": "91a4ec17bcef5b9b79b90bc7ae3caa19ddc1277ed06c51a1357b09dc7078e690"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-before-vercel.json",
+      "bytes": 2647,
+      "sha256": "b6401f5f03e09301bb9920b77544273e4a5e606b7fa4b5ffd7d85ff604fb2e4e"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-benchmark-cloudflare.json",
+      "bytes": 73876,
+      "sha256": "81f7deab5048db4461d5a6fab2c3bface1d47424ca4bbd7766b5be84e4f8097b"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-benchmark-vercel.json",
+      "bytes": 73923,
+      "sha256": "642e31ac5485fa6cd7829194a4bb9530446f9b1f63364906fbcf1d7e1357f639"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-budget-53-cloudflare.json",
+      "bytes": 68924,
+      "sha256": "d2cc448b2e4b760e26811c339f5741f248dbe3fb36e2ae42698a98f6876ae18f"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-budget-seed.json",
+      "bytes": 55483,
+      "sha256": "0a4f05035064314c494a50bee667c61fd85eac9df46f5bb13043a9aeb239785a"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-cost-cloudflare.json",
+      "bytes": 56293,
+      "sha256": "c68a6903fc46b72bd1c052f62d0bfbb611fe6489bbe34cccca49337f33b2c35a"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-final-cloudflare.json",
+      "bytes": 134245,
+      "sha256": "7d979659cde70fa5f89ea34e126c975d162e1f97705462b0cdc2c8d4ae3b0c7d"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-final-vercel.json",
+      "bytes": 134245,
+      "sha256": "3c85af916d9f2a13a09a48ba35a31f50d07fbe8eb67cec0258ba811b82de34c8"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-four-group-proof.jpg",
+      "bytes": 97254,
+      "sha256": "83fadef09a150590da6f2e12e847706762632809dbde004b0aa97c36e3750017"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-legacy-history-vercel.json",
+      "bytes": 65131,
+      "sha256": "62b1f49a3a3a89124ffa89e09ff0b75071fa9e0d6506e6a8be4ddd51eb7cf641"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-local-checks.txt",
+      "bytes": 4709,
+      "sha256": "92b0f6e950da99bf00e7bb8f7aecf266f05d8ddba0a18c75da21fa621eeaf069"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-native-file-checks.json",
+      "bytes": 4140,
+      "sha256": "1567d5be7c3e019c1bfc86dd93347a85289a040549375734094dd7d12953245e"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-native-ui.json",
+      "bytes": 2375,
+      "sha256": "48d7a21c7f9337e0c332ebf0f2d664fd85addc1613df22871775d6cf1ec66397"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-pre-release-triple-cloudflare.json",
+      "bytes": 17932,
+      "sha256": "d124e2c967f655cd6e2d63809a35fc5e1b3f5d2ebfd1e4e7bf06a39694b312c9"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-quad-cloudflare.json",
+      "bytes": 27525,
+      "sha256": "9f0110e2ddb59f610e6a5b2b89ab51527e774d0dc88ba73bf3908d0c6031ebe1"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-quad-vercel.json",
+      "bytes": 27525,
+      "sha256": "a5dbaf607ce067f3399ec4f609fcdb378db265181f1aed6b2a465ca8a6bb690b"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-refreshed-vercel.json",
+      "bytes": 86697,
+      "sha256": "8aa1f5fb793d94b7b466b08c707e6290fcecad447b419b1b3be3c6ad999d94ba"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-release.json",
+      "bytes": 15411,
+      "sha256": "cd85602b6c5b77a9aac2af89543af03f90b0e1c31a637aa1e55a7a8cd3274c71"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-rows-cloudflare.csv",
+      "bytes": 961,
+      "sha256": "a999f0bc499482a7e0ee07b0c06318ed74919460b5df11f6ad7290a6de4ce35f"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-rows-vercel.csv",
+      "bytes": 942,
+      "sha256": "60804fc6ea50ef5038c80d2b06a39c29e0801852702a13f84450f140f16f3391"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.73.0-seed.json",
+      "bytes": 55479,
+      "sha256": "ddbd6684b420cc0bbf336b8e7c65d419a6ba6b756be5f8715d1a717d0d5f56b3"
+    }
+  ]
+}

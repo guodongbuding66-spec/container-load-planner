@@ -1,0 +1,82 @@
+[
+  {
+    "label": "Pre-release v0.72 three-group trial loads only 35 of the 36 original cartons",
+    "passed": true,
+    "at": "2026-11-03T05:40:05.556Z"
+  },
+  {
+    "label": "Cloudflare v0.73 four-group trial reaches all 36 original cartons",
+    "passed": true,
+    "at": "2026-11-03T05:45:05.682Z"
+  },
+  {
+    "label": "Fourth packaging price remains unknown until explicitly quoted",
+    "passed": true,
+    "at": "2026-11-03T05:46:42.099Z"
+  },
+  {
+    "label": "Four actual packaging quotes total 200 CNY with no false minimum for one comparable candidate",
+    "passed": true,
+    "at": "2026-11-03T05:46:43.127Z"
+  },
+  {
+    "label": "Cloudflare explicit four-group adoption recalculates all 36 cartons",
+    "passed": true,
+    "at": "2026-11-03T05:46:59.891Z"
+  },
+  {
+    "label": "Vercel English four-group trial reaches 36 with a fourth source row",
+    "passed": true,
+    "at": "2026-11-03T05:47:46.908Z"
+  },
+  {
+    "label": "Fourth-ceiling round trip does not resurrect old adoption or report controls",
+    "passed": true,
+    "at": "2026-11-03T05:48:21.261Z"
+  },
+  {
+    "label": "Vercel adopted plan is complete in the actual English page",
+    "passed": true,
+    "at": "2026-11-03T05:48:44.197Z"
+  },
+  {
+    "label": "Eighty-combination ceiling grid is rejected before trial",
+    "passed": true,
+    "at": "2026-11-03T05:49:24.862Z"
+  },
+  {
+    "label": "Fifty-three valid combinations complete without truncation and reach 39 cartons",
+    "passed": true,
+    "at": "2026-11-03T05:50:02.388Z"
+  },
+  {
+    "label": "Cloudflare native benchmark completed all twenty runs",
+    "passed": true,
+    "at": "2026-11-03T05:51:29.837Z"
+  },
+  {
+    "label": "Vercel native benchmark completed all twenty runs",
+    "passed": true,
+    "at": "2026-11-03T05:51:34.084Z"
+  },
+  {
+    "label": "Old eighteen-run benchmark imports but mismatched versions never claim comparable gains",
+    "passed": true,
+    "at": "2026-11-03T05:52:01.936Z"
+  },
+  {
+    "label": "Reloaded four-group quotas still recalculate all 36 cartons",
+    "passed": true,
+    "at": "2026-11-03T05:52:30.876Z"
+  },
+  {
+    "label": "Cloudflare original order restored with 116 cartons",
+    "passed": true,
+    "at": "2026-11-03T05:52:43.328Z"
+  },
+  {
+    "label": "Vercel original order restored with 116 cartons",
+    "passed": true,
+    "at": "2026-11-03T05:52:54.073Z"
+  }
+]

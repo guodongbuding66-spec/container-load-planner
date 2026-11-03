@@ -1,0 +1,5 @@
+﻿Status,Engine,Created,Baseline plan ID,Scope,Order row ID,SKU / row label,Demand cartons,Loaded before,Loaded candidate,Reserved before,Reserved candidate,Actual loose,Palletized,Unloaded,Candidate-wide data review,Candidate-wide geometry review,Candidate-wide bearing review,Candidate-wide access review,Candidate-wide securing review
+Preview - not applied,0.73.0,2026-11-03T05:47:56.422Z,restored-1793684860720,quad,a,TAIL-A,9,8,9,0,1,1,8,0,Passed,Passed,Passed,Unverified,Unverified
+Preview - not applied,0.73.0,2026-11-03T05:47:56.422Z,restored-1793684860720,quad,b,TAIL-B,9,8,9,0,1,1,8,0,Passed,Passed,Passed,Unverified,Unverified
+Preview - not applied,0.73.0,2026-11-03T05:47:56.422Z,restored-1793684860720,quad,c,TAIL-C,9,8,9,0,1,1,8,0,Passed,Passed,Passed,Unverified,Unverified
+Preview - not applied,0.73.0,2026-11-03T05:47:56.422Z,restored-1793684860720,quad,d,TAIL-D,9,8,9,0,1,1,8,0,Passed,Passed,Passed,Unverified,Unverified

@@ -1,0 +1,1292 @@
+{
+  "format": "cargo-fit-tail-trial-report",
+  "version": 1,
+  "engineVersion": "0.73.0",
+  "createdAt": "2026-11-03T05:45:36.134Z",
+  "status": "preview-not-applied",
+  "complete": true,
+  "canApply": true,
+  "scope": {
+    "mode": "quad",
+    "groups": [
+      {
+        "id": "row:a",
+        "name": "TAIL-A",
+        "limit": 1,
+        "cartonsPerUnit": 1
+      },
+      {
+        "id": "row:b",
+        "name": "TAIL-B",
+        "limit": 1,
+        "cartonsPerUnit": 1
+      },
+      {
+        "id": "row:c",
+        "name": "TAIL-C",
+        "limit": 1,
+        "cartonsPerUnit": 1
+      },
+      {
+        "id": "row:d",
+        "name": "TAIL-D",
+        "limit": 1,
+        "cartonsPerUnit": 1
+      }
+    ]
+  },
+  "limits": {
+    "maxAdditionalCartons": 64,
+    "maxCandidates": 64,
+    "maxOrderCartons": 4000,
+    "batchTimeMs": 30000
+  },
+  "input": {
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "Tail test pallet",
+        "length": 800,
+        "width": 1000,
+        "height": 100,
+        "weight": 25,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 400
+      },
+      "mix": "single",
+      "maxPallets": 4,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "primaryRule": {
+        "maxPallets": 1,
+        "productIds": [
+          "a"
+        ]
+      },
+      "additionalSpecs": [
+        {
+          "id": "sku-b",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "SKU B pallet",
+            "length": 800,
+            "width": 1000,
+            "height": 100,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "maxPallets": 1,
+          "productIds": [
+            "b"
+          ],
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        },
+        {
+          "id": "sku-c",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "SKU C pallet",
+            "length": 800,
+            "width": 1000,
+            "height": 100,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "maxPallets": 1,
+          "productIds": [
+            "c"
+          ],
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        },
+        {
+          "id": "sku-d",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "SKU D pallet",
+            "length": 800,
+            "width": 1000,
+            "height": 100,
+            "weight": 25,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 400
+          },
+          "maxPallets": 1,
+          "productIds": [
+            "d"
+          ],
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        }
+      ]
+    },
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "practical",
+    "practicalTargetUtilization": 0.88,
+    "container": {
+      "category": "other",
+      "loadingAccess": "rear",
+      "id": "tail-test",
+      "name": "Tail test vehicle",
+      "length": 3600,
+      "width": 1000,
+      "height": 1000,
+      "doorWidth": 1000,
+      "doorHeight": 1000,
+      "maxWeight": 10000
+    },
+    "clearance": 0,
+    "products": [
+      {
+        "id": "a",
+        "sku": "TAIL-A",
+        "name": "Tail carton",
+        "length": 400,
+        "width": 400,
+        "height": 200,
+        "weight": 10,
+        "quantity": 9,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.03,
+        "color": "#2f7f89",
+        "maxTopLoadKg": 1000
+      },
+      {
+        "id": "b",
+        "sku": "TAIL-B",
+        "name": "Tail carton",
+        "length": 400,
+        "width": 400,
+        "height": 200,
+        "weight": 10,
+        "quantity": 9,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.03,
+        "color": "#2f7f89",
+        "maxTopLoadKg": 1000
+      },
+      {
+        "id": "c",
+        "sku": "TAIL-C",
+        "name": "Tail carton",
+        "length": 400,
+        "width": 400,
+        "height": 200,
+        "weight": 10,
+        "quantity": 9,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.03,
+        "color": "#2f7f89",
+        "maxTopLoadKg": 1000
+      },
+      {
+        "id": "d",
+        "sku": "TAIL-D",
+        "name": "Tail carton",
+        "length": 400,
+        "width": 400,
+        "height": 200,
+        "weight": 10,
+        "quantity": 9,
+        "priority": 100,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.03,
+        "color": "#2f7f89",
+        "maxTopLoadKg": 1000
+      }
+    ]
+  },
+  "baseline": {
+    "id": "restored-1793684663592",
+    "strategy": "practical",
+    "requested": 36,
+    "loaded": 32,
+    "grossWeightKg": 420,
+    "pallets": 4
+  },
+  "candidates": [
+    {
+      "units": 1,
+      "allocation": "TAIL-A: 0 + TAIL-B: 0 + TAIL-C: 0 + TAIL-D: 1",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "units": 0
+        },
+        {
+          "id": "row:b",
+          "name": "TAIL-B",
+          "units": 0
+        },
+        {
+          "id": "row:c",
+          "name": "TAIL-C",
+          "units": 0
+        },
+        {
+          "id": "row:d",
+          "name": "TAIL-D",
+          "units": 1
+        }
+      ],
+      "loaded": 33,
+      "retained": true,
+      "costBasis": {
+        "rows": [
+          {
+            "id": "a",
+            "loaded": 8
+          },
+          {
+            "id": "b",
+            "loaded": 8
+          },
+          {
+            "id": "c",
+            "loaded": 8
+          },
+          {
+            "id": "d",
+            "loaded": 9
+          }
+        ],
+        "packagingIds": [
+          "primary",
+          "sku-b",
+          "sku-c",
+          "sku-d"
+        ],
+        "accessories": [],
+        "loose": 1
+      },
+      "outcome": "improves"
+    },
+    {
+      "units": 1,
+      "allocation": "TAIL-A: 0 + TAIL-B: 0 + TAIL-C: 1 + TAIL-D: 0",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "units": 0
+        },
+        {
+          "id": "row:b",
+          "name": "TAIL-B",
+          "units": 0
+        },
+        {
+          "id": "row:c",
+          "name": "TAIL-C",
+          "units": 1
+        },
+        {
+          "id": "row:d",
+          "name": "TAIL-D",
+          "units": 0
+        }
+      ],
+      "loaded": 33,
+      "retained": true,
+      "costBasis": {
+        "rows": [
+          {
+            "id": "a",
+            "loaded": 8
+          },
+          {
+            "id": "b",
+            "loaded": 8
+          },
+          {
+            "id": "c",
+            "loaded": 9
+          },
+          {
+            "id": "d",
+            "loaded": 8
+          }
+        ],
+        "packagingIds": [
+          "primary",
+          "sku-b",
+          "sku-c",
+          "sku-d"
+        ],
+        "accessories": [],
+        "loose": 1
+      },
+      "outcome": "improves"
+    },
+    {
+      "units": 1,
+      "allocation": "TAIL-A: 0 + TAIL-B: 1 + TAIL-C: 0 + TAIL-D: 0",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "units": 0
+        },
+        {
+          "id": "row:b",
+          "name": "TAIL-B",
+          "units": 1
+        },
+        {
+          "id": "row:c",
+          "name": "TAIL-C",
+          "units": 0
+        },
+        {
+          "id": "row:d",
+          "name": "TAIL-D",
+          "units": 0
+        }
+      ],
+      "loaded": 33,
+      "retained": true,
+      "costBasis": {
+        "rows": [
+          {
+            "id": "a",
+            "loaded": 8
+          },
+          {
+            "id": "b",
+            "loaded": 9
+          },
+          {
+            "id": "c",
+            "loaded": 8
+          },
+          {
+            "id": "d",
+            "loaded": 8
+          }
+        ],
+        "packagingIds": [
+          "primary",
+          "sku-b",
+          "sku-c",
+          "sku-d"
+        ],
+        "accessories": [],
+        "loose": 1
+      },
+      "outcome": "improves"
+    },
+    {
+      "units": 1,
+      "allocation": "TAIL-A: 1 + TAIL-B: 0 + TAIL-C: 0 + TAIL-D: 0",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "units": 1
+        },
+        {
+          "id": "row:b",
+          "name": "TAIL-B",
+          "units": 0
+        },
+        {
+          "id": "row:c",
+          "name": "TAIL-C",
+          "units": 0
+        },
+        {
+          "id": "row:d",
+          "name": "TAIL-D",
+          "units": 0
+        }
+      ],
+      "loaded": 33,
+      "retained": true,
+      "costBasis": {
+        "rows": [
+          {
+            "id": "a",
+            "loaded": 9
+          },
+          {
+            "id": "b",
+            "loaded": 8
+          },
+          {
+            "id": "c",
+            "loaded": 8
+          },
+          {
+            "id": "d",
+            "loaded": 8
+          }
+        ],
+        "packagingIds": [
+          "primary",
+          "sku-b",
+          "sku-c",
+          "sku-d"
+        ],
+        "accessories": [],
+        "loose": 1
+      },
+      "outcome": "improves"
+    },
+    {
+      "units": 2,
+      "allocation": "TAIL-A: 0 + TAIL-B: 0 + TAIL-C: 1 + TAIL-D: 1",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "units": 0
+        },
+        {
+          "id": "row:b",
+          "name": "TAIL-B",
+          "units": 0
+        },
+        {
+          "id": "row:c",
+          "name": "TAIL-C",
+          "units": 1
+        },
+        {
+          "id": "row:d",
+          "name": "TAIL-D",
+          "units": 1
+        }
+      ],
+      "loaded": 34,
+      "retained": true,
+      "costBasis": {
+        "rows": [
+          {
+            "id": "a",
+            "loaded": 8
+          },
+          {
+            "id": "b",
+            "loaded": 8
+          },
+          {
+            "id": "c",
+            "loaded": 9
+          },
+          {
+            "id": "d",
+            "loaded": 9
+          }
+        ],
+        "packagingIds": [
+          "primary",
+          "sku-b",
+          "sku-c",
+          "sku-d"
+        ],
+        "accessories": [],
+        "loose": 2
+      },
+      "outcome": "improves"
+    },
+    {
+      "units": 2,
+      "allocation": "TAIL-A: 0 + TAIL-B: 1 + TAIL-C: 0 + TAIL-D: 1",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "units": 0
+        },
+        {
+          "id": "row:b",
+          "name": "TAIL-B",
+          "units": 1
+        },
+        {
+          "id": "row:c",
+          "name": "TAIL-C",
+          "units": 0
+        },
+        {
+          "id": "row:d",
+          "name": "TAIL-D",
+          "units": 1
+        }
+      ],
+      "loaded": 34,
+      "retained": true,
+      "costBasis": {
+        "rows": [
+          {
+            "id": "a",
+            "loaded": 8
+          },
+          {
+            "id": "b",
+            "loaded": 9
+          },
+          {
+            "id": "c",
+            "loaded": 8
+          },
+          {
+            "id": "d",
+            "loaded": 9
+          }
+        ],
+        "packagingIds": [
+          "primary",
+          "sku-b",
+          "sku-c",
+          "sku-d"
+        ],
+        "accessories": [],
+        "loose": 2
+      },
+      "outcome": "improves"
+    },
+    {
+      "units": 2,
+      "allocation": "TAIL-A: 0 + TAIL-B: 1 + TAIL-C: 1 + TAIL-D: 0",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "units": 0
+        },
+        {
+          "id": "row:b",
+          "name": "TAIL-B",
+          "units": 1
+        },
+        {
+          "id": "row:c",
+          "name": "TAIL-C",
+          "units": 1
+        },
+        {
+          "id": "row:d",
+          "name": "TAIL-D",
+          "units": 0
+        }
+      ],
+      "loaded": 34,
+      "retained": true,
+      "costBasis": {
+        "rows": [
+          {
+            "id": "a",
+            "loaded": 8
+          },
+          {
+            "id": "b",
+            "loaded": 9
+          },
+          {
+            "id": "c",
+            "loaded": 9
+          },
+          {
+            "id": "d",
+            "loaded": 8
+          }
+        ],
+        "packagingIds": [
+          "primary",
+          "sku-b",
+          "sku-c",
+          "sku-d"
+        ],
+        "accessories": [],
+        "loose": 2
+      },
+      "outcome": "improves"
+    },
+    {
+      "units": 2,
+      "allocation": "TAIL-A: 1 + TAIL-B: 0 + TAIL-C: 0 + TAIL-D: 1",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "units": 1
+        },
+        {
+          "id": "row:b",
+          "name": "TAIL-B",
+          "units": 0
+        },
+        {
+          "id": "row:c",
+          "name": "TAIL-C",
+          "units": 0
+        },
+        {
+          "id": "row:d",
+          "name": "TAIL-D",
+          "units": 1
+        }
+      ],
+      "loaded": 34,
+      "retained": true,
+      "costBasis": {
+        "rows": [
+          {
+            "id": "a",
+            "loaded": 9
+          },
+          {
+            "id": "b",
+            "loaded": 8
+          },
+          {
+            "id": "c",
+            "loaded": 8
+          },
+          {
+            "id": "d",
+            "loaded": 9
+          }
+        ],
+        "packagingIds": [
+          "primary",
+          "sku-b",
+          "sku-c",
+          "sku-d"
+        ],
+        "accessories": [],
+        "loose": 2
+      },
+      "outcome": "improves"
+    },
+    {
+      "units": 2,
+      "allocation": "TAIL-A: 1 + TAIL-B: 0 + TAIL-C: 1 + TAIL-D: 0",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "units": 1
+        },
+        {
+          "id": "row:b",
+          "name": "TAIL-B",
+          "units": 0
+        },
+        {
+          "id": "row:c",
+          "name": "TAIL-C",
+          "units": 1
+        },
+        {
+          "id": "row:d",
+          "name": "TAIL-D",
+          "units": 0
+        }
+      ],
+      "loaded": 34,
+      "retained": true,
+      "costBasis": {
+        "rows": [
+          {
+            "id": "a",
+            "loaded": 9
+          },
+          {
+            "id": "b",
+            "loaded": 8
+          },
+          {
+            "id": "c",
+            "loaded": 9
+          },
+          {
+            "id": "d",
+            "loaded": 8
+          }
+        ],
+        "packagingIds": [
+          "primary",
+          "sku-b",
+          "sku-c",
+          "sku-d"
+        ],
+        "accessories": [],
+        "loose": 2
+      },
+      "outcome": "improves"
+    },
+    {
+      "units": 2,
+      "allocation": "TAIL-A: 1 + TAIL-B: 1 + TAIL-C: 0 + TAIL-D: 0",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "units": 1
+        },
+        {
+          "id": "row:b",
+          "name": "TAIL-B",
+          "units": 1
+        },
+        {
+          "id": "row:c",
+          "name": "TAIL-C",
+          "units": 0
+        },
+        {
+          "id": "row:d",
+          "name": "TAIL-D",
+          "units": 0
+        }
+      ],
+      "loaded": 34,
+      "retained": true,
+      "costBasis": {
+        "rows": [
+          {
+            "id": "a",
+            "loaded": 9
+          },
+          {
+            "id": "b",
+            "loaded": 9
+          },
+          {
+            "id": "c",
+            "loaded": 8
+          },
+          {
+            "id": "d",
+            "loaded": 8
+          }
+        ],
+        "packagingIds": [
+          "primary",
+          "sku-b",
+          "sku-c",
+          "sku-d"
+        ],
+        "accessories": [],
+        "loose": 2
+      },
+      "outcome": "improves"
+    },
+    {
+      "units": 3,
+      "allocation": "TAIL-A: 0 + TAIL-B: 1 + TAIL-C: 1 + TAIL-D: 1",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "units": 0
+        },
+        {
+          "id": "row:b",
+          "name": "TAIL-B",
+          "units": 1
+        },
+        {
+          "id": "row:c",
+          "name": "TAIL-C",
+          "units": 1
+        },
+        {
+          "id": "row:d",
+          "name": "TAIL-D",
+          "units": 1
+        }
+      ],
+      "loaded": 35,
+      "retained": true,
+      "costBasis": {
+        "rows": [
+          {
+            "id": "a",
+            "loaded": 8
+          },
+          {
+            "id": "b",
+            "loaded": 9
+          },
+          {
+            "id": "c",
+            "loaded": 9
+          },
+          {
+            "id": "d",
+            "loaded": 9
+          }
+        ],
+        "packagingIds": [
+          "primary",
+          "sku-b",
+          "sku-c",
+          "sku-d"
+        ],
+        "accessories": [],
+        "loose": 3
+      },
+      "outcome": "improves"
+    },
+    {
+      "units": 3,
+      "allocation": "TAIL-A: 1 + TAIL-B: 0 + TAIL-C: 1 + TAIL-D: 1",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "units": 1
+        },
+        {
+          "id": "row:b",
+          "name": "TAIL-B",
+          "units": 0
+        },
+        {
+          "id": "row:c",
+          "name": "TAIL-C",
+          "units": 1
+        },
+        {
+          "id": "row:d",
+          "name": "TAIL-D",
+          "units": 1
+        }
+      ],
+      "loaded": 35,
+      "retained": true,
+      "costBasis": {
+        "rows": [
+          {
+            "id": "a",
+            "loaded": 9
+          },
+          {
+            "id": "b",
+            "loaded": 8
+          },
+          {
+            "id": "c",
+            "loaded": 9
+          },
+          {
+            "id": "d",
+            "loaded": 9
+          }
+        ],
+        "packagingIds": [
+          "primary",
+          "sku-b",
+          "sku-c",
+          "sku-d"
+        ],
+        "accessories": [],
+        "loose": 3
+      },
+      "outcome": "improves"
+    },
+    {
+      "units": 3,
+      "allocation": "TAIL-A: 1 + TAIL-B: 1 + TAIL-C: 0 + TAIL-D: 1",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "units": 1
+        },
+        {
+          "id": "row:b",
+          "name": "TAIL-B",
+          "units": 1
+        },
+        {
+          "id": "row:c",
+          "name": "TAIL-C",
+          "units": 0
+        },
+        {
+          "id": "row:d",
+          "name": "TAIL-D",
+          "units": 1
+        }
+      ],
+      "loaded": 35,
+      "retained": true,
+      "costBasis": {
+        "rows": [
+          {
+            "id": "a",
+            "loaded": 9
+          },
+          {
+            "id": "b",
+            "loaded": 9
+          },
+          {
+            "id": "c",
+            "loaded": 8
+          },
+          {
+            "id": "d",
+            "loaded": 9
+          }
+        ],
+        "packagingIds": [
+          "primary",
+          "sku-b",
+          "sku-c",
+          "sku-d"
+        ],
+        "accessories": [],
+        "loose": 3
+      },
+      "outcome": "improves"
+    },
+    {
+      "units": 3,
+      "allocation": "TAIL-A: 1 + TAIL-B: 1 + TAIL-C: 1 + TAIL-D: 0",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "units": 1
+        },
+        {
+          "id": "row:b",
+          "name": "TAIL-B",
+          "units": 1
+        },
+        {
+          "id": "row:c",
+          "name": "TAIL-C",
+          "units": 1
+        },
+        {
+          "id": "row:d",
+          "name": "TAIL-D",
+          "units": 0
+        }
+      ],
+      "loaded": 35,
+      "retained": true,
+      "costBasis": {
+        "rows": [
+          {
+            "id": "a",
+            "loaded": 9
+          },
+          {
+            "id": "b",
+            "loaded": 9
+          },
+          {
+            "id": "c",
+            "loaded": 9
+          },
+          {
+            "id": "d",
+            "loaded": 8
+          }
+        ],
+        "packagingIds": [
+          "primary",
+          "sku-b",
+          "sku-c",
+          "sku-d"
+        ],
+        "accessories": [],
+        "loose": 3
+      },
+      "outcome": "improves"
+    },
+    {
+      "units": 4,
+      "allocation": "TAIL-A: 1 + TAIL-B: 1 + TAIL-C: 1 + TAIL-D: 1",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "units": 1
+        },
+        {
+          "id": "row:b",
+          "name": "TAIL-B",
+          "units": 1
+        },
+        {
+          "id": "row:c",
+          "name": "TAIL-C",
+          "units": 1
+        },
+        {
+          "id": "row:d",
+          "name": "TAIL-D",
+          "units": 1
+        }
+      ],
+      "loaded": 36,
+      "retained": true,
+      "costBasis": {
+        "rows": [
+          {
+            "id": "a",
+            "loaded": 9
+          },
+          {
+            "id": "b",
+            "loaded": 9
+          },
+          {
+            "id": "c",
+            "loaded": 9
+          },
+          {
+            "id": "d",
+            "loaded": 9
+          }
+        ],
+        "packagingIds": [
+          "primary",
+          "sku-b",
+          "sku-c",
+          "sku-d"
+        ],
+        "accessories": [],
+        "loose": 4
+      },
+      "outcome": "improves"
+    }
+  ],
+  "selectedCandidate": {
+    "looseQuantities": {
+      "a": 1,
+      "b": 1,
+      "c": 1,
+      "d": 1
+    },
+    "loaded": 36,
+    "grossWeightKg": 460,
+    "pallets": 4,
+    "orderRows": [
+      {
+        "id": "a",
+        "label": "TAIL-A",
+        "requested": 9,
+        "beforeLoaded": 8,
+        "loaded": 9,
+        "beforeReserved": 0,
+        "reserved": 1,
+        "loose": 1,
+        "palletized": 8,
+        "unloaded": 0
+      },
+      {
+        "id": "b",
+        "label": "TAIL-B",
+        "requested": 9,
+        "beforeLoaded": 8,
+        "loaded": 9,
+        "beforeReserved": 0,
+        "reserved": 1,
+        "loose": 1,
+        "palletized": 8,
+        "unloaded": 0
+      },
+      {
+        "id": "c",
+        "label": "TAIL-C",
+        "requested": 9,
+        "beforeLoaded": 8,
+        "loaded": 9,
+        "beforeReserved": 0,
+        "reserved": 1,
+        "loose": 1,
+        "palletized": 8,
+        "unloaded": 0
+      },
+      {
+        "id": "d",
+        "label": "TAIL-D",
+        "requested": 9,
+        "beforeLoaded": 8,
+        "loaded": 9,
+        "beforeReserved": 0,
+        "reserved": 1,
+        "loose": 1,
+        "palletized": 8,
+        "unloaded": 0
+      }
+    ],
+    "modelValidation": {
+      "valid": true,
+      "errors": []
+    },
+    "review": {
+      "checks": [
+        {
+          "id": "data",
+          "state": "pass",
+          "scope": [
+            "完整箱位、清单、尺寸、数量、体积与包装自重；查看筛选不改变结论。",
+            "Complete placements, manifest, dimensions, counts, volume and packaging tare; view filters do not change this review."
+          ],
+          "model": "auditPackingResult",
+          "items": []
+        },
+        {
+          "id": "geometry",
+          "state": "pass",
+          "scope": [
+            "沿用方案的边界、碰撞、承托与载重校验；不代表实际尺寸或实机画面已验收。",
+            "Uses the plan's bounds, collision, support and payload validation; actual dimensions and device rendering still need acceptance."
+          ],
+          "model": "plan.validation",
+          "items": []
+        },
+        {
+          "id": "bearing",
+          "state": "pass",
+          "scope": [
+            "按输入额定值检查静态垂直上压；木箱框架、柜底局部压力和运输动态载荷尚未核验。",
+            "Checks static vertical top load against entered ratings; crate frames, local floor pressure and dynamic transport loads remain unverified."
+          ],
+          "model": "bearingErrors + bearingStatus + strength",
+          "items": []
+        },
+        {
+          "id": "path",
+          "state": "unverified",
+          "scope": [
+            "检查货物最终位置直线通过后门及卸货支撑顺序；具体装卸操作由现场安排。",
+            "Checks straight rear-door cargo travel at the final position and unloading support order; on-site teams arrange actual loading operations."
+          ],
+          "model": "straight-rear",
+          "items": [
+            "unload/prebuilt-36: unassigned",
+            "unload/prebuilt-35: unassigned",
+            "unload/prebuilt-34: unassigned",
+            "unload/prebuilt-33: unassigned",
+            "unload/floor-pallet-4: unassigned",
+            "unload/floor-pallet-3: unassigned",
+            "unload/floor-pallet-2: unassigned",
+            "unload/floor-pallet-1: unassigned"
+          ]
+        },
+        {
+          "id": "securing",
+          "state": "unverified",
+          "scope": [
+            "尚未建立绑扎、挡木、气袋和制动工况模型，需现场确认固定方案。",
+            "Lashings, blocking, airbags and braking conditions are not modeled; confirm a securing plan on site."
+          ],
+          "model": "not-modeled",
+          "items": []
+        }
+      ],
+      "state": "unverified",
+      "passed": 3,
+      "failed": 0,
+      "unverified": 2
+    }
+  }
+}
