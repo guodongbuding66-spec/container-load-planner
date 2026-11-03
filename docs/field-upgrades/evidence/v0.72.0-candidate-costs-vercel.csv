@@ -1,0 +1,7 @@
+﻿Status,Engine,Created,Currency,Allocation,Loaded cartons,Loose cartons,Packaging units,Same order-row quantities,Known subtotal,Configured total,Difference from quantity candidate,Lowest in comparable batch,Review
+Preview - not applied,0.72.0,2026-11-03T03:30:26.451Z,CNY,1,14,1,2,true,140,140,0,false,quoted
+Preview - not applied,0.72.0,2026-11-03T03:30:26.451Z,CNY,2,14,2,2,true,140,140,0,false,quoted
+Preview - not applied,0.72.0,2026-11-03T03:30:26.451Z,CNY,3,14,3,2,true,140,140,0,false,quoted
+Preview - not applied,0.72.0,2026-11-03T03:30:26.451Z,CNY,4,14,4,2,true,140,140,0,false,quoted
+Preview - not applied,0.72.0,2026-11-03T03:30:26.451Z,CNY,5,14,5,2,true,140,140,0,false,quoted
+Preview - not applied,0.72.0,2026-11-03T03:30:26.451Z,CNY,6,14,6,1,true,120,120,-20,true,quoted

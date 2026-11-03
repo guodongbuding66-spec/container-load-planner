@@ -1,0 +1,666 @@
+{
+  "format": "cargo-fit-tail-cost-report",
+  "version": 1,
+  "engineVersion": "0.72.0",
+  "createdAt": "2026-11-03T03:27:15.736Z",
+  "status": "preview-not-applied",
+  "comparison": {
+    "scope": "configured-single-container-costs",
+    "selection": "quantity-first",
+    "currency": "CNY",
+    "quote": {
+      "freight": 100,
+      "pricing": {
+        "currency": "CNY",
+        "packaging": {
+          "primary": 20
+        }
+      }
+    },
+    "before": {
+      "loaded": 8,
+      "pallets": 1,
+      "loose": 0,
+      "grossWeightKg": 105,
+      "costs": {
+        "currency": "CNY",
+        "freight": 100,
+        "packaging": 20,
+        "knownPackagingSubtotal": 20,
+        "total": 120,
+        "knownSubtotal": 120,
+        "complete": true,
+        "missing": [],
+        "scope": "freight-and-packaging"
+      },
+      "costPerLoadedCarton": 15
+    },
+    "after": {
+      "loaded": 14,
+      "pallets": 2,
+      "loose": 1,
+      "grossWeightKg": 190,
+      "costs": {
+        "currency": "CNY",
+        "freight": 100,
+        "packaging": 40,
+        "knownPackagingSubtotal": 40,
+        "total": 140,
+        "knownSubtotal": 140,
+        "complete": true,
+        "missing": [],
+        "scope": "freight-and-packaging"
+      },
+      "costPerLoadedCarton": 10
+    },
+    "packages": [
+      {
+        "id": "primary",
+        "name": "Tail test pallet",
+        "beforeQuantity": 1,
+        "quantity": 2,
+        "unitPrice": 20,
+        "beforeSubtotal": 20,
+        "subtotal": 40
+      }
+    ],
+    "complete": true,
+    "costDifference": 20
+  },
+  "trial": {
+    "format": "cargo-fit-tail-trial-report",
+    "version": 1,
+    "engineVersion": "0.72.0",
+    "createdAt": "2026-11-03T03:27:15.736Z",
+    "status": "preview-not-applied",
+    "complete": true,
+    "canApply": true,
+    "scope": {
+      "mode": "detailed",
+      "groups": [
+        {
+          "id": "row:a",
+          "name": "TAIL-A",
+          "limit": 6,
+          "cartonsPerUnit": 1
+        }
+      ]
+    },
+    "limits": {
+      "maxAdditionalCartons": 64,
+      "maxCandidates": 64,
+      "maxOrderCartons": 4000,
+      "batchTimeMs": 30000
+    },
+    "input": {
+      "workflow": "palletized",
+      "palletBuild": {
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "Tail test pallet",
+          "length": 800,
+          "width": 1000,
+          "height": 100,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 400
+        },
+        "mix": "single",
+        "maxPallets": 2,
+        "stackLayers": 1,
+        "maxTopLoadKg": 0
+      },
+      "loadingRules": {
+        "layout": "auto",
+        "search": "smart",
+        "cargoOrder": "auto"
+      },
+      "mode": "mixed",
+      "strategy": "practical",
+      "practicalTargetUtilization": 0.88,
+      "container": {
+        "category": "other",
+        "loadingAccess": "rear",
+        "id": "tail-test",
+        "name": "Tail test vehicle",
+        "length": 2000,
+        "width": 1000,
+        "height": 600,
+        "doorWidth": 1000,
+        "doorHeight": 600,
+        "maxWeight": 10000
+      },
+      "clearance": 0,
+      "products": [
+        {
+          "id": "a",
+          "sku": "TAIL-A",
+          "name": "Tail carton",
+          "length": 400,
+          "width": 400,
+          "height": 200,
+          "weight": 10,
+          "quantity": 14,
+          "priority": 100,
+          "rotationPolicy": "fixed",
+          "stackable": true,
+          "maxStackLayers": 0,
+          "mustLoad": true,
+          "bottomOnly": false,
+          "setCode": "",
+          "unitsPerSet": 1,
+          "declaredVolumeCbm": 0.03,
+          "color": "#2f7f89",
+          "maxTopLoadKg": 1000
+        }
+      ]
+    },
+    "baseline": {
+      "id": "restored-1793676375828",
+      "strategy": "practical",
+      "requested": 14,
+      "loaded": 8,
+      "grossWeightKg": 105,
+      "pallets": 1
+    },
+    "candidates": [
+      {
+        "units": 1,
+        "groups": [
+          {
+            "id": "row:a",
+            "name": "TAIL-A",
+            "units": 1
+          }
+        ],
+        "loaded": 14,
+        "retained": true,
+        "costBasis": {
+          "rows": [
+            {
+              "id": "a",
+              "loaded": 14
+            }
+          ],
+          "packagingIds": [
+            "primary",
+            "primary"
+          ],
+          "accessories": [],
+          "loose": 1
+        },
+        "outcome": "improves"
+      },
+      {
+        "units": 2,
+        "groups": [
+          {
+            "id": "row:a",
+            "name": "TAIL-A",
+            "units": 2
+          }
+        ],
+        "loaded": 14,
+        "retained": true,
+        "costBasis": {
+          "rows": [
+            {
+              "id": "a",
+              "loaded": 14
+            }
+          ],
+          "packagingIds": [
+            "primary",
+            "primary"
+          ],
+          "accessories": [],
+          "loose": 2
+        },
+        "outcome": "improves"
+      },
+      {
+        "units": 3,
+        "groups": [
+          {
+            "id": "row:a",
+            "name": "TAIL-A",
+            "units": 3
+          }
+        ],
+        "loaded": 14,
+        "retained": true,
+        "costBasis": {
+          "rows": [
+            {
+              "id": "a",
+              "loaded": 14
+            }
+          ],
+          "packagingIds": [
+            "primary",
+            "primary"
+          ],
+          "accessories": [],
+          "loose": 3
+        },
+        "outcome": "improves"
+      },
+      {
+        "units": 4,
+        "groups": [
+          {
+            "id": "row:a",
+            "name": "TAIL-A",
+            "units": 4
+          }
+        ],
+        "loaded": 14,
+        "retained": true,
+        "costBasis": {
+          "rows": [
+            {
+              "id": "a",
+              "loaded": 14
+            }
+          ],
+          "packagingIds": [
+            "primary",
+            "primary"
+          ],
+          "accessories": [],
+          "loose": 4
+        },
+        "outcome": "improves"
+      },
+      {
+        "units": 5,
+        "groups": [
+          {
+            "id": "row:a",
+            "name": "TAIL-A",
+            "units": 5
+          }
+        ],
+        "loaded": 14,
+        "retained": true,
+        "costBasis": {
+          "rows": [
+            {
+              "id": "a",
+              "loaded": 14
+            }
+          ],
+          "packagingIds": [
+            "primary",
+            "primary"
+          ],
+          "accessories": [],
+          "loose": 5
+        },
+        "outcome": "improves"
+      },
+      {
+        "units": 6,
+        "groups": [
+          {
+            "id": "row:a",
+            "name": "TAIL-A",
+            "units": 6
+          }
+        ],
+        "loaded": 14,
+        "retained": true,
+        "costBasis": {
+          "rows": [
+            {
+              "id": "a",
+              "loaded": 14
+            }
+          ],
+          "packagingIds": [
+            "primary"
+          ],
+          "accessories": [],
+          "loose": 6
+        },
+        "outcome": "improves"
+      }
+    ],
+    "selectedCandidate": {
+      "looseQuantities": {
+        "a": 1
+      },
+      "loaded": 14,
+      "grossWeightKg": 190,
+      "pallets": 2,
+      "orderRows": [
+        {
+          "id": "a",
+          "label": "TAIL-A",
+          "requested": 14,
+          "beforeLoaded": 8,
+          "loaded": 14,
+          "beforeReserved": 0,
+          "reserved": 1,
+          "loose": 1,
+          "palletized": 13,
+          "unloaded": 0
+        }
+      ],
+      "modelValidation": {
+        "valid": true,
+        "errors": []
+      },
+      "review": {
+        "checks": [
+          {
+            "id": "data",
+            "state": "pass",
+            "scope": [
+              "完整箱位、清单、尺寸、数量、体积与包装自重；查看筛选不改变结论。",
+              "Complete placements, manifest, dimensions, counts, volume and packaging tare; view filters do not change this review."
+            ],
+            "model": "auditPackingResult",
+            "items": []
+          },
+          {
+            "id": "geometry",
+            "state": "pass",
+            "scope": [
+              "沿用方案的边界、碰撞、承托与载重校验；不代表实际尺寸或实机画面已验收。",
+              "Uses the plan's bounds, collision, support and payload validation; actual dimensions and device rendering still need acceptance."
+            ],
+            "model": "plan.validation",
+            "items": []
+          },
+          {
+            "id": "bearing",
+            "state": "pass",
+            "scope": [
+              "按输入额定值检查静态垂直上压；木箱框架、柜底局部压力和运输动态载荷尚未核验。",
+              "Checks static vertical top load against entered ratings; crate frames, local floor pressure and dynamic transport loads remain unverified."
+            ],
+            "model": "bearingErrors + bearingStatus + strength",
+            "items": []
+          },
+          {
+            "id": "path",
+            "state": "unverified",
+            "scope": [
+              "检查货物最终位置直线通过后门及卸货支撑顺序；具体装卸操作由现场安排。",
+              "Checks straight rear-door cargo travel at the final position and unloading support order; on-site teams arrange actual loading operations."
+            ],
+            "model": "straight-rear",
+            "items": [
+              "unload/prebuilt-14: unassigned",
+              "unload/floor-pallet-2: unassigned",
+              "unload/floor-pallet-1: unassigned"
+            ]
+          },
+          {
+            "id": "securing",
+            "state": "unverified",
+            "scope": [
+              "尚未建立绑扎、挡木、气袋和制动工况模型，需现场确认固定方案。",
+              "Lashings, blocking, airbags and braking conditions are not modeled; confirm a securing plan on site."
+            ],
+            "model": "not-modeled",
+            "items": []
+          }
+        ],
+        "state": "unverified",
+        "passed": 3,
+        "failed": 0,
+        "unverified": 2
+      }
+    }
+  },
+  "candidateCosts": {
+    "scope": "same-order-row-delivery",
+    "selection": "explicit-quota-recalculation",
+    "currency": "CNY",
+    "complete": true,
+    "canRank": true,
+    "comparableCount": 6,
+    "minimum": 120,
+    "rows": [
+      {
+        "index": 0,
+        "groups": [
+          {
+            "id": "row:a",
+            "name": "TAIL-A",
+            "units": 1
+          }
+        ],
+        "allocation": "1",
+        "loaded": 14,
+        "loose": 1,
+        "packages": [
+          {
+            "id": "primary",
+            "name": "Tail test pallet",
+            "quantity": 2
+          }
+        ],
+        "available": true,
+        "sameDelivery": true,
+        "current": true,
+        "costs": {
+          "currency": "CNY",
+          "freight": 100,
+          "packaging": 40,
+          "knownPackagingSubtotal": 40,
+          "total": 140,
+          "knownSubtotal": 140,
+          "complete": true,
+          "missing": [],
+          "scope": "freight-and-packaging"
+        },
+        "difference": 0,
+        "lowest": false,
+        "reason": null
+      },
+      {
+        "index": 1,
+        "groups": [
+          {
+            "id": "row:a",
+            "name": "TAIL-A",
+            "units": 2
+          }
+        ],
+        "allocation": "2",
+        "loaded": 14,
+        "loose": 2,
+        "packages": [
+          {
+            "id": "primary",
+            "name": "Tail test pallet",
+            "quantity": 2
+          }
+        ],
+        "available": true,
+        "sameDelivery": true,
+        "current": false,
+        "costs": {
+          "currency": "CNY",
+          "freight": 100,
+          "packaging": 40,
+          "knownPackagingSubtotal": 40,
+          "total": 140,
+          "knownSubtotal": 140,
+          "complete": true,
+          "missing": [],
+          "scope": "freight-and-packaging"
+        },
+        "difference": 0,
+        "lowest": false,
+        "reason": null
+      },
+      {
+        "index": 2,
+        "groups": [
+          {
+            "id": "row:a",
+            "name": "TAIL-A",
+            "units": 3
+          }
+        ],
+        "allocation": "3",
+        "loaded": 14,
+        "loose": 3,
+        "packages": [
+          {
+            "id": "primary",
+            "name": "Tail test pallet",
+            "quantity": 2
+          }
+        ],
+        "available": true,
+        "sameDelivery": true,
+        "current": false,
+        "costs": {
+          "currency": "CNY",
+          "freight": 100,
+          "packaging": 40,
+          "knownPackagingSubtotal": 40,
+          "total": 140,
+          "knownSubtotal": 140,
+          "complete": true,
+          "missing": [],
+          "scope": "freight-and-packaging"
+        },
+        "difference": 0,
+        "lowest": false,
+        "reason": null
+      },
+      {
+        "index": 3,
+        "groups": [
+          {
+            "id": "row:a",
+            "name": "TAIL-A",
+            "units": 4
+          }
+        ],
+        "allocation": "4",
+        "loaded": 14,
+        "loose": 4,
+        "packages": [
+          {
+            "id": "primary",
+            "name": "Tail test pallet",
+            "quantity": 2
+          }
+        ],
+        "available": true,
+        "sameDelivery": true,
+        "current": false,
+        "costs": {
+          "currency": "CNY",
+          "freight": 100,
+          "packaging": 40,
+          "knownPackagingSubtotal": 40,
+          "total": 140,
+          "knownSubtotal": 140,
+          "complete": true,
+          "missing": [],
+          "scope": "freight-and-packaging"
+        },
+        "difference": 0,
+        "lowest": false,
+        "reason": null
+      },
+      {
+        "index": 4,
+        "groups": [
+          {
+            "id": "row:a",
+            "name": "TAIL-A",
+            "units": 5
+          }
+        ],
+        "allocation": "5",
+        "loaded": 14,
+        "loose": 5,
+        "packages": [
+          {
+            "id": "primary",
+            "name": "Tail test pallet",
+            "quantity": 2
+          }
+        ],
+        "available": true,
+        "sameDelivery": true,
+        "current": false,
+        "costs": {
+          "currency": "CNY",
+          "freight": 100,
+          "packaging": 40,
+          "knownPackagingSubtotal": 40,
+          "total": 140,
+          "knownSubtotal": 140,
+          "complete": true,
+          "missing": [],
+          "scope": "freight-and-packaging"
+        },
+        "difference": 0,
+        "lowest": false,
+        "reason": null
+      },
+      {
+        "index": 5,
+        "groups": [
+          {
+            "id": "row:a",
+            "name": "TAIL-A",
+            "units": 6
+          }
+        ],
+        "allocation": "6",
+        "loaded": 14,
+        "loose": 6,
+        "packages": [
+          {
+            "id": "primary",
+            "name": "Tail test pallet",
+            "quantity": 1
+          }
+        ],
+        "available": true,
+        "sameDelivery": true,
+        "current": false,
+        "costs": {
+          "currency": "CNY",
+          "freight": 100,
+          "packaging": 20,
+          "knownPackagingSubtotal": 20,
+          "total": 120,
+          "knownSubtotal": 120,
+          "complete": true,
+          "missing": [],
+          "scope": "freight-and-packaging"
+        },
+        "difference": -20,
+        "lowest": true,
+        "reason": null
+      }
+    ]
+  }
+}

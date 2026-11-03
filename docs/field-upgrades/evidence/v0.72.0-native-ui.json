@@ -1,0 +1,77 @@
+[
+  {
+    "label": "Cloudflare restored valid manual baseline 8 of 14",
+    "passed": true,
+    "at": "2026-11-03T03:26:29.171Z"
+  },
+  {
+    "label": "Missing quotes block allocation adoption",
+    "passed": true,
+    "at": "2026-11-03T03:26:41.256Z"
+  },
+  {
+    "label": "Cloudflare six identical 14-carton candidates priced at 140 versus 120",
+    "passed": true,
+    "at": "2026-11-03T03:26:50.312Z"
+  },
+  {
+    "label": "Cloudflare cheapest quota can be explicitly adopted",
+    "passed": true,
+    "at": "2026-11-03T03:26:50.326Z"
+  },
+  {
+    "label": "Explicit free packaging marks all six equal-cost ties",
+    "passed": true,
+    "at": "2026-11-03T03:27:54.210Z"
+  },
+  {
+    "label": "Removing packaging quote clears minimum and blocks adoption",
+    "passed": true,
+    "at": "2026-11-03T03:27:54.535Z"
+  },
+  {
+    "label": "Cloudflare recalculation loads 14 cartons with one physical pallet",
+    "passed": true,
+    "at": "2026-11-03T03:28:17.063Z"
+  },
+  {
+    "label": "Vercel pricing import preview leaves quota adoption disabled",
+    "passed": true,
+    "at": "2026-11-03T03:30:12.543Z"
+  },
+  {
+    "label": "Vercel English equal-delivery ranking uses current quantities and imported quotes",
+    "passed": true,
+    "at": "2026-11-03T03:30:13.405Z"
+  },
+  {
+    "label": "Vercel explicit English action recalculates 14 cartons on one pallet",
+    "passed": true,
+    "at": "2026-11-03T03:30:44.109Z"
+  },
+  {
+    "label": "Cloudflare native fixed benchmark completed all 18 runs",
+    "passed": true,
+    "at": "2026-11-03T03:32:25.418Z"
+  },
+  {
+    "label": "Vercel native fixed benchmark completed all 18 runs",
+    "passed": true,
+    "at": "2026-11-03T03:32:32.311Z"
+  },
+  {
+    "label": "Cloudflare refresh and fresh solving preserve adopted 14-carton result",
+    "passed": true,
+    "at": "2026-11-03T03:33:00.732Z"
+  },
+  {
+    "label": "Cloudflare original order restored to 116 cartons",
+    "passed": true,
+    "at": "2026-11-03T03:33:21.595Z"
+  },
+  {
+    "label": "Vercel original order restored to 116 cartons",
+    "passed": true,
+    "at": "2026-11-03T03:33:43.361Z"
+  }
+]

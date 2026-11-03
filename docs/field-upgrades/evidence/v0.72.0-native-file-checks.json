@@ -1,0 +1,138 @@
+[
+  {
+    "label": "cloudflare current engine and complete unapplied batch",
+    "passed": true
+  },
+  {
+    "label": "cloudflare same per-row 14-carton delivery",
+    "passed": true
+  },
+  {
+    "label": "cloudflare bounded minimum at allocation six",
+    "passed": true
+  },
+  {
+    "label": "cloudflare quantity winner kept at two pallets",
+    "passed": true
+  },
+  {
+    "label": "cloudflare one-pallet candidate saves twenty",
+    "passed": true
+  },
+  {
+    "label": "cloudflare path and securing remain unverified",
+    "passed": true
+  },
+  {
+    "label": "cloudflare formal model valid and exactly 14 boxes",
+    "passed": true
+  },
+  {
+    "label": "cloudflare formal actual one pallet six loose and 165kg",
+    "passed": true
+  },
+  {
+    "label": "cloudflare original order and stock preserved",
+    "passed": true
+  },
+  {
+    "label": "cloudflare CSV raw BOM and six rows with 14 columns",
+    "passed": true
+  },
+  {
+    "label": "cloudflare CSV matches JSON costs and minimum",
+    "passed": true
+  },
+  {
+    "label": "vercel current engine and complete unapplied batch",
+    "passed": true
+  },
+  {
+    "label": "vercel same per-row 14-carton delivery",
+    "passed": true
+  },
+  {
+    "label": "vercel bounded minimum at allocation six",
+    "passed": true
+  },
+  {
+    "label": "vercel quantity winner kept at two pallets",
+    "passed": true
+  },
+  {
+    "label": "vercel one-pallet candidate saves twenty",
+    "passed": true
+  },
+  {
+    "label": "vercel path and securing remain unverified",
+    "passed": true
+  },
+  {
+    "label": "vercel formal model valid and exactly 14 boxes",
+    "passed": true
+  },
+  {
+    "label": "vercel formal actual one pallet six loose and 165kg",
+    "passed": true
+  },
+  {
+    "label": "vercel original order and stock preserved",
+    "passed": true
+  },
+  {
+    "label": "vercel CSV raw BOM and six rows with 14 columns",
+    "passed": true
+  },
+  {
+    "label": "vercel CSV matches JSON costs and minimum",
+    "passed": true
+  },
+  {
+    "label": "both sites accounting snapshots equal",
+    "passed": true
+  },
+  {
+    "label": "Cloudflare report baseline identity and retained eight-box formal",
+    "passed": true
+  },
+  {
+    "label": "cloudflare native benchmarks complete and all models valid",
+    "passed": true
+  },
+  {
+    "label": "cloudflare restored both solver plans 116 cartons 3842kg and no pallets",
+    "passed": true
+  },
+  {
+    "label": "vercel native benchmarks complete and all models valid",
+    "passed": true
+  },
+  {
+    "label": "vercel restored both solver plans 116 cartons 3842kg and no pallets",
+    "passed": true
+  },
+  {
+    "label": "native benchmark inputs match across sites",
+    "passed": true
+  },
+  {
+    "label": "fresh reload persists six-loose quota stock two and fourteen demand",
+    "passed": true
+  },
+  {
+    "label": "cloudflare adoption changes only loose quota after existing UI defaults and automatic CBM; all other inputs identical",
+    "passed": true
+  },
+  {
+    "label": "cloudflare final inputs exactly match original after existing UI defaults and automatic CBM normalization",
+    "passed": true
+  },
+  {
+    "label": "vercel adoption changes only loose quota after existing UI defaults and automatic CBM; all other inputs identical",
+    "passed": true
+  },
+  {
+    "label": "vercel final inputs exactly match original after existing UI defaults and automatic CBM normalization",
+    "passed": true
+  }
+]

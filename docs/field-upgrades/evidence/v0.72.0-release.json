@@ -1,0 +1,377 @@
+{
+  "engineVersion": "0.72.0",
+  "runtimeCommit": "dd1b9ba4d7128f4e36ba27fd7622a70c866351cf",
+  "runtimeTree": "5bb4cf4e347c40995c341f6a9fb6a3402d616d8b",
+  "githubCI": {
+    "total_count": 1,
+    "jobs": [
+      {
+        "id": 125705575670,
+        "run_id": 41571621418,
+        "workflow_name": "Verify and build",
+        "head_branch": "main",
+        "run_url": "https://api.github.com/repos/guodongbuding66-spec/container-load-planner/actions/runs/41571621418",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOT66QuM8AAAAdRKLc9g",
+        "head_sha": "dd1b9ba4d7128f4e36ba27fd7622a70c866351cf",
+        "url": "https://api.github.com/repos/guodongbuding66-spec/container-load-planner/actions/jobs/125705575670",
+        "html_url": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/41571621418/job/125705575670",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-11-03T03:20:32Z",
+        "started_at": "2026-11-03T03:20:34Z",
+        "completed_at": "2026-11-03T03:25:11Z",
+        "name": "verify",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-11-03T03:20:35Z",
+            "completed_at": "2026-11-03T03:20:37Z"
+          },
+          {
+            "name": "Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-11-03T03:20:37Z",
+            "completed_at": "2026-11-03T03:20:40Z"
+          },
+          {
+            "name": "Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-11-03T03:20:40Z",
+            "completed_at": "2026-11-03T03:20:46Z"
+          },
+          {
+            "name": "Run npm ci",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-11-03T03:20:46Z",
+            "completed_at": "2026-11-03T03:21:04Z"
+          },
+          {
+            "name": "Run npm run build:pages",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-11-03T03:21:04Z",
+            "completed_at": "2026-11-03T03:25:07Z"
+          },
+          {
+            "name": "Post Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-11-03T03:25:07Z",
+            "completed_at": "2026-11-03T03:25:08Z"
+          },
+          {
+            "name": "Post Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10,
+            "started_at": "2026-11-03T03:25:08Z",
+            "completed_at": "2026-11-03T03:25:08Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11,
+            "started_at": "2026-11-03T03:25:08Z",
+            "completed_at": "2026-11-03T03:25:08Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/guodongbuding66-spec/container-load-planner/check-runs/125705575670",
+        "labels": [
+          "ubuntu-latest"
+        ],
+        "runner_id": 1000040543,
+        "runner_name": "GitHub Actions 1000040543",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      }
+    ]
+  },
+  "cloudflareChecks": {
+    "total_count": 2,
+    "check_runs": [
+      {
+        "id": 125707283441,
+        "name": "Cloudflare Pages",
+        "node_id": "CR_kwDOT66QuM8AAAAdRLzr8Q",
+        "head_sha": "dd1b9ba4d7128f4e36ba27fd7622a70c866351cf",
+        "external_id": "638e9867-b3cf-4b5c-86e0-f9aecf6234f2",
+        "url": "https://api.github.com/repos/guodongbuding66-spec/container-load-planner/check-runs/125707283441",
+        "html_url": "https://github.com/guodongbuding66-spec/container-load-planner/runs/125707283441",
+        "details_url": "https://dash.cloudflare.com/?to=/bf21b14200f1ef0bfb82f48d3663411c/pages/view/container-load-planner/638e9867-b3cf-4b5c-86e0-f9aecf6234f2",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-03T03:25:47Z",
+        "completed_at": "2026-11-03T03:25:47Z",
+        "output": {
+          "title": "Deployed successfully",
+          "summary": "<table><tr><td><strong>Latest commit:</strong> </td><td>\n<code>dd1b9ba</code>\n</td></tr>\n<tr><td><strong>Status:</strong></td><td>&nbsp;✅&nbsp; Deploy successful!</td></tr>\n<tr><td><strong>Preview URL:</strong></td><td>\n<a href='https://638e9867.container-load-planner.pages.dev'>https://638e9867.container-load-planner.pages.dev</a>\n</td></tr>\n</table>\n\n[View logs](https://dash.cloudflare.com/?to=/bf21b14200f1ef0bfb82f48d3663411c/pages/view/container-load-planner/638e9867-b3cf-4b5c-86e0-f9aecf6234f2)\n",
+          "text": null,
+          "annotations_count": 0,
+          "annotations_url": "https://api.github.com/repos/guodongbuding66-spec/container-load-planner/check-runs/125707283441/annotations"
+        },
+        "check_suite": {
+          "id": 112649652194
+        },
+        "app": {
+          "id": 85455,
+          "client_id": "Iv1.0879b6ff6c8f7a1a",
+          "slug": "cloudflare-workers-and-pages",
+          "node_id": "MDM6QXBwODU0NTU=",
+          "owner": {
+            "login": "cloudflare",
+            "id": 314135,
+            "node_id": "MDEyOk9yZ2FuaXphdGlvbjMxNDEzNQ==",
+            "avatar_url": "https://avatars.githubusercontent.com/u/314135?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/cloudflare",
+            "html_url": "https://github.com/cloudflare",
+            "followers_url": "https://api.github.com/users/cloudflare/followers",
+            "following_url": "https://api.github.com/users/cloudflare/following{/other_user}",
+            "gists_url": "https://api.github.com/users/cloudflare/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/cloudflare/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/cloudflare/subscriptions",
+            "organizations_url": "https://api.github.com/users/cloudflare/orgs",
+            "repos_url": "https://api.github.com/users/cloudflare/repos",
+            "events_url": "https://api.github.com/users/cloudflare/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/cloudflare/received_events",
+            "type": "Organization",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "name": "Cloudflare Workers and Pages",
+          "description": "The **Cloudflare GitHub App** automatically deploys your code to Cloudflare when you merge a pull request to your GitHub repository. It can also create a new repository on your GitHub account when you get started with a Cloudflare template. \r\n\r\n\r\nThis integration also:\r\n- Displays the status of your deployments as check runs\r\n- Posts links to preview URLs as comments on each pull request (Cloudflare Pages only)\r\n\r\n\r\n<img src=\"https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/b3c1fc84-7d73-4fc4-8835-69e85980df00/public\" width=67% >\r\n\r\n\r\n<img src=\"https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/e9a5ffb3-4ec3-4dd6-8bc8-ed0eec5ddb00/public\" width=67% >\r\n\r\n\r\nFor more information, refer to the [Cloudflare Workers docs](https://developers.cloudflare.com/workers/ci-cd/builds/) and [Cloudflare Pages docs](https://developers.cloudflare.com/pages/configuration/git-integration/).",
+          "external_url": "https://developers.cloudflare.com/workers/ci-cd/builds/",
+          "html_url": "https://github.com/apps/cloudflare-workers-and-pages",
+          "created_at": "2020-10-19T20:23:00Z",
+          "updated_at": "2026-10-30T00:49:56Z",
+          "permissions": {
+            "administration": "write",
+            "checks": "write",
+            "contents": "write",
+            "deployments": "write",
+            "metadata": "read",
+            "pull_requests": "write"
+          },
+          "events": [
+            "pull_request",
+            "push"
+          ]
+        },
+        "pull_requests": []
+      },
+      {
+        "id": 125705575670,
+        "name": "verify",
+        "node_id": "CR_kwDOT66QuM8AAAAdRKLc9g",
+        "head_sha": "dd1b9ba4d7128f4e36ba27fd7622a70c866351cf",
+        "external_id": "058a4fc1-2d48-5751-9fa3-178b84d8167d",
+        "url": "https://api.github.com/repos/guodongbuding66-spec/container-load-planner/check-runs/125705575670",
+        "html_url": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/41571621418/job/125705575670",
+        "details_url": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/41571621418/job/125705575670",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-03T03:20:34Z",
+        "completed_at": "2026-11-03T03:25:11Z",
+        "output": {
+          "title": null,
+          "summary": null,
+          "text": null,
+          "annotations_count": 4,
+          "annotations_url": "https://api.github.com/repos/guodongbuding66-spec/container-load-planner/check-runs/125705575670/annotations"
+        },
+        "check_suite": {
+          "id": 112649655501
+        },
+        "app": {
+          "id": 15368,
+          "client_id": "Iv1.05c79e9ad1f6bdfa",
+          "slug": "github-actions",
+          "node_id": "MDM6QXBwMTUzNjg=",
+          "owner": {
+            "login": "github",
+            "id": 9919,
+            "node_id": "MDEyOk9yZ2FuaXphdGlvbjk5MTk=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/9919?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/github",
+            "html_url": "https://github.com/github",
+            "followers_url": "https://api.github.com/users/github/followers",
+            "following_url": "https://api.github.com/users/github/following{/other_user}",
+            "gists_url": "https://api.github.com/users/github/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/github/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/github/subscriptions",
+            "organizations_url": "https://api.github.com/users/github/orgs",
+            "repos_url": "https://api.github.com/users/github/repos",
+            "events_url": "https://api.github.com/users/github/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/github/received_events",
+            "type": "Organization",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "name": "GitHub Actions",
+          "description": "Automate your workflow from idea to production",
+          "external_url": "https://help.github.com/en/actions",
+          "html_url": "https://github.com/apps/github-actions",
+          "created_at": "2018-07-30T09:30:17Z",
+          "updated_at": "2026-06-18T16:17:48Z",
+          "permissions": {
+            "actions": "write",
+            "administration": "read",
+            "artifact_metadata": "write",
+            "attestations": "write",
+            "checks": "write",
+            "code_quality": "write",
+            "contents": "write",
+            "copilot_requests": "write",
+            "deployments": "write",
+            "discussions": "write",
+            "drives": "write",
+            "issues": "write",
+            "merge_queues": "write",
+            "metadata": "read",
+            "models": "read",
+            "packages": "write",
+            "pages": "write",
+            "pull_requests": "write",
+            "repository_hooks": "write",
+            "repository_projects": "write",
+            "security_events": "write",
+            "statuses": "write",
+            "vulnerability_alerts": "read"
+          },
+          "events": [
+            "branch_protection_rule",
+            "check_run",
+            "check_suite",
+            "create",
+            "delete",
+            "deployment",
+            "deployment_status",
+            "discussion",
+            "discussion_comment",
+            "fork",
+            "gollum",
+            "issues",
+            "issue_comment",
+            "label",
+            "merge_group",
+            "milestone",
+            "page_build",
+            "public",
+            "pull_request",
+            "pull_request_review",
+            "pull_request_review_comment",
+            "push",
+            "registry_package",
+            "release",
+            "repository",
+            "repository_dispatch",
+            "status",
+            "watch",
+            "workflow_dispatch",
+            "workflow_run"
+          ]
+        },
+        "pull_requests": []
+      }
+    ]
+  },
+  "vercelDeployment": {
+    "id": "dpl_7Npf6A1C1cCvdXED7DKWLj3XpJcT",
+    "name": "container-load-planner",
+    "url": "container-load-planner-9t7ekcp0b-guodongbuding66-4957.vercel.app",
+    "type": "LAMBDAS",
+    "state": "READY",
+    "createdAt": 1793676032449,
+    "creator": {
+      "uid": "4jQB7FugrKlCptdCxVNmEp2A",
+      "username": "guodongbuding66-4957"
+    },
+    "project": {
+      "id": "prj_r8PcBkAQNeJQIUYqywz0Mv0VYY4g",
+      "name": "container-load-planner",
+      "framework": "nextjs"
+    },
+    "meta": {
+      "githubCommitRef": "main",
+      "githubCommitSha": "dd1b9ba4d7128f4e36ba27fd7622a70c866351cf",
+      "githubCommitMessage": "feat: compare equal-delivery tail candidate costs and apply reviewed quotas",
+      "githubRepo": "container-load-planner",
+      "githubOrg": "guodongbuding66-spec"
+    },
+    "alias": [
+      "container-load-planner-gray.vercel.app",
+      "container-load-planner-guodongbuding66-4957.vercel.app",
+      "container-load-planner-git-main-guodongbuding66-4957.vercel.app"
+    ],
+    "target": "production",
+    "regions": [
+      "iad1"
+    ],
+    "buildingAt": 1793676033839,
+    "ready": 1793676376110,
+    "readyState": "READY",
+    "source": "git",
+    "aliasError": null
+  },
+  "vercelTestProof": [
+    "ℹ pass 21",
+    "ℹ tests 21",
+    "      Tests  1930 passed (1930)",
+    " Test Files  149 passed (149)"
+  ],
+  "vercelBuildCompletion": [
+    {
+      "text": "Deployment completed",
+      "date": 1793676376256
+    },
+    {
+      "text": "Build Completed in /vercel/output [6m]",
+      "date": 1793676374895
+    },
+    {
+      "text": "✓ Generating static pages using 1 worker (3/3) in 1523ms",
+      "date": 1793676361257
+    },
+    {
+      "text": "  Generating static pages using 1 worker (0/3) ...",
+      "date": 1793676359734
+    },
+    {
+      "text": "  Finished TypeScript in 32.3s ...",
+      "date": 1793676358783
+    },
+    {
+      "text": "  Running TypeScript ...",
+      "date": 1793676326435
+    },
+    {
+      "text": "✓ Compiled successfully in 38.8s",
+      "date": 1793676326425
+    },
+    {
+      "text": "Attention: Next.js now collects completely anonymous telemetry regarding usage.",
+      "date": 1793676284293
+    },
+    {
+      "text": "✔ auto-calculates CBM and displays complete sets before carton details (2.976754ms)",
+      "date": 1793676283586
+    }
+  ],
+  "notes": [
+    "Checks and aliases refer to the runtime commit; evidence/documents archive will not change runtime source."
+  ]
+}

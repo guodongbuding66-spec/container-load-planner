@@ -1,0 +1,173 @@
+{
+  "engineVersion": "0.72.0",
+  "runtimeCommit": "dd1b9ba4d7128f4e36ba27fd7622a70c866351cf",
+  "runtimeTree": "5bb4cf4e347c40995c341f6a9fb6a3402d616d8b",
+  "scope": "controlled same-order-row delivery cost comparison and explicit quota adoption",
+  "uiAssertions": 15,
+  "nativeFileAssertions": 34,
+  "totalAssertions": 49,
+  "software": {
+    "unitTests": 1930,
+    "unitFiles": 149,
+    "pageChecks": 21,
+    "productionBuild": "passed"
+  },
+  "nativeBenchmarks": {
+    "cloudflare": 18,
+    "vercel": 18,
+    "allModelValid": true
+  },
+  "controlledFixture": {
+    "demand": 14,
+    "baselineLoaded": 8,
+    "baselinePallets": 1,
+    "quantityCandidate": {
+      "quota": 1,
+      "loaded": 14,
+      "pallets": 2,
+      "configuredCost": 140
+    },
+    "lowerCostCandidate": {
+      "quota": 6,
+      "loaded": 14,
+      "pallets": 1,
+      "loose": 6,
+      "configuredCost": 120,
+      "grossKg": 165
+    },
+    "stockLimit": 2,
+    "construction": "A whole second pallet was removed from a full valid solution; the eight-box remainder was independently revalidated. This is a manual partial baseline."
+  },
+  "recoveryNotes": [
+    "The first Vercel backup returned a missing download path; the repeated native download succeeded and that original is archived.",
+    "One Vercel file chooser timed out after reload; the browser connection was restored and the same import subsequently succeeded. No app code was changed for this recovery.",
+    "Original backups omit some default fields and calculated CBM; comparison applies existing UI defaults and automatic CBM before requiring all inputs to match. Raw before and after files remain intact."
+  ],
+  "pending": [
+    "original 596-to-16 workspace exact reproduction",
+    "real GPU and multiple browser acceptance",
+    "broader economic search and cross-container optimization"
+  ],
+  "artifacts": [
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-adopted-formal-cloudflare.json",
+      "bytes": 10424,
+      "sha256": "6b4fa2a837b4f186746f2e7acf0892c782d70aa006514acc756a956fdc8a4458"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-adopted-formal-vercel.json",
+      "bytes": 10408,
+      "sha256": "d584aed4c1df9e04b19ab9f2aba36b9aed9eb293c76c53eb382cff86aa68b6cf"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-adopted-workspace-cloudflare.json",
+      "bytes": 26546,
+      "sha256": "3fbc71da4c9de1f9b200b6ef48e4e3f073bad4542174cb4872b49618dd5ff896"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-adopted-workspace-vercel.json",
+      "bytes": 26546,
+      "sha256": "3661e75668baedcd135c686333d31d1d046d9005a70b94f2b365a358fb712c1d"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-baseline-formal-cloudflare.json",
+      "bytes": 6628,
+      "sha256": "5de5c08567a90f800eb49c5090f7f0fb5274335047d2ea5447b8974875c59358"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-before-cloudflare.json",
+      "bytes": 2647,
+      "sha256": "bb601840de0fec222009daea07a22f1fbd2386b4ebc6424e0431346a29751f82"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-before-vercel.json",
+      "bytes": 2647,
+      "sha256": "426d9b3ac3b8e7632601f700ba8b798071759b66b2c8c8d11d3bbf79ed86c3cf"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-benchmark-cloudflare.json",
+      "bytes": 57315,
+      "sha256": "51d712a4b527468a26693d2dcba1b8a67c3de017e774cdb5053bb4c64c0b36ae"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-benchmark-vercel.json",
+      "bytes": 57295,
+      "sha256": "3d84bc92f41d5f2919981aae92d5bc77ceb2b766cccc9c80a98aba2dc83dbaf4"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-candidate-cost-proof.jpg",
+      "bytes": 95018,
+      "sha256": "b52f3bf810ab1cbdf03bba933b273fa4c7835755a3898b23895566f539aba00c"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-candidate-costs-cloudflare.csv",
+      "bytes": 800,
+      "sha256": "297aafc30b3fea82fc375b8bc9dc19f651422b2e75cd1636033f0be6fdb5ff13"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-candidate-costs-vercel.csv",
+      "bytes": 793,
+      "sha256": "a4c8524ccdbf2f9d3289a557e46dd503b140d76ba5a78c7e11fc64dba3d871ca"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-costs-cloudflare.json",
+      "bytes": 16010,
+      "sha256": "ef64394fdcb928acfb81e0f14b8677399f702c8d207a884d0b565962ce921e42"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-costs-vercel.json",
+      "bytes": 16010,
+      "sha256": "4dcae89a59ff274664ab6959e9b3e4e19311d9ed83f27d59deceeaeb7c741310"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-final-cloudflare.json",
+      "bytes": 134245,
+      "sha256": "37d49588cf8be54e257c619ceb57e9ad0bfe6884353c8cccf6a1b321bd1e9c26"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-final-vercel.json",
+      "bytes": 134245,
+      "sha256": "8c9ae60374628e5f545f5e971a928b9b82d32ed64001617fb82bb0a6516707b9"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-fixture-details.json",
+      "bytes": 8735,
+      "sha256": "b2e6f23addd167ea23b6e0a2d1099cc33a2c9ef2ea32949a8302fe77596acb7e"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-local-checks.txt",
+      "bytes": 4712,
+      "sha256": "2e75a34657bd229781f22512956d8ebcfbdd8047c128e3566fca73210bc5fa4a"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-native-file-checks.json",
+      "bytes": 3429,
+      "sha256": "abf7a48b441e5154b529f76653afa850f89f93c0e47889a813e2de020f83bbe9"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-native-ui.json",
+      "bytes": 2114,
+      "sha256": "3c5f0c4e4b6cbdbd9c6389f18489c79fe39eaaa05f691015c9ef123aeee7e027"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-pricing-cloudflare.json",
+      "bytes": 1516,
+      "sha256": "dc206da86565d56ee15d43e0ad3e62079c616d628a7a2ee7cd0cec7e7412c6aa"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-refreshed-cloudflare.json",
+      "bytes": 26546,
+      "sha256": "be6608f1fdeb237bf669eeca678a81937ed4dc3ecae56c52bb9ebbe7b75dfc0e"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-release.json",
+      "bytes": 15517,
+      "sha256": "9b3a5fe850f17ec8de2d51a0e5b8a255f80e51a03e5f8bc026679a52d48fe871"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.72.0-seed.json",
+      "bytes": 13672,
+      "sha256": "63153cb9890e75abca1152d6ecef12de96326b8f54a04cd24e31f3b0553404a8"
+    }
+  ]
+}

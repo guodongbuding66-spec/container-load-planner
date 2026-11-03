@@ -1,0 +1,70 @@
+{
+  "format": "cargo-fit-tail-pricing",
+  "version": 1,
+  "engineVersion": "0.72.0",
+  "createdAt": "2026-11-03T03:27:29.258Z",
+  "context": {
+    "container": {
+      "category": "other",
+      "loadingAccess": "rear",
+      "id": "tail-test",
+      "name": "Tail test vehicle",
+      "length": 2000,
+      "width": 1000,
+      "height": 600,
+      "doorWidth": 1000,
+      "doorHeight": 600,
+      "maxWeight": 10000,
+      "exclusions": []
+    },
+    "packaging": [
+      {
+        "id": "primary",
+        "config": {
+          "packaging": {
+            "base": "block",
+            "enclosure": "none",
+            "material": "wood",
+            "color": "#d4af7b",
+            "opacity": 0.65,
+            "deckBoards": 5,
+            "runners": 3,
+            "wallThickness": 30,
+            "lid": true
+          },
+          "presetId": "eur-1200-800",
+          "name": "Tail test pallet",
+          "length": 800,
+          "width": 1000,
+          "height": 100,
+          "weight": 25,
+          "maxLoad": 1000,
+          "count": 0,
+          "gap": 0,
+          "layout": "auto",
+          "allowFloorCargo": false,
+          "maxCargoHeight": 400
+        }
+      }
+    ],
+    "orderRows": [
+      {
+        "id": "a",
+        "sku": "TAIL-A",
+        "orderLine": null,
+        "setCode": "",
+        "unitsPerSet": 1
+      }
+    ],
+    "delivery": null
+  },
+  "quote": {
+    "freight": 100,
+    "pricing": {
+      "currency": "CNY",
+      "packaging": {
+        "primary": 20
+      }
+    }
+  }
+}
