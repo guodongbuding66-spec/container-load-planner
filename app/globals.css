@@ -1509,3 +1509,8 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 .engineering-fields button {align-self:end;}
 .engineering-workspace,.engineering-report {overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
 .engineering-workspace textarea,.upgrade-body>textarea {width:100%;min-height:180px;font:12px/1.6 monospace;}
+
+.fleet-tail-joint { min-width:0; margin:16px 0; padding:16px; border:1px solid var(--line); border-radius:10px; }
+.fleet-tail-joint legend { padding:0 6px; font-weight:600; }
+.fleet-tail-joint .upgrade-rule-grid > div { grid-template-columns:minmax(0,1fr); padding:16px; }
+.fleet-tail-joint .upgrade-actions strong { font-size:13px; font-weight:600; }
