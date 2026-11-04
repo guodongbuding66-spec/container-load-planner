@@ -1,0 +1,82 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> container-load-planner@0.1.0 build
+> bash scripts/build-verified.sh
+
+/usr/bin/timeout
+Running bounded vinext build...
+
+  vinext build  (Vite 8.2.2)
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+[1/5] analyze client references...
+transforming...
+✓ 246 modules transformed.
+rendering chunks...
+✓ built in 1.33s
+[2/5] analyze server references...
+transforming...
+✓ 953 modules transformed.
+rendering chunks...
+✓ built in 6.39s
+[33m[PLUGIN_TIMINGS] [0mYour build spent 98% of 6.4s inside plugin hooks (6.3s).
+Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+  - vinext:ignore-dynamic-requests transform (30%, 1.9s, 137 calls)
+  - vinext:typeof-window-scan transform (24%, 1.5s, 49 calls)
+Those rows are 54% of the build; the rest of the 98% is below.
+Not measurable — 4 hooks whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+  - vinext:og-inline-fetch-assets resolveId (3209 calls)
+  - vinext:og-inline-fetch-assets transform (17 calls)
+  - alias resolveId (4097 calls)
+  … and 1 more
+See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+
+[3/5] build rsc environment...
+transforming...
+✓ 238 modules transformed.
+rendering chunks...
+computing gzip size...
+✓ built in 1.18s
+[4/5] build client environment...
+transforming...
+✓ 2749 modules transformed.
+rendering chunks...
+computing gzip size...
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 7.36s
+[33m[PLUGIN_TIMINGS] [0mYour build spent 89% of 7.3s inside plugin hooks (6.6s).
+Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+  - vinext:require-context transform (17%, 1.3s, 8 calls)
+Those rows are 17% of the build; the rest of the 89% is below.
+Not measurable — 5 hooks whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+  - vinext:og-inline-fetch-assets resolveId (8636 calls)
+  - vite:worker-import-meta-url transform (15 calls)
+  - vinext:og-inline-fetch-assets transform (18 calls)
+  … and 2 more
+See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+
+[5/5] build ssr environment...
+transforming...
+✓ 1521 modules transformed.
+rendering chunks...
+computing gzip size...
+✓ built in 5.02s
+[0m
+  Route (app)
+  ─ ? /
+
+  ? Unknown
+
+  ? Some routes could not be classified. vinext currently uses static analysis
+    and cannot detect dynamic API usage (headers(), cookies(), etc.) at build time.
+    Automatic classification will be improved in a future release.
+
+  Build complete. Run `vinext start` to start the production server.
+
+Validated Sites artifact: ESM Worker default.fetch and hosting manifest are present.

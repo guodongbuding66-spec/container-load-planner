@@ -1,0 +1,103 @@
+{
+  "engineVersion": "0.76.0",
+  "acceptanceDate": "2026-11-05",
+  "timezone": "Asia/Shanghai",
+  "runtimeCommit": "91ba0e275d7cd7c2c1d7f5d51e1058ec1ae53748",
+  "runtimeTree": "b41b10fcc0ba41cc4cd3a8532d5aabf13337b788",
+  "featureCommit": "b54d9fee666ae89776edd513d95746358d8cd71a",
+  "checks": {
+    "unitTests": 2048,
+    "testFiles": 156,
+    "renderedHtmlTests": 21,
+    "lintErrors": 0,
+    "existingLintWarnings": 2,
+    "typecheck": "PASS",
+    "productionBuild": "PASS",
+    "artifactValidation": "PASS",
+    "githubCI": {
+      "runId": 41934561714,
+      "status": "completed",
+      "conclusion": "success"
+    }
+  },
+  "sites": {
+    "main": {
+      "url": "https://container-load-planner.pages.dev/",
+      "provider": "Cloudflare Pages",
+      "deploymentId": "4546e4f4-ce14-4c03-a227-78626d20d108",
+      "status": "success",
+      "nativeStrategy": "maximum",
+      "benchmarks": 20
+    },
+    "gray": {
+      "url": "https://container-load-planner-gray.vercel.app/",
+      "provider": "Vercel",
+      "deploymentId": "dpl_6UqizyDB3q6m1NW6HWTBwgsL9vNv",
+      "status": "READY",
+      "nativeStrategy": "practical",
+      "language": "en",
+      "benchmarks": 20
+    }
+  },
+  "native": {
+    "uiAssertions": 10,
+    "fileChecks": 20,
+    "baseline": {
+      "containers": 8,
+      "pallets": 8,
+      "cartons": 20,
+      "configuredCNY": 840,
+      "grossKg": 360
+    },
+    "threeGroups": {
+      "candidates": 7,
+      "containers": 5,
+      "configuredCNY": 525
+    },
+    "fourGroups": {
+      "candidates": 15,
+      "containers": 4,
+      "pallets": 4,
+      "loose": 4,
+      "cartons": 20,
+      "configuredCNY": 420,
+      "grossKg": 280
+    },
+    "eachSourceRow": {
+      "requested": 5,
+      "before": 5,
+      "after": 5,
+      "loose": 1,
+      "palletized": 4
+    },
+    "csv": {
+      "sourceRows": 60,
+      "columns": 25
+    },
+    "crossSiteCoordinates": "byte-identical",
+    "refreshInputs": "identical",
+    "originalWorkspace": {
+      "bothSites": true,
+      "bothStrategies": true,
+      "cartons": 116,
+      "grossKg": 3842,
+      "language": "zh",
+      "lengthUnit": "mm",
+      "weightUnit": "kg",
+      "comparison": "exact after existing default fields and automatic CBM normalization"
+    },
+    "baselineNote": "Native baselines were generated on feature commit b54d9fee, then independently validated and restored on final runtime 91ba0e2. Three-group and four-group final reports were generated on 91ba0e2."
+  },
+  "limitations": {
+    "gpu": "PENDING: browser reports WebGL unavailable; true-coordinate 2D fallback observed",
+    "original596to16Workspace": "PENDING: full original user workspace is still required",
+    "search": "U09/U10/U11 PARTIAL; above four groups, fixed prefixes, physical packaging identity, dismantling costs and wider/global search remain open",
+    "forkliftOperations": "EXCLUDED",
+    "accountsMembershipPayments": "not enabled",
+    "console": "Latest ten error log entries on each tab were browser-extension metadata messages; this is not an exhaustive application console audit"
+  },
+  "downloadNotes": [
+    "Preview workspace first returned path did not synchronize; one native retry succeeded.",
+    "Gray applied fleet first download event timed out; one retry after stable retained fleet succeeded."
+  ]
+}

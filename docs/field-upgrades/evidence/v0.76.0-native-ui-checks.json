@@ -1,0 +1,46 @@
+{
+  "engineVersion": "0.76.0",
+  "runtimeCommit": "91ba0e275d7cd7c2c1d7f5d51e1058ec1ae53748",
+  "checks": [
+    {
+      "name": "main invalid fourth draft blocks preview",
+      "passed": true
+    },
+    {
+      "name": "main scope round trip clears discarded invalid draft",
+      "passed": true
+    },
+    {
+      "name": "main complete 80-candidate grid rejected",
+      "passed": true
+    },
+    {
+      "name": "main adding fourth group discards three-group report",
+      "passed": true
+    },
+    {
+      "name": "main four groups exhaust all 15 candidate rows",
+      "passed": true
+    },
+    {
+      "name": "main fourth ceiling round trip discards old report",
+      "passed": true
+    },
+    {
+      "name": "gray English joint controls contain no Chinese",
+      "passed": true
+    },
+    {
+      "name": "gray invalid fourth draft blocks preview",
+      "passed": true
+    },
+    {
+      "name": "gray scope round trip clears discarded invalid draft",
+      "passed": true
+    },
+    {
+      "name": "gray four groups exhaust 15 candidates",
+      "passed": true
+    }
+  ]
+}

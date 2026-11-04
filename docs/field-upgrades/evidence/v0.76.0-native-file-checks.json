@@ -1,0 +1,85 @@
+{
+  "engineVersion": "0.76.0",
+  "checks": [
+    {
+      "name": "main native baseline independently validated",
+      "passed": true
+    },
+    {
+      "name": "main native complete four-group report",
+      "passed": true
+    },
+    {
+      "name": "main all 15 candidates independently recomputed",
+      "passed": true
+    },
+    {
+      "name": "main native CSV matches report",
+      "passed": true
+    },
+    {
+      "name": "main explicit apply preserves reviewed fleet, stock and rows",
+      "passed": true
+    },
+    {
+      "name": "main applied workspace independently restores main geometry",
+      "passed": true
+    },
+    {
+      "name": "main 20 native benchmark runs complete and valid",
+      "passed": true
+    },
+    {
+      "name": "main original input restored and both strategies keep 116 cartons",
+      "passed": true
+    },
+    {
+      "name": "gray native baseline independently validated",
+      "passed": true
+    },
+    {
+      "name": "gray native complete four-group report",
+      "passed": true
+    },
+    {
+      "name": "gray all 15 candidates independently recomputed",
+      "passed": true
+    },
+    {
+      "name": "gray native CSV matches report",
+      "passed": true
+    },
+    {
+      "name": "gray explicit apply preserves reviewed fleet, stock and rows",
+      "passed": true
+    },
+    {
+      "name": "gray applied workspace independently restores main geometry",
+      "passed": true
+    },
+    {
+      "name": "gray 20 native benchmark runs complete and valid",
+      "passed": true
+    },
+    {
+      "name": "gray original input restored and both strategies keep 116 cartons",
+      "passed": true
+    },
+    {
+      "name": "three groups reach five containers before fourth group",
+      "passed": true
+    },
+    {
+      "name": "preview leaves original quota and order intact",
+      "passed": true
+    },
+    {
+      "name": "cross-site native fleet coordinate CSV byte identity",
+      "passed": true
+    },
+    {
+      "name": "refresh preserves adopted quota and original demand",
+      "passed": true
+    }
+  ]
+}
