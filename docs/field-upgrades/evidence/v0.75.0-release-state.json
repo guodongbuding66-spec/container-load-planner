@@ -1,0 +1,74 @@
+{
+  "version": "0.75.0",
+  "runtimeCommit": "6127bdeb7e1c8bc5bd3aa31221ca836329c8aca8",
+  "runtimeTree": "bbcc133edfe8dbda7214068b07d9785505ebfb81",
+  "unitTests": 2021,
+  "unitFiles": 154,
+  "addedTests": 37,
+  "htmlTests": 21,
+  "lint": {
+    "errors": 0,
+    "existingWarnings": 2
+  },
+  "build": "passed",
+  "githubCI": {
+    "run": 41750517126,
+    "job": 126314167670,
+    "conclusion": "success"
+  },
+  "cloudflare": {
+    "deployment": "62410cd4-6593-4363-9302-2e2871dc8cb6",
+    "status": "success"
+  },
+  "vercel": {
+    "deployment": "dpl_8Kmyb8gRLQncQwZUWdXg2sNgJcEz",
+    "status": "READY"
+  },
+  "nativeAcceptance": "passed",
+  "realGPU": "PENDING",
+  "original596To16Workspace": "PENDING",
+  "forkliftOperations": "EXCLUDED",
+  "accountsMembershipPayment": "not-enabled",
+  "nativeFileChecks": 15,
+  "nativeBusinessRuns": {
+    "main": 20,
+    "gray": 20
+  },
+  "restored": {
+    "cartons": 116,
+    "grossWeightKg": 3842,
+    "strategies": [
+      "practical",
+      "maximum"
+    ],
+    "inputNormalization": "existing restored defaults and rounded auto-CBM only; original dimensions, mass, demand, priority, kit and loading settings preserved"
+  },
+  "nativeCase": {
+    "demand": 12,
+    "before": {
+      "containers": 3,
+      "pallets": 3,
+      "loose": 2,
+      "configuredTotal": 315
+    },
+    "after": {
+      "containers": 2,
+      "pallets": 2,
+      "loose": 4,
+      "configuredTotal": 210
+    },
+    "currency": "CNY",
+    "sharedPalletLimit": 3
+  },
+  "consoleObservation": {
+    "scope": "latest 10 error entries on each tab",
+    "mainExtensionMetadataErrors": 10,
+    "grayExtensionMetadataErrors": 10,
+    "appErrorFreeClaim": false
+  },
+  "nativeNotes": [
+    "Engineering-generated baseline request with an empty delivery object was rejected by exact-source matching; native UI baseline used instead.",
+    "Some download handles were unavailable in the shared filesystem; retried native downloads successfully and retained only readable verified files.",
+    "During immediate post-click observation the main label briefly showed direct loading while no result existed; completed recalculation correctly showed palletized loading."
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "version": "0.75.0",
+  "runtimeCommit": "6127bdeb7e1c8bc5bd3aa31221ca836329c8aca8",
+  "runtimeTree": "bbcc133edfe8dbda7214068b07d9785505ebfb81",
+  "acceptance": "passed",
+  "files": [
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-main-tail.json",
+      "bytes": 60795,
+      "sha256": "1dfe92594ce4cce7f49abf3064aa9ea687e8354474729f5028a581a2c0e44a8c"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-main-tail.csv",
+      "bytes": 585,
+      "sha256": "5a6abfe3a5867c7003b12b18160d77c62173bcbe06234ee7722489c8ba5de727"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-gray-tail.json",
+      "bytes": 59827,
+      "sha256": "460b5db4beb79d013f10c8e5a50e3cc5b1c3f3d029b68e0202c14529fdb8cdad"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-gray-tail.csv",
+      "bytes": 593,
+      "sha256": "c1c542e33be4502c7278f1185b53f66f35bc6ec88764d416bf67fb7d2d98aa7e"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-main-baseline-fleet.json",
+      "bytes": 30519,
+      "sha256": "7c713fb79493a6626bf23b5ac83410d433eb25ab37b6aef378607f170941bd0c"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-main-applied-fleet.json",
+      "bytes": 24136,
+      "sha256": "d0fc97d2422c8f5898f31d243bd818dcb1c61df7428d1abf8ea2e5b7f6e44bd4"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-gray-applied-fleet.json",
+      "bytes": 23778,
+      "sha256": "fc9dae3b2dbc86867c104abe57c3202b97d0e7fafb8f563560db5d4ccbeb9dff"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-main-applied-coordinates.csv",
+      "bytes": 3861,
+      "sha256": "0423b7cdb0c21171eda1fcd1220def20d848f02ee7a14eafa7dc8507a2beac5d"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-gray-cross-coordinates.csv",
+      "bytes": 3861,
+      "sha256": "0423b7cdb0c21171eda1fcd1220def20d848f02ee7a14eafa7dc8507a2beac5d"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-main-preview-workspace.json",
+      "bytes": 7144,
+      "sha256": "b8c879b7efa432032f79d97be5e1d4895e94e213ac307d738f58a78d5738ad93"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-main-applied-workspace.json",
+      "bytes": 17280,
+      "sha256": "7efdc7fecbf747bf3df53a0c7545fff6e1254a5b15a2bc6604b15520a4ccca3b"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-main-refreshed-workspace.json",
+      "bytes": 17280,
+      "sha256": "347f6adffb827b6e8e2544563a978e04353f523688b819bd510621eeeb7de3b2"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-main-benchmarks.json",
+      "bytes": 73903,
+      "sha256": "4d5eadba838e752dd45642f3d83df84e7fbd1938185c02dce786ceed7322937d"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-gray-benchmarks.json",
+      "bytes": 73916,
+      "sha256": "f37d4c11a2eb450b7487b4e3207be611f49f1fc4ce2c8069e8a190c1b51b8fed"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-main-original.json",
+      "bytes": 2647,
+      "sha256": "c69d229ca1b3edb9d4005ced8fda6092b614ff7ff5ccf020db27ecfd893cd9fb"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-gray-original.json",
+      "bytes": 2647,
+      "sha256": "a0b471a7e3d7af7ac4492474139d99e84ebb26a92fa7dbfebfb9c050dff5d587"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-main-restored-workspace.json",
+      "bytes": 134245,
+      "sha256": "0d64d473acd8a726f55f095af91bf73368e567a2f42dda139e14e4e0184df690"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-gray-restored-workspace.json",
+      "bytes": 134245,
+      "sha256": "3c8e36386a27037310c5e5d9e1f2b319a23901645cb615f43d3392aa3712e945"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-main-tail-proof.jpg",
+      "bytes": 84665,
+      "sha256": "ae4eefbd03892fa102a88f698705873233bc71d86a87b823359dd619381af781"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-gray-tail-proof.jpg",
+      "bytes": 102519,
+      "sha256": "b3410d2402cd3e19152d611eeba644db8f1622745cebf21774c3f83c436f6672"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-native-file-checks.json",
+      "bytes": 1714,
+      "sha256": "9c9313a3a20042b8084ee8792c6ab552fcd6a573bb0ad9580a0b98cbb62c4125"
+    },
+    {
+      "path": "docs/field-upgrades/evidence/v0.75.0-release-state.json",
+      "bytes": 2178,
+      "sha256": "e6da4c1257b11b2c492eb182b6009e79476b655581af01815915663a9cca3db2"
+    }
+  ]
+}

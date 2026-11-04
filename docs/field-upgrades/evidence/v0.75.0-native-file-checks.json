@@ -1,0 +1,68 @@
+{
+  "engineVersion": "0.75.0",
+  "checkedAt": "2026-11-04T06:45:14.941Z",
+  "checks": [
+    {
+      "name": "main: reviewed preview and exact source strategy",
+      "pass": true
+    },
+    {
+      "name": "main: independent replay matches every candidate row",
+      "pass": true
+    },
+    {
+      "name": "main: preview CSV exactly matches JSON rows",
+      "pass": true
+    },
+    {
+      "name": "main: adopted complete fleet is the reviewed candidate",
+      "pass": true
+    },
+    {
+      "name": "gray: reviewed preview and exact source strategy",
+      "pass": true
+    },
+    {
+      "name": "gray: independent replay matches every candidate row",
+      "pass": true
+    },
+    {
+      "name": "gray: preview CSV exactly matches JSON rows",
+      "pass": true
+    },
+    {
+      "name": "gray: adopted complete fleet is the reviewed candidate",
+      "pass": true
+    },
+    {
+      "name": "main: preview preserved demand, stock and old quota",
+      "pass": true
+    },
+    {
+      "name": "main: explicit apply and refresh preserve the same inputs",
+      "pass": true
+    },
+    {
+      "name": "cross-site: all-container coordinate CSV is byte-identical",
+      "pass": true
+    },
+    {
+      "name": "main: all 20 native business benchmark runs validated",
+      "pass": true
+    },
+    {
+      "name": "main: original order restored with documented default normalization and both strategies",
+      "pass": true
+    },
+    {
+      "name": "gray: all 20 native business benchmark runs validated",
+      "pass": true
+    },
+    {
+      "name": "gray: original order restored with documented default normalization and both strategies",
+      "pass": true
+    }
+  ],
+  "total": 15,
+  "pass": true
+}

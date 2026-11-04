@@ -1,0 +1,5 @@
+Candidate,Additional units,Containers,Loaded cartons,Remaining cartons,Packaging used,Loose cartons,Configured total,Retains every row,Improves,Source row ID,SKU / row,Requested,Baseline loaded,Candidate loaded,Unloaded,Global loose quota,Actual loose,Palletized,Status
+1,1,3,12,0,3,3,315,true,false,p,FLEET-TAIL,12,12,12,0,3,3,9,preview-not-applied
+2,2,2,12,0,2,4,210,true,true,p,FLEET-TAIL,12,12,12,0,4,4,8,preview-not-applied
+3,4,3,12,0,2,6,310,true,true,p,FLEET-TAIL,12,12,12,0,6,6,6,preview-not-applied
+4,8,3,12,0,1,10,305,true,true,p,FLEET-TAIL,12,12,12,0,10,10,2,preview-not-applied
