@@ -118,6 +118,7 @@ import { CrateStackPreflight } from "./crate-stack-preflight";
 import { DimensionScenarios } from "./dimension-scenarios";
 import { WorkflowTools } from "./workflow-tools";
 import { ArchiveLibrary, BearingRules, UnloadedReasons, ManualPlan, FieldGuide, FleetPlanner } from "./planning-upgrades";
+import type {FleetSnapshot} from "../lib/packing/fleet-tail";
 import { RemainingCapacity } from "./remaining-capacity";
 import { SpaceModelPreview } from "./space-model-preview";
 import { usePlanEditor } from "./use-plan-editor";
@@ -366,6 +367,8 @@ function MetricCard({ icon, label, value, detail, tone = "teal" }: { icon: React
 export function PackingApp() {
   useLanguage();
   const [floorPallets, setFloorPallets] = useState<FloorPalletConfig | undefined>();
+  const [pendingFleetTail,setPendingFleetTail]=useState<FleetSnapshot|null>(null);
+  const consumeFleetTail=useCallback((value:FleetSnapshot)=>setPendingFleetTail(current=>current===value?null:current),[]);
   const [showFloorPallets, setShowFloorPallets] = useState(false);
   const [loadingRules, setLoadingRules] = useState<LoadingRules>({...DEFAULT_LOADING_RULES});
   const [activeOrderLine,setActiveOrderLine]=useState<string|null>(null);
@@ -2356,7 +2359,7 @@ export function PackingApp() {
           {!isPalletWorkflow && <PrebuiltPalletPanel key={JSON.stringify(fleetRequest)} request={fleetRequest} disabled={upgradesDisabled} onAdopt={next=>{const build=next.palletBuild??{...DEFAULT_PALLET_BUILD,config:next.palletization!.config,mix:next.palletization!.mix};palletDraftRef.current=null;setFloorPallets(undefined);setLoadingWorkflow("palletized");setPalletBuild(build);persistDraft({workflow:"palletized",palletBuild:build,floorPallets:undefined,strategy:next.strategy});strategyRef.current=next.strategy;setStrategy(next.strategy);setWorkflowStep(3);adoptManualPlan(next);}}/>}
           <DimensionScenarios key={JSON.stringify([fleetRequest,workflow,palletBuild,result?.id])} request={{...fleetRequest,workflow,palletBuild,floorPallets:isPalletWorkflow?undefined:floorPallets,singleCartonLimit:result?.singleCartonLimit}} result={dirty?null:result} disabled={upgradesDisabled||dirty} unit={lengthUnit} onProducts={next=>replaceProductInputs(products.map(p=>next.find(n=>n.id===p.id)??p))}/>
           <BearingRules key={JSON.stringify(products.map(p=>[p.id,p.maxTopLoadKg]))} products={activeProducts} disabled={upgradesDisabled} onChange={next=>replaceProductInputs(products.map(p=>next.find(n=>n.id===p.id)??p))}/>
-          {mode === "mixed" && workflow!=="pallet-only" ? <FleetPlanner key={JSON.stringify([fleetRequest,customContainers,workflow,palletBuild])} request={{...fleetRequest,workflow,palletBuild:workflow==="palletized"?palletBuild:undefined,floorPallets:isPalletWorkflow?undefined:floorPallets}} customContainers={customContainers} disabled={upgradesDisabled}/> : null}
+          {mode === "mixed" && workflow!=="pallet-only" ? <FleetPlanner key={JSON.stringify([fleetRequest,customContainers,workflow,palletBuild])} request={{...fleetRequest,workflow,palletBuild:workflow==="palletized"?palletBuild:undefined,floorPallets:isPalletWorkflow?undefined:floorPallets}} customContainers={customContainers} disabled={upgradesDisabled||setupInvalid} initialFleet={pendingFleetTail} onInitialConsumed={consumeFleetTail} canApplyTail={!result?.deliveryIdentity} onApplyTail={next=>{if(upgradesDisabled||setupInvalid||result?.deliveryIdentity||!next.request.palletBuild)return false;setPendingFleetTail(next);applyPalletBuildTrial(next.request.palletBuild);return true;}}/> : null}
             {result && !hasPendingDimensionChanges ? <>
             <CrateStackPreflight key={result.id} plan={result} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors}/>
             <UnloadedReasons result={result} products={activeProducts} onFocus={id=>{setVisibleProducts(new Set(result.summaries.map(s=>s.productId)));setCameraView("top");setPackingProgress(result.placements.length);setMessage(tt`已在原因面板突出 ${activeProducts.find(p=>p.id===id)?.sku??tr("当前 SKU")}；三维保留其他货物，避免把隐藏箱位误认为空闲空间。`);}}/>
