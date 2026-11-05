@@ -1,0 +1,89 @@
+{
+  "engineVersion": "0.78.0",
+  "passed": 10,
+  "checks": {
+    "native preview and adopted result agree": {
+      "passed": true,
+      "candidates": 2,
+      "csvColumns": 27,
+      "finalResultEqual": true
+    },
+    "original unit and four locked carton records retained": {
+      "passed": true,
+      "cartons": [
+        4,
+        6
+      ],
+      "units": [
+        1,
+        2
+      ],
+      "grossKg": 88,
+      "remainder": 0
+    },
+    "rear-door swept path independently checked for the synthetic unobstructed bay": {
+      "passed": true,
+      "newUnit": "gap-unit-2",
+      "startMm": [
+        1000,
+        0,
+        0
+      ],
+      "endMm": [
+        1500,
+        1000,
+        300
+      ]
+    },
+    "quote, added packaging, actual preparation and stock balance": {
+      "passed": true,
+      "currency": "CNY",
+      "original": 105,
+      "adopted": 112,
+      "addedPackaging": 3,
+      "addedPreparation": 4
+    },
+    "cross-site coordinate CSV identical and carton coordinates match the plan": {
+      "passed": true,
+      "csvRows": 8,
+      "csvColumns": 39,
+      "bytes": 2415
+    },
+    "positive and failed floor ratings reproduced from physical-origin dimensions": {
+      "passed": true,
+      "calculatedKgM2": 250,
+      "passLimit": 400,
+      "rejectLimit": 200,
+      "centerMm": [
+        110,
+        110
+      ],
+      "floorZoneKg": [
+        10,
+        12
+      ]
+    },
+    "main original production benchmark report": {
+      "passed": true,
+      "cases": 10,
+      "runs": 20,
+      "caseVersion": "business-2026-11-v5"
+    },
+    "main original workspace and two original-order coordinate plans": {
+      "passed": true,
+      "cartons": 116,
+      "grossKg": 3842
+    },
+    "gray original production benchmark report": {
+      "passed": true,
+      "cases": 10,
+      "runs": 20,
+      "caseVersion": "business-2026-11-v5"
+    },
+    "gray original workspace and two original-order coordinate plans": {
+      "passed": true,
+      "cartons": 116,
+      "grossKg": 3842
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "format": "cargo-fit-vehicle-engineering",
+  "version": 1,
+  "engineVersion": "0.78.0",
+  "planId": "plan-1793875843466-maximum",
+  "containerId": "floor-qa",
+  "review": {
+    "profile": {
+      "version": 1,
+      "source": "Controlled QA floor rating",
+      "revision": "T1",
+      "maxContactKgM2": 400,
+      "zones": [
+        {
+          "id": "nose",
+          "name": "Nose panel",
+          "x": 0,
+          "y": 0,
+          "dx": 300,
+          "dy": 300,
+          "maxKg": 12
+        }
+      ],
+      "balance": {
+        "minX": 100,
+        "maxX": 130,
+        "minY": 100,
+        "maxY": 130
+      }
+    },
+    "totalKg": 10,
+    "cg": {
+      "x": 110,
+      "y": 110
+    },
+    "maxKnownContactKgM2": 250,
+    "floor": [
+      {
+        "id": "floor-box-0",
+        "name": "Controlled floor test carton",
+        "loadKg": 10,
+        "contactKgM2": 250
+      }
+    ],
+    "zones": [
+      {
+        "id": "nose",
+        "name": "Nose panel",
+        "x": 0,
+        "y": 0,
+        "dx": 300,
+        "dy": 300,
+        "maxKg": 12,
+        "loadKg": 10
+      }
+    ],
+    "unknown": [],
+    "errors": [],
+    "state": "pass"
+  }
+}

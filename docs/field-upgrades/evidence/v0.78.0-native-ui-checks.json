@@ -1,0 +1,71 @@
+{
+  "release": "0.78.0",
+  "runtimeCommit": "a22bf0db7dadc539a4c59fed6ae2d61b1035334c",
+  "observations": [
+    {
+      "site": "https://container-load-planner.pages.dev/",
+      "description": "Locked four-carton baseline fleet restored",
+      "passed": true
+    },
+    {
+      "site": "https://container-load-planner.pages.dev/",
+      "description": "Two independently checked intact-unit candidates",
+      "passed": true
+    },
+    {
+      "site": "https://container-load-planner.pages.dev/",
+      "description": "Selected candidate has six cartons, two units and total cost 112",
+      "passed": true
+    },
+    {
+      "site": "https://container-load-planner.pages.dev/",
+      "description": "Adopted fleet retained without reloading the main container",
+      "passed": true
+    },
+    {
+      "site": "https://container-load-planner.pages.dev/",
+      "description": "Adopted one container at 112 CNY with zero cartons left",
+      "passed": true
+    },
+    {
+      "site": "https://container-load-planner-gray.vercel.app/",
+      "description": "Adopted Cloudflare fleet backup restored on Vercel",
+      "passed": true
+    },
+    {
+      "site": "https://container-load-planner-gray.vercel.app/",
+      "description": "Restored one container at 112 CNY and zero remainder",
+      "passed": true
+    },
+    {
+      "site": "https://container-load-planner-gray.vercel.app/",
+      "description": "Recovered floor limits and 250 kg/m² versus 400 kg/m²",
+      "passed": true
+    },
+    {
+      "site": "https://container-load-planner-gray.vercel.app/",
+      "description": "Recovered floor zone of 10 kg against 12 kg",
+      "passed": true
+    },
+    {
+      "site": "https://container-load-planner.pages.dev/",
+      "description": "Original order restored, practical solver 116 cartons",
+      "passed": true
+    },
+    {
+      "site": "https://container-load-planner.pages.dev/",
+      "description": "Original order restored, high-density solver 116 cartons",
+      "passed": true
+    },
+    {
+      "site": "https://container-load-planner.pages.dev/",
+      "description": "Restored order shows 116 cartons under each solver and 3842 kg",
+      "passed": true
+    },
+    {
+      "site": "https://container-load-planner-gray.vercel.app/",
+      "description": "Restored order shows 116 cartons under each solver and 3842 kg",
+      "passed": true
+    }
+  ]
+}

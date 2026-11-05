@@ -1,0 +1,30 @@
+{
+  "release": "0.78.0",
+  "runtimeCommit": "a22bf0db7dadc539a4c59fed6ae2d61b1035334c",
+  "tree": "6ecd18e03bfcb3d3398d5c7a329de3134e243ae8",
+  "verifiedAt": "2026-11-05T23:35:03.269Z",
+  "github": {
+    "status": "success",
+    "url": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/42014420131",
+    "checkId": 127201229990
+  },
+  "pages": {
+    "status": "success",
+    "site": "https://container-load-planner.pages.dev/",
+    "deployment": "d2363fc0-170d-423f-9a11-bac0e71dc225",
+    "checkId": 127202990281
+  },
+  "vercel": {
+    "status": "READY",
+    "site": "https://container-load-planner-gray.vercel.app/",
+    "deployment": "dpl_AinDUvvmmqCJJDnWa3FHkLsmDt7k"
+  },
+  "checks": {
+    "unit": 2113,
+    "unitFiles": 161,
+    "html": 21,
+    "lintErrors": 0,
+    "existingLintWarnings": 2
+  },
+  "earlierEngineCommit": "46b97c9297197f1f5c84c904a58972604db1df27"
+}

@@ -1,0 +1,770 @@
+{
+  "request": {
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "maximum",
+    "practicalTargetUtilization": 0.95,
+    "container": {
+      "category": "other",
+      "id": "fleet-tail-qa",
+      "name": "Fleet Tail QA",
+      "length": 1700,
+      "width": 1000,
+      "height": 300,
+      "doorWidth": 1000,
+      "doorHeight": 300,
+      "maxWeight": 1000
+    },
+    "clearance": 0,
+    "products": [
+      {
+        "id": "p",
+        "sku": "FLEET-TAIL",
+        "name": "Fleet carton",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 4,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.05,
+        "color": "#337788",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100
+      },
+      {
+        "id": "tail",
+        "sku": "SMALL",
+        "name": "Remaining cartons",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 2,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.05,
+        "color": "#337788",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100
+      }
+    ],
+    "workflow": "palletized",
+    "palletBuild": {
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "Fleet QA pallet",
+        "length": 1000,
+        "width": 1000,
+        "height": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 200
+      },
+      "mix": "single",
+      "maxPallets": 2,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "primaryRule": {
+        "maxPallets": 1,
+        "productIds": [
+          "p"
+        ]
+      },
+      "additionalSpecs": [
+        {
+          "id": "small",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "Half pallet",
+            "length": 500,
+            "width": 1000,
+            "height": 100,
+            "weight": 8,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 200
+          },
+          "maxPallets": 1,
+          "productIds": [
+            "tail"
+          ],
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        }
+      ]
+    }
+  },
+  "options": [
+    {
+      "container": {
+        "id": "fleet-tail-qa",
+        "name": "Fleet Tail QA",
+        "category": "other",
+        "length": 1700,
+        "width": 1000,
+        "height": 300,
+        "doorWidth": 1000,
+        "doorHeight": 300,
+        "maxWeight": 1000
+      },
+      "cost": 100,
+      "available": 5
+    }
+  ],
+  "limit": 1,
+  "objective": "count",
+  "pricing": {
+    "currency": "CNY",
+    "packaging": {
+      "primary": 5,
+      "small": 3
+    },
+    "charges": [
+      {
+        "id": "optimization-1-rebuild",
+        "label": "Preparing 1 additional units",
+        "category": "rework",
+        "basis": "order",
+        "amount": 4,
+        "currency": "CNY",
+        "source": "Controlled packing bench quote | 1 x 4"
+      }
+    ]
+  },
+  "result": {
+    "loads": [
+      {
+        "plan": {
+          "workflow": "palletized",
+          "palletBuild": {
+            "config": {
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "Fleet QA pallet",
+              "length": 1000,
+              "width": 1000,
+              "height": 100,
+              "weight": 20,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 200
+            },
+            "mix": "single",
+            "maxPallets": 2,
+            "stackLayers": 1,
+            "maxTopLoadKg": 0,
+            "primaryRule": {
+              "maxPallets": 1,
+              "productIds": [
+                "p"
+              ]
+            },
+            "additionalSpecs": [
+              {
+                "id": "small",
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "Half pallet",
+                  "length": 500,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 8,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 200
+                },
+                "maxPallets": 1,
+                "productIds": [
+                  "tail"
+                ],
+                "stackLayers": 1,
+                "maxTopLoadKg": 0
+              }
+            ]
+          },
+          "id": "gap-units-restored-1793875182433-1",
+          "mode": "mixed",
+          "strategy": "maximum",
+          "practicalTargetUtilization": 0.95,
+          "engineVersion": "0.78.0",
+          "palletization": {
+            "config": {
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "Fleet QA pallet",
+              "length": 1000,
+              "width": 1000,
+              "height": 100,
+              "weight": 20,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 200
+            },
+            "mix": "single",
+            "stackLayers": 1,
+            "maxTopLoadKg": 0,
+            "preparedCount": 2,
+            "bounded": false,
+            "only": false,
+            "specifications": [
+              {
+                "id": "primary",
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "Fleet QA pallet",
+                  "length": 1000,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 20,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 200
+                },
+                "maxPallets": 1,
+                "productIds": [
+                  "p"
+                ],
+                "stackLayers": 1,
+                "maxTopLoadKg": 0
+              },
+              {
+                "id": "small",
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "Half pallet",
+                  "length": 500,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 8,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 200
+                },
+                "maxPallets": 1,
+                "productIds": [
+                  "tail"
+                ],
+                "stackLayers": 1,
+                "maxTopLoadKg": 0
+              }
+            ],
+            "preparedBySpecification": {
+              "primary": 1,
+              "small": 1
+            }
+          },
+          "pallets": [
+            {
+              "id": "floor-pallet-1",
+              "presetId": "eur-1200-800",
+              "name": "Fleet QA pallet",
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "dx": 1000,
+              "dy": 1000,
+              "dz": 100,
+              "weight": 20,
+              "maxLoad": 1000,
+              "orientation": "LWH",
+              "specificationId": "primary",
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "locked": true
+            },
+            {
+              "id": "gap-unit-2",
+              "presetId": "eur-1200-800",
+              "name": "Half pallet",
+              "x": 1000,
+              "y": 0,
+              "z": 0,
+              "dx": 500,
+              "dy": 1000,
+              "dz": 100,
+              "weight": 8,
+              "maxLoad": 1000,
+              "orientation": "LWH",
+              "specificationId": "small",
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              }
+            }
+          ],
+          "container": {
+            "id": "fleet-tail-qa",
+            "name": "Fleet Tail QA",
+            "category": "other",
+            "length": 1700,
+            "width": 1000,
+            "height": 300,
+            "doorWidth": 1000,
+            "doorHeight": 300,
+            "maxWeight": 1000
+          },
+          "clearance": 0,
+          "placements": [
+            {
+              "id": "prebuilt-1",
+              "productId": "p",
+              "sku": "FLEET-TAIL",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "x": 0,
+              "y": 0,
+              "z": 100,
+              "dx": 500,
+              "dy": 500,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "locked": true,
+              "palletIds": [
+                "floor-pallet-1"
+              ]
+            },
+            {
+              "id": "prebuilt-2",
+              "productId": "p",
+              "sku": "FLEET-TAIL",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "x": 0,
+              "y": 500,
+              "z": 100,
+              "dx": 500,
+              "dy": 500,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "locked": true,
+              "palletIds": [
+                "floor-pallet-1"
+              ]
+            },
+            {
+              "id": "prebuilt-3",
+              "productId": "p",
+              "sku": "FLEET-TAIL",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "x": 500,
+              "y": 0,
+              "z": 100,
+              "dx": 500,
+              "dy": 500,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "locked": true,
+              "palletIds": [
+                "floor-pallet-1"
+              ]
+            },
+            {
+              "id": "prebuilt-4",
+              "productId": "p",
+              "sku": "FLEET-TAIL",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "x": 500,
+              "y": 500,
+              "z": 100,
+              "dx": 500,
+              "dy": 500,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "locked": true,
+              "palletIds": [
+                "floor-pallet-1"
+              ]
+            },
+            {
+              "id": "gap-carton-5",
+              "productId": "tail",
+              "sku": "SMALL",
+              "name": "Remaining cartons",
+              "color": "#337788",
+              "x": 1000,
+              "y": 0,
+              "z": 100,
+              "dx": 500,
+              "dy": 500,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "palletIds": [
+                "gap-unit-2"
+              ]
+            },
+            {
+              "id": "gap-carton-6",
+              "productId": "tail",
+              "sku": "SMALL",
+              "name": "Remaining cartons",
+              "color": "#337788",
+              "x": 1000,
+              "y": 500,
+              "z": 100,
+              "dx": 500,
+              "dy": 500,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "palletIds": [
+                "gap-unit-2"
+              ]
+            }
+          ],
+          "summaries": [
+            {
+              "productId": "p",
+              "sku": "FLEET-TAIL",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "requested": 4,
+              "loaded": 4,
+              "unloaded": 0,
+              "loadedWeight": 40,
+              "loadedVolume": 200000000
+            },
+            {
+              "productId": "tail",
+              "sku": "SMALL",
+              "name": "Remaining cartons",
+              "color": "#337788",
+              "requested": 2,
+              "loaded": 2,
+              "unloaded": 0,
+              "loadedWeight": 20,
+              "loadedVolume": 100000000
+            }
+          ],
+          "setSummaries": [],
+          "validation": {
+            "valid": true,
+            "errors": []
+          },
+          "metrics": {
+            "loadedCount": 6,
+            "requestedCount": 6,
+            "loadedVolume": 450000000,
+            "grossWeight": 88,
+            "effectiveVolume": 510000000,
+            "volumeUtilization": 0.8823529411764706,
+            "weightUtilization": 0.088,
+            "centerOfGravity": {
+              "x": 738.6363636363636,
+              "y": 500,
+              "z": 155.73286242305673,
+              "longitudinalRatio": 0.4344919786096257,
+              "lateralRatio": 0.5,
+              "heightRatio": 0.5191095414101891,
+              "balanced": true
+            },
+            "executionComplexity": {
+              "orientationVariants": 2,
+              "maxOrientationsPerSku": 1,
+              "partialSupportCount": 0,
+              "tippedCartonCount": 0
+            },
+            "solveTimeMs": 0
+          },
+          "loadingRules": {
+            "layout": "auto",
+            "search": "smart",
+            "cargoOrder": "auto"
+          },
+          "cargoDetails": {
+            "p": {},
+            "tail": {}
+          },
+          "warnings": [
+            "历史箱位已按当前箱规与引擎重新校验。自动重算已暂停，可继续手动调整或生成新方案。"
+          ],
+          "createdAt": "2026-11-05T10:39:42.433Z"
+        },
+        "cost": 100
+      }
+    ],
+    "remaining": [
+      {
+        "id": "p",
+        "sku": "FLEET-TAIL",
+        "name": "Fleet carton",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 0,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.05,
+        "color": "#337788",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100
+      },
+      {
+        "id": "tail",
+        "sku": "SMALL",
+        "name": "Remaining cartons",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 0,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.05,
+        "color": "#337788",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100
+      }
+    ],
+    "totalCost": 100,
+    "complete": true,
+    "reason": "订单已全部分配",
+    "pricing": {
+      "currency": "CNY",
+      "packaging": {
+        "primary": 5,
+        "small": 3
+      },
+      "charges": [
+        {
+          "id": "optimization-1-rebuild",
+          "label": "Preparing 1 additional units",
+          "category": "rework",
+          "basis": "order",
+          "amount": 4,
+          "currency": "CNY",
+          "source": "Controlled packing bench quote | 1 x 4"
+        }
+      ]
+    },
+    "costs": {
+      "currency": "CNY",
+      "freight": 100,
+      "packaging": 8,
+      "knownPackagingSubtotal": 8,
+      "total": 112,
+      "knownSubtotal": 112,
+      "complete": true,
+      "missing": [],
+      "scope": "quoted-delivery-charges",
+      "lines": [
+        {
+          "id": "optimization-1-rebuild",
+          "label": "Preparing 1 additional units",
+          "category": "rework",
+          "basis": "order",
+          "amount": 4,
+          "currency": "CNY",
+          "source": "Controlled packing bench quote | 1 x 4",
+          "quantity": 1,
+          "exchangeRate": 1,
+          "subtotal": 4
+        }
+      ],
+      "knownAdditionalSubtotal": 4,
+      "additional": 4
+    },
+    "inventory": {
+      "packages": [
+        {
+          "id": "primary",
+          "name": "Fleet QA pallet",
+          "available": 1,
+          "used": 1,
+          "remaining": 0
+        },
+        {
+          "id": "small",
+          "name": "Half pallet",
+          "available": 1,
+          "used": 1,
+          "remaining": 0
+        }
+      ],
+      "totalLimit": 2,
+      "totalUsed": 2,
+      "loose": [
+        {
+          "productId": "p",
+          "sku": "FLEET-TAIL",
+          "reserved": 0,
+          "used": 0,
+          "remaining": 0
+        },
+        {
+          "productId": "tail",
+          "sku": "SMALL",
+          "reserved": 0,
+          "used": 0,
+          "remaining": 0
+        }
+      ]
+    }
+  },
+  "format": "cargo-fit-fleet-v1",
+  "version": 1
+}

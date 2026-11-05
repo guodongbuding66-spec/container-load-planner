@@ -1,0 +1,132 @@
+{
+  "release": "0.78.0",
+  "runtimeCommit": "a22bf0db7dadc539a4c59fed6ae2d61b1035334c",
+  "artifacts": [
+    {
+      "path": "v0.78.0-gap-fleet-fixture.json",
+      "bytes": 17878,
+      "sha256": "3b58d04c65b154fcb00cd6f90e6850742cbdb6a55c52b5b51bcb4e65fe84b132",
+      "kind": "controlled-fixture"
+    },
+    {
+      "path": "v0.78.0-gap-workspace-fixture.json",
+      "bytes": 10796,
+      "sha256": "9d9737d01470bd93b0d7357ad2d9e6ce867f6cc56f83012457c997558fc5b51c",
+      "kind": "controlled-fixture"
+    },
+    {
+      "path": "v0.78.0-main-gap-report.json",
+      "bytes": 44287,
+      "sha256": "af4102728a280e45b13d111c90a066b3eaa02871645233fcc310a5ab496862ac",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.78.0-main-gap-report.csv",
+      "bytes": 761,
+      "sha256": "4a04f69dfded2729c41e07e12760e9a06cc5465dcef3431ac64432ecf490aafe",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.78.0-main-gap-adopted.json",
+      "bytes": 20756,
+      "sha256": "a2dc2cabfc977fb5f45a3a86a2677d03bfee36e7339b4fde3a04a412f4f6d434",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.78.0-main-gap-adopted.jpg",
+      "bytes": 81068,
+      "sha256": "4cfabaef4bc27800dc97994caf45383ce613ae8bc3b8d917980a222029e34d3c",
+      "kind": "browser-screenshot"
+    },
+    {
+      "path": "v0.78.0-main-gap-coordinates.csv",
+      "bytes": 2415,
+      "sha256": "ad4caddd095aee6781e8342b643406290418f2ac04f7e1c7e7b52e0e09a2a9c0",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.78.0-gray-gap-coordinates.csv",
+      "bytes": 2415,
+      "sha256": "ad4caddd095aee6781e8342b643406290418f2ac04f7e1c7e7b52e0e09a2a9c0",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.78.0-gray-floor-workspace.json",
+      "bytes": 4125,
+      "sha256": "1976b380f8f824c8a791cb78342bef5e5b868a378043f2cd65613abbf54034c5",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.78.0-gray-floor-review.json",
+      "bytes": 1161,
+      "sha256": "c9bf419de1e037cefb5380ea1cfc610fec9fd1c8c1b072ffb651e669f091c537",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.78.0-gray-floor-rejected.json",
+      "bytes": 1347,
+      "sha256": "25a18f137ebfd3a4c20dd42c40f2d67ca7a7294728a0635199f3ed81d7a79052",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.78.0-gray-floor-proof.jpg",
+      "bytes": 77587,
+      "sha256": "200193d5e2bfd6a0bb96d7ef61cc313d13240afb11e7b3332413fe4708e68730",
+      "kind": "browser-screenshot"
+    },
+    {
+      "path": "v0.78.0-main-benchmarks.json",
+      "bytes": 73996,
+      "sha256": "3f8a1668d6fcec8a0589ea8ad71d5362aceff7e6b464bc8d256da974d11019ec",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.78.0-gray-benchmarks.json",
+      "bytes": 73898,
+      "sha256": "ad8dc33940d8e6d492c97d07f10ef96d1b67132a0b82880c182260fa0cc8ad76",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.78.0-main-original.json",
+      "bytes": 2647,
+      "sha256": "a2de7438b718fed75f2c4bb6adcbb8d7db57c86c09c0ec72de08d23921254afb",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.78.0-gray-original.json",
+      "bytes": 2647,
+      "sha256": "96d7c18809d694f035a4eca7060d934913e3abebc1b25ce383db131ae5c66588",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.78.0-main-restored.json",
+      "bytes": 134245,
+      "sha256": "f9765ac72fc81773d6c81f53aaef0b3a8f7a2d255569414388958bf24f0988b7",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.78.0-gray-restored.json",
+      "bytes": 134245,
+      "sha256": "a3215ad0e2bb264408047444f09a27b5965c7b7db3b316a839396aefda03a893",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.78.0-native-ui-checks.json",
+      "bytes": 2378,
+      "sha256": "e59a4f2d8c591faff2d8312750563c77704236b6c0304070cc1f6e2f694f4899",
+      "kind": "verification"
+    },
+    {
+      "path": "v0.78.0-native-file-checks.json",
+      "bytes": 2041,
+      "sha256": "8f9216c6c8be7a84b659873521fe18b88b81a49f6fd81b7c1654223f6e85c263",
+      "kind": "verification"
+    },
+    {
+      "path": "v0.78.0-release-state.json",
+      "bytes": 900,
+      "sha256": "a06f96d467091c3a2dcdb97c66118375a67fd53810e1be2f71d9a381e6c59666",
+      "kind": "verification"
+    }
+  ]
+}

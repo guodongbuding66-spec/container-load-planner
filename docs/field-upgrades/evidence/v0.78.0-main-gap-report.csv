@@ -1,0 +1,5 @@
+候选,操作,包装选择,保留柜数,整托试算箱数,柜数,已装箱,余货箱,包装数,散箱数,拆托重打前费用,拆托数,新增打托数,拆托重打费用,配置费用合计,逐行不减量,改善,源行ID,源行,需求,原已装,候选已装,全单配额,实际散箱,托内箱数,状态,新增单位: SMALL [row:tail]
+1,fill-units,ordered,0,1,1,5,1,2,0,108,0,1,4,112,true,true,p,FLEET-TAIL,4,4,4,0,0,4,preview-not-applied,1
+1,fill-units,ordered,0,1,1,5,1,2,0,108,0,1,4,112,true,true,tail,SMALL,2,0,1,0,0,1,preview-not-applied,1
+2,fill-units,ordered,0,2,1,6,0,2,0,108,0,1,4,112,true,true,p,FLEET-TAIL,4,4,4,0,0,4,preview-not-applied,2
+2,fill-units,ordered,0,2,1,6,0,2,0,108,0,1,4,112,true,true,tail,SMALL,2,0,2,0,0,2,preview-not-applied,2
