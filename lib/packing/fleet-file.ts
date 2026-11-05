@@ -3,17 +3,17 @@ import {parseFleetPricing,type FleetPricing} from "./fleet-costs";
 import {buildPlacementCsv,parseCsvRecords,toCsvCell} from "./csv";
 import type {PackingRequest} from "./types";
 import type {FleetOption,FleetResult} from "./fleet";
-export type FleetBackup={format:"cargo-fit-fleet-v1";version:1;request:PackingRequest;options:FleetOption[];limit:number;objective:"count"|"cost";pricing?:FleetPricing;result:FleetResult};
+export type FleetBackup={format:"cargo-fit-fleet-v1";version:1|2;request:PackingRequest;options:FleetOption[];limit:number;objective:"count"|"cost";pricing?:FleetPricing;result:FleetResult};
 export const MAX_FLEET_BYTES=50*1024*1024;
 export function serializeFleetBackup(value:Omit<FleetBackup,"format"|"version">){
  assertFleetSettings(value.request,value.options,value.limit,value.objective,value.pricing);
  const check=validateFleet(value.request,value.result,value.options,value.limit);if(!check.valid)throw Error(check.errors.join("; "));
  if(fleetCanonical(value.pricing)!==fleetCanonical(value.result.pricing))throw Error("报价快照不一致 / Pricing snapshots disagree");
- return JSON.stringify({format:"cargo-fit-fleet-v1",version:1,...value},null,2);
+ return JSON.stringify({...value,format:"cargo-fit-fleet-v1",version:value.result.loads.some(l=>l.frozen!==undefined)?2:1},null,2);
 }
 export function parseFleetBackup(text:string,expected?:PackingRequest):FleetBackup{
  if(text.length>MAX_FLEET_BYTES||new TextEncoder().encode(text).length>MAX_FLEET_BYTES)throw Error("多柜文件超过 50 MB / Fleet file exceeds 50 MB");
- const v=JSON.parse(text) as FleetBackup;if(!v||v.format!=="cargo-fit-fleet-v1"||v.version!==1||!v.request||!v.result)throw Error("多柜备份格式无效 / Invalid fleet backup");
+ const v=JSON.parse(text) as FleetBackup;if(!v||v.format!=="cargo-fit-fleet-v1"||![1,2].includes(v.version)||!v.request||!v.result||!Array.isArray(v.result.loads)||v.version===1&&v.result.loads.some(l=>l.frozen!==undefined))throw Error("多柜备份格式无效 / Invalid fleet backup");
  if(expected&&fleetCanonical(v.request)!==fleetCanonical(expected))throw Error("多柜备份与当前订单或打托输入不同，请先恢复对应工作区 / Fleet backup differs from current order or packaging inputs; restore its workspace first");
  v.pricing=parseFleetPricing(v.pricing,v.request);assertFleetSettings(v.request,v.options,v.limit,v.objective,v.pricing);
  if(fleetCanonical(v.pricing)!==fleetCanonical(v.result.pricing))throw Error("报价快照不一致 / Pricing snapshots disagree");

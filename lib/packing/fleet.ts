@@ -7,9 +7,11 @@ import {packagingPriorityGroups} from "./packaging-choice";
 import {normalizedSetCode,normalizedUnitsPerSet} from "./set-utils";
 import type {ContainerSpec,PackingRequest,PackingResult,ProductInput} from "./types";
 export type FleetOption={container:ContainerSpec;cost:number;available:number};
-export type FleetLoad={plan:PackingResult;cost:number};
+/** Original global allocation context for a committed, immutable container prefix. */
+export type FleetFrozenContext={selection:"ordered"|"compact";looseQuantities?:Record<string,number>};
+export type FleetLoad={plan:PackingResult;cost:number;frozen?:FleetFrozenContext};
 export type FleetResult={loads:FleetLoad[];remaining:ProductInput[];/** Legacy field: freight subtotal only. Use costs.total for quoted freight + packaging. */totalCost:number;complete:boolean;reason:string;pricing?:FleetPricing;costs?:FleetCosts;inventory?:FleetInventory;candidateNotes?:string[]};
-function finish(request:PackingRequest,loads:FleetLoad[],reason:string,pricing?:FleetPricing,notes:string[]=[]):FleetResult{
+export function finishFleet(request:PackingRequest,loads:FleetLoad[],reason:string,pricing?:FleetPricing,notes:string[]=[]):FleetResult{
  const pool=fleetPool(request,loads),costs=fleetCosts(loads,pricing),complete=pool.products.every(p=>p.quantity===0);
  return {loads:[...loads],remaining:pool.products,totalCost:costs.freight,complete,reason:complete?"订单已全部分配":reason,...(pricing?{pricing}:{}),costs,inventory:pool.inventory,...(notes.length?{candidateNotes:[...new Set(notes)].slice(0,8)}:{})};
 }
@@ -21,10 +23,11 @@ function compareDelivery(request:PackingRequest,a:readonly FleetLoad[],b:readonl
  const av=deliveredVector(request,a),bv=deliveredVector(request,b);for(let i=0;i<av.length;i++)if(av[i]!==bv[i])return bv[i]-av[i];return 0;
 }
 /** Commit a complete feasible candidate, then debit shared physical units and loose quotas. */
-export function allocateFleet(request:PackingRequest,options:FleetOption[],maxContainers:number,objective:"count"|"cost",onProgress?:(r:FleetResult)=>void,prices?:FleetPricing):FleetResult{
+export function allocateFleet(request:PackingRequest,options:FleetOption[],maxContainers:number,objective:"count"|"cost",onProgress?:(r:FleetResult)=>void,prices?:FleetPricing,prefix:readonly FleetLoad[]=[]):FleetResult{
  const pricing=parseFleetPricing(prices,request);assertFleetSettings(request,options,maxContainers,objective,pricing);
- const counts=new Map<string,number>(),loads:FleetLoad[]=[],notes:string[]=[];let reason="已达到柜数上限";
- for(let i=0;i<maxContainers;i++){
+ const counts=new Map<string,number>(),loads:FleetLoad[]=[...prefix],notes:string[]=[];let reason="已达到柜数上限";
+ if(prefix.length){const check=validateFleet(request,finishFleet(request,loads,reason,pricing),options,maxContainers);if(!check.valid)throw Error(check.errors.join("; "));for(const l of prefix)counts.set(l.plan.container.id,(counts.get(l.plan.container.id)??0)+1);}
+ for(let i=prefix.length;i<maxContainers;i++){
   const pool=fleetPool(request,loads);if(pool.products.every(p=>p.quantity===0))break;
   const candidates:FleetLoad[]=[];
   for(const o of options){if((counts.get(o.container.id)??0)>=o.available)continue;
@@ -38,21 +41,21 @@ export function allocateFleet(request:PackingRequest,options:FleetOption[],maxCo
    const ac=fleetCosts([a],pricing),bc=fleetCosts([b],pricing);return score(a)-score(b)||(ac.complete&&bc.complete?ac.total!-bc.total!:0);
   });
   const selected=candidates[0];loads.push(selected);counts.set(selected.plan.container.id,(counts.get(selected.plan.container.id)??0)+1);
-  onProgress?.(finish(request,loads,"正在分配后续柜",pricing,notes));
+  onProgress?.(finishFleet(request,loads,"正在分配后续柜",pricing,notes));
  }
- const result=finish(request,loads,reason,pricing,notes),validation=validateFleet(request,result,options,maxContainers);if(!validation.valid)throw Error(validation.errors.join("; "));return result;
+ const result=finishFleet(request,loads,reason,pricing,notes),validation=validateFleet(request,result,options,maxContainers);if(!validation.valid)throw Error(validation.errors.join("; "));return result;
 }
 /** Replace only a tail; prefix cargo, packaging and reserved loose quotas stay committed. */
 export function optimizeFleetTail(request:PackingRequest,baseline:FleetResult,options:FleetOption[],objective:"count"|"cost",prices?:FleetPricing):FleetResult{
  if(!baseline.loads.length)return baseline;const pricing=parseFleetPricing(prices??baseline.pricing,request);let best=baseline;
- for(const size of [1,2]){if(best.loads.length<size)continue;const prefix=best.loads.slice(0,-size),tail=best.loads.slice(-size),pool=fleetPool(request,prefix);
+ for(const size of [1,2]){if(best.loads.length<size)continue;const prefix=best.loads.slice(0,-size),tail=best.loads.slice(-size);if(tail.some(l=>l.frozen))continue;const pool=fleetPool(request,prefix);
   for(const o of options){if(prefix.filter(l=>l.plan.container.id===o.container.id).length>=o.available)continue;
    try{const plan=packLoadingWorkflow({...pool.request,container:o.container});if(!plan.validation.valid||!plan.metrics.loadedCount)continue;
     const previous=deliveredVector(request,tail),next=deliveredVector(request,[{plan,cost:o.cost}]);if(next.some((n,i)=>n<previous[i]))continue;
     // Per-SKU conservation also covers unmatched kit remainders.
     const previousCounts=new Map<string,number>();for(const l of tail)for(const b of l.plan.placements)previousCounts.set(b.productId,(previousCounts.get(b.productId)??0)+1);
     if(plan.summaries.some(s=>s.loaded<(previousCounts.get(s.productId)??0)))continue;
-    const candidate=finish(request,[...prefix,{plan,cost:o.cost}],"尾柜已复核，仍有余货",pricing);
+    const candidate=finishFleet(request,[...prefix,{plan,cost:o.cost}],"尾柜已复核，仍有余货",pricing);
     const known=candidate.costs?.total,oldCost=best.costs?.total??(request.workflow==="palletized"?null:best.totalCost);
     const better=Number(candidate.complete)>Number(best.complete)||(candidate.complete===best.complete&&(objective==="cost"?known!==null&&known!==undefined&&oldCost!==null&&known<oldCost:candidate.loads.length<best.loads.length||candidate.loads.length===best.loads.length&&known!==null&&known!==undefined&&oldCost!==null&&known<oldCost));
     if(better&&validateFleet(request,candidate,options).valid)best=candidate;

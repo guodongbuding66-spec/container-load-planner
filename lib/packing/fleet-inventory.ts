@@ -1,8 +1,18 @@
 import {parseLoadingWorkflow,parsePalletBuild} from "./loading-workflow";
 import {palletSpecifications} from "./pallet-specifications";
-import {looseReservationErrors} from "./loose-cargo";
+import {looseReservationErrors,parseLooseQuantities} from "./loose-cargo";
 import type {PackingRequest,ProductInput} from "./types";
-import type {FleetLoad} from "./fleet";
+import type {FleetLoad,FleetFrozenContext} from "./fleet";
+
+/** Freeze allocation metadata as well as coordinates; later quota increases affect only free cargo. */
+export function frozenFleetRequest(request:PackingRequest,value:unknown):PackingRequest{
+ if(request.workflow!=="palletized"||!value||typeof value!=="object"||Array.isArray(value))throw Error("已装柜上下文无效 / Invalid committed-container context");
+ const c=value as FleetFrozenContext,b=parsePalletBuild(request.palletBuild);
+ if(Object.keys(c).some(k=>!["selection","looseQuantities"].includes(k))||!["ordered","compact"].includes(c.selection))throw Error("已装柜包装选择无效 / Invalid committed packaging selection");
+ const looseQuantities=parseLooseQuantities(c.looseQuantities),errors=looseReservationErrors(looseQuantities,request.products);
+ if(errors.length||Object.entries(looseQuantities??{}).some(([id,n])=>n>(b.looseQuantities?.[id]??0)))throw Error("已装柜配额不能减少或超过当前全单 / Committed quotas cannot decrease or exceed current allocations");
+ return {...request,palletBuild:{...b,selection:c.selection,looseQuantities}};
+}
 
 export type FleetInventory={packages:{id:string;name:string;available:number;used:number;remaining:number}[];totalLimit:number;totalUsed:number;loose:{productId:string;sku:string;reserved:number;used:number;remaining:number}[]};
 /** A committed container consumes physical units. Unselected trial units consume nothing. */

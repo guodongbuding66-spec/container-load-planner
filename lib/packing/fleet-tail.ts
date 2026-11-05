@@ -34,7 +34,7 @@ export function fleetTailGroups(request:PackingRequest):FleetTailGroup[]{
 
 function checkedSnapshot(value:FleetSnapshot,expected?:PackingRequest){
  const checked=parseFleetBackup(serializeFleetBackup(value),expected);
- if(checked.result.loads.some(l=>l.plan.workflow!=="palletized"||l.plan.strategy!==(checked.request.strategy??"practical")||l.plan.deliveryIdentity||l.plan.placements.some(b=>b.locked)||l.plan.pallets?.some(p=>p.locked||p.measuredEnvelope)))throw Error("已交付、锁定或实测方案不能重新打托 / Issued, locked or measured schedules cannot be rebuilt");
+ if(checked.result.loads.some(l=>l.frozen!==undefined||l.plan.workflow!=="palletized"||l.plan.strategy!==(checked.request.strategy??"practical")||l.plan.deliveryIdentity||l.plan.placements.some(b=>b.locked)||l.plan.pallets?.some(p=>p.locked||p.measuredEnvelope)))throw Error("已装、已交付、锁定或实测方案不能整体重新打托，请使用保留前缀的自动优化 / Committed, issued, locked or measured schedules require prefix-preserving optimization");
  return checked;
 }
 

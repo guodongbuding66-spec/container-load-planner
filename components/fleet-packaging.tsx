@@ -5,7 +5,7 @@ import {tr,trText,useLanguage} from "./language";
 import {NumericInput} from "./numeric-input";
 import {palletSpecifications} from "../lib/packing/pallet-specifications";
 import type {PackingRequest} from "../lib/packing/types";
-import type {FleetPricing} from "../lib/packing/fleet-costs";
+import {deliveryChargeLabel,type FleetPricing} from "../lib/packing/fleet-costs";
 import type {FleetResult} from "../lib/packing/fleet";
 import {buildFleetCoordinates,buildFleetSummary,parseFleetBackup,serializeFleetBackup,MAX_FLEET_BYTES,type FleetBackup} from "../lib/packing/fleet-file";
 const priceSpecs=(request:PackingRequest)=>request.workflow==="palletized"&&request.palletBuild?palletSpecifications(request.palletBuild):request.floorPallets?[{id:"floor",config:request.floorPallets}]:[];
@@ -17,12 +17,12 @@ export function FleetPackagingPrices({request,value,onChange,onValidity,disabled
  </section>;
 }
 export function FleetInventoryReport({result}:{result:FleetResult}){
- useLanguage();const inventory=result.inventory,c=result.costs;
+ const language=useLanguage(),inventory=result.inventory,c=result.costs;
  return <section className="fleet-inventory" aria-label={tr("跨柜库存与费用汇总","Shared inventory and cost summary")}>
  {inventory&&<><h3>{tr("整张订单共享包装库存","Packaging stock shared by the full order")}</h3><p>{tr("实际入柜整托","Committed units")}: {inventory.totalUsed} / {inventory.totalLimit} · {tr("试算或预生成但未入柜的单元不扣库存；下一柜按余货重新打托，不拆已入柜整托。","Unselected trial units consume no stock. Remaining cargo may be rebuilt for the next container; committed units stay intact.")}</p><div className="upgrade-table-wrap"><table><thead><tr><th>{tr("包装规格","Packaging specification")}</th><th>{tr("整单可用","Order availability")}</th><th>{tr("已入柜","Committed")}</th><th>{tr("剩余","Remaining")}</th></tr></thead><tbody>{inventory.packages.map(p=><tr key={p.id}><td>{p.name}</td><td>{p.available}</td><td>{p.used}</td><td>{p.remaining}</td></tr>)}</tbody></table></div>
  {inventory.loose.some(p=>p.reserved>0)&&<div className="upgrade-table-wrap"><table><thead><tr><th>SKU</th><th>{tr("整单预留散装","Order loose reservation")}</th><th>{tr("已散装入柜","Loaded loose")}</th><th>{tr("尚未散装","Reserved loose remaining")}</th></tr></thead><tbody>{inventory.loose.filter(p=>p.reserved>0).map(p=><tr key={p.productId}><td>{p.sku}</td><td>{p.reserved}</td><td>{p.used}</td><td>{p.remaining}</td></tr>)}</tbody></table></div>}</>}
  {c&&<><h3>{tr("运费与包装费用汇总","Freight and packaging cost summary")}</h3><p>{tr("币种","Currency")}: {c.currency||tr("未指定","Unspecified")} · {tr("已填运费小计","Quoted freight subtotal")}: {c.freight.toFixed(2)} · {tr("包装费","Packaging cost")}: {c.packaging===null?tr("未完整报价","Incomplete quotes"):c.packaging.toFixed(2)} · <strong>{tr("完整费用合计","Complete quoted total")}: {c.total===null?(result.loads.length?tr("未完整报价","Incomplete quotes"):tr("无已分配柜","No allocated containers")):c.total.toFixed(2)}</strong></p><p>{tr("仅含已配置的运费、包装及附加报价；已知费用小计不是完整交付总成本。","Only configured freight, packaging and additional quotes are included. A known subtotal is not the complete delivery cost.")}</p></>}
- {c?.lines?.length?<div className="upgrade-table-wrap"><table><thead><tr><th>{tr("费用项目","Charge")}</th><th>{tr("数量","Quantity")}</th><th>{tr("单价／币种","Price / currency")}</th><th>{tr("汇率","Rate")}</th><th>{tr("本位币小计","Base subtotal")}</th><th>{tr("来源","Source")}</th></tr></thead><tbody>{c.lines.map(l=><tr key={l.id}><td>{l.label}</td><td>{l.quantity}</td><td>{l.amount??tr("未报价","Unquoted")} {l.currency}</td><td>{l.exchangeRate??tr("未报价","Unquoted")}</td><td>{l.subtotal===null?tr("未核算","Unknown"):l.subtotal.toFixed(2)}</td><td>{l.source}</td></tr>)}</tbody></table></div>:null}
+ {c?.lines?.length?<div className="upgrade-table-wrap"><table><thead><tr><th>{tr("费用项目","Charge")}</th><th>{tr("数量","Quantity")}</th><th>{tr("单价／币种","Price / currency")}</th><th>{tr("汇率","Rate")}</th><th>{tr("本位币小计","Base subtotal")}</th><th>{tr("来源","Source")}</th></tr></thead><tbody>{c.lines.map(l=><tr key={l.id}><td>{deliveryChargeLabel(l,language==="en")}</td><td>{l.quantity}</td><td>{l.amount??tr("未报价","Unquoted")} {l.currency}</td><td>{l.exchangeRate??tr("未报价","Unquoted")}</td><td>{l.subtotal===null?tr("未核算","Unknown"):l.subtotal.toFixed(2)}</td><td>{l.source}</td></tr>)}</tbody></table></div>:null}
  {result.candidateNotes?.length? <details><summary>{tr("候选未采用说明","Candidate notes")}</summary>{result.candidateNotes.map((n,i)=><p key={i}>{n.split(": ")[0]}: {trText(n.split(": ").slice(1).join(": "))}</p>)}</details>:null}
  </section>;
 }

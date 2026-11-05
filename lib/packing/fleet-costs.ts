@@ -7,6 +7,10 @@ export type QuotedExchangeRate={currency:string;rate:number;source:string;date:s
 export type FleetPricing={currency:string;packaging:Record<string,number|null>;charges?:DeliveryCharge[];exchangeRates?:QuotedExchangeRate[]};
 export type CostLine=DeliveryCharge&{quantity:number;exchangeRate:number|null;subtotal:number|null};
 export type FleetCosts={currency:string;freight:number;packaging:number|null;knownPackagingSubtotal:number;total:number|null;knownSubtotal:number;complete:boolean;missing:string[];scope:"freight-and-packaging"|"quoted-delivery-charges";additional?:number|null;knownAdditionalSubtotal?:number;lines?:CostLine[]};
+export function deliveryChargeLabel(charge:Pick<DeliveryCharge,"id"|"label">,en=false){
+ if(/^optimization-\d+-(dismantle|rebuild)$/.test(charge.id)){const m=/^(Dismantling|Rebuilding) (\d+) units$/.exec(charge.label);if(m)return en?charge.label:`本轮${m[1]==="Dismantling"?"拆托":"重打"} ${m[2]} 个`;}
+ return charge.label;
+}
 export function parseFleetPricing(value:unknown,request:PackingRequest):FleetPricing|undefined{
  if(value===undefined)return undefined;
  if(!value||typeof value!=="object"||Array.isArray(value))throw Error("费用资料无效 / Invalid fleet pricing");

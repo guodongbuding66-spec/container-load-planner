@@ -1514,3 +1514,4 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 .fleet-tail-joint legend { padding:0 6px; font-weight:600; }
 .fleet-tail-joint .upgrade-rule-grid > div { grid-template-columns:minmax(0,1fr); padding:16px; }
 .fleet-tail-joint .upgrade-actions strong { font-size:13px; font-weight:600; }
+.fleet-optimization-controls{border:0;margin:0;padding:0;min-width:0}.fleet-optimization-check{display:flex;align-items:center;gap:.5rem;margin:.75rem 0}.fleet-optimization-rework{border:1px solid var(--border,#cbd9dc);border-radius:.65rem;padding:.75rem;margin:.75rem 0;min-width:0}.fleet-optimization-rework>label{display:grid;gap:.3rem;margin:.6rem 0}.fleet-optimization-rework>small{display:block}.fleet-manual-tail{margin:1rem 0}.fleet-manual-tail>summary{cursor:pointer;font-weight:600;padding:.65rem 0}

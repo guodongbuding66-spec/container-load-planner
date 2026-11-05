@@ -49,7 +49,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.76.0";
+export const ENGINE_VERSION = "0.77.0";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -2721,6 +2721,15 @@ export function searchPalletContents(request:PackingRequest,base:PlacedPallet,fi
   const variants:SortStrategy[]=[preferred,(a,b)=>compareRequired(a,b)||b.height-a.height,(a,b)=>compareRequired(a,b)||b.length*b.width-a.length*a.width,(a,b)=>compareRequired(a,b)||b.weight-a.weight];
   const sort=request.loadingRules?.cargoOrder&&request.loadingRules.cargoOrder!=="auto"?preferred:variants[pass];
   return packMixedWithStrategy({...request,products,practicalTargetUtilization:1},effectiveContainer(request.container,0),sort,[...palletAnchors([base]),...fixed.boxes,...fixedCargo]).filter(b=>!b.supportOnly);
+}
+
+/** Internal gap search. The caller validates its immutable source and the complete returned plan. */
+export function searchFixedCargo(request:PackingRequest,fixed:PlacedBox[],pass:number,check:RigidCandidateCheck):PlacedBox[]{
+  assertValidRequest(request);
+  if(request.mode!=="mixed"||request.palletBuild||request.floorPallets||!Number.isInteger(pass)||pass<0||pass>3||fixed.length>MAX_VISIBLE_PLACEMENTS)throw Error("Invalid fixed-cargo search");
+  const normalized={...request,products:applyTypeSupport(request.products,request.loadingRules)};
+  const sorts:SortStrategy[]=[(a,b)=>compareRequired(a,b)||b.priority-a.priority||b.length*b.width*b.height-a.length*a.width*a.height,(a,b)=>compareRequired(a,b)||b.weight-a.weight,(a,b)=>compareRequired(a,b)||a.height-b.height,(a,b)=>compareRequired(a,b)||a.length*a.width-b.length*b.width];
+  return packMixedWithStrategy(normalized,effectiveContainer(request.container,request.clearance),sorts[pass],fixed,check);
 }
 
 /** Retain locked boxes, their support closure and complete kits; only rebuild the free remainder. */
