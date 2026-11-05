@@ -17,12 +17,13 @@ function run(source=jointFleetTailFixture(5),options=settings()){
 function oneContainer(strategy:PackingStrategy="maximum"){
  const s=jointFleetTailFixture(5,strategy);s.limit=1;s.result=allocateFleet(s.request,s.options,1,s.objective,undefined,s.pricing);return s;
 }
+// Each strategy solves and independently validates the full candidate batch.
 it.each(["maximum","practical"] as const)("automatically reviews more than four groups under %s, retains every row and charges actual work",strategy=>{
  const s=jointFleetTailFixture(5,strategy),before=structuredClone(s),{p,report}=run(s),best=adoptFleetOptimization(p,report),c=report.candidates[report.bestIndex!];
  expect(s.result.loads).toHaveLength(10);expect(report.groups).toHaveLength(5);expect(report.search.kind).toBe("adaptive");expect(report.candidates.length).toBeLessThanOrEqual(64);expect(best.result.loads).toHaveLength(5);expect(c).toMatchObject({loaded:25,remaining:0,dismantled:10,rebuilt:0,reworkTotal:20,baseConfiguredTotal:500,configuredTotal:520,retainsRows:true});
  expect(c.rows.every(r=>r.loaded===5&&r.before===5)).toBe(true);expect(best.request.products).toEqual(s.request.products);expect(best.request.palletBuild!.maxPallets).toBe(10);expect(best.result.inventory!.totalUsed).toBe(0);expect(best.result.costs!.lines).toEqual([expect.objectContaining({category:"rework",amount:20,subtotal:20})]);
  expect(validateFleet(best.request,best.result,best.options,best.limit).valid).toBe(true);expect(s).toEqual(before);
-});
+},30_000);
 it("identifies a complete small grid and preserves original quota floors",()=>{
  const s=fleetTailFixture(),{p,report}=run(s,settings({cartonBudget:1,comparePackaging:false}));expect(report.search).toMatchObject({kind:"complete-grid",candidateDomain:1,evaluated:1});expect(p.groups).toHaveLength(1);
  expect(fleetOptimizationTrial(p,p.seeds[0]).request.palletBuild!.looseQuantities).toEqual({p:3});expect(s.request.palletBuild!.looseQuantities).toEqual({p:2});

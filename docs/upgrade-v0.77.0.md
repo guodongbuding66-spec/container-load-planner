@@ -22,4 +22,6 @@
 
 运行提交 `6c426fb0b6fa5797821750129ded1cdf495c211f` 的 GitHub CI 成功。Cloudflare Pages 发布 `be030966-2d8e-4304-8408-3ae01faba2d3` 成功，Vercel 发布 `dpl_8bHdVqTZd4avpsLBZsY67MTepsJf` READY。[GitHub CI](https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/41970057625) · [主站](https://container-load-planner.pages.dev/) · [Vercel](https://container-load-planner-gray.vercel.app/) · [发布状态](field-upgrades/evidence/v0.77.0-release-state.json)
 
+首次归档 CI 的五组高密度完整搜索回归用时 7.4 秒，超过 Vitest 默认的 5 秒。为两种策略的完整搜索回归单独设定 30 秒测试时限，保留原有断言。[首次归档 CI](https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/41973182264)
+
 U09、U10、U11、U20 的本轮子项已验收，整托补货、跨方式承托、实物身份与税务结算继续按后续轮次处理。原用户 596→16 工作区、真实 GPU 与多浏览器、工厂原始数据、额定资料和现场试装仍待实际证据。账号和收费服务待第 4 轮，正式收款需要可用商户配置。U03、U05 具体叉车操作已移出范围。[剩余台账](field-upgrades/unfinished-roadmap.md)
