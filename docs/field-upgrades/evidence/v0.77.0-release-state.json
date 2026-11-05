@@ -1,0 +1,144 @@
+{
+  "engineVersion": "0.77.0",
+  "acceptanceDate": "2026-11-05",
+  "timezone": "Asia/Shanghai",
+  "deliveryRound": {
+    "completed": 1,
+    "planned": 5
+  },
+  "runtimeCommit": "6c426fb0b6fa5797821750129ded1cdf495c211f",
+  "runtimeTree": "828a8c41b66f3410507e5b57b3a66fa971ffd988",
+  "checks": {
+    "newTests": 51,
+    "unitTests": 2099,
+    "testFiles": 159,
+    "renderedHtmlTests": 21,
+    "lintErrors": 0,
+    "existingLintWarnings": 2,
+    "typecheck": "PASS",
+    "productionBuild": "PASS",
+    "githubCI": {
+      "runId": 41970057625,
+      "status": "completed",
+      "conclusion": "success"
+    }
+  },
+  "sites": {
+    "main": {
+      "url": "https://container-load-planner.pages.dev/",
+      "provider": "Cloudflare Pages",
+      "deploymentId": "be030966-2d8e-4304-8408-3ae01faba2d3",
+      "status": "success",
+      "nativeStrategy": "maximum",
+      "language": "zh",
+      "benchmarks": 20
+    },
+    "gray": {
+      "url": "https://container-load-planner-gray.vercel.app/",
+      "provider": "Vercel",
+      "deploymentId": "dpl_8bHdVqTZd4avpsLBZsY67MTepsJf",
+      "status": "READY",
+      "nativeStrategy": "practical",
+      "language": "en",
+      "benchmarks": 20
+    }
+  },
+  "native": {
+    "uiAssertions": 23,
+    "fileChecks": 20,
+    "independentlyReplayedCandidates": 109,
+    "scenarios": {
+      "main-optimization": {
+        "candidates": 39,
+        "bestIndex": 6,
+        "cartons": 25,
+        "containers": 5,
+        "cost": 520,
+        "dismantled": 10,
+        "rebuilt": 0,
+        "rework": 20,
+        "search": "adaptive",
+        "previousContainers": 10,
+        "previousCartons": 25,
+        "previousConfiguredCNY": 1050,
+        "configuredCNY": 520,
+        "pallets": 0,
+        "loose": 25,
+        "frozenPrefix": 0
+      },
+      "gray-prefix": {
+        "candidates": 37,
+        "bestIndex": 6,
+        "cartons": 25,
+        "containers": 5,
+        "cost": 523,
+        "dismantled": 9,
+        "rebuilt": 0,
+        "rework": 18,
+        "search": "adaptive",
+        "previousContainers": 10,
+        "previousCartons": 25,
+        "previousConfiguredCNY": 1050,
+        "configuredCNY": 523,
+        "pallets": 1,
+        "loose": 21,
+        "frozenPrefix": 1
+      },
+      "main-gap": {
+        "candidates": 33,
+        "bestIndex": 6,
+        "cartons": 6,
+        "containers": 1,
+        "cost": 105,
+        "dismantled": 0,
+        "rebuilt": 0,
+        "rework": 0,
+        "search": "adaptive",
+        "previousContainers": 1,
+        "previousCartons": 4,
+        "previousConfiguredCNY": 105,
+        "configuredCNY": 105,
+        "pallets": 1,
+        "loose": 2,
+        "frozenPrefix": 0
+      }
+    },
+    "unquotedPreview": {
+      "candidates": 44,
+      "reworkCost": null,
+      "configuredTotal": null,
+      "workspaceUnchanged": true
+    },
+    "csv": {
+      "columns": 31,
+      "sourceRowsPerCandidate": 5
+    },
+    "crossSiteCoordinates": "byte-identical",
+    "refreshInputs": "identical",
+    "originalWorkspace": {
+      "bothSites": true,
+      "bothStrategies": true,
+      "cartons": 116,
+      "grossKg": 3842,
+      "language": "zh",
+      "lengthUnit": "mm",
+      "weightUnit": "kg",
+      "comparison": "exact after existing default fields and automatic CBM normalization"
+    },
+    "fixtureNotes": [
+      "The two source baselines are browser downloads from v0.76.0, restored and validated on v0.77.0.",
+      "Maximum and practical workspace fixtures were generated for the same five-row order, with five cartons per row.",
+      "The locked gap fixture is derived from the native single-container baseline by marking the first carton and pallet locked."
+    ]
+  },
+  "pending": {
+    "rounds2to5": "Packaging and engineering; measurement and handover; accounts and cloud; full acceptance.",
+    "gpuAndDevice": "Real GPU, other browsers, device scanning and printing evidence remains pending.",
+    "original596to16Workspace": "Full original workspace still required.",
+    "factoryAcceptance": "Original factory trial, measured weights and rated packaging data still required.",
+    "commercial": "Production merchant configuration and account or paid service activation remain pending."
+  },
+  "excluded": [
+    "U03 and U05 specific forklift operations"
+  ]
+}

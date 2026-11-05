@@ -1,0 +1,117 @@
+{
+  "engineVersion": "0.77.0",
+  "checks": [
+    {
+      "name": "main-optimization native quantities and configured work costs",
+      "passed": true
+    },
+    {
+      "name": "main-optimization independent replay of every native candidate",
+      "passed": true
+    },
+    {
+      "name": "main-optimization original CSV text, full source rows and allocation columns",
+      "passed": true
+    },
+    {
+      "name": "main-optimization explicit adoption, retained geometry and restored workspace",
+      "passed": true
+    },
+    {
+      "name": "gray-prefix native quantities and configured work costs",
+      "passed": true
+    },
+    {
+      "name": "gray-prefix independent replay of every native candidate",
+      "passed": true
+    },
+    {
+      "name": "gray-prefix original CSV text, full source rows and allocation columns",
+      "passed": true
+    },
+    {
+      "name": "gray-prefix explicit adoption, retained geometry and restored workspace",
+      "passed": true
+    },
+    {
+      "name": "main-gap native quantities and configured work costs",
+      "passed": true
+    },
+    {
+      "name": "main-gap independent replay of every native candidate",
+      "passed": true
+    },
+    {
+      "name": "main-gap original CSV text, full source rows and allocation columns",
+      "passed": true
+    },
+    {
+      "name": "main-gap explicit adoption, retained geometry and restored workspace",
+      "passed": true
+    },
+    {
+      "name": "both legacy version-1 baselines revalidate with ten containers and full demand",
+      "passed": true
+    },
+    {
+      "name": "unquoted work remains unknown and preview leaves the original workspace untouched",
+      "passed": true
+    },
+    {
+      "name": "version-2 fleet coordinates are byte-identical after cross-site restoration",
+      "passed": true
+    },
+    {
+      "name": "refresh retains the adopted source inputs and full-order quota",
+      "passed": true
+    },
+    {
+      "name": "main 20 native fixed benchmark runs complete and valid",
+      "passed": true
+    },
+    {
+      "name": "main original input and both 116-carton plans restored",
+      "passed": true
+    },
+    {
+      "name": "gray 20 native fixed benchmark runs complete and valid",
+      "passed": true
+    },
+    {
+      "name": "gray original input and both 116-carton plans restored",
+      "passed": true
+    }
+  ],
+  "results": {
+    "main-optimization": {
+      "candidates": 39,
+      "bestIndex": 6,
+      "cartons": 25,
+      "containers": 5,
+      "cost": 520,
+      "dismantled": 10,
+      "rebuilt": 0,
+      "rework": 20
+    },
+    "gray-prefix": {
+      "candidates": 37,
+      "bestIndex": 6,
+      "cartons": 25,
+      "containers": 5,
+      "cost": 523,
+      "dismantled": 9,
+      "rebuilt": 0,
+      "rework": 18
+    },
+    "main-gap": {
+      "candidates": 33,
+      "bestIndex": 6,
+      "cartons": 6,
+      "containers": 1,
+      "cost": 105,
+      "dismantled": 0,
+      "rebuilt": 0,
+      "rework": 0
+    }
+  }
+}

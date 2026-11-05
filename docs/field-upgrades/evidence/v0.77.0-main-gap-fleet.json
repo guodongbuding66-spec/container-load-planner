@@ -1,0 +1,1245 @@
+{
+  "request": {
+    "loadingRules": {
+      "layout": "auto",
+      "search": "smart",
+      "cargoOrder": "auto"
+    },
+    "mode": "mixed",
+    "strategy": "maximum",
+    "practicalTargetUtilization": 0.95,
+    "container": {
+      "category": "other",
+      "id": "fleet-tail-qa",
+      "name": "Fleet Tail QA",
+      "length": 1500,
+      "width": 1000,
+      "height": 300,
+      "doorWidth": 1000,
+      "doorHeight": 300,
+      "maxWeight": 1000
+    },
+    "clearance": 0,
+    "products": [
+      {
+        "id": "row-1",
+        "sku": "FLEET-A",
+        "name": "Fleet carton",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 5,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.05,
+        "color": "#337788",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100
+      },
+      {
+        "id": "row-2",
+        "sku": "FLEET-B",
+        "name": "Fleet carton",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 5,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.05,
+        "color": "#337788",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100
+      },
+      {
+        "id": "row-3",
+        "sku": "FLEET-C",
+        "name": "Fleet carton",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 5,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.05,
+        "color": "#337788",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100
+      },
+      {
+        "id": "row-4",
+        "sku": "FLEET-D",
+        "name": "Fleet carton",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 5,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.05,
+        "color": "#337788",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100
+      },
+      {
+        "id": "row-5",
+        "sku": "FLEET-E",
+        "name": "Fleet carton",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 5,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.05,
+        "color": "#337788",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100
+      }
+    ],
+    "workflow": "palletized",
+    "palletBuild": {
+      "looseQuantities": {
+        "row-2": 2
+      },
+      "selection": "ordered",
+      "config": {
+        "packaging": {
+          "base": "block",
+          "enclosure": "none",
+          "material": "wood",
+          "color": "#d4af7b",
+          "opacity": 0.65,
+          "deckBoards": 5,
+          "runners": 3,
+          "wallThickness": 30,
+          "lid": true
+        },
+        "presetId": "eur-1200-800",
+        "name": "Fleet QA pallet",
+        "length": 1000,
+        "width": 1000,
+        "height": 100,
+        "weight": 20,
+        "maxLoad": 1000,
+        "count": 0,
+        "gap": 0,
+        "layout": "auto",
+        "allowFloorCargo": false,
+        "maxCargoHeight": 200
+      },
+      "mix": "single",
+      "maxPallets": 10,
+      "stackLayers": 1,
+      "maxTopLoadKg": 0,
+      "primaryRule": {
+        "maxPallets": 2,
+        "productIds": [
+          "row-1"
+        ]
+      },
+      "additionalSpecs": [
+        {
+          "id": "spec-2",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "Pallet 2",
+            "length": 1000,
+            "width": 1000,
+            "height": 100,
+            "weight": 20,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 200
+          },
+          "maxPallets": 2,
+          "productIds": [
+            "row-2"
+          ],
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        },
+        {
+          "id": "spec-3",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "Pallet 3",
+            "length": 1000,
+            "width": 1000,
+            "height": 100,
+            "weight": 20,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 200
+          },
+          "maxPallets": 2,
+          "productIds": [
+            "row-3"
+          ],
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        },
+        {
+          "id": "spec-4",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "Pallet 4",
+            "length": 1000,
+            "width": 1000,
+            "height": 100,
+            "weight": 20,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 200
+          },
+          "maxPallets": 2,
+          "productIds": [
+            "row-4"
+          ],
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        },
+        {
+          "id": "spec-5",
+          "config": {
+            "packaging": {
+              "base": "block",
+              "enclosure": "none",
+              "material": "wood",
+              "color": "#d4af7b",
+              "opacity": 0.65,
+              "deckBoards": 5,
+              "runners": 3,
+              "wallThickness": 30,
+              "lid": true
+            },
+            "presetId": "eur-1200-800",
+            "name": "Pallet 5",
+            "length": 1000,
+            "width": 1000,
+            "height": 100,
+            "weight": 20,
+            "maxLoad": 1000,
+            "count": 0,
+            "gap": 0,
+            "layout": "auto",
+            "allowFloorCargo": false,
+            "maxCargoHeight": 200
+          },
+          "maxPallets": 2,
+          "productIds": [
+            "row-5"
+          ],
+          "stackLayers": 1,
+          "maxTopLoadKg": 0
+        }
+      ]
+    }
+  },
+  "options": [
+    {
+      "container": {
+        "category": "other",
+        "id": "fleet-tail-qa",
+        "name": "Fleet Tail QA",
+        "length": 1500,
+        "width": 1000,
+        "height": 300,
+        "doorWidth": 1000,
+        "doorHeight": 300,
+        "maxWeight": 1000
+      },
+      "cost": 100,
+      "available": 10
+    }
+  ],
+  "limit": 1,
+  "objective": "count",
+  "pricing": {
+    "currency": "CNY",
+    "packaging": {
+      "primary": 5,
+      "spec-2": 5,
+      "spec-3": 5,
+      "spec-4": 5,
+      "spec-5": 5
+    }
+  },
+  "result": {
+    "loads": [
+      {
+        "plan": {
+          "workflow": "palletized",
+          "palletBuild": {
+            "looseQuantities": {
+              "row-2": 2
+            },
+            "selection": "ordered",
+            "config": {
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "Fleet QA pallet",
+              "length": 1000,
+              "width": 1000,
+              "height": 100,
+              "weight": 20,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 200
+            },
+            "mix": "single",
+            "maxPallets": 10,
+            "stackLayers": 1,
+            "maxTopLoadKg": 0,
+            "primaryRule": {
+              "maxPallets": 2,
+              "productIds": [
+                "row-1"
+              ]
+            },
+            "additionalSpecs": [
+              {
+                "id": "spec-2",
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "Pallet 2",
+                  "length": 1000,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 20,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 200
+                },
+                "maxPallets": 2,
+                "productIds": [
+                  "row-2"
+                ],
+                "stackLayers": 1,
+                "maxTopLoadKg": 0
+              },
+              {
+                "id": "spec-3",
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "Pallet 3",
+                  "length": 1000,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 20,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 200
+                },
+                "maxPallets": 2,
+                "productIds": [
+                  "row-3"
+                ],
+                "stackLayers": 1,
+                "maxTopLoadKg": 0
+              },
+              {
+                "id": "spec-4",
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "Pallet 4",
+                  "length": 1000,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 20,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 200
+                },
+                "maxPallets": 2,
+                "productIds": [
+                  "row-4"
+                ],
+                "stackLayers": 1,
+                "maxTopLoadKg": 0
+              },
+              {
+                "id": "spec-5",
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "Pallet 5",
+                  "length": 1000,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 20,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 200
+                },
+                "maxPallets": 2,
+                "productIds": [
+                  "row-5"
+                ],
+                "stackLayers": 1,
+                "maxTopLoadKg": 0
+              }
+            ]
+          },
+          "id": "gap-fleet-1-fleet-tail-qa-restored-1793855324730-2",
+          "mode": "mixed",
+          "strategy": "maximum",
+          "practicalTargetUtilization": 0.95,
+          "engineVersion": "0.77.0",
+          "palletization": {
+            "looseQuantities": {
+              "row-2": 2
+            },
+            "config": {
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "presetId": "eur-1200-800",
+              "name": "Fleet QA pallet",
+              "length": 1000,
+              "width": 1000,
+              "height": 100,
+              "weight": 20,
+              "maxLoad": 1000,
+              "count": 0,
+              "gap": 0,
+              "layout": "auto",
+              "allowFloorCargo": false,
+              "maxCargoHeight": 200
+            },
+            "mix": "single",
+            "stackLayers": 1,
+            "maxTopLoadKg": 0,
+            "preparedCount": 10,
+            "bounded": false,
+            "only": false,
+            "specifications": [
+              {
+                "id": "primary",
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "Fleet QA pallet",
+                  "length": 1000,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 20,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 200
+                },
+                "maxPallets": 2,
+                "productIds": [
+                  "row-1"
+                ],
+                "stackLayers": 1,
+                "maxTopLoadKg": 0
+              },
+              {
+                "id": "spec-2",
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "Pallet 2",
+                  "length": 1000,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 20,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 200
+                },
+                "maxPallets": 2,
+                "productIds": [
+                  "row-2"
+                ],
+                "stackLayers": 1,
+                "maxTopLoadKg": 0
+              },
+              {
+                "id": "spec-3",
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "Pallet 3",
+                  "length": 1000,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 20,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 200
+                },
+                "maxPallets": 2,
+                "productIds": [
+                  "row-3"
+                ],
+                "stackLayers": 1,
+                "maxTopLoadKg": 0
+              },
+              {
+                "id": "spec-4",
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "Pallet 4",
+                  "length": 1000,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 20,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 200
+                },
+                "maxPallets": 2,
+                "productIds": [
+                  "row-4"
+                ],
+                "stackLayers": 1,
+                "maxTopLoadKg": 0
+              },
+              {
+                "id": "spec-5",
+                "config": {
+                  "packaging": {
+                    "base": "block",
+                    "enclosure": "none",
+                    "material": "wood",
+                    "color": "#d4af7b",
+                    "opacity": 0.65,
+                    "deckBoards": 5,
+                    "runners": 3,
+                    "wallThickness": 30,
+                    "lid": true
+                  },
+                  "presetId": "eur-1200-800",
+                  "name": "Pallet 5",
+                  "length": 1000,
+                  "width": 1000,
+                  "height": 100,
+                  "weight": 20,
+                  "maxLoad": 1000,
+                  "count": 0,
+                  "gap": 0,
+                  "layout": "auto",
+                  "allowFloorCargo": false,
+                  "maxCargoHeight": 200
+                },
+                "maxPallets": 2,
+                "productIds": [
+                  "row-5"
+                ],
+                "stackLayers": 1,
+                "maxTopLoadKg": 0
+              }
+            ],
+            "preparedBySpecification": {
+              "primary": 2,
+              "spec-2": 2,
+              "spec-3": 2,
+              "spec-4": 2,
+              "spec-5": 2
+            }
+          },
+          "pallets": [
+            {
+              "id": "floor-pallet-1",
+              "presetId": "eur-1200-800",
+              "name": "Fleet QA pallet",
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "dx": 1000,
+              "dy": 1000,
+              "dz": 100,
+              "weight": 20,
+              "maxLoad": 1000,
+              "orientation": "LWH",
+              "specificationId": "primary",
+              "packaging": {
+                "base": "block",
+                "enclosure": "none",
+                "material": "wood",
+                "color": "#d4af7b",
+                "opacity": 0.65,
+                "deckBoards": 5,
+                "runners": 3,
+                "wallThickness": 30,
+                "lid": true
+              },
+              "locked": true
+            }
+          ],
+          "container": {
+            "category": "other",
+            "id": "fleet-tail-qa",
+            "name": "Fleet Tail QA",
+            "length": 1500,
+            "width": 1000,
+            "height": 300,
+            "doorWidth": 1000,
+            "doorHeight": 300,
+            "maxWeight": 1000
+          },
+          "clearance": 0,
+          "placements": [
+            {
+              "id": "prebuilt-1",
+              "productId": "row-1",
+              "sku": "FLEET-A",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "x": 0,
+              "y": 0,
+              "z": 100,
+              "dx": 500,
+              "dy": 500,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "locked": true,
+              "palletIds": [
+                "floor-pallet-1"
+              ]
+            },
+            {
+              "id": "prebuilt-2",
+              "productId": "row-1",
+              "sku": "FLEET-A",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "x": 0,
+              "y": 500,
+              "z": 100,
+              "dx": 500,
+              "dy": 500,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "palletIds": [
+                "floor-pallet-1"
+              ]
+            },
+            {
+              "id": "prebuilt-3",
+              "productId": "row-1",
+              "sku": "FLEET-A",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "x": 500,
+              "y": 0,
+              "z": 100,
+              "dx": 500,
+              "dy": 500,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "palletIds": [
+                "floor-pallet-1"
+              ]
+            },
+            {
+              "id": "prebuilt-4",
+              "productId": "row-1",
+              "sku": "FLEET-A",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "x": 500,
+              "y": 500,
+              "z": 100,
+              "dx": 500,
+              "dy": 500,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH",
+              "palletIds": [
+                "floor-pallet-1"
+              ]
+            },
+            {
+              "id": "gap-1",
+              "productId": "row-2",
+              "sku": "FLEET-B",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "x": 1000,
+              "y": 0,
+              "z": 0,
+              "dx": 500,
+              "dy": 500,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH"
+            },
+            {
+              "id": "gap-2",
+              "productId": "row-2",
+              "sku": "FLEET-B",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "x": 1000,
+              "y": 500,
+              "z": 0,
+              "dx": 500,
+              "dy": 500,
+              "dz": 200,
+              "weight": 10,
+              "layer": 1,
+              "orientation": "LWH"
+            }
+          ],
+          "summaries": [
+            {
+              "productId": "row-1",
+              "sku": "FLEET-A",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "requested": 5,
+              "loaded": 4,
+              "unloaded": 1,
+              "loadedWeight": 40,
+              "loadedVolume": 200000000
+            },
+            {
+              "productId": "row-2",
+              "sku": "FLEET-B",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "requested": 5,
+              "loaded": 2,
+              "unloaded": 3,
+              "loadedWeight": 20,
+              "loadedVolume": 100000000
+            },
+            {
+              "productId": "row-3",
+              "sku": "FLEET-C",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "requested": 5,
+              "loaded": 0,
+              "unloaded": 5,
+              "loadedWeight": 0,
+              "loadedVolume": 0
+            },
+            {
+              "productId": "row-4",
+              "sku": "FLEET-D",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "requested": 5,
+              "loaded": 0,
+              "unloaded": 5,
+              "loadedWeight": 0,
+              "loadedVolume": 0
+            },
+            {
+              "productId": "row-5",
+              "sku": "FLEET-E",
+              "name": "Fleet carton",
+              "color": "#337788",
+              "requested": 5,
+              "loaded": 0,
+              "unloaded": 5,
+              "loadedWeight": 0,
+              "loadedVolume": 0
+            }
+          ],
+          "setSummaries": [],
+          "validation": {
+            "valid": true,
+            "errors": []
+          },
+          "metrics": {
+            "loadedCount": 6,
+            "requestedCount": 25,
+            "loadedVolume": 400000000,
+            "grossWeight": 80,
+            "effectiveVolume": 450000000,
+            "volumeUtilization": 0.8888888888888888,
+            "weightUtilization": 0.08,
+            "centerOfGravity": {
+              "x": 687.5,
+              "y": 500,
+              "z": 140.218677618116,
+              "longitudinalRatio": 0.4583333333333333,
+              "lateralRatio": 0.5,
+              "heightRatio": 0.46739559206038667,
+              "balanced": true
+            },
+            "executionComplexity": {
+              "orientationVariants": 2,
+              "maxOrientationsPerSku": 1,
+              "partialSupportCount": 0,
+              "tippedCartonCount": 0
+            },
+            "solveTimeMs": 0
+          },
+          "loadingRules": {
+            "layout": "auto",
+            "search": "smart",
+            "cargoOrder": "auto"
+          },
+          "cargoDetails": {
+            "row-1": {},
+            "row-2": {},
+            "row-3": {},
+            "row-4": {},
+            "row-5": {}
+          },
+          "warnings": [
+            "历史箱位已按当前箱规与引擎重新校验。自动重算已暂停，可继续手动调整或生成新方案。"
+          ],
+          "createdAt": "2026-11-05T05:09:23.255Z"
+        },
+        "cost": 100
+      }
+    ],
+    "remaining": [
+      {
+        "id": "row-1",
+        "sku": "FLEET-A",
+        "name": "Fleet carton",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 1,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.05,
+        "color": "#337788",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100
+      },
+      {
+        "id": "row-2",
+        "sku": "FLEET-B",
+        "name": "Fleet carton",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 3,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.05,
+        "color": "#337788",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100
+      },
+      {
+        "id": "row-3",
+        "sku": "FLEET-C",
+        "name": "Fleet carton",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 5,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.05,
+        "color": "#337788",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100
+      },
+      {
+        "id": "row-4",
+        "sku": "FLEET-D",
+        "name": "Fleet carton",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 5,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.05,
+        "color": "#337788",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100
+      },
+      {
+        "id": "row-5",
+        "sku": "FLEET-E",
+        "name": "Fleet carton",
+        "length": 500,
+        "width": 500,
+        "height": 200,
+        "weight": 10,
+        "quantity": 5,
+        "priority": 50,
+        "rotationPolicy": "fixed",
+        "stackable": true,
+        "maxStackLayers": 0,
+        "mustLoad": true,
+        "bottomOnly": false,
+        "setCode": "",
+        "unitsPerSet": 1,
+        "declaredVolumeCbm": 0.05,
+        "color": "#337788",
+        "allowedOrientations": [
+          "LWH"
+        ],
+        "maxTopLoadKg": 100
+      }
+    ],
+    "totalCost": 100,
+    "complete": false,
+    "reason": "保留原箱托位置，现有柜空隙补入已完成 / Existing-container gap search completed with original positions retained",
+    "pricing": {
+      "currency": "CNY",
+      "packaging": {
+        "primary": 5,
+        "spec-2": 5,
+        "spec-3": 5,
+        "spec-4": 5,
+        "spec-5": 5
+      }
+    },
+    "costs": {
+      "currency": "CNY",
+      "freight": 100,
+      "packaging": 5,
+      "knownPackagingSubtotal": 5,
+      "total": 105,
+      "knownSubtotal": 105,
+      "complete": true,
+      "missing": [],
+      "scope": "freight-and-packaging"
+    },
+    "inventory": {
+      "packages": [
+        {
+          "id": "primary",
+          "name": "Fleet QA pallet",
+          "available": 2,
+          "used": 1,
+          "remaining": 1
+        },
+        {
+          "id": "spec-2",
+          "name": "Pallet 2",
+          "available": 2,
+          "used": 0,
+          "remaining": 2
+        },
+        {
+          "id": "spec-3",
+          "name": "Pallet 3",
+          "available": 2,
+          "used": 0,
+          "remaining": 2
+        },
+        {
+          "id": "spec-4",
+          "name": "Pallet 4",
+          "available": 2,
+          "used": 0,
+          "remaining": 2
+        },
+        {
+          "id": "spec-5",
+          "name": "Pallet 5",
+          "available": 2,
+          "used": 0,
+          "remaining": 2
+        }
+      ],
+      "totalLimit": 10,
+      "totalUsed": 1,
+      "loose": [
+        {
+          "productId": "row-1",
+          "sku": "FLEET-A",
+          "reserved": 0,
+          "used": 0,
+          "remaining": 0
+        },
+        {
+          "productId": "row-2",
+          "sku": "FLEET-B",
+          "reserved": 2,
+          "used": 2,
+          "remaining": 0
+        },
+        {
+          "productId": "row-3",
+          "sku": "FLEET-C",
+          "reserved": 0,
+          "used": 0,
+          "remaining": 0
+        },
+        {
+          "productId": "row-4",
+          "sku": "FLEET-D",
+          "reserved": 0,
+          "used": 0,
+          "remaining": 0
+        },
+        {
+          "productId": "row-5",
+          "sku": "FLEET-E",
+          "reserved": 0,
+          "used": 0,
+          "remaining": 0
+        }
+      ]
+    }
+  },
+  "format": "cargo-fit-fleet-v1",
+  "version": 1
+}

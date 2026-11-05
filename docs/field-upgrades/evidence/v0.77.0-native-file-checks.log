@@ -1,0 +1,21 @@
+PASS main-optimization native quantities and configured work costs
+PASS main-optimization independent replay of every native candidate
+PASS main-optimization original CSV text, full source rows and allocation columns
+PASS main-optimization explicit adoption, retained geometry and restored workspace
+PASS gray-prefix native quantities and configured work costs
+PASS gray-prefix independent replay of every native candidate
+PASS gray-prefix original CSV text, full source rows and allocation columns
+PASS gray-prefix explicit adoption, retained geometry and restored workspace
+PASS main-gap native quantities and configured work costs
+PASS main-gap independent replay of every native candidate
+PASS main-gap original CSV text, full source rows and allocation columns
+PASS main-gap explicit adoption, retained geometry and restored workspace
+PASS both legacy version-1 baselines revalidate with ten containers and full demand
+PASS unquoted work remains unknown and preview leaves the original workspace untouched
+PASS version-2 fleet coordinates are byte-identical after cross-site restoration
+PASS refresh retains the adopted source inputs and full-order quota
+PASS main 20 native fixed benchmark runs complete and valid
+PASS main original input and both 116-carton plans restored
+PASS gray 20 native fixed benchmark runs complete and valid
+PASS gray original input and both 116-carton plans restored
+20 native file checks passed

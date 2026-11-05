@@ -1,0 +1,97 @@
+{
+  "engineVersion": "0.77.0",
+  "checks": [
+    {
+      "name": "main restored the native version-1 baseline on v0.77",
+      "passed": true
+    },
+    {
+      "name": "main rejects the 65-carton ceiling in the UI",
+      "passed": true
+    },
+    {
+      "name": "main valid ceiling restores preview",
+      "passed": true
+    },
+    {
+      "name": "main manual comparison is still accessible",
+      "passed": true
+    },
+    {
+      "name": "main unknown work fees stay unknown",
+      "passed": true
+    },
+    {
+      "name": "main requires a source for entered work quotes",
+      "passed": true
+    },
+    {
+      "name": "main work quote changes invalidate the old report",
+      "passed": true
+    },
+    {
+      "name": "gray restored the native version-1 baseline on v0.77",
+      "passed": true
+    },
+    {
+      "name": "gray automatic controls are translated",
+      "passed": true
+    },
+    {
+      "name": "gray requires a source for entered work quotes",
+      "passed": true
+    },
+    {
+      "name": "main selected quoted five-container candidate with 520 CNY",
+      "passed": true
+    },
+    {
+      "name": "main applied 0 of 10 packaging, all five rows loose and 520 total including 20 of dismantling",
+      "passed": true
+    },
+    {
+      "name": "gray selected a five-container 523 total with first pallet retained and all five rows conserved",
+      "passed": true
+    },
+    {
+      "name": "gray adoption retains committed prefix and disables whole order regeneration",
+      "passed": true
+    },
+    {
+      "name": "main restored gray version 2 with 523 cost and regeneration protected",
+      "passed": true
+    },
+    {
+      "name": "main reallocate with prefix zero blocked after restoring locked carton and pallet",
+      "passed": true
+    },
+    {
+      "name": "main gap-fill preview allowed with unchanged locked positions",
+      "passed": true
+    },
+    {
+      "name": "gray fixed benchmark UI reached 20 of 20 on 0.77.0",
+      "passed": true
+    },
+    {
+      "name": "gray original order recalculated both 116 carton strategies and 3842 kg",
+      "passed": true
+    },
+    {
+      "name": "main gap fill selected one container six cartons with no rework and 105 total",
+      "passed": true
+    },
+    {
+      "name": "main gap fill applied with one container, one packaging unit, 19 remaining and unchanged 105 total",
+      "passed": true
+    },
+    {
+      "name": "main fixed benchmark UI reached 20 of 20 on 0.77.0",
+      "passed": true
+    },
+    {
+      "name": "main original order recalculated both 116 carton strategies and 3842 kg",
+      "passed": true
+    }
+  ]
+}
