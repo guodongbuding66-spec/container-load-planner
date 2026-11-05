@@ -82,8 +82,11 @@ it("checks complete prebuilt pallet envelopes and keeps comparison metadata vali
  const stock=packLoadingWorkflow({...r,container:{...r.container,exclusions:undefined}}),unit=stock.pallets![0];const intruded={...r.container,exclusions:[{...zone,x:unit.x+10,y:unit.y+10,z:unit.z+10,dx:20,dy:20,dz:20}]};
  expect(validatePalletizedCargo(stock.placements,stock.pallets!,intruded,0,stock.palletization!,[cargo]).some(e=>e.includes("site region"))).toBe(true);
 });
-it("explicitly blocks unsupported floor-laid and pallet-only combinations",()=>{
- expect(()=>pack({...req,floorPallets:DEFAULT_PALLET_BUILD.config})).toThrow(/底层托盘/);
+it("places floor pallets beyond a keep-clear zone and still rejects pallet-only site regions",()=>{
+ const region={...zone,x:0,y:0,dx:250,dy:c.width,dz:100};
+ const plan=pack({...req,container:{...c,exclusions:[region]},floorPallets:{...DEFAULT_PALLET_BUILD.config,length:400,width:400,height:50,count:2,gap:0}});
+ expect(plan.validation.valid).toBe(true);expect(plan.pallets).toHaveLength(2);
+ expect(plan.pallets?.every(p=>p.x>=250)).toBe(true);
  expect(()=>packLoadingWorkflow({...req,workflow:"pallet-only",palletBuild:DEFAULT_PALLET_BUILD})).toThrow(/Pallet-only/);
  expect(()=>pack({...req,container:{...c,exclusions:[{...zone,dx:1000,dy:1000,dz:1000}]}})).toThrow(/占满/);
 });

@@ -57,13 +57,13 @@ it("keeps complete kits atomic and rebuilds support indexes after failed kit rol
  const kit={...p,length:200,width:200,height:100,quantity:1,setCode:"KIT",unitsPerSet:1},other={...kit,id:"q",sku:"Q"},loose={...p,id:"loose",sku:"LOOSE",quantity:1,weight:5,priority:1};
  const r={...change({support:{...z.accessory!.support!,maxLoadKg:15}}),products:[kit,other,loose]},plan=pack(r);expect(plan.validation.valid).toBe(true);expect(plan.placements.map(b=>b.productId)).toEqual(["loose"]);expect(plan.metrics.grossWeight).toBe(10);
 });
-it("keeps direct support separate from prebuilt and floor pallet workflows",()=>{
- expect(()=>packLoadingWorkflow({...request,workflow:"palletized",palletBuild:DEFAULT_PALLET_BUILD})).toThrow(/direct cargo/);expect(()=>palletizeThenPack(request,DEFAULT_PALLET_BUILD.config,"single")).toThrow(/direct cargo/);expect(()=>pack({...request,floorPallets:DEFAULT_PALLET_BUILD.config})).toThrow();
+it("retains direct support with floor pallets and requires separate prebuilt-unit rules",()=>{
+ expect(()=>packLoadingWorkflow({...request,workflow:"palletized",palletBuild:DEFAULT_PALLET_BUILD})).toThrow(/direct cargo/);expect(()=>palletizeThenPack(request,DEFAULT_PALLET_BUILD.config,"single")).toThrow(/direct cargo/);const plan=pack({...request,container:{...c,length:400},floorPallets:{...DEFAULT_PALLET_BUILD.config,length:200,width:200,height:50,gap:0,count:1}});expect(plan.validation.valid).toBe(true);expect(plan.pallets?.[0].x).toBeGreaterThanOrEqual(z.dx);
 });
-it("uses actual two-end timber contact for span and shared load without filling the gap",()=>{
+it("uses actual two-end timber contact and bounds each support by the complete load",()=>{
  const q={...p,length:1000,width:100,quantity:1,minimumSupportRatio:.4,longSupport:{version:1 as const,dimensions:{length:1000,width:100,height:100},axis:"L" as const,bands:[{start:0,end:200},{start:800,end:1000}],minimumContactRatio:1,maxSpanMm:600,maxOverhangMm:0,source:"QA geometry",revision:"42"}},a={...z,dy:100},b={...a,id:"end",x:800};
  const r={...request,container:{...c,length:1000,width:100,height:200,doorWidth:100,doorHeight:200,exclusions:[a,b]},products:[q]},plan=pack(r);
- expect(plan.placements).toHaveLength(1);expect(inspectLongSupport(plan,[q])[0]).toMatchObject({state:"pass",spanMm:600,overhangMm:[0,0]});expect(inspectAccessorySupports(plan,[q]).map(r=>r.loadKg)).toEqual([5,5]);
+ expect(plan.placements).toHaveLength(1);expect(inspectLongSupport(plan,[q])[0]).toMatchObject({state:"pass",spanMm:600,overhangMm:[0,0]});expect(inspectAccessorySupports(plan,[q]).map(r=>r.loadKg)).toEqual([10,10]);
  expect(pack({...r,products:[{...q,longSupport:{...q.longSupport,maxSpanMm:599}}]}).placements).toHaveLength(0);
  expect(pack({...r,products:[{...q,minimumSupportRatio:.995}]}).placements).toHaveLength(0);
  const unknown=pack({...r,container:{...r.container,exclusions:[{...a,accessory:{...a.accessory!,source:""}},b]}});expect(inspectLongSupport(unknown,[q])[0].state).toBe("unverified");

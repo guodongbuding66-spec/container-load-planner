@@ -6,6 +6,8 @@ export type { CrateCorner, CrateRegion } from "./crate-structure";
 export type CrateBearingProfile = {
   /** Absent in old independent-preflight files: automatic stacking stays disabled. */
   automaticStacking?:boolean;
+  /** Separate evidence for a coplanar group of load-bearing lower crates. */
+  bridgeStacking?:boolean;
   policy:"unverified"|"prohibited"|"rated";
   revision:string; source:string; conditions:string; validUntil:string;
   allowedOrientations:("LWH"|"WLH")[];
@@ -19,6 +21,7 @@ export function parseCrateBearing(value:unknown):CrateBearingProfile {
   if(!value||typeof value!=="object"||Array.isArray(value))throw new Error("Invalid crate bearing profile");
   const v=value as CrateBearingProfile;
   if(v.automaticStacking!==undefined&&typeof v.automaticStacking!=="boolean")throw new Error("Invalid automatic crate stacking option");
+  if(v.bridgeStacking!==undefined&&typeof v.bridgeStacking!=="boolean")throw new Error("Invalid multi-crate support option");
   const text=(value:unknown,max:number)=>{if(typeof value!=="string"||value.length>max)throw new Error("Invalid crate rating source");return value.trim();};
   const number=(value:unknown)=>{if(typeof value!=="number"||!Number.isFinite(value)||value<0||value>100000)throw new Error("Crate ratings must be finite, 0–100000 kg");return value;};
   if(!["unverified","prohibited","rated"].includes(v.policy)||typeof v.reviewed!=="boolean"||!Number.isInteger(v.maxLayers)||v.maxLayers<1||v.maxLayers>20)throw new Error("Invalid crate rating policy or layers");
@@ -26,11 +29,11 @@ export function parseCrateBearing(value:unknown):CrateBearingProfile {
   if(!v.columnCapacityKg||typeof v.columnCapacityKg!=="object"||Array.isArray(v.columnCapacityKg)||Object.keys(v.columnCapacityKg).length!==4||Object.keys(v.columnCapacityKg).some(id=>!CRATE_CORNERS.includes(id as CrateCorner)))throw new Error("Exactly four linked column ratings are required");
   const validUntil=text(v.validUntil,10);
   if(validUntil&&(!/^\d{4}-\d{2}-\d{2}$/.test(validUntil)||Number.isNaN(Date.parse(validUntil))||new Date(validUntil).toISOString().slice(0,10)!==validUntil))throw new Error("Invalid crate rating expiry date");
-  return {...(v.automaticStacking===undefined?{}:{automaticStacking:v.automaticStacking}),policy:v.policy,revision:text(v.revision,120),source:text(v.source,500),conditions:text(v.conditions,2000),validUntil,allowedOrientations:[...v.allowedOrientations],maxTopLoadKg:number(v.maxTopLoadKg),maxLayers:v.maxLayers,columnCapacityKg:Object.fromEntries(CRATE_CORNERS.map(id=>[id,number(v.columnCapacityKg[id])])) as Record<CrateCorner,number>,reviewed:v.reviewed,reviewedFor:text(v.reviewedFor,32768)};
+  return {...(v.automaticStacking===undefined?{}:{automaticStacking:v.automaticStacking}),...(v.bridgeStacking?{bridgeStacking:true}:{}),policy:v.policy,revision:text(v.revision,120),source:text(v.source,500),conditions:text(v.conditions,2000),validUntil,allowedOrientations:[...v.allowedOrientations],maxTopLoadKg:number(v.maxTopLoadKg),maxLayers:v.maxLayers,columnCapacityKg:Object.fromEntries(CRATE_CORNERS.map(id=>[id,number(v.columnCapacityKg[id])])) as Record<CrateCorner,number>,reviewed:v.reviewed,reviewedFor:text(v.reviewedFor,32768)};
 }
 /** Exact geometry/version binding, not a security signature. Appearance and display name do not change it. */
 export function crateStructureKey(c:FloorPalletConfig){const s=c.packaging;return JSON.stringify({length:c.length,width:c.width,height:c.height,weight:c.weight,maxLoad:c.maxLoad,maxCargoHeight:c.maxCargoHeight??0,base:s?.base,...(s?.bottomDeck==="none"?{bottomDeck:"none"}:{}),enclosure:s?.enclosure,material:s?.material,deckBoards:s?.deckBoards,runners:s?.runners,wallThickness:s?.wallThickness,lid:s?.lid,...(s?.measurements?{measurements:{...s.measurements,source:s.measurements.source.trim(),revision:s.measurements.revision.trim()}}:{})});}
-export function crateEvidenceKey(c:FloorPalletConfig,p=c.crateBearing??emptyCrateBearing()) {return JSON.stringify({model:"four-corner-paths-v1",...(p.automaticStacking?{automaticStacking:true}:{}),structure:crateStructureKey(c),policy:p.policy,revision:p.revision.trim(),source:p.source.trim(),conditions:p.conditions.trim(),validUntil:p.validUntil,allowedOrientations:[...p.allowedOrientations].sort(),maxTopLoadKg:p.maxTopLoadKg,maxLayers:p.maxLayers,columnCapacityKg:CRATE_CORNERS.map(id=>p.columnCapacityKg[id])});}
+export function crateEvidenceKey(c:FloorPalletConfig,p=c.crateBearing??emptyCrateBearing()) {return JSON.stringify({model:"four-corner-paths-v1",...(p.automaticStacking?{automaticStacking:true}:{}),...(p.bridgeStacking?{bridgeStacking:true}:{}),structure:crateStructureKey(c),policy:p.policy,revision:p.revision.trim(),source:p.source.trim(),conditions:p.conditions.trim(),validUntil:p.validUntil,allowedOrientations:[...p.allowedOrientations].sort(),maxTopLoadKg:p.maxTopLoadKg,maxLayers:p.maxLayers,columnCapacityKg:CRATE_CORNERS.map(id=>p.columnCapacityKg[id])});}
 export type CrateEvidenceState="unverified"|"prohibited"|"ready";
 export type CrateReason="selection"|"missing"|"prohibited"|"unsupported"|"source"|"expired"|"stale"|"ratings"|"orientation"|"contact"|"top-load"|"column-load"|"layers"|"payload"|"geometry";
 export const CRATE_REASON_TEXT:Record<CrateReason,[string,string]>={

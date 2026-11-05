@@ -1,5 +1,6 @@
 import {describe,expect,it} from "vitest";
 import {inspectLongSupport,parseLongSupport,type LongSupportProfile} from "./long-support";
+import {bearingErrors,bearingLoads} from "./bearing";
 import {pack} from "./engine";
 import {quarterTurnOrientation} from "./cargo-body";
 import {reviewPlan} from "./plan-review";
@@ -23,6 +24,13 @@ describe("profile input and provenance",()=>{
 });
 it("checks floor contact without changing coordinates, weights or counts",()=>{const p=make(),before=JSON.stringify(p),r=inspect(p);expect(r.state).toBe("pass");expect(r.bandRatios).toEqual([1,1]);expect(r.spanMm).toBe(0);expect(r.overhangMm).toEqual([0,0]);expect(r.supporterIds).toEqual(["floor"]);expect(JSON.stringify(p)).toBe(before);});
 it("measures a 600 mm centre span between two full-width end supports",()=>{const r=inspect();expect(r.state).toBe("pass");expect(r.spanMm).toBe(600);expect(r.bandRatios).toEqual([1,1]);expect(r.overhangMm).toEqual([0,0]);expect(r.supporterIds).toEqual(["a","b"]);});
+it("bounds each declared span support by the whole upper load",()=>{
+ const plan=ends(),limits={...lower,maxTopLoadKg:7};
+ expect(bearingLoads(plan.placements,[product,limits]).get("a")).toBe(10);
+ expect(bearingLoads(plan.placements,[product,limits]).get("b")).toBe(10);
+ expect(bearingErrors(plan.placements,[product,limits])).toHaveLength(2);
+ expect(bearingErrors(plan.placements,[{...product,longSupport:undefined},limits])).toEqual([]);
+});
 it("separately rejects excessive spans, end overhangs and missing required bands",()=>{expect(inspect(ends(),{...product,longSupport:{...profile,maxSpanMm:599}}).issues).toContain("span");const p=ends();p.placements[0]={...p.placements[0],x:100,dx:100};p.placements[1]={...p.placements[1],dx:100};const r=inspect(p,{...product,longSupport:{...profile,bands:[{start:100,end:200},{start:800,end:900}],maxOverhangMm:99}});expect(r.state).toBe("fail");expect(r.overhangMm).toEqual([100,100]);expect(r.issues).toContain("overhang");expect(inspect(p).issues).toContain("band");});
 it("does not count zero as missing data",()=>{const p={...product,longSupport:{...profile,maxSpanMm:0,maxOverhangMm:0}};expect(inspect(make(p),p).state).toBe("pass");expect(inspect(ends(),p).issues).toEqual(["span"]);});
 it("unions overlaps and requires the entered transverse contact ratio",()=>{const p=ends();p.placements[0]={...p.placements[0],dy:50};p.placements[1]={...p.placements[1],dy:50};p.placements.push({...p.placements[0],id:"duplicate"});const r=inspect(p);expect(r.bandRatios).toEqual([.5,.5]);expect(r.state).toBe("fail");expect(r.issues).toContain("no-contact");p.placements.push({...p.placements[0],id:"a-half",y:50},{...p.placements[1],id:"b-half",y:50});expect(inspect(p).state).toBe("pass");});

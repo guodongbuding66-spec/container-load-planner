@@ -1,3 +1,4 @@
+import {reviewVehicleEngineering} from "./vehicle-engineering";
 import {bottomDeckText} from "./packaging";
 import {palletLoadEnvelope} from "./unit-envelope";
 import {deliveryIdentityState,deliveryUnitBindings} from "./delivery-identity";
@@ -105,6 +106,20 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
       text(ellipsis(p.id,1450),100,y,27,true);text(`${e.dx} × ${e.dy} × ${e.dz} mm · XYZ ${e.x} / ${e.y} / ${e.z}`,100,y+42,25);
       text(ellipsis(`${p.measuredEnvelope!.date} · ${p.measuredEnvelope!.source}`,1560),100,y+82,23);
     });
+    await finish();
+  }
+  const floorReview=reviewVehicleEngineering(result);
+  if(floorReview){
+    start(t("地板载荷与配重复核","Floor load and balance review"));
+    text(ellipsis(`${floorReview.profile.source} · ${floorReview.profile.revision}`,1450),100,310,27,true);
+    const state=floorReview.state==="pass"?t("录入限值内","Within entered limits"):floorReview.state==="fail"?t("超过录入限值","Entered limits exceeded"):t("资料未核验","Evidence unverified");
+    text(`${state} · ${floorReview.totalKg.toFixed(2)} kg · ${t("待核验项","Unverified items")} ${floorReview.unknown.length}`,100,365,25);
+    if(floorReview.cg)text(`${t("计划重心距柜头／左壁","Planned CG from nose / left wall")} ${floorReview.cg.x.toFixed(1)} / ${floorReview.cg.y.toFixed(1)} mm`,100,420,25);
+    if(floorReview.maxKnownContactKgM2!==null){
+      const limit=floorReview.profile.maxContactKgM2;
+      text(`${t("已识别接触面的最大载荷上界","Highest identified contact load bound")} ${floorReview.maxKnownContactKgM2.toFixed(1)} kg/m²${limit===null?"":` / ${limit} kg/m²`}`,100,480,25);
+    }
+    floorReview.zones.forEach((z,i)=>text(ellipsis(`${z.name} · ${z.loadKg.toFixed(2)} / ${z.maxKg} kg`,1450),100,540+i*90,25));
     await finish();
   }
   if(result.container.exclusions?.length){

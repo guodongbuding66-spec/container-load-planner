@@ -88,6 +88,7 @@ export const ENGLISH: Record<string, string> = {
   "Support requires one physical timber / brace / other piece installed before cargo / 支承件必须为装货前安装的单件实心垫木、支架或其他实体": "Support requires one physical timber / brace / other piece installed before cargo.",
   "Support must rest on the floor / 首阶段支承件必须直接落地，Z 为 0": "Support must rest on the floor (Z=0).",
   "Support overlaps another physical region / 支承件与其他实体区域相交": "Support overlaps another physical region.",
+  "Fixed accessory supports require direct cargo loading, with optional floor pallets / 固定支承件适用于直接装柜，可配合底层托盘": "Fixed accessory supports require direct cargo loading, with optional floor pallets.",
   "Fixed accessory supports currently require direct cargo loading / 固定支承件首阶段仅支持散箱直接装柜，请关闭支承声明或切换工作流": "Fixed accessory supports currently require direct cargo loading; disable the support declaration or switch workflows.",
   "已声明的落地实心支承件参与接触与输入静载上限校验；未知额定值、材料强度及动态载荷未核验 / Declared solid floor supports participate in contact and entered static load limits; missing ratings, material strength and dynamics remain unverified": "Declared solid floor supports participate in contact and entered static load limits; missing ratings, material strength and dynamics remain unverified.",
   "底座实测尺寸格式无效": "Invalid measured base dimensions",

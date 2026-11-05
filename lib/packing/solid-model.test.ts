@@ -99,3 +99,16 @@ import {cargoShapeFootprints} from './cargo-shape-geometry';
 import {pointInPolygon} from './solid-math';
 it('retains a real tube bore in the fallback floor projection, and exposes the conservative proxy separately',()=>{const p=modelProduct('tube'),footprints=cargoShapeFootprints(p,'LWH');expect(footprints.some(poly=>pointInPolygon([0,0],poly))).toBe(false);expect(footprints.some(poly=>pointInPolygon([.4,0],poly))).toBe(true);const actual=cargoShapeGeometry(p,'LWH',false),proxy=cargoShapeGeometry(p,'LWH',false,undefined,true);expect(actual.getAttribute('position').count).not.toBe(proxy.getAttribute('position').count);actual.dispose();proxy.dispose();});
 it('removes opposite internal render faces while keeping duplicate outer surfaces visible',()=>{const m=defaultSolidModel('box',[100,100,100]);m.parts.push({...defaultModelPart('box',[100,100,100],'right'),position:[100,0,0]});const g=cargoShapeGeometry({solidModel:parseSolidModel(m)!});expect(g.getAttribute('position').count).toBe(60);g.dispose();const same=defaultSolidModel('box',[100,100,100]);same.parts.push(defaultModelPart('box',[100,100,100],'duplicate'));const duplicate=cargoShapeGeometry({solidModel:parseSolidModel(same)!});expect(duplicate.getAttribute('position').count).toBe(36);duplicate.dispose();});
+
+it("uses installed part tilt for both the collision envelope and the actual resting face",()=>{
+ const model=defaultSolidModel("box",[100,60,30]);
+ model.parts[0].tiltDegrees=[0,0,45];
+ const rotated=parseSolidModel(JSON.parse(JSON.stringify(model)))!,built=buildSolidModel(rotated);
+ expect(built.size[0]).toBeCloseTo(160/Math.sqrt(2));
+ expect(built.size[1]).toBeCloseTo(160/Math.sqrt(2));
+ expect(built.size[2]).toBe(30);
+ const tilted=structuredClone(model);tilted.parts[0].tiltDegrees=[30,0,0];
+ const slope=parseSolidModel(tilted)!,size=buildSolidModel(slope).size;
+ expect(modelRestError(box(0,0,0,...size),{solidModel:slope})).toMatch(/平底/);
+ expect(()=>parseSolidModel({...model,parts:[{...model.parts[0],tiltDegrees:[0,0,181]}]})).toThrow(/tilt/);
+});

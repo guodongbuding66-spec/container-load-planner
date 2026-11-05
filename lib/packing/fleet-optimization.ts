@@ -5,19 +5,20 @@ import {fleetCanonical,validateFleet} from "./fleet-validation";
 import {fleetCosts,type DeliveryCharge} from "./fleet-costs";
 import {fleetTailGroups,fleetTailRows,type FleetSnapshot,type FleetTailAllocation,type FleetTailRow} from "./fleet-tail";
 import {fillFleetGaps} from "./fleet-gap-fill";
+import {fillFleetUnitGaps,gapUnitInsertionValid} from "./fleet-gap-units";
 import {parsePalletBuild} from "./loading-workflow";
 import {normalizedSetCode,normalizedUnitsPerSet} from "./set-utils";
 import {toCsvCell} from "./csv";
 
 export const FLEET_OPTIMIZATION_LIMIT=64;
-export type FleetOptimizationSettings={mode:"reallocate"|"fill";keepPrefix:number;cartonBudget:number;comparePackaging:boolean;rework:{dismantle:number|null;rebuild:number|null;source:string}};
+export type FleetOptimizationSettings={mode:"reallocate"|"fill"|"fill-units";keepPrefix:number;cartonBudget:number;comparePackaging:boolean;rework:{dismantle:number|null;rebuild:number|null;source:string}};
 export type FleetOptimizationSpec={units:number[];selection:"ordered"|"compact"};
 export type FleetOptimizationGroup={id:string;name:string;cartonsPerUnit:number;ceiling:number};
 export type PreparedFleetOptimization={source:FleetSnapshot;settings:FleetOptimizationSettings;groups:FleetOptimizationGroup[];seeds:FleetOptimizationSpec[];exhaustive:boolean;domainSize:number|null};
 export type FleetOptimizationCandidate={index:number;spec:FleetOptimizationSpec;allocations:FleetTailAllocation[];addedCartons:number;containers:number;loaded:number;remaining:number;packaging:number;loose:number;baseConfiguredTotal:number|null;dismantled:number;rebuilt:number;reworkTotal:number|null;configuredTotal:number|null;retainsRows:boolean;improves:boolean;rows:FleetTailRow[]};
 export type FleetOptimizationReport={format:"cargo-fit-fleet-optimization";version:1;engineVersion:string;status:"preview-not-applied";complete:true;source:FleetSnapshot;settings:FleetOptimizationSettings;groups:FleetOptimizationGroup[];search:{kind:"complete-grid"|"adaptive";candidateDomain:number|null;budget:number;evaluated:number};candidates:FleetOptimizationCandidate[];bestIndex:number|null;best?:FleetSnapshot};
 
-export function minimumFleetPrefix(source:FleetSnapshot,mode:"reallocate"|"fill"="reallocate"){let minimum=0;source.result.loads.forEach((l,i)=>{if(l.frozen!==undefined||l.plan.deliveryIdentity||mode==="reallocate"&&(l.plan.placements.some(b=>b.locked)||l.plan.pallets?.some(p=>p.locked||p.measuredEnvelope)))minimum=i+1;});return minimum;}
+export function minimumFleetPrefix(source:FleetSnapshot,mode:FleetOptimizationSettings["mode"]="reallocate"){let minimum=0;source.result.loads.forEach((l,i)=>{if(l.frozen!==undefined||l.plan.deliveryIdentity||mode==="reallocate"&&(l.plan.placements.some(b=>b.locked)||l.plan.pallets?.some(p=>p.locked||p.measuredEnvelope)))minimum=i+1;});return minimum;}
 const currentSelection=(s:FleetSnapshot)=>s.request.palletBuild?.selection??"ordered";
 const specKey=(s:FleetOptimizationSpec)=>JSON.stringify([s.units,s.selection]);
 const extraCartons=(p:Pick<PreparedFleetOptimization,"groups">,s:FleetOptimizationSpec)=>s.units.reduce((n,u,i)=>n+u*p.groups[i].cartonsPerUnit,0);
@@ -33,17 +34,27 @@ function frozenPrefix(p:Pick<PreparedFleetOptimization,"source"|"settings">):Fle
 export function prepareFleetOptimization(source:FleetSnapshot,settings:FleetOptimizationSettings):PreparedFleetOptimization{
  const s=normalizedSource(source),n=s.request.products.reduce((a,p)=>a+p.quantity,0),v=structuredClone(settings);
  if(s.request.workflow!=="palletized"||s.request.mode!=="mixed"||n<1||n>4000||s.limit>20||!s.result.loads.length)throw Error("自动优化支持 1–4000 箱、1–20 柜的预打托整单 / Automatic optimization supports prebuilt orders of 1–4000 cartons and 1–20 containers");
- if(!v||!["reallocate","fill"].includes(v.mode)||typeof v.comparePackaging!=="boolean"||!Number.isSafeInteger(v.keepPrefix)||v.keepPrefix<minimumFleetPrefix(s,v.mode)||v.keepPrefix>s.result.loads.length||!Number.isSafeInteger(v.cartonBudget)||v.cartonBudget<1||v.cartonBudget>64||!v.rework||typeof v.rework.source!=="string"||v.rework.source.length>500)throw Error("请检查已装柜前缀、搜索预算和费用资料 / Check the committed prefix, search budget and quotes");
+ if(!v||!["reallocate","fill","fill-units"].includes(v.mode)||typeof v.comparePackaging!=="boolean"||!Number.isSafeInteger(v.keepPrefix)||v.keepPrefix<minimumFleetPrefix(s,v.mode)||v.keepPrefix>s.result.loads.length||!Number.isSafeInteger(v.cartonBudget)||v.cartonBudget<1||v.cartonBudget>64||!v.rework||typeof v.rework.source!=="string"||v.rework.source.length>500)throw Error("请检查已装柜前缀、搜索预算和费用资料 / Check the committed prefix, search budget and quotes");
  for(const price of [v.rework.dismantle,v.rework.rebuild])if(price!==null&&(typeof price!=="number"||!Number.isFinite(price)||price<0||price>1e7))throw Error("拆托与重打单价无效 / Invalid dismantling or rebuilding quote");
  if(v.mode==="reallocate"&&[v.rework.dismantle,v.rework.rebuild].some(q=>q!==null)&&!v.rework.source.trim())throw Error("填写费用时须记录报价来源 / A quote source is required");
  if(v.mode==="reallocate"&&s.objective==="cost"&&[v.rework.dismantle,v.rework.rebuild].some(q=>q===null))throw Error("费用优先须明确拆托与重打报价，免费请填 0 / Cost priority requires dismantling and rebuilding quotes; explicitly quote zero for free");
  if(v.mode==="reallocate"&&(s.pricing?.charges?.length??0)>28)throw Error("附加报价最多 30 项，请为本轮拆托和重打保留两项 / Reserve two of the 30 charge slots for this optimization");
+ if(v.mode==="fill-units"){
+  if(v.rework.rebuild!==null&&!v.rework.source.trim()||s.objective==="cost"&&v.rework.rebuild===null)throw Error("整托补入按新增打托数计费，费用优先须提供打托报价及来源 / Cost priority for unit filling requires a preparation quote and source");
+  if((s.pricing?.charges?.length??0)>=30)throw Error("请为本轮新增打托费保留一项报价 / Reserve one charge slot for preparation");
+  const stock=s.result.inventory!;
+  if(stock.totalUsed>=stock.totalLimit||stock.packages.every(p=>p.remaining===0))throw Error("整托补货需要剩余包装库存 / Complete-unit filling requires remaining packaging stock");
+ }
  const retained=s.result.loads.slice(0,v.keepPrefix),fixedPalletized=new Map<string,number>(),allLoaded=new Map<string,number>();
  for(const l of retained)for(const b of l.plan.placements)if(b.palletIds?.length)fixedPalletized.set(b.productId,(fixedPalletized.get(b.productId)??0)+1);
  for(const l of s.result.loads)for(const b of l.plan.placements)allLoaded.set(b.productId,(allLoaded.get(b.productId)??0)+1);
- const groups=fleetTailGroups(s.request).map(g=>({...g,availableUnits:Math.min(g.availableUnits,Math.floor(v.cartonBudget/g.cartonsPerUnit),...g.products.map(p=>Math.floor(Math.max(0,v.mode==="fill"?p.quantity-(allLoaded.get(p.id)??0):p.quantity-(fixedPalletized.get(p.id)??0)-(s.request.palletBuild?.looseQuantities?.[p.id]??0))/(normalizedSetCode(p)?normalizedUnitsPerSet(p):1))))})).filter(g=>g.availableUnits>0);
+ const unusedLoose=new Map(s.result.inventory?.loose.map(p=>[p.productId,p.remaining]));
+ const available=(id:string,quantity:number)=>v.mode==="reallocate"
+  ?quantity-(fixedPalletized.get(id)??0)-(s.request.palletBuild?.looseQuantities?.[id]??0)
+  :quantity-(allLoaded.get(id)??0)-(v.mode==="fill-units"?unusedLoose.get(id)??0:0);
+ const groups=fleetTailGroups(s.request,v.mode==="fill-units").map(g=>({...g,availableUnits:Math.min(g.availableUnits,Math.floor(v.cartonBudget/g.cartonsPerUnit),...g.products.map(p=>Math.floor(Math.max(0,available(p.id,p.quantity))/(normalizedSetCode(p)?normalizedUnitsPerSet(p):1))))})).filter(g=>g.availableUnits>0);
  if(groups.length>64)throw Error("本轮最多自动优化 64 个源行或完整套装 / This batch supports at most 64 order rows or whole kits");
- if(v.mode==="fill"&&(!groups.length||v.keepPrefix===s.result.loads.length))throw Error("现有未封存柜没有可补入的订单余货 / No remaining order cargo can be added to the open containers");
+ if(v.mode!=="reallocate"&&(!groups.length||v.keepPrefix===s.result.loads.length))throw Error("现有未封存柜没有可补入的订单余货 / No remaining order cargo can be added to the open containers");
  const p:PreparedFleetOptimization={source:s,settings:v,groups:groups.map(g=>({id:g.id,name:g.name,cartonsPerUnit:g.cartonsPerUnit,ceiling:g.availableUnits})),seeds:[],exhaustive:false,domainSize:0};
  const choices:("ordered"|"compact")[]=[currentSelection(s)];if(v.mode==="reallocate"&&v.comparePackaging)choices.push(choices[0]==="ordered"?"compact":"ordered");
  let domain=choices.length;for(const g of groups){domain*=g.availableUnits+1;if(!Number.isSafeInteger(domain)){domain=Infinity;break;}}p.domainSize=Number.isFinite(domain)?Math.max(0,domain-1):null;
@@ -68,27 +79,43 @@ export function prepareFleetOptimization(source:FleetSnapshot,settings:FleetOpti
  return p;
 }
 
+function cartonAllowances(p:PreparedFleetOptimization,spec:FleetOptimizationSpec){
+ const definitions=new Map(fleetTailGroups(p.source.request,p.settings.mode==="fill-units").map(g=>[g.id,g]));
+ const allowances=new Map<string,number>();
+ for(let i=0;i<p.groups.length;i++)if(spec.units[i])for(const product of definitions.get(p.groups[i].id)!.products)allowances.set(product.id,spec.units[i]*(normalizedSetCode(product)?normalizedUnitsPerSet(product):1));
+ return allowances;
+}
+
 /** Reconstruct inputs from the validated source, never from a candidate's claimed request. */
 export function fleetOptimizationTrial(p:PreparedFleetOptimization,spec:FleetOptimizationSpec){
  if(!spec||!Array.isArray(spec.units)||spec.units.length!==p.groups.length||spec.units.some((u,i)=>!Number.isSafeInteger(u)||u<0||u>p.groups[i].ceiling)||extraCartons(p,spec)>p.settings.cartonBudget||![currentSelection(p.source),...(p.settings.mode==="reallocate"&&p.settings.comparePackaging?["ordered","compact"]:[])].includes(spec.selection))throw Error("自动优化配额向量无效 / Invalid optimization vector");
- const request=structuredClone(p.source.request),build=parsePalletBuild(request.palletBuild),looseQuantities={...build.looseQuantities};
- const definitions=new Map(fleetTailGroups(request).map(g=>[g.id,g]));
- for(let i=0;i<p.groups.length;i++)if(spec.units[i])for(const product of definitions.get(p.groups[i].id)!.products)looseQuantities[product.id]=(looseQuantities[product.id]??0)+spec.units[i]*(normalizedSetCode(product)?normalizedUnitsPerSet(product):1);
- request.palletBuild=parsePalletBuild({...build,selection:spec.selection,looseQuantities});
+ const request=structuredClone(p.source.request);
+ if(p.settings.mode!=="fill-units"){
+  const build=parsePalletBuild(request.palletBuild),looseQuantities={...build.looseQuantities};
+  for(const [id,quantity] of cartonAllowances(p,spec))looseQuantities[id]=(looseQuantities[id]??0)+quantity;
+  request.palletBuild=parsePalletBuild({...build,selection:spec.selection,looseQuantities});
+ }
  return {request,options:structuredClone(p.source.options),limit:p.source.limit,objective:p.source.objective,pricing:structuredClone(p.source.pricing)};
 }
 export function solveFleetOptimizationTrial(p:PreparedFleetOptimization,spec:FleetOptimizationSpec):FleetResult{
  const v=fleetOptimizationTrial(p,spec),prefix=frozenPrefix(p);
- const result=p.settings.mode==="fill"?fillFleetGaps(v.request,p.source.result,prefix,v.pricing):allocateFleet(v.request,v.options,v.limit,v.objective,undefined,v.pricing,prefix);
+ const result=p.settings.mode==="fill-units"?fillFleetUnitGaps(v.request,p.source.result,prefix,cartonAllowances(p,spec),v.pricing)
+  :p.settings.mode==="fill"?fillFleetGaps(v.request,p.source.result,prefix,v.pricing):allocateFleet(v.request,v.options,v.limit,v.objective,undefined,v.pricing,prefix);
  const checked=validateFleet(v.request,result,v.options,v.limit);if(!checked.valid)throw Error(checked.errors.join("; "));return result;
 }
+function workCounts(p:PreparedFleetOptimization,packaging:number){
+ const base=p.source.result.inventory!.totalUsed;
+ const prefix=p.source.result.loads.slice(0,p.settings.keepPrefix).reduce((n,l)=>n+(l.plan.pallets?.length??0),0);
+ if(p.settings.mode==="fill-units")return {dismantled:0,rebuilt:packaging-base};
+ return p.settings.mode==="fill"?{dismantled:0,rebuilt:0}:{dismantled:base-prefix,rebuilt:packaging-prefix};
+}
 function rework(p:PreparedFleetOptimization,value:FleetSnapshot){
- const dismantled=p.settings.mode==="fill"?0:p.source.result.loads.slice(p.settings.keepPrefix).reduce((n,l)=>n+(l.plan.pallets?.length??0),0),rebuilt=p.settings.mode==="fill"?0:value.result.loads.slice(p.settings.keepPrefix).reduce((n,l)=>n+(l.plan.pallets?.length??0),0);
+ const {dismantled,rebuilt}=workCounts(p,value.result.inventory!.totalUsed);
  const costs=[{kind:"dismantle",count:dismantled,unit:p.settings.rework.dismantle},{kind:"rebuild",count:rebuilt,unit:p.settings.rework.rebuild}];
  const total=costs.some(c=>c.count&&c.unit===null)?null:costs.reduce((n,c)=>n+c.count*(c.unit??0),0);
  if(!dismantled&&!rebuilt)return {value,dismantled,rebuilt,total};
  const charges=[...value.pricing?.charges??[]];let number=1;while(charges.some(c=>c.id===`optimization-${number}-dismantle`||c.id===`optimization-${number}-rebuild`))number++;
- for(const c of costs)if(c.count){const charge:DeliveryCharge={id:`optimization-${number}-${c.kind}`,label:c.kind==="dismantle"?`Dismantling ${c.count} units`:`Rebuilding ${c.count} units`,category:"rework",basis:"order",amount:c.unit===null?null:c.unit*c.count,currency:value.pricing?.currency??"CNY",source:c.unit===null?"":`${p.settings.rework.source} | ${c.count} x ${c.unit}`};charges.push(charge);}
+ for(const c of costs)if(c.count){const charge:DeliveryCharge={id:`optimization-${number}-${c.kind}`,label:c.kind==="dismantle"?`Dismantling ${c.count} units`:p.settings.mode==="fill-units"?`Preparing ${c.count} additional units`:`Rebuilding ${c.count} units`,category:"rework",basis:"order",amount:c.unit===null?null:c.unit*c.count,currency:value.pricing?.currency??"CNY",source:c.unit===null?"":`${p.settings.rework.source} | ${c.count} x ${c.unit}`};charges.push(charge);}
  const pricing={currency:value.pricing?.currency??"CNY",packaging:{...value.pricing?.packaging},...value.pricing,charges},result={...value.result,pricing,costs:fleetCosts(value.result.loads,pricing)};
  return {value:{...value,pricing,result},dismantled,rebuilt,total};
 }
@@ -101,9 +128,25 @@ export function reviewFleetOptimization(p:PreparedFleetOptimization,spec:FleetOp
  const trial=fleetOptimizationTrial(p,spec),checked=normalizedSource({...trial,result}),prefix=frozenPrefix(p);
  for(let i=0;i<prefix.length;i++)if(fleetCanonical(checked.result.loads[i])!==fleetCanonical(prefix[i]))throw Error("已装柜前缀发生变化 / Committed container prefix changed");
  if(checked.result.loads.slice(prefix.length).some(l=>l.frozen!==undefined))throw Error("候选增加了未经确认的已装柜 / Candidate added an unconfirmed committed container");
- if(p.settings.mode==="fill"){
+ if(p.settings.mode!=="reallocate"){
   if(checked.result.loads.length!==p.source.result.loads.length)throw Error("空隙补货不得增减现有柜 / Gap filling cannot change existing containers");
-  p.source.result.loads.forEach((l,i)=>{const after=checked.result.loads[i].plan;if(fleetCanonical(l.plan.pallets)!==fleetCanonical(after.pallets)||fleetCanonical(l.plan.container)!==fleetCanonical(after.container))throw Error("空隙补货移动了原整托 / Gap filling moved an existing unit");for(const box of l.plan.placements){const next=after.placements.find(b=>b.id===box.id);if(!next||fleetCanonical({...box,layer:undefined})!==fleetCanonical({...next,layer:undefined}))throw Error("空隙补货改变了原箱位或身份 / Gap filling changed an original carton or its identity");}});
+  const units=p.settings.mode==="fill-units",allowances=units?cartonAllowances(p,spec):undefined;
+  p.source.result.loads.forEach((l,i)=>{
+   const after=checked.result.loads[i].plan,before=l.plan,oldPallets=before.pallets??[],oldIds=new Set(before.placements.map(b=>b.id));
+   const keep=units?after.pallets?.slice(0,oldPallets.length):after.pallets;
+   if(fleetCanonical(before.pallets)!==fleetCanonical(keep)||fleetCanonical(before.container)!==fleetCanonical(after.container))throw Error("空隙补货移动了原整托 / Gap filling moved an existing unit");
+   const nextById=new Map(after.placements.map(b=>[b.id,b]));
+   for(const box of before.placements){const next=nextById.get(box.id);if(!next||fleetCanonical({...box,layer:undefined})!==fleetCanonical({...next,layer:undefined}))throw Error("空隙补货改变了原箱位或身份 / Gap filling changed an original carton or its identity");}
+   if(allowances){
+    const addedUnits=new Set(after.pallets?.slice(oldPallets.length).map(u=>u.id));
+    if(!gapUnitInsertionValid(before,after,p.source.request.products))throw Error("新增整托缺少直线净空 / A new complete unit lacks a clear insertion route");
+    for(const box of after.placements)if(!oldIds.has(box.id)){
+     const left=allowances.get(box.productId)??0;
+     if(left<1||box.palletIds?.length!==1||!addedUnits.has(box.palletIds[0]))throw Error("补入箱数或整托归属与候选不一致 / Added cartons or unit membership disagree with the candidate");
+     allowances.set(box.productId,left-1);
+    }
+   }
+  });
  }
  const baseConfiguredTotal=checked.result.costs?.total??null,r=rework(p,checked),value=normalizedSource(r.value),rows=fleetTailRows(value.request,p.source.result,value.result),retainsRows=rows.every(row=>row.loaded>=row.before);
  const summary:FleetOptimizationCandidate={index,spec:structuredClone(spec),allocations:p.groups.map((g,i)=>({id:g.id,name:g.name,units:spec.units[i],cartons:spec.units[i]*g.cartonsPerUnit})),addedCartons:extraCartons(p,spec),containers:value.result.loads.length,loaded:rows.reduce((n,row)=>n+row.loaded,0),remaining:rows.reduce((n,row)=>n+row.unloaded,0),packaging:value.result.inventory?.totalUsed??0,loose:rows.reduce((n,row)=>n+row.loose,0),baseConfiguredTotal,dismantled:r.dismantled,rebuilt:r.rebuilt,reworkTotal:r.total,configuredTotal:value.result.costs?.total??null,retainsRows,improves:false,rows};
@@ -150,7 +193,13 @@ function reviewTranscript(p:PreparedFleetOptimization,report:FleetOptimizationRe
   const trial=fleetOptimizationTrial(p,c.spec),expected=p.groups.map((g,i)=>({id:g.id,name:g.name,units:c.spec.units[i],cartons:c.spec.units[i]*g.cartonsPerUnit}));
   if(fleetCanonical(expected)!==fleetCanonical(c.allocations)||c.addedCartons!==extraCartons(p,c.spec)||c.rows.length!==baseline.length)throw Error("候选配额记录不一致 / Candidate allocation ledger differs");
   for(let i=0;i<baseline.length;i++){const r=c.rows[i],old=baseline[i];if(r.id!==old.id||r.label!==old.label||r.requested!==old.requested||r.before!==old.before||[r.loaded,r.loose,r.palletized,r.unloaded].some(n=>!Number.isSafeInteger(n)||n<0)||r.loaded!==r.loose+r.palletized||r.unloaded!==r.requested-r.loaded||r.reserved!==(trial.request.palletBuild!.looseQuantities?.[r.id]??0)||r.loose>r.reserved||r.palletized>r.requested-r.reserved)throw Error("候选源行记录不一致 / Candidate source-row ledger differs");}
-  const retains=c.rows.every(r=>r.loaded>=r.before),dismantled=p.settings.mode==="fill"?0:p.source.result.loads.slice(p.settings.keepPrefix).reduce((n,l)=>n+(l.plan.pallets?.length??0),0),rebuilt=p.settings.mode==="fill"?0:c.packaging-prefixUnits,work=dismantled&&p.settings.rework.dismantle===null||rebuilt&&p.settings.rework.rebuild===null?null:dismantled*(p.settings.rework.dismantle??0)+rebuilt*(p.settings.rework.rebuild??0);
+  const {dismantled,rebuilt}=workCounts(p,c.packaging);
+  if(p.settings.mode!=="reallocate"&&c.containers!==p.source.result.loads.length||rebuilt<0)throw Error("补货柜数或包装用量不一致 / Gap fill container or packaging count differs");
+  if(p.settings.mode==="fill-units"){
+   const allowances=cartonAllowances(p,c.spec);
+   if(c.rows.some((r,i)=>r.loose!==baseline[i].loose||r.loaded<r.before||r.loaded-r.before>(allowances.get(r.id)??0)))throw Error("整托补货分配不一致 / Complete-unit allocation differs");
+  }
+  const retains=c.rows.every(r=>r.loaded>=r.before),work=dismantled&&p.settings.rework.dismantle===null||rebuilt&&p.settings.rework.rebuild===null?null:dismantled*(p.settings.rework.dismantle??0)+rebuilt*(p.settings.rework.rebuild??0);
   if(!Number.isSafeInteger(c.containers)||c.containers<p.settings.keepPrefix||c.containers>p.source.limit||!Number.isSafeInteger(c.packaging)||c.packaging<prefixUnits||c.packaging>p.source.request.palletBuild!.maxPallets||c.loaded!==c.rows.reduce((n,r)=>n+r.loaded,0)||c.remaining!==c.rows.reduce((n,r)=>n+r.unloaded,0)||c.loose!==c.rows.reduce((n,r)=>n+r.loose,0)||c.dismantled!==dismantled||c.rebuilt!==rebuilt||!sameMoney(c.reworkTotal,work)||!sameMoney(c.configuredTotal,c.baseConfiguredTotal===null||work===null?null:c.baseConfiguredTotal+work)||c.retainsRows!==retains||c.improves!==(retains&&compare(c,baselineScore(p),p.source.objective)>0))throw Error("候选费用或完成记录不一致 / Candidate cost or completion ledger differs");
   schedule.record(c);
  }
@@ -171,6 +220,7 @@ export function adoptFleetOptimization(p:PreparedFleetOptimization,report:FleetO
 
 export function buildFleetOptimizationCsv(report:FleetOptimizationReport,en=false){
  const rows:(string|number|boolean|null)[][]=[en?["Candidate","Mode","Packaging selection","Committed containers","Added cartons","Containers","Loaded","Remaining","Packaging","Loose","Configured before rework","Dismantled","Rebuilt","Rework total","Configured total","Retains every row","Improves","Source row ID","Source row","Requested","Before","After","Global loose quota","Actual loose","Palletized","Status"]:["候选","操作","包装选择","保留柜数","新增散箱","柜数","已装箱","余货箱","包装数","散箱数","拆托重打前费用","拆托数","重打数","拆托重打费用","配置费用合计","逐行不减量","改善","源行ID","源行","需求","原已装","候选已装","全单配额","实际散箱","托内箱数","状态"]];
+ if(report.settings.mode==="fill-units"){rows[0][4]=en?"Trial cartons for complete units":"整托试算箱数";rows[0][12]=en?"Prepared units":"新增打托数";}
  rows[0].push(...report.groups.map(g=>`${en?"Added units":"新增单位"}: ${g.name} [${g.id}]`));
  for(const c of report.candidates)for(const r of c.rows)rows.push([c.index+1,report.settings.mode,c.spec.selection,report.settings.keepPrefix,c.addedCartons,c.containers,c.loaded,c.remaining,c.packaging,c.loose,c.baseConfiguredTotal,c.dismantled,c.rebuilt,c.reworkTotal,c.configuredTotal,c.retainsRows,c.improves,r.id,r.label,r.requested,r.before,r.loaded,r.reserved,r.loose,r.palletized,report.status,...c.spec.units]);
  return rows.map(row=>row.map(cell=>toCsvCell(typeof cell==="boolean"?String(cell):cell)).join(",")).join("\r\n");

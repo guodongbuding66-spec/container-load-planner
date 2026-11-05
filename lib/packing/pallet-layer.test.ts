@@ -44,3 +44,15 @@ it("strictly limits imported data and discards forged weights or pass results",(
 it.each([{repeat:0},{repeat:21},{repeat:1.5},{turns:4},{position:{x:-1,y:0,z:0}},{position:{x:0,y:0,z:NaN}}])("rejects invalid copy parameters %j",patch=>{const args={position:{x:0,y:0,z:0},turns:0,repeat:1,...patch};expect(()=>palletLayerCopies(capture(),[product],args.position,args.turns,args.repeat,false)).toThrow();});
 it("saves the library in workspace inputs and restores both actual edited coordinates and raw templates",()=>{const p=empty(),t=capture(),next=apply(p,t,2),inputs={...request,practicalTargetPercent:95,customContainers:[],targetVolumePercent:85,targetWeightPercent:90,lengthUnit:"mm" as const,weightUnit:"kg" as const,palletLayerTemplates:[t]},text=serializeWorkspaceBackup(inputs,"0.39.0",next,{maximum:next}),parsed=parseWorkspaceBackup(text),restored=restoreWorkspacePlans(text,parsed)!;expect(parsed.palletLayerTemplates).toEqual([t]);expect(restored.placements).toEqual(next.placements);expect(restored.metrics.grossWeight).toBe(next.metrics.grossWeight);const forged=JSON.parse(text);forged.inputs.palletLayerTemplates[0].items[0].x=-1;expect(()=>parseWorkspaceBackup(JSON.stringify(forged))).toThrow();const rows=parseCsvRecords(buildPlacementCsv(restored));expect(rows[0]).toContain("SKU");expect(restored.metrics.loadedCount).toBe(20);});
 it("keeps old workspaces compatible without requiring a layer library",()=>{const p=make(),inputs={...request,practicalTargetPercent:95,customContainers:[],targetVolumePercent:85,targetWeightPercent:90,lengthUnit:"mm" as const,weightUnit:"kg" as const};const text=serializeWorkspaceBackup(inputs,"0.38.0",p);expect(parseWorkspaceBackup(text).palletLayerTemplates).toBeUndefined();expect(restoreWorkspacePlans(text,parseWorkspaceBackup(text))!.placements).toEqual(p.placements);});
+
+it("reuses shaped layers only with the matching physical section",()=>{
+ const shaped:ProductInput={...product,cargoShape:"l-profile",shapeWallRatio:.25,shapeWallHeightRatio:.25};
+ const plan=packLoadingWorkflow({...request,products:[shaped]}),id=plan.pallets![0].id;
+ const bottom=Math.min(...plan.placements.filter(b=>b.palletIds?.includes(id)).map(b=>palletLocalBox(b,plan.pallets![0]).z));
+ const layer=capturePalletLayer(plan,[shaped],id,bottom,"L-profile layer","r1");
+ expect(layer.products[0].shape).toMatchObject({cargoShape:"l-profile",shapeWallRatio:.25});
+ const draft=empty(plan,[shaped]);
+ const next=editPalletContents(draft,[shaped],id,{type:"apply-layer",template:layer,position:{x:0,y:0,z:0},turns:0,repeat:1,alternate180:false});
+ expect(next.validation.valid).toBe(true);
+ expect(()=>resolveLayerProducts(layer,[{...shaped,shapeWallRatio:.3}])).toThrow(/geometry/);
+});

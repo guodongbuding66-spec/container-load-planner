@@ -3,6 +3,7 @@ import {parseOrderLine,assertOrderLineIds} from "./order-lines";
 import {parsePalletLayerTemplates,type PalletLayerTemplate} from "./pallet-layer";
 import {parseLongSupport} from "./long-support";
 import {parseSiteExclusions} from "./site-exclusions";
+import {parseVehicleEngineering} from "./vehicle-engineering";
 import { parseDimensionAllowance } from "./dimension-allowance";
 import { parseLoadingWorkflow, parsePalletBuild } from "./loading-workflow";
 import { parseShapeFields, withShapeSupport } from "./cargo-shape";
@@ -60,7 +61,7 @@ function container(value: unknown): ContainerSpec {
   const v = record(value);
   if (v.category !== undefined && !["container", "truck", "pallet", "other"].includes(v.category as string)) throw new Error("装载空间类别无效。");
   if (v.loadingAccess !== undefined && !["rear", "open"].includes(v.loadingAccess as string)) throw new Error("装载入口无效。");
-  return { ...(v.exclusions===undefined?{}:{exclusions:parseSiteExclusions(v.exclusions,{length:number(v.length),width:number(v.width),height:number(v.height)})}), ...(v.category === undefined ? {} : { category: v.category as ContainerSpec["category"] }), ...(v.loadingAccess === undefined ? {} : { loadingAccess: v.loadingAccess as ContainerSpec["loadingAccess"] }), ...(v.baseHeight === undefined ? {} : { baseHeight: number(v.baseHeight) }), ...(v.specificationNote === undefined ? {} : { specificationNote: text(v.specificationNote, 1000) }), id: text(v.id, 120), name: text(v.name, 120), length: number(v.length),
+  return { ...(v.engineering===undefined?{}:{engineering:parseVehicleEngineering(v.engineering,{length:number(v.length),width:number(v.width)})}), ...(v.exclusions===undefined?{}:{exclusions:parseSiteExclusions(v.exclusions,{length:number(v.length),width:number(v.width),height:number(v.height)})}), ...(v.category === undefined ? {} : { category: v.category as ContainerSpec["category"] }), ...(v.loadingAccess === undefined ? {} : { loadingAccess: v.loadingAccess as ContainerSpec["loadingAccess"] }), ...(v.baseHeight === undefined ? {} : { baseHeight: number(v.baseHeight) }), ...(v.specificationNote === undefined ? {} : { specificationNote: text(v.specificationNote, 1000) }), id: text(v.id, 120), name: text(v.name, 120), length: number(v.length),
     width: number(v.width), height: number(v.height), doorWidth: number(v.doorWidth),
     doorHeight: number(v.doorHeight), maxWeight: number(v.maxWeight) };
 }

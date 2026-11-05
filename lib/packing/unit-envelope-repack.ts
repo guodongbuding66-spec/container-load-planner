@@ -1,9 +1,12 @@
-import { searchRigidUnits, restorePackingSnapshot } from "./engine";
+import { getOrientations, searchRigidUnits, restorePackingSnapshot } from "./engine";
 import { parseEngineeringDocument } from "./engineering-checks";
 import { palletLoadEnvelope, unitContentsKey } from "./unit-envelope";
+import {palletQuarterTurns,rotateDeckRect} from "./deck-support";
+import {quarterTurnOrientation} from "./cargo-body";
+import {specificationForPallet} from "./pallet-specifications";
 import { deliveryPlanSignature } from "./delivery-identity";
 import type { EngineeringDocument } from "./engineering-checks";
-import type { PackingRequest, PackingResult, PlacedPallet, ProductInput } from "./types";
+import type { PackingRequest, PackingResult, PlacedBox, PlacedPallet, ProductInput } from "./types";
 
 export const MAX_MEASURED_REPACK_UNITS=60;
 export function measuredRepackInputs(plan:PackingResult,document:EngineeringDocument,products:ProductInput[]) {
@@ -21,20 +24,68 @@ export function measuredRepackInputs(plan:PackingResult,document:EngineeringDocu
   });
   return {doc,pallets,sourceSignature:deliveryPlanSignature(plan)};
 }
-/** Intact floor units retain their orientation, cartons, kits, structure, mass and identities. */
-export function repackMeasuredUnits(plan:PackingResult,document:EngineeringDocument,products:ProductInput[]):PackingResult {
-  const {pallets}=measuredRepackInputs(plan,document,products);
-  const byId=new Map(pallets.map(p=>[p.id,p])),sourceRows=new Map(products.map(p=>[p.id,p]));
-  const proxies:ProductInput[]=pallets.map(p=>{const cargo=plan.placements.filter(b=>b.palletIds?.includes(p.id)),e=palletLoadEnvelope(p,cargo);
-    return {id:p.id,sku:p.id,name:p.name,length:e.dx,width:e.dy,height:e.dz,weight:p.weight+cargo.reduce((n,b)=>n+b.weight,0),quantity:1,priority:Math.max(...cargo.map(b=>sourceRows.get(b.productId)!.priority)),mustLoad:true,rotationPolicy:"fixed",allowedOrientations:["LWH"],stackable:false,bottomOnly:true,maxStackLayers:1,protectionGap:plan.palletization!.specifications?.find(s=>s.id===p.specificationId)?.config.gap??plan.palletization!.config.gap,color:"#997947"};
+type UnitPose={pallet:PlacedPallet;cargo:PlacedBox[]};
+function measuredPoses(plan:PackingResult,document:EngineeringDocument,products:ProductInput[],allowTurn:boolean){
+ const {pallets}=measuredRepackInputs(plan,document,products),rules=new Map(products.map(p=>[p.id,p]));
+ return pallets.map(pallet=>{
+  const cargo=plan.placements.filter(b=>b.palletIds?.includes(pallet.id)),original={pallet,cargo};
+  const {config}=specificationForPallet(plan.palletization!,pallet);
+  if(!allowTurn||config.layout!=="auto")return {original};
+  const rotatedCargo=cargo.map(b=>{
+   const rect=rotateDeckRect({...b,x:b.x-pallet.x,y:b.y-pallet.y},pallet.dx,pallet.dy,1);
+   return {...rect,x:pallet.x+rect.x,y:pallet.y+rect.y,...quarterTurnOrientation(b)};
   });
-  const outerRequest:PackingRequest={mode:"mixed",strategy:plan.strategy,practicalTargetUtilization:plan.practicalTargetUtilization,loadingRules:plan.loadingRules?{...plan.loadingRules,supportByType:undefined}:undefined,container:{...plan.container,exclusions:plan.container.exclusions?.map(r=>r.accessory?{...r,accessory:{...r.accessory,relatedProductIds:[]}}:r)},clearance:plan.clearance,products:proxies};
-  const outer=searchRigidUnits(outerRequest,()=>true);
-  if(!outer.validation.valid||outer.placements.length!==pallets.length)throw Error("有限搜索未找到保留全部整托的实测方案，原方案保持不变；这不证明绝对装不下 / Bounded search found no measured layout retaining all units; the original plan is unchanged, not a proof of infeasibility");
-  const moved=new Map<string,PlacedPallet>();
-  for(const b of outer.placements){const p=byId.get(b.productId)!;moved.set(p.id,{...p,x:b.x+p.measuredEnvelope!.noseProtrusion,y:b.y+p.measuredEnvelope!.leftProtrusion,z:0});}
-  const placements=plan.placements.map(b=>{const old=byId.get(b.palletIds![0])!,next=moved.get(old.id)!;return {...b,x:b.x+next.x-old.x,y:b.y+next.y-old.y,z:b.z};});
-  const request:PackingRequest={workflow:plan.workflow,mode:plan.mode,strategy:plan.strategy,practicalTargetUtilization:plan.practicalTargetUtilization,container:plan.container,clearance:plan.clearance,products,palletBuild:plan.palletBuild,loadingRules:plan.loadingRules,delivery:plan.delivery,accessConfig:plan.accessConfig};
-  const candidate=restorePackingSnapshot(request,{...plan,placements,pallets:pallets.map(p=>moved.get(p.id)!),strategyPlans:undefined,strategyComparison:undefined,deliveryIdentity:plan.deliveryIdentity});
-  return {...candidate,warnings:[...candidate.warnings,"已按实测保守包络底置重排，底座与托内箱位不变。重新计算整个订单使用原标称输入；修改托内货物需恢复原备份并重新测量 / Repacked floor units using measured conservative envelopes; physical bases and local contents stay unchanged. Whole-order recalculation uses nominal inputs; changed contents require the original backup and new measurements"]};
+  if(rotatedCargo.some(b=>!getOrientations(rules.get(b.productId)!,false).some(o=>o.label===b.orientation&&o.dx===b.dx&&o.dy===b.dy&&o.dz===b.dz)))return {original};
+  const envelope=palletLoadEnvelope(pallet,cargo),turned=rotateDeckRect({...envelope,x:envelope.x-pallet.x,y:envelope.y-pallet.y},pallet.dx,pallet.dy,1);
+  const rotation=(palletQuarterTurns(pallet)+1)%4 as 0|1|2|3;
+  const base:PlacedPallet={...pallet,dx:pallet.dy,dy:pallet.dx,orientation:rotation%2?"WLH":"LWH",quarterTurns:rotation};
+  base.measuredEnvelope={...pallet.measuredEnvelope!,length:turned.dx,width:turned.dy,height:envelope.dz,
+   noseProtrusion:Math.max(0,-turned.x),leftProtrusion:Math.max(0,-turned.y),contentsKey:unitContentsKey(base,rotatedCargo)};
+  return {original,rotated:{pallet:base,cargo:rotatedCargo}};
+ });
+}
+
+function restorePoses(plan:PackingResult,products:ProductInput[],units:UnitPose[]){
+ const request:PackingRequest={workflow:plan.workflow,mode:plan.mode,strategy:plan.strategy,practicalTargetUtilization:plan.practicalTargetUtilization,container:plan.container,clearance:plan.clearance,products,palletBuild:plan.palletBuild,loadingRules:plan.loadingRules,delivery:plan.delivery,accessConfig:plan.accessConfig};
+ const candidate=restorePackingSnapshot(request,{...plan,placements:units.flatMap(u=>u.cargo),pallets:units.map(u=>u.pallet),strategyPlans:undefined,strategyComparison:undefined});
+ return {...candidate,warnings:[...candidate.warnings,"实测包络与整托内容一起平移或水平转向。保留实际箱托、质量和原实测来源 / The measured envelope moves or turns with the complete unit, preserving its cartons, mass and measurement source"]};
+}
+
+function moveUnit(unit:UnitPose,x:number,y:number):UnitPose{
+ const dx=x-unit.pallet.x,dy=y-unit.pallet.y;
+ return {pallet:{...unit.pallet,x,y},cargo:unit.cargo.map(b=>({...b,x:b.x+dx,y:b.y+dy}))};
+}
+
+/** Rebuild a worker candidate from immutable measurements, allowed turns and whole-unit coordinates. */
+export function reviewMeasuredRepackCandidate(plan:PackingResult,document:EngineeringDocument,products:ProductInput[],candidate:PackingResult,allowTurn=false){
+ const choices=measuredPoses(plan,document,products,allowTurn);
+ if(candidate.pallets?.length!==choices.length||!candidate.validation.valid)throw Error("实测整托候选数量不一致 / Measured-unit candidate counts disagree");
+ const units=choices.map(({original,rotated})=>{
+  const actual=candidate.pallets!.find(p=>p.id===original.pallet.id);
+  const pose=actual?.orientation===original.pallet.orientation?original:rotated;
+  if(!actual||!pose||actual.z!==0||palletQuarterTurns(actual)!==palletQuarterTurns(pose.pallet))throw Error("整托转向与实测候选不一致 / Measured-unit turn differs from the permitted pose");
+  return moveUnit(pose,actual.x,actual.y);
+ });
+ const checked=restorePoses(plan,products,units);
+ if(candidate.engineVersion!==checked.engineVersion||deliveryPlanSignature(checked)!==deliveryPlanSignature(candidate)||JSON.stringify(checked.metrics)!==JSON.stringify(candidate.metrics))throw Error("实测候选位置、内容或重量未通过复核 / Measured-unit positions, contents or mass failed review");
+}
+
+/** The outer search moves complete measured units; the inner cargo is never repacked. */
+export function repackMeasuredUnits(plan:PackingResult,document:EngineeringDocument,products:ProductInput[],allowTurn=false):PackingResult {
+ const choices=measuredPoses(plan,document,products,allowTurn),sourceRows=new Map(products.map(p=>[p.id,p]));
+ const proxies:ProductInput[]=choices.map(({original:{pallet:p,cargo},rotated})=>{
+  const e=palletLoadEnvelope(p,cargo);
+  return {id:p.id,sku:p.id,name:p.name,length:e.dx,width:e.dy,height:e.dz,weight:p.weight+cargo.reduce((n,b)=>n+b.weight,0),quantity:1,
+   priority:Math.max(...cargo.map(b=>sourceRows.get(b.productId)!.priority)),mustLoad:true,rotationPolicy:rotated?"upright":"fixed",allowedOrientations:rotated?["LWH","WLH"]:["LWH"],stackable:false,bottomOnly:true,maxStackLayers:1,
+   protectionGap:specificationForPallet(plan.palletization!,p).config.gap,color:"#997947"};
+ });
+ const outerRequest:PackingRequest={mode:"mixed",strategy:plan.strategy,practicalTargetUtilization:plan.practicalTargetUtilization,loadingRules:plan.loadingRules?{...plan.loadingRules,supportByType:undefined}:undefined,
+  container:{...plan.container,engineering:undefined,exclusions:plan.container.exclusions?.map(r=>r.accessory?{...r,accessory:{...r.accessory,relatedProductIds:[]}}:r)},clearance:plan.clearance,products:proxies};
+ const outer=searchRigidUnits(outerRequest,()=>true);
+ if(!outer.validation.valid||outer.placements.length!==choices.length)throw Error("有限搜索未找到保留全部整托的实测方案 / Bounded search found no measured layout retaining all units");
+ const positions=new Map(outer.placements.map(b=>[b.productId,b]));
+ return restorePoses(plan,products,choices.map(({original,rotated})=>{
+  const pos=positions.get(original.pallet.id)!,unit=pos.orientation==="WLH"?rotated!:original;
+  return moveUnit(unit,pos.x+unit.pallet.measuredEnvelope!.noseProtrusion,pos.y+unit.pallet.measuredEnvelope!.leftProtrusion);
+ }));
 }

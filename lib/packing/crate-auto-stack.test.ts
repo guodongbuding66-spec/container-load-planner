@@ -107,3 +107,21 @@ it("shows actual static loads consistently in audits, heatmap, HTML and coordina
   const csv=parseCsvRecords(buildPlacementCsv(p)),state=csv[0].indexOf("木箱实际叠放状态"),top=csv[0].indexOf("木箱累计上压(kg)"),through=csv[0].indexOf("木箱每路径总载荷上界(kg)");expect(csv.slice(1,4).map(r=>[r[state],r[top],r[through]])).toEqual([["passed","120","180"],["passed","60","120"],["passed","0","60"]]);expect(crateEvidenceHtml(p,true)).toContain("Passed entered static ratings");
   const bad=moveUnit(structuredClone(p),p.pallets![1].id,{x:1});expect(reviewPlan(bad,r.products).checks.find(c=>c.id==="bearing")?.state).toBe("fail");
 });
+
+it.each(["practical","maximum"] as const)("uses distinct rated corner paths on two coplanar crates under %s",strategy=>{
+  const r=request(strategy),build=r.palletBuild!,lower=build.config,upper=config();
+  lower.width=400;lower.gap=0;upper.gap=0;
+  lower.crateBearing!.bridgeStacking=true;upper.crateBearing!.bridgeStacking=true;seal(lower);seal(upper);
+  r.practicalTargetUtilization=.95;r.container.height=1150;r.container.doorHeight=1150;
+  r.products=[{...r.products[0],width:300,height:400,priority:100,quantity:2},{...r.products[0],id:"upper",sku:"UPPER",width:700,height:400,priority:10,quantity:1}];
+  build.primaryRule={maxPallets:2,productIds:["p"]};
+  build.additionalSpecs=[{id:"bridge",config:upper,maxPallets:1,stackLayers:1,maxTopLoadKg:0,productIds:["upper"]}];
+  const plan=pack(r),report=planCrateStackReview(plan);
+  expect(plan.metrics.loadedCount).toBe(3);
+  expect(plan.pallets?.map(p=>p.z)).toEqual([0,0,540]);
+  expect(report.bridgeParents.get(plan.pallets![2].id)).toEqual(plan.pallets!.slice(0,2).map(p=>p.id));
+  expect(report.cells.filter(c=>c.level===1).every(c=>c.topLoadKg===50&&c.throughLoadBoundKg===100)).toBe(true);
+  expect(report.errors).toEqual([]);
+  lower.crateBearing!.bridgeStacking=false;seal(lower);
+  expect(pack(r).metrics.loadedCount).toBe(2);
+},15_000);

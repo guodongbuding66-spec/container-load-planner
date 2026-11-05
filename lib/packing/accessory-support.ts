@@ -3,10 +3,10 @@ import {siteExclusionBoxes,SITE_EXCLUSION_PREFIX} from "./site-exclusions";
 import {bearingLoads} from "./bearing";
 import type {ContainerSpec,PackingRequest,PackingResult,ProductInput} from "./types";
 
-export const SUPPORT_WORKFLOW_ERROR="Fixed accessory supports currently require direct cargo loading / 固定支承件首阶段仅支持散箱直接装柜，请关闭支承声明或切换工作流";
+export const SUPPORT_WORKFLOW_ERROR="Fixed accessory supports require direct cargo loading, with optional floor pallets / 固定支承件适用于直接装柜，可配合底层托盘";
 export function hasAccessorySupports(c:Pick<ContainerSpec,"exclusions">){return accessoryRegions(c).some(z=>!!z.accessory.support);}
 export function assertAccessorySupportWorkflow(r:PackingRequest){
-  if(hasAccessorySupports(r.container)&&(r.floorPallets||r.workflow==="palletized"||r.workflow==="pallet-only"))throw Error(SUPPORT_WORKFLOW_ERROR);
+  if(hasAccessorySupports(r.container)&&(r.workflow==="palletized"||r.workflow==="pallet-only"))throw Error(SUPPORT_WORKFLOW_ERROR);
 }
 /** Derived zero-mass anchors only: physical material mass/volume remain in existing accessory accounting. */
 export function accessorySupportGeometry(c:ContainerSpec,clearance:number){
@@ -23,7 +23,7 @@ export function accessorySupportGeometry(c:ContainerSpec,clearance:number){
   return {boxes,products};
 }
 export const ACCESSORY_SUPPORT_STATES:Record<"pass"|"fail"|"unverified",[string,string]>={pass:["输入静载检查通过","Entered static load check passed"],fail:["超过输入静载上限","Entered static load limit exceeded"],unverified:["未核验","Unverified"]};
-/** Geometry-based area sharing, not beam bending, stiffness, floor pressure or dynamic certification. */
+/** Geometry-based area sharing and whole-load bounds for declared spans. */
 export function inspectAccessorySupports(plan:PackingResult,products:readonly ProductInput[]=[]){
   const regions=accessoryRegions(plan.container).filter(z=>z.accessory.support);if(!regions.length)return [];
   const complete=plan.placements.every(b=>products.some(p=>p.id===b.productId));

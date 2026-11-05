@@ -23,7 +23,7 @@ it("does not default missing mass to known zero and keeps a removal action avail
  const container={...c,exclusions:[{...z,accessory:{...z.accessory!,unitWeightKg:null}}]},html=renderToStaticMarkup(<ContainerAccessorySettings {...props} container={container}/>);expect(html).toContain("尚未填写");expect(html).toContain("确认零重量");expect(html).toContain('role="alert"');expect(html).toContain("删除附件及其依赖引用");expect(html).toContain('disabled=""');
 });
 it("exposes unsupported workflows, invalid references and bounds without hiding edit controls",()=>{
- for(const extra of [{only:true},{floor:true},{container:{...c,width:500}},{container:{...c,exclusions:[{...z,accessory:{...z.accessory!,relatedProductIds:["missing"]}}]}}]){
+ for(const extra of [{only:true},{container:{...c,width:500}},{container:{...c,exclusions:[{...z,accessory:{...z.accessory!,relatedProductIds:["missing"]}}]}}]){
  const html=renderToStaticMarkup(<ContainerAccessorySettings {...props} {...extra}/>);expect(html).toContain('role="alert"');expect(html).toContain("删除附件及其依赖引用");expect(html).toContain('disabled=""');
  }
 });
@@ -38,7 +38,7 @@ it("reserves all accessory planned mass from playback step zero",()=>{
 it("renders an explicit solid support declaration and nullable static load controls in both languages",()=>{
  const container={...c,exclusions:[{...z,z:0,accessory:{...z.accessory!,quantity:1,phase:"before-cargo" as const,support:{version:1 as const,surface:"solid-rectangle" as const,maxLoadKg:null}}}]};
  for(const language of ["zh","en"] as const){setAppLanguage(language);const html=renderToStaticMarkup(<ContainerAccessorySettings {...props} container={container}/>);expect(html).toContain(language==="en"?"solid support declaration":"实心支承声明");expect(html).toContain(language==="en"?"0 prohibits load":"0 表示禁止承载");expect(html).not.toContain('aria-label="Accessory 1 static load limit"');if(language==="en")expect(html).not.toMatch(/[\u3400-\u9fff]/u);}
- const incompatible=renderToStaticMarkup(<ContainerAccessorySettings {...props} container={container} prebuilt/>);expect(incompatible).toContain('role="alert"');expect(incompatible).toContain("disable the support declaration");
+ const incompatible=renderToStaticMarkup(<ContainerAccessorySettings {...props} container={container} prebuilt/>);expect(incompatible).toContain('role="alert"');expect(incompatible).toContain("Floor supports require direct loading");
 });
 it("renders current support load and known zero without treating a missing rating as zero",()=>{
  const container={...c,exclusions:[{...z,z:0,accessory:{...z.accessory!,quantity:1,phase:"before-cargo" as const,support:{version:1 as const,surface:"solid-rectangle" as const,maxLoadKg:0}}}]};

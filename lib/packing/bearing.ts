@@ -6,7 +6,7 @@ export function contactArea(a: PlacedBox, b: PlacedBox) {
     Math.max(0, Math.min(a.y + a.dy, b.y + b.dy) - Math.max(a.y, b.y));
 }
 
-/** Static vertical load distributed by contact area, including every upper tier. */
+/** Area sharing for ordinary cargo. Rated long spans bound each support by the whole through load. */
 export function bearingLoads(boxes: PlacedBox[], products: ProductInput[] = []) {
   const loads = new Map<string, number>();
   const rules = new Map(products.map(p=>[p.id,p]));
@@ -24,7 +24,11 @@ export function bearingLoads(boxes: PlacedBox[], products: ProductInput[] = []) 
     const totalArea = areas.reduce((a, c) => a + c, 0);
     if (!totalArea) continue;
     const mass = b.weight + (loads.get(b.id) ?? 0);
-    below.forEach((x, i) => loads.set(x.id, (loads.get(x.id) ?? 0) + mass * areas[i] / totalArea));
+    const span=rules.get(b.productId)?.longSupport;
+    const bound=!!span?.source&&!!span.revision&&span.maxSpanMm!==undefined&&span.maxOverhangMm!==undefined;
+    below.forEach((x, i) => {
+      if(areas[i]>0)loads.set(x.id,(loads.get(x.id)??0)+(bound?mass:mass*areas[i]/totalArea));
+    });
   }
   return loads;
 }

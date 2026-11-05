@@ -4,7 +4,7 @@ export const MODEL_KINDS=['box','cylinder','wedge','trapezoid','frustum','l-prof
 export type ModelKind=typeof MODEL_KINDS[number];
 export type SignedFace='L-'|'L+'|'W-'|'W+'|'H-'|'H+';
 export type ModelMesh={vertices:V3[];triangles:number[][];proxy:SolidCell;filename:string;closed:boolean};
-export type ModelPart={id:string;name:string;kind:ModelKind;dimensions:Record<string,number>;axis:'L'|'W'|'H';position:V3;orientation:OrientationCode;orientationSigns?:OrientationSigns;section?:V2[];mesh?:ModelMesh;fixture?:boolean;weight?:number};
+export type ModelPart={id:string;name:string;kind:ModelKind;dimensions:Record<string,number>;axis:'L'|'W'|'H';position:V3;orientation:OrientationCode;orientationSigns?:OrientationSigns;tiltDegrees?:V3;section?:V2[];mesh?:ModelMesh;fixture?:boolean;weight?:number};
 export type SolidModel={version:1;parts:ModelPart[];restFaces:SignedFace[];loadFaces:SignedFace[];antiRoll:boolean;calibration?:V3};
 export type BuiltModel={cells:SolidCell[];display:SolidCell[];size:V3;minimum:V3;volumeRatio:number;volumeExact:boolean;center:V3;fixtureWeight:number;error:number;partCenters:{center:V3;volume:number}[];flatFaces:{points:V3[];normal:V3}[];caps:{center:V3;u:V3;v:V3;normal:V3;inner:number}[]};
 const FACES:SignedFace[]=['L-','L+','W-','W+','H-','H+'];
@@ -12,7 +12,16 @@ const cache=new WeakMap<SolidModel,BuiltModel>();
 const mapAxis=(p:V3,a:'L'|'W'|'H'):V3=>a==='L'?[p[2],p[0],p[1]]:a==='W'?[p[0],p[2],p[1]]:p;
 const transform=(c:SolidCell,f:(p:V3)=>V3,reorient=true)=>{const changed={...c,vertices:c.vertices.map(f)};return reorient?orientFaces(changed):changed;};
 const rotations=(code:OrientationCode,signs?:OrientationSigns)=>{const order=[...code].map(c=>'LWH'.indexOf(c));let odd=0;for(let i=0;i<3;i++)for(let j=i+1;j<3;j++)if(order[i]>order[j])odd++;return order.map((original,i)=>({original,negative:signs?signs[i]===-1:odd%2===1&&original===0}));};
-function applyPart(c:SolidCell,p:ModelPart){const axes=rotations(p.orientation,p.orientationSigns);return transform(c,v=>axes.map((a,i)=>p.position[i]+v[a.original]*(a.negative?-1:1)) as V3,false);}
+function partTransform(p:ModelPart){
+ const axes=rotations(p.orientation,p.orientationSigns),tilt=p.tiltDegrees;
+ if(!tilt?.some(n=>n!==0))return (v:V3)=>axes.map((a,i)=>p.position[i]+v[a.original]*(a.negative?-1:1)) as V3;
+ const [cx,cy,cz]=tilt.map(n=>Math.cos(n*Math.PI/180)),[sx,sy,sz]=tilt.map(n=>Math.sin(n*Math.PI/180));
+ return (v:V3):V3=>{
+  const [x,y,z]=axes.map(a=>v[a.original]*(a.negative?-1:1));
+  const y1=cx*y-sx*z,z1=sx*y+cx*z,x2=cy*x+sy*z1;
+  return [p.position[0]+cz*x2-sz*y1,p.position[1]+sz*x2+cz*y1,p.position[2]-sy*x+cy*z1];
+ };
+}
 function clipBounds(c:SolidCell,size:V3){let out:SolidCell|null=c;for(let i=0;i<3&&out;i++){const n:V3=[0,0,0];n[i]=1;out=clipCell(out,{normal:n,offset:size[i]});if(out)out=clipCell(out,{normal:mul(n,-1),offset:0});}return out;}
 function meshOfCells(cells:SolidCell[]){return cells.flatMap(c=>c.faces.map(f=>({points:f.map(i=>c.vertices[i]),normal:norm(cross(sub(c.vertices[f[1]],c.vertices[f[0]]),sub(c.vertices[f[2]],c.vertices[f[0]])))})));}
 function radialPrism(rx:number,ry:number,h:number,top=1,n=32,outer=false):SolidCell{
@@ -110,19 +119,19 @@ function primitive(p:ModelPart):{cells:SolidCell[];display:SolidCell[];volume:nu
   cells=[p.mesh!.proxy];display=[{vertices:p.mesh!.vertices,faces:p.mesh!.triangles}];volume=cellVolumeCentroid(p.mesh!.closed?display[0]:p.mesh!.proxy).volume;exact=false;
  }
  // Only genuine planar surfaces can support cargo; curved facets are excluded.
- const flat=(['ellipsoid','capsule','cylinder','frustum','tube','reel','bend'].includes(p.kind)||p.kind==='mesh'&&!p.mesh!.closed?[]:meshOfCells(display)).filter(f=>f.normal.some(n=>Math.abs(n)>1-1e-6));
+ const point=partTransform(p);
+ const flat=['ellipsoid','capsule','cylinder','frustum','tube','reel','bend'].includes(p.kind)||p.kind==='mesh'&&!p.mesh!.closed?[]:meshOfCells(display);
  if(p.kind==='bend')exact=true;
  // Proper permutation of model coordinates changes all normals together with geometry.
- const localFlat=flat.map(f=>{const c=applyPart({vertices:f.points,faces:[f.points.map((_,i)=>i)]},p);const pts=c.vertices;return {points:pts,normal:norm(cross(sub(pts[1],pts[0]),sub(pts[2],pts[0])))};});
+ const localFlat=flat.map(f=>{const pts=f.points.map(point);return {points:pts,normal:norm(cross(sub(pts[1],pts[0]),sub(pts[2],pts[0])))};}).filter(f=>f.normal.some(n=>Math.abs(n)>1-1e-6));
  const caps:BuiltModel["caps"]=[];
- const point=(v:V3)=>{const a=rotations(p.orientation,p.orientationSigns);return a.map((a,i)=>p.position[i]+v[a.original]*(a.negative?-1:1)) as V3;};
  const cap=(center:V3,u:V3,v:V3,normal:V3,inner=0)=>{const c=point(center),direction=(v:V3)=>sub(point(add(center,v)),c);caps.push({center:c,u:direction(u),v:direction(v),normal:norm(direction(normal)),inner});};
  const radialCap=(z:number,r:number,r2:number,positive:boolean,inner=0)=>cap(mapAxis([d.diameter/2,(d.diameter2??d.diameter)/2,z],p.axis),mapAxis([r,0,0],p.axis),mapAxis([0,r2,0],p.axis),mapAxis([0,0,positive?1:-1],p.axis),inner);
  if(p.kind==='cylinder'||p.kind==='frustum'){const k=p.kind==='frustum'?d.topDiameter/d.diameter:1;radialCap(0,d.diameter/2,d.diameter2/2,false);if(k>0)radialCap(d.axial,d.diameter*k/2,d.diameter2*k/2,true);}
  if(p.kind==='tube'){radialCap(0,d.diameter/2,d.diameter/2,false,d.innerDiameter/d.diameter);radialCap(d.axial,d.diameter/2,d.diameter/2,true,d.innerDiameter/d.diameter);}
  if(p.kind==='reel')for(const [z,r,positive] of [[0,d.diameter/2,false],[d.flangeThickness,d.diameter/2,true],[d.axial-d.flangeThickness,d.diameter/2,false],[d.axial,d.diameter/2,true],[d.flangeThickness,d.coreDiameter/2,false],[d.axial-d.flangeThickness,d.coreDiameter/2,true]] as [number,number,boolean][])radialCap(z,r,r,positive,d.innerDiameter/(2*r));
  if(p.kind==='bend')for(const [t,positive] of [[0,false],[d.angle*Math.PI/180,true]] as [number,boolean][]){const r=d.diameter/2;cap([d.radius*Math.cos(t),0,d.radius*Math.sin(t)],[r*Math.cos(t),0,r*Math.sin(t)],[0,r,0],mul([-Math.sin(t),0,Math.cos(t)],positive?1:-1),d.innerDiameter/d.diameter);}
- return {caps,cells:cells.map(c=>applyPart(c,p)),display:display.map(c=>applyPart(c,p)),volume,exact,error,flat:localFlat};
+ return {caps,cells:cells.map(c=>transform(c,point,false)),display:display.map(c=>transform(c,point,false)),volume,exact,error,flat:localFlat};
 }
 export function buildSolidModel(model:SolidModel):BuiltModel{
  const old=cache.get(model);if(old)return old;
@@ -174,7 +183,9 @@ export function parseSolidModel(value:unknown):SolidModel|undefined{
   if(p.fixture&&p.weight===undefined)throw Error('请填写垫木／支架重量。');
   if(p.fixture!==undefined&&typeof p.fixture!=='boolean'||p.weight!==undefined&&(typeof p.weight!=='number'||!Number.isFinite(p.weight)||p.weight<0||p.weight>1e8))throw Error('垫木／支架重量无效。');
   let signs:OrientationSigns|undefined;if(p.orientationSigns!==undefined){if(!Array.isArray(p.orientationSigns)||p.orientationSigns.length!==3||p.orientationSigns.some(n=>n!==1&&n!==-1))throw Error('部件旋转符号无效。');const order=[...p.orientation].map(a=>'LWH'.indexOf(a));let inv=0;for(let i=0;i<3;i++)for(let j=i+1;j<3;j++)if(order[i]>order[j])inv++;if(p.orientationSigns.reduce<number>((n,s)=>n*s,1)!==(inv%2?-1:1))throw Error('部件旋转必须保留正确的实体朝向。');signs=[...p.orientationSigns];}
-  return {id:p.id,name:p.name,kind:p.kind,dimensions,axis:p.axis,position:vector(p.position) as V3,orientation:p.orientation,...(signs?{orientationSigns:signs}:{}),...(section?{section}:{}),...(mesh?{mesh}:{}),...(p.fixture?{fixture:true}:{}),...(p.weight===undefined?{}:{weight:p.weight})};
+  const tilt=p.tiltDegrees===undefined?undefined:vector(p.tiltDegrees) as V3;
+  if(tilt?.some(n=>Math.abs(n)>180))throw Error('部件倾角须在 −180° 到 180° / Part tilt must be between −180° and 180°');
+  return {id:p.id,name:p.name,kind:p.kind,dimensions,axis:p.axis,position:vector(p.position) as V3,orientation:p.orientation,...(signs?{orientationSigns:signs}:{}),...(tilt?.some(n=>n!==0)?{tiltDegrees:tilt}:{}),...(section?{section}:{}),...(mesh?{mesh}:{}),...(p.fixture?{fixture:true}:{}),...(p.weight===undefined?{}:{weight:p.weight})};
  });
  if(new Set(parts.map(p=>p.id)).size!==parts.length)throw Error('模型部件 ID 不能重复。');
  let calibration:V3|undefined;if(v.calibration!==undefined){calibration=vector(v.calibration) as V3;if(calibration.some(n=>n<.000001||n>1e6))throw Error('模型缩放须为 0.000001–1000000。');}

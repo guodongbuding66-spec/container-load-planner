@@ -2,7 +2,7 @@ import {measuredUnitFixture as fixture} from "../../tests/measured-unit-fixture"
 import {expect,it} from "vitest";
 import {deliveryIdentityState,issueDeliveryIdentity} from "./delivery-identity";
 import {emptyEngineeringDocument} from "./engineering-checks";
-import {measuredRepackInputs,repackMeasuredUnits} from "./unit-envelope-repack";
+import {measuredRepackInputs,repackMeasuredUnits,reviewMeasuredRepackCandidate} from "./unit-envelope-repack";
 import {palletLoadEnvelope,parseMeasuredUnitEnvelope,unitContentsKey} from "./unit-envelope";
 import {restorePackingSnapshot,revisePackingResult} from "./engine";
 import {analyzeEmptySpaces,intersects} from "./free-space";
@@ -98,4 +98,22 @@ it("refuses stripping occupancy during manual moves and changing local contents 
  const {request,plan,document}=fixture(),next=repackMeasuredUnits(plan,document,request.products),stripped=next.pallets!.map(p=>({...p,measuredEnvelope:undefined}));
  expect(()=>revisePackingResult(next,next.placements,request.products,stripped)).toThrow(/cannot remove/);
  expect(()=>editPalletContents(next,request.products,next.pallets![0].id,{type:"remove",ids:[next.placements[0].id]})).toThrow();
+});
+
+it("turns the complete measured envelope through the door and rejects forged worker coordinates",()=>{
+ const {request}=fixture();
+ request.container={...request.container,width:700,doorWidth:600};
+ request.products=[{...request.products[0],quantity:1,rotationPolicy:"upright",allowedOrientations:["LWH","WLH"]}];
+ request.palletBuild={...request.palletBuild!,maxPallets:1,config:{...request.palletBuild!.config,layout:"auto"}};
+ const plan=issueDeliveryIdentity(packLoadingWorkflow(request)),document=emptyEngineeringDocument(plan);
+ document.units=[{palletId:plan.pallets![0].id,length:550,width:650,height:350,noseProtrusion:5,leftProtrusion:20,extraWeightKg:0,weightIncluded:true,source:"QA measured fit",date:"2026-11-05"}];
+ expect(()=>repackMeasuredUnits(plan,document,request.products)).toThrow(/retaining all units/);
+ const candidate=repackMeasuredUnits(plan,document,request.products,true),pallet=candidate.pallets![0];
+ expect(pallet.orientation).toBe("WLH");
+ expect(palletLoadEnvelope(pallet,candidate.placements)).toMatchObject({dx:650,dy:550,dz:350});
+ expect(candidate.metrics.grossWeight).toBe(plan.metrics.grossWeight);
+ expect(()=>reviewMeasuredRepackCandidate(plan,document,request.products,candidate,true)).not.toThrow();
+ expect(()=>reviewMeasuredRepackCandidate(plan,document,request.products,candidate,false)).toThrow(/turn/);
+ const bad=structuredClone(candidate);bad.placements[0].id="forged";
+ expect(()=>reviewMeasuredRepackCandidate(plan,document,request.products,bad,true)).toThrow(/failed review/);
 });

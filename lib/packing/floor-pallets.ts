@@ -1,7 +1,7 @@
 import {deckSupportMass,palletDeckSupportGeometry} from "./deck-support";
 import {containerAccessoryWeight} from "./container-accessories";
 import {parseForkInterface} from "./fork-interface";
-import {availablePackingVolume} from "./site-exclusions";
+import {availablePackingVolume,siteExclusionBoxes,SITE_EXCLUSION_PREFIX} from "./site-exclusions";
 import { parseCrateBearing } from "./crate-bearing";
 import type { ContainerSpec, FloorPalletConfig, PlacedBox, PlacedPallet, ProductInput } from "./types";
 
@@ -35,6 +35,7 @@ export function palletCargoCeiling(container: ContainerSpec, clearance: number, 
 export function supportingPalletIds(box: Pick<PlacedBox,"x"|"y"|"dx"|"dy">, supporters: PlacedBox[]) {
   const ids = new Set<string>();
   for (const below of supporters) {
+    if(below.id.startsWith(SITE_EXCLUSION_PREFIX))continue;
     if (Math.min(box.x+box.dx,below.x+below.dx)-Math.max(box.x,below.x) <= .0001 || Math.min(box.y+box.dy,below.y+below.dy)-Math.max(box.y,below.y) <= .0001) continue;
     for (const id of below.supportOnly ? [below.id] : below.palletIds ?? []) ids.add(id);
   }
@@ -62,6 +63,36 @@ export function arrangeFloorPallets(container: ContainerSpec, clearance: number,
   const variants = ([{ dx: p.length, dy: p.width, orientation: "LWH" }, { dx: p.width, dy: p.length, orientation: "WLH" }] as const)
     .filter((v, i) => (p.layout === "auto" || (p.layout === "long" ? i === 0 : i === 1)) && v.dy <= doorWidth && v.dx <= length && v.dy <= width)
     .map(v => ({ ...v, columns: Math.floor((length + p.gap) / (v.dx + p.gap)) }));
+  const make=(x:number,y:number,v:(typeof variants)[number],i:number):PlacedPallet=>({id:`floor-pallet-${i+1}`,presetId:p.presetId,name:p.name,x,y,z:0,dx:v.dx,dy:v.dy,dz:p.height,weight:p.weight,maxLoad:p.maxLoad,orientation:v.orientation,...(p.packaging?{packaging:p.packaging}:{})});
+  const regions=siteExclusionBoxes(container,clearance).filter(z=>z.z<p.height-.0001);
+  if(regions.length){
+    const crosses=(a:PlacedPallet,b:Pick<PlacedBox,"x"|"y"|"dx"|"dy">,gap:number)=>a.x<b.x+b.dx+gap-.0001&&b.x<a.x+a.dx+gap-.0001&&a.y<b.y+b.dy+gap-.0001&&b.y<a.y+a.dy+gap-.0001;
+    const coordinates=(rows:typeof variants,sideFirst:boolean)=>{
+      const points=new Map<string,{x:number;y:number}>(),out:PlacedPallet[]=[];
+      const add=(x:number,y:number)=>{if(x<length&&y<width)points.set(`${x}/${y}`,{x,y});};
+      for(const x of [0,...regions.map(z=>z.x+z.dx)])for(const y of [0,...regions.map(z=>z.y+z.dy)])add(x,y);
+      while(out.length<(p.count||200)){
+        const ordered=[...points.values()].sort((a,b)=>sideFirst?a.y-b.y||a.x-b.x:a.x-b.x||a.y-b.y);
+        let next:PlacedPallet|undefined;
+        for(const {x,y} of ordered){
+          for(const v of rows){
+            const c=make(x,y,v,out.length);
+            if(x+c.dx<=length+.0001&&y+c.dy<=width+.0001&&!regions.some(z=>crosses(c,z,0))&&!out.some(b=>crosses(c,b,p.gap))){next=c;break;}
+          }
+          if(next)break;
+          points.delete(`${x}/${y}`);
+        }
+        if(!next)break;
+        out.push(next);points.delete(`${next.x}/${next.y}`);
+        const x=next.x+next.dx+p.gap,y=next.y+next.dy+p.gap;
+        add(x,next.y);add(next.x,y);add(x,0);add(0,y);
+      }
+      return out;
+    };
+    const searched=[coordinates(variants,false),coordinates([...variants].reverse(),true)].sort((a,b)=>b.length-a.length)[0];
+    if(!searched.length||searched.length<p.count)throw Error(`保留柜内区域后，当前搜索找到 ${searched.length} 个底层托盘位 / Floor search found ${searched.length} positions with the site regions retained`);
+    return searched.sort((a,b)=>a.x-b.x||a.y-b.y).map((b,i)=>({...b,id:`floor-pallet-${i+1}`}));
+  }
   let best: typeof variants = [], bestCount = 0, bestWidth = Infinity;
   const a = variants[0], b = variants[1];
   if (a) for (let na = 0; na <= Math.min(200, Math.floor((width + p.gap) / (a.dy + p.gap))); na++) {
@@ -74,7 +105,7 @@ export function arrangeFloorPallets(container: ContainerSpec, clearance: number,
   if (!bestCount || p.count > bestCount) throw new Error(`当前净空最多放置 ${bestCount} 个底层托盘，请调整尺寸、数量或方向。`);
   const pallets: PlacedPallet[] = [];
   let y = 0;
-  for (const row of best) { for (let i = 0; i < Math.min(row.columns, limit); i++) pallets.push({ id: `floor-pallet-${pallets.length + 1}`, presetId: p.presetId, name: p.name, x: i * (row.dx + p.gap), y, z: 0, dx: row.dx, dy: row.dy, dz: p.height, weight: p.weight, maxLoad: p.maxLoad, orientation: row.orientation, ...(p.packaging?{packaging:p.packaging}:{}) }); y += row.dy + p.gap; }
+  for (const row of best) { for (let i = 0; i < Math.min(row.columns, limit); i++) pallets.push(make(i*(row.dx+p.gap),y,row,pallets.length)); y += row.dy + p.gap; }
   return pallets.sort((a, b) => a.x - b.x || a.y - b.y).slice(0, limit).map((p,i)=>({...p,id:`floor-pallet-${i+1}`}));
 }
 

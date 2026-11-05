@@ -14,10 +14,11 @@ import { getOrientations, MAX_VISIBLE_PLACEMENTS } from "./engine";
 import { packagingReservedVolume, parsePackaging, placedPackagingParts } from "./packaging";
 import { validatePalletizedCargo } from "./prebuilt-pallets";
 import { independentPalletVolume } from "./pallet-specifications";
+import {reviewVehicleEngineering} from "./vehicle-engineering";
 import type { PackingResult, ProductInput } from "./types";
 
 export type AuditState = "pass" | "fail" | "unverified";
-export type AuditCheckId = "records" | "products" | "dimensions" | "quantities" | "weight" | "volume" | "capacity" | "packaging" | "kits" | "strength";
+export type AuditCheckId = "records" | "products" | "dimensions" | "quantities" | "weight" | "volume" | "capacity" | "packaging" | "kits" | "strength" | "engineering";
 export type AuditCheck = { id: AuditCheckId; state: AuditState; message: [string, string]; items: string[] };
 export type ResultAudit = { checks: AuditCheck[]; hasErrors: boolean; completeCoordinates: boolean; passed: number; failed: number; unverified: number };
 
@@ -36,6 +37,12 @@ export function auditPackingResult(plan: PackingResult, products?: readonly Prod
   const full=totals.loadedCount===boxes.length;
   const bounded=plan.mode==="single"&&boxes.length===MAX_VISIBLE_PLACEMENTS&&totals.loadedCount>boxes.length;
   const add=(id:AuditCheckId,state:AuditState,zh:string,en:string,items:string[]=[])=>checks.push({id,state,message:[zh,en],items:[...new Set(items)].slice(0,8)});
+  if(plan.container.engineering){
+    try{
+      const report=reviewVehicleEngineering(products?{...plan,cargoDetails:Object.fromEntries(products.map(p=>[p.id,shapeDetails(p)]))}:plan)!;
+      add("engineering",report.state,"按录入的地板和配重限值复核。","Checked entered floor and balance limits.",[...report.errors,...report.unknown]);
+    }catch{add("engineering","fail","工程限值或接触资料无效。","Engineering limits or contact data are invalid.");}
+  }
   const completeState:AuditState=full?"pass":bounded?"unverified":"fail";
   const productMap=new Map((products??[]).map(p=>[p.id,p])), summaries=new Map(plan.summaries.map(s=>[s.productId,s]));
   const counts=new Map<string,number>();

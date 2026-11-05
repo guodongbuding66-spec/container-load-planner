@@ -109,13 +109,15 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
   if ([...sets.values()].some(ids => ids.size !== 1)) errors.push("A complete kit must stay on one pallet or entirely loose / 套装不能跨托或拆成打托和散装");
   for(const b of loose)for(const e of envelopes)if(!looseOutsideUnit(b,e,Math.max(productMap.get(b.productId)?.protectionGap??0,specifications.get(e.id)!.config.gap)))errors.push("Loose cargo intersects, supports or violates the gap of a complete unit / 散箱与整托包络相交、互相承托或保护间隙不足");
   const stackLimit=(id:string)=>{const s=specifications.get(id)!;return isCrate(s.config)?crateAutoEnabled(s.config)?20:1:s.stackLayers;};
+  const crateReview=inspectCrateStacks(pallets.filter(p=>isCrate(specifications.get(p.id)!.config)).map(p=>({pallet:p,config:specifications.get(p.id)!.config,cargoKg:cargoByPallet.get(p.id)!.reduce((n,b)=>n+b.weight,0)})),envelopes);
   const layers = new Map<string, number>(), ancestors=new Map<string,string[]>();
   for (const e of [...envelopes].sort((a, b) => a.z - b.z)) {
     const lower = envelopes.filter(p => p.id !== e.id && Math.abs(p.z + p.dz - e.z) < EPS && e.x >= p.x - EPS && e.y >= p.y - EPS && e.x + e.dx <= p.x + p.dx + EPS && e.y + e.dy <= p.y + p.dy + EPS);
-    const layer = e.z <= EPS ? 1 : lower.length === 1 ? (layers.get(lower[0].id) ?? 0) + 1 : 0;
+    const bridge=crateReview.bridgeParents.get(e.id);
+    const layer = e.z <= EPS ? 1 : bridge ? 2 : lower.length === 1 ? (layers.get(lower[0].id) ?? 0) + 1 : 0;
     if (!layer || layer > (value.only ? 1 : stackLimit(e.id))) errors.push("Loaded pallet stack exceeds layer limit or lacks one complete supporting unit");
     layers.set(e.id, layer);
-    const chain=lower.length===1?[lower[0].id,...ancestors.get(lower[0].id)??[]]:[];ancestors.set(e.id,chain);
+    const chain=bridge??(lower.length===1?[lower[0].id,...ancestors.get(lower[0].id)??[]]:[]);ancestors.set(e.id,chain);
     if(chain.some(id=>layer-(layers.get(id)??0)+1>stackLimit(id)))errors.push("A supporting packaging unit exceeds its stack-layer limit");
     if(lower.length===1&&!isCrate(specifications.get(lower[0].id)!.config)){const cargo=cargoByPallet.get(lower[0].id)??[],area=cargo.reduce((n,b)=>n+bodyContactArea(e,b,undefined,productMap.get(b.productId)),0);if(area<e.dx*e.dy-EPS)errors.push("Loaded pallet requires a complete flat cargo top");}
     for (const other of envelopes) if (other.id !== e.id && Math.min(e.x + e.dx, other.x + other.dx) - Math.max(e.x, other.x) > EPS && Math.min(e.y + e.dy, other.y + other.dy) - Math.max(e.y, other.y) > EPS && Math.min(e.z + e.dz, other.z + other.dz) - Math.max(e.z, other.z) > EPS) errors.push("Complete loaded-pallet envelopes overlap");
@@ -129,6 +131,6 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
   for(const e of envelopes)for(const b of siteExclusionBoxes(container,clearance))if(Math.min(e.x+e.dx,b.x+b.dx)-Math.max(e.x,b.x)>EPS&&Math.min(e.y+e.dy,b.y+b.dy)-Math.max(e.y,b.y)>EPS&&Math.min(e.z+e.dz,b.z+b.dz)-Math.max(e.z,b.z)>EPS)errors.push(`Complete pallet intersects site region: ${b.name}`);
   const loads = bearingLoads(envelopes);
   for (const e of envelopes) if (!isCrate(specifications.get(e.id)!.config) && (loads.get(e.id) ?? 0) > specifications.get(e.id)!.maxTopLoadKg + EPS) errors.push("Loaded pallet exceeds declared top-load limit");
-  errors.push(...inspectCrateStacks(pallets.filter(p=>isCrate(specifications.get(p.id)!.config)).map(p=>({pallet:p,config:specifications.get(p.id)!.config,cargoKg:cargoByPallet.get(p.id)!.reduce((n,b)=>n+b.weight,0)})),envelopes).errors);
+  errors.push(...crateReview.errors);
   return errors;
 }

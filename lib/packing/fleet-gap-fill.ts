@@ -15,7 +15,7 @@ export function fillFleetGaps(request:PackingRequest,baseline:FleetResult,prefix
  const loads:FleetLoad[]=[...prefix];
  for(const old of baseline.loads.slice(prefix.length)){
   if(old.frozen||old.plan.deliveryIdentity)throw Error("已交付柜不能补入新箱，请保留该柜前缀 / Preserve issued containers before filling gaps");
-  const local=fleetPool(request,loads).request,build=local.palletBuild!;
+  const local={...fleetPool(request,loads).request,container:old.plan.container},build=local.palletBuild!;
   const palletization={...old.plan.palletization!,looseQuantities:build.looseQuantities};
   const rebound=restorePackingSnapshot(local,{...old.plan,palletBuild:build,palletization,deliveryIdentity:undefined});
   const oldIds=new Set(old.plan.placements.map(b=>b.id)),oldLoose=old.plan.placements.filter(b=>!b.palletIds?.length),ownCounts=new Map<string,number>();
@@ -44,8 +44,10 @@ export function fillFleetGaps(request:PackingRequest,baseline:FleetResult,prefix
     let setNumber=b.setNumber;if(b.setCode){const key=`${b.setCode}/${b.setNumber}`;if(!setMap.has(key)){const next=(setMax.get(b.setCode)??0)+1;setMax.set(b.setCode,next);setMap.set(key,next);}setNumber=setMap.get(key);}
     return {...b,id,palletIds:undefined,setNumber};
    });
-   const candidate=restorePackingSnapshot(local,{...rebound,placements:[...old.plan.placements,...additions],deliveryIdentity:undefined});
-   if(candidate.placements.length>best.placements.length){best=candidate;newBoxes=additions;}
+   try{
+    const candidate=restorePackingSnapshot(local,{...rebound,placements:[...old.plan.placements,...additions],deliveryIdentity:undefined});
+    if(candidate.placements.length>best.placements.length){best=candidate;newBoxes=additions;}
+   }catch(e){if(!local.container.engineering)throw e;}
   }
   for(const b of newBoxes)added.set(b.productId,(added.get(b.productId)??0)+1);
   best.id=newBoxes.length?`gap-${old.plan.id}-${newBoxes.length}`:old.plan.id;

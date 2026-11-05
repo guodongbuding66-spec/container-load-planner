@@ -80,6 +80,8 @@ export type LoadingRules = {
 };
 
 export type ContainerSpec = {
+  /** Optional limits supplied from this vehicle's measured interior and rating evidence. */
+  engineering?: import("./vehicle-engineering").VehicleEngineering;
   /** Physical inner-origin regions; only explicitly declared solid accessories provide support. */
   exclusions?: import("./site-exclusions").SiteExclusion[];
   category?: "container" | "truck" | "pallet" | "other";

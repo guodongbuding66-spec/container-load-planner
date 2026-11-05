@@ -1,7 +1,7 @@
 import {siteExclusionBoxes} from "./site-exclusions";
 import {palletLoadEnvelope} from "./unit-envelope";
-import { certifiedModelGaps } from "./solid-space";
-import { cargoBodyParts, bodyContactArea } from "./cargo-body";
+import { certifiedModelGaps,modelClearanceBounds } from "./solid-space";
+import { cargoBodyParts, bodyContactArea,bodiesOverlap } from "./cargo-body";
 import { applyTypeSupport } from "./loading-rules";
 import { getOrientations, validatePacking } from "./engine";
 import { packagingReservations } from "./packaging";
@@ -39,14 +39,35 @@ export function analyzeEmptySpaces(plan:PackingResult,limit=600){
   for(const b of plan.placements){
     const p=plan.cargoDetails?.[b.productId];
     if(p?.solidModel){
-      spaces=spaces.flatMap(s=>{if(!intersects(s,b))return [s];const x=Math.max(s.x,b.x),y=Math.max(s.y,b.y),z=Math.max(s.z,b.z),inside={x,y,z,dx:Math.min(s.x+s.dx,b.x+b.dx)-x,dy:Math.min(s.y+s.dy,b.y+b.dy)-y,dz:Math.min(s.z+s.dz,b.z+b.dz)-z};const gaps=certifiedModelGaps(inside,b,p,Math.max(200,Math.floor(2400/Math.max(1,spaces.length))));approximate||=gaps.approximate;return [...subtractSpace(s,b),...gaps.spaces];});
+      const bounds=modelClearanceBounds(b,p);
+      spaces=spaces.flatMap(s=>{if(!intersects(s,bounds))return [s];const x=Math.max(s.x,bounds.x),y=Math.max(s.y,bounds.y),z=Math.max(s.z,bounds.z),inside={x,y,z,dx:Math.min(s.x+s.dx,bounds.x+bounds.dx)-x,dy:Math.min(s.y+s.dy,bounds.y+bounds.dy)-y,dz:Math.min(s.z+s.dz,bounds.z+bounds.dz)-z};const gaps=certifiedModelGaps(inside,b,p,Math.max(200,Math.floor(2400/Math.max(1,spaces.length))));approximate||=gaps.approximate;return [...subtractSpace(s,bounds),...gaps.spaces];});
     }else for(const box of cargoBodyParts(b,p))spaces=spaces.flatMap(s=>subtractSpace(s,box));
     if(spaces.length>limit){truncated=true;spaces.sort((a,b)=>volume(b)-volume(a));spaces.length=limit;}
   }
   spaces=mergeSpaces(spaces).sort((a,b)=>volume(b)-volume(a));
   return {spaces:spaces.map((s,i)=>({...s,id:`gap-${i+1}`})),truncated,incomplete:false,approximate,coveredVolume:spaces.reduce((n,s)=>n+volume(s),0)};
 }
-export type SpaceProbe={candidate:PlacedBox|null;status:"fits"|"kit"|"weight"|"door"|"size"|"not-found"|"invalid";errors:string[];tested:number};
+type ProbeRoute={axis:"rear"|"top";state:"clear"|"unverified";blockers:string[];envelopeExitMm:number};
+export type SpaceProbe={candidate:PlacedBox|null;status:"fits"|"kit"|"weight"|"door"|"size"|"not-found"|"invalid";errors:string[];tested:number;route?:ProbeRoute};
+function inspectProbeRoute(plan:PackingResult,candidate:PlacedBox,product:ProductInput):ProbeRoute{
+ const open=plan.container.loadingAccess==="open",axis=open?"top":"rear",left=(plan.container.width-plan.container.doorWidth)/2;
+ const {clearance,container}=plan;
+ const blockers:string[]=[];
+ if(!open&&(candidate.y<left-EPS||candidate.y+candidate.dy>left+container.doorWidth-2*clearance+EPS||candidate.z+candidate.dz>container.doorHeight-clearance+EPS))blockers.push("door");
+ const sweep=open?{...candidate,dz:container.height-clearance-candidate.z}:{...candidate,dx:container.length-2*clearance-candidate.x};
+ let envelopeExitMm=0;
+ for(const b of plan.placements){
+  const p=plan.cargoDetails?.[b.productId];
+  if(p?.solidModel&&intersects(candidate,b))envelopeExitMm=Math.max(envelopeExitMm,open?b.z+b.dz-candidate.z:b.x+b.dx-candidate.x);
+  if(bodiesOverlap(sweep,b,{protectionGap:product.protectionGap},p)&&blockers.length<12)blockers.push(b.id);
+ }
+ for(const zone of siteExclusionBoxes(container,clearance))if(intersects(sweep,zone)&&blockers.length<12)blockers.push(zone.id);
+ for(const pallet of plan.pallets??[]){
+  const occupied=plan.palletization?[palletLoadEnvelope(pallet,plan.placements.filter(b=>b.palletIds?.includes(pallet.id)))]:packagingReservations(pallet);
+  if(occupied.some(b=>intersects(sweep,b))&&blockers.length<12)blockers.push(pallet.id);
+ }
+ return {axis,state:blockers.length?"unverified":"clear",blockers,envelopeExitMm};
+}
 /** Feasibility witness only. Increasing the order is explicit; kits may never be added as loose components. */
 export function probeEmptySpace(plan:PackingResult,inputs:ProductInput[],productId:string,spaces:EmptySpace[],selectedId?:string):SpaceProbe{
   const products=applyTypeSupport(inputs,plan.loadingRules),p=products.find(p=>p.id===productId);
@@ -69,7 +90,7 @@ export function probeEmptySpace(plan:PackingResult,inputs:ProductInput[],product
       b.layer=supporters.length?Math.max(...supporters.map(a=>a.layer))+1:1;
       const validation=validatePacking([...plan.placements,b].sort((a,b)=>a.z-b.z||a.x-b.x),plan.container,plan.clearance,checkedProducts,plan.strategy,plan.mode,plan.pallets,plan.floorPallets,plan.palletization);
       if(validation.valid&&plan.palletization)validation.errors.push(...validatePalletizedCargo([...plan.placements,b],plan.pallets??[],plan.container,plan.clearance,plan.palletization,checkedProducts));
-      if(validation.valid&&!validation.errors.length)return {candidate:b,status:"fits",errors:[],tested};
+      if(validation.valid&&!validation.errors.length)return {candidate:b,status:"fits",errors:[],tested,route:inspectProbeRoute(plan,b,p)};
       validation.errors.forEach(e=>errors.add(e));
     }
   }

@@ -14,11 +14,32 @@ function num(v:unknown,min=0,max=1e6){if(typeof v!=="number"||!Number.isFinite(v
 function text(v:unknown,max=500){if(typeof v!=="string"||!v.trim()||v.length>max)throw fail();return v.trim();}
 function date(v:unknown){const s=text(v,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(s)||!Number.isFinite(Date.parse(s))||new Date(s).toISOString().slice(0,10)!==s)throw fail();return s;}
 function complete(plan:PackingResult){if(!plan.validation.valid||plan.workflow==="pallet-only"||plan.metrics.loadedCount!==plan.placements.length||!plannedWeightBreakdown(plan).consistent)throw fail();}
-export type AxleProfile={model:"rigid-two-supports";name:string;wheelbaseMm:number;containerNoseMm:number;frontEmptyKg:number;rearEmptyKg:number;frontLimitKg:number|null;rearLimitKg:number|null;grossLimitKg:number|null;payloadCenterFromNoseMm?:number|null;source:string;date:string};
+type AxleMember={name:string;emptyKg:number;share:number;limitKg:number|null};
+type AxleGroup="front"|"rear"|"trailer";
+type Coupling={hitchMm:number;trailerSupportMm:number;trailerEmptyKg:number;trailerLimitKg:number|null;emptyPinKg:number|null;pinLimitKg:number|null};
+export type AxleProfile={model:"rigid-two-supports"|"articulated-three-supports";name:string;wheelbaseMm:number;containerNoseMm:number;frontEmptyKg:number;rearEmptyKg:number;frontLimitKg:number|null;rearLimitKg:number|null;grossLimitKg:number|null;payloadCenterFromNoseMm?:number|null;source:string;date:string;coupling?:Coupling;axleGroups?:Partial<Record<AxleGroup,AxleMember[]>>};
 export function parseAxleProfile(value:unknown):AxleProfile{
- const v=obj(value);if(v.model!=="rigid-two-supports")throw Error("只支持刚性两支点静态模型 / Only the rigid two-support static model is supported");
+ const v=obj(value);if(v.model!=="rigid-two-supports"&&v.model!=="articulated-three-supports")throw fail();
  const cap=(x:unknown)=>x===null?null:num(x,1);
- return {model:"rigid-two-supports",name:text(v.name,120),wheelbaseMm:num(v.wheelbaseMm,1,100000),containerNoseMm:num(v.containerNoseMm,-100000,100000),frontEmptyKg:num(v.frontEmptyKg),rearEmptyKg:num(v.rearEmptyKg),frontLimitKg:cap(v.frontLimitKg),rearLimitKg:cap(v.rearLimitKg),grossLimitKg:cap(v.grossLimitKg),...(v.payloadCenterFromNoseMm!==undefined?{payloadCenterFromNoseMm:v.payloadCenterFromNoseMm===null?null:num(v.payloadCenterFromNoseMm,0,100000)}:{}),source:text(v.source),date:date(v.date)};
+ const frontEmptyKg=num(v.frontEmptyKg),rearEmptyKg=num(v.rearEmptyKg);
+ let coupling:Coupling|undefined;
+ if(v.model==="articulated-three-supports"){
+  const c=obj(v.coupling),hitchMm=num(c.hitchMm,-100000,99999);
+  coupling={hitchMm,trailerSupportMm:num(c.trailerSupportMm,hitchMm+1,100000),trailerEmptyKg:num(c.trailerEmptyKg),trailerLimitKg:cap(c.trailerLimitKg),emptyPinKg:c.emptyPinKg===null?null:num(c.emptyPinKg),pinLimitKg:cap(c.pinLimitKg)};
+ }else if(v.coupling!==undefined)throw fail();
+ let axleGroups:AxleProfile["axleGroups"];
+ if(v.axleGroups!==undefined){
+  const groups=obj(v.axleGroups),totals={front:frontEmptyKg,rear:rearEmptyKg,trailer:coupling?.trailerEmptyKg};
+  if(Object.keys(groups).some(k=>!["front","rear","trailer"].includes(k)))throw fail();
+  axleGroups={};
+  for(const key of ["front","rear","trailer"] as const)if(groups[key]!==undefined){
+   const raw=groups[key];if(totals[key]===undefined||!Array.isArray(raw)||raw.length<1||raw.length>8)throw fail();
+   const axles=raw.map(r=>{const a=obj(r);return {name:text(a.name,100),emptyKg:num(a.emptyKg),share:num(a.share,0,1),limitKg:cap(a.limitKg)};});
+   if(new Set(axles.map(a=>a.name)).size!==axles.length||Math.abs(axles.reduce((n,a)=>n+a.share,0)-1)>1e-8||Math.abs(axles.reduce((n,a)=>n+a.emptyKg,0)-totals[key]!)>EPS)throw fail();
+   axleGroups[key]=axles;
+  }
+ }
+ return {model:v.model,name:text(v.name,120),wheelbaseMm:num(v.wheelbaseMm,1,100000),containerNoseMm:num(v.containerNoseMm,-100000,100000),frontEmptyKg,rearEmptyKg,frontLimitKg:cap(v.frontLimitKg),rearLimitKg:cap(v.rearLimitKg),grossLimitKg:cap(v.grossLimitKg),...(v.payloadCenterFromNoseMm!==undefined?{payloadCenterFromNoseMm:v.payloadCenterFromNoseMm===null?null:num(v.payloadCenterFromNoseMm,0,100000)}:{}),source:text(v.source),date:date(v.date),...(coupling?{coupling}:{}),...(axleGroups?{axleGroups}:{})};
 }
 /** Planned mass only; visual zero-weight surrogates must never enter a force balance. */
 export function axleReactions(plan:PackingResult,value:unknown){
@@ -28,10 +49,24 @@ export function axleReactions(plan:PackingResult,value:unknown){
  if(masses.some(b=>!Number.isFinite(b.mass)||b.mass<0||!Number.isFinite(b.x)))throw fail();
  const mass=masses.reduce((n,b)=>n+b.mass,0);if(Math.abs(mass-w.payloadKg)>EPS)throw fail();
  const center=p.payloadCenterFromNoseMm??(mass?masses.reduce((n,b)=>n+b.mass*b.x,0)/mass+plan.clearance:0),cargoCenterMm=p.containerNoseMm+center;
- const rearCargoKg=mass*cargoCenterMm/p.wheelbaseMm,frontCargoKg=mass-rearCargoKg,frontKg=p.frontEmptyKg+frontCargoKg,rearKg=p.rearEmptyKg+rearCargoKg,grossKg=mass+p.frontEmptyKg+p.rearEmptyKg;
- const excess=(kg:number,cap:number|null)=>cap===null?null:Math.max(0,kg-cap),frontExcessKg=excess(frontKg,p.frontLimitKg),rearExcessKg=excess(rearKg,p.rearLimitKg),grossExcessKg=excess(grossKg,p.grossLimitKg),uplift=frontKg< -EPS||rearKg< -EPS;
- const state=uplift||[frontExcessKg,rearExcessKg,grossExcessKg].some(n=>n!==null&&n>EPS)?"fail":[p.frontLimitKg,p.rearLimitKg,p.grossLimitKg].some(n=>n===null)?"unverified":"pass";
- return {state,payloadKg:mass,frontCargoKg,rearCargoKg,frontKg,rearKg,grossKg,cargoCenterMm,centerSource:p.payloadCenterFromNoseMm==null?"geometry":"declared",frontExcessKg,rearExcessKg,grossExcessKg,uplift,massResidualKg:frontKg+rearKg-grossKg};
+ const coupling=p.coupling;
+ const trailerCargoKg=coupling?mass*(cargoCenterMm-coupling.hitchMm)/(coupling.trailerSupportMm-coupling.hitchMm):0;
+ const pinCargoKg=mass-trailerCargoKg;
+ const rearCargoKg=pinCargoKg*(coupling?.hitchMm??cargoCenterMm)/p.wheelbaseMm,frontCargoKg=pinCargoKg-rearCargoKg;
+ const frontKg=p.frontEmptyKg+frontCargoKg,rearKg=p.rearEmptyKg+rearCargoKg,trailerKg=(coupling?.trailerEmptyKg??0)+trailerCargoKg;
+ const grossKg=mass+p.frontEmptyKg+p.rearEmptyKg+(coupling?.trailerEmptyKg??0);
+ const excess=(kg:number,cap:number|null)=>cap===null?null:Math.max(0,kg-cap);
+ const frontExcessKg=excess(frontKg,p.frontLimitKg),rearExcessKg=excess(rearKg,p.rearLimitKg),grossExcessKg=excess(grossKg,p.grossLimitKg);
+ const pinKg=coupling?.emptyPinKg!=null?coupling.emptyPinKg+pinCargoKg:null;
+ const trailer= coupling?{loadKg:trailerKg,cargoKg:trailerCargoKg,excessKg:excess(trailerKg,coupling.trailerLimitKg),pinKg,pinCargoKg,pinExcessKg:pinKg===null?null:excess(pinKg,coupling.pinLimitKg)}:undefined;
+ const added={front:frontCargoKg,rear:rearCargoKg,trailer:trailerCargoKg};
+ const axles=(["front","rear","trailer"] as const).flatMap(group=>(p.axleGroups?.[group]??[]).map(a=>{
+  const loadKg=a.emptyKg+added[group]*a.share;return {...a,group,loadKg,excessKg:excess(loadKg,a.limitKg)};
+ }));
+ const uplift=[frontKg,rearKg,trailerKg,pinKg??0,...axles.map(a=>a.loadKg)].some(n=>n< -EPS);
+ const exceedances=[frontExcessKg,rearExcessKg,grossExcessKg,...(trailer?[trailer.excessKg,trailer.pinExcessKg]:[]),...axles.map(a=>a.excessKg)];
+ const state=uplift||exceedances.some(n=>n!==null&&n>EPS)?"fail":exceedances.some(n=>n===null)?"unverified":"pass";
+ return {state,payloadKg:mass,frontCargoKg,rearCargoKg,frontKg,rearKg,grossKg,cargoCenterMm,centerSource:p.payloadCenterFromNoseMm==null?"geometry":"declared",frontExcessKg,rearExcessKg,grossExcessKg,uplift,massResidualKg:frontKg+rearKg+trailerKg-grossKg,...(trailer?{trailer}:{}),...(axles.length?{axles}:{})};
 }
 export type UnitMeasurement={palletId:string;length:number;width:number;height:number;noseProtrusion:number;leftProtrusion:number;extraWeightKg:number;weightIncluded:boolean;source:string;date:string};
 export function parseUnitMeasurement(plan:PackingResult,value:unknown):UnitMeasurement{

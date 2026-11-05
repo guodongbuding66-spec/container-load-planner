@@ -125,6 +125,8 @@ import { usePlanEditor } from "./use-plan-editor";
 import { PalletBuildPreview } from "./pallet-build-preview";
 import {parseSiteExclusions} from "../lib/packing/site-exclusions";
 import {SiteExclusionSettings} from "./site-exclusion-settings";
+import {VehicleEngineeringReview,VehicleEngineeringSettings} from "./vehicle-engineering";
+import {parseVehicleEngineering} from "../lib/packing/vehicle-engineering";
 import { PalletBuildSettings } from "./pallet-build-settings";
 import { DEFAULT_PALLET_BUILD, parseLoadingWorkflow, parsePalletBuild } from "../lib/packing/loading-workflow";
 import type { LoadingWorkflow, PalletBuildOptions } from "../lib/packing/types";
@@ -308,6 +310,7 @@ function normalizeProductDraft(product: Partial<ProductInput>, index: number): P
 function normalizeContainerDraft(value: unknown, fallback: ContainerSpec): ContainerSpec {
   const candidate = value && typeof value === "object" ? value as Partial<ContainerSpec> : {};
   return {
+    ...(candidate.engineering===undefined?{}:{engineering:parseVehicleEngineering(candidate.engineering,{length:1e6,width:1e6})}),
     ...(candidate.exclusions===undefined?{}:{exclusions:parseSiteExclusions(candidate.exclusions,candidate as ContainerSpec,true)}),
     category: candidate.category ?? fallback.category, loadingAccess: candidate.loadingAccess ?? fallback.loadingAccess, baseHeight: candidate.baseHeight ?? fallback.baseHeight, specificationNote: candidate.specificationNote ?? fallback.specificationNote,
     id: safeText(candidate.id, fallback.id, 120),
@@ -1962,8 +1965,9 @@ export function PackingApp() {
 </div>}
             {isPalletWorkflow ? <><PalletBuildSettings products={activeProducts} resetToken={numericResetVersion} onReset={clearNumericDraftErrors} invalid={invalidNumericFields.size>0} value={palletBuild} only={workflow === "pallet-only"} onChange={value=>{setPalletBuild(value);markDirty();}} onValidityChange={setNumericFieldValidity}/><PalletBuildPreview key={JSON.stringify([palletBuild,activeProducts,strategy,loadingRules])} request={fleetRequest} value={palletBuild} disabled={invalidNumericFields.size>0||!activeProducts.length}/></> : <FloorPalletSettings inline config={floorPallets} container={container} clearance={clearance} customSpaces={customContainers} onDraftChange={receivePalletDraft} onSave={()=>{}} onClose={()=>{}}/>}
           </div>
-          {(workflow!=="pallet-only"||!!container.exclusions?.length)&&<SiteExclusionSettings container={container} clearance={clearance} only={workflow==="pallet-only"} floor={!isPalletWorkflow&&!!floorPallets} invalid={invalidNumericFields.size>0} resetToken={numericResetVersion} onValidityChange={setNumericFieldValidity} onChange={next=>{setContainer(next);markDirty();}}/>}
-          {(workflow!=="pallet-only"||!!container.exclusions?.some(z=>z.accessory))&&<ContainerAccessorySettings container={container} products={activeProducts} only={workflow==="pallet-only"} prebuilt={workflow==="palletized"} floor={!isPalletWorkflow&&!!floorPallets} invalid={invalidNumericFields.size>0} resetToken={numericResetVersion} onValidityChange={setNumericFieldValidity} onChange={next=>{setContainer(next);markDirty();}}/>}
+          {(workflow!=="pallet-only"||!!container.exclusions?.length)&&<SiteExclusionSettings container={container} clearance={clearance} only={workflow==="pallet-only"} invalid={invalidNumericFields.size>0} resetToken={numericResetVersion} onValidityChange={setNumericFieldValidity} onChange={next=>{setContainer(next);markDirty();}}/>}
+          {(workflow!=="pallet-only"||!!container.exclusions?.some(z=>z.accessory))&&<ContainerAccessorySettings container={container} products={activeProducts} only={workflow==="pallet-only"} prebuilt={workflow==="palletized"} invalid={invalidNumericFields.size>0} resetToken={numericResetVersion} onValidityChange={setNumericFieldValidity} onChange={next=>{setContainer(next);markDirty();}}/>}
+          {workflow!=="pallet-only"&&<VehicleEngineeringSettings key={JSON.stringify([container.id,container.engineering])} container={container} onChange={next=>{setContainer(next);markDirty();}}/>}
           <LoadingRuleSettings inline rules={loadingRules} products={products} onDraftChange={receiveRulesDraft} onSave={()=>{}} onClose={()=>{}}/>
           {workflow !== "pallet-only" && <details className="wizard-advanced"><summary>{tr("计算偏好与计划目标")}</summary><div className="wizard-preference-grid">            <article className="panel mode-panel">
               <div className="panel-head compact"><div><span className="section-kicker">01</span><h2>{tr("计算偏好","Solver preferences")}</h2></div></div>
@@ -2322,6 +2326,7 @@ export function PackingApp() {
                 {planReview && <PlanReviewPanel report={planReview}/>}
                 <LongSupportPanel plan={result} products={activeProducts}/>
                 {resultAudit && <ResultAuditPanel report={resultAudit}/>}
+                {result.container.engineering&&<VehicleEngineeringReview plan={result}/>}
                 <ul className="warning-list">
                   {(result.warnings.length ? result.warnings : [tr("未发现门洞、载重或订单缺口告警。")]).map((warning) => <li key={trText(warning)}><CircleAlert size={15} />{trText(warning)}</li>)}
                 </ul>

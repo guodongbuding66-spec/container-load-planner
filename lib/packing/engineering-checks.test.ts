@@ -11,6 +11,18 @@ const pal=()=>issueDeliveryIdentity(packLoadingWorkflow({...req,workflow:"pallet
 const profile:AxleProfile={model:"rigid-two-supports",name:"QA",wheelbaseMm:1000,containerNoseMm:0,frontEmptyKg:100,rearEmptyKg:200,frontLimitKg:1000,rearLimitKg:1000,grossLimitKg:2000,payloadCenterFromNoseMm:250,source:"QA drawing and scale",date:"2026-10-22"};
 const measure=(p=pal(),id=p.pallets![0].id)=>({palletId:id,length:500,width:500,height:300,noseProtrusion:0,leftProtrusion:0,extraWeightKg:0,weightIncluded:true,source:"Tape QA",date:"2026-10-22"});
 it("balances actual mass and moments without mutating the plan",()=>{const p=direct(),before=JSON.stringify(p),r=axleReactions(p,profile);expect(r).toMatchObject({payloadKg:80,frontKg:160,rearKg:220,grossKg:380,state:"pass",massResidualKg:0});expect(r.rearCargoKg*1000).toBe(80*250);expect(JSON.stringify(p)).toBe(before);expect(axleReactions(pal(),profile).payloadKg).toBe(120);});
+it("conserves coupled vehicle weight and checks measured per-axle shares and hitch capacity",()=>{
+ const p=direct(),value:AxleProfile={...profile,model:"articulated-three-supports",
+  coupling:{hitchMm:100,trailerSupportMm:1100,trailerEmptyKg:300,trailerLimitKg:500,emptyPinKg:100,pinLimitKg:200},
+  axleGroups:{rear:[{name:"R1",emptyKg:90,share:.45,limitKg:100},{name:"R2",emptyKg:110,share:.55,limitKg:120}]}};
+ const report=axleReactions(p,value);
+ expect(report).toMatchObject({state:"pass",grossKg:680,massResidualKg:0,trailer:{loadKg:312,cargoKg:12,pinKg:168,pinCargoKg:68}});
+ expect(report.frontKg).toBeCloseTo(161.2);expect(report.rearKg).toBeCloseTo(206.8);
+ expect(report.axles?.[0].loadKg).toBeCloseTo(93.06);
+ expect(axleReactions(p,{...value,coupling:{...value.coupling!,pinLimitKg:160}})).toMatchObject({state:"fail",trailer:{pinExcessKg:8}});
+ expect(axleReactions(p,{...value,coupling:{...value.coupling!,emptyPinKg:null}}).state).toBe("unverified");
+ expect(()=>parseAxleProfile({...value,axleGroups:{rear:[{name:"R",emptyKg:199,share:1,limitKg:900}]}})).toThrow();
+});
 it("does not use display surrogate weights or an edited display CG",()=>{const p=pack({...req,products:[{...req.products[0],quantity:1,weight:0},{...req.products[0],id:"b",quantity:1}]});const q={...profile,payloadCenterFromNoseMm:null};p.metrics.centerOfGravity={...p.metrics.centerOfGravity,x:99999,y:99999,z:99999};expect(axleReactions(p,q).cargoCenterMm).toBe(p.placements.find(b=>b.weight>0)!.x+100);});
 it("distinguishes missing ratings, overload and uplift",()=>{expect(axleReactions(direct(),{...profile,frontLimitKg:null}).state).toBe("unverified");expect(axleReactions(direct(),{...profile,frontLimitKg:150,grossLimitKg:350})).toMatchObject({state:"fail",frontExcessKg:10,grossExcessKg:30});expect(axleReactions(direct(),{...profile,containerNoseMm:10000}).uplift).toBe(true);expect(axleReactions(direct(),{...profile,containerNoseMm:1000}).uplift).toBe(false);});
 it.each([{wheelbaseMm:0},{frontEmptyKg:-1},{frontLimitKg:0},{source:""},{date:"2026-02-30"},{model:"trailer"},{wheelbaseMm:NaN}])("rejects malformed axle profile %j",patch=>expect(()=>parseAxleProfile({...profile,...patch})).toThrow());

@@ -48,7 +48,7 @@ it("uses full attached height in access checks even when cargo is lower",async()
 });
 it("uses real two-end contact without filling the 600 mm span",()=>{
  const q={...p,length:1000,width:100,quantity:1,minimumSupportRatio:.4,longSupport:{version:1 as const,dimensions:{length:1000,width:100,height:100},axis:"L" as const,bands:[{start:0,end:200},{start:800,end:1000}],minimumContactRatio:1,maxSpanMm:600,maxOverhangMm:0,source:"QA span",revision:"43"}},c={...config,length:1000,width:100,maxLoad:100,packaging:{...config.packaging!,deckSupports:[{...s,dx:200,dy:100,weightKg:1},{...s,id:"end",x:800,dx:200,dy:100,weightKg:1}]}};
- const plan=make({products:[q],palletBuild:{...request.palletBuild!,config:c}});expect(plan.placements).toHaveLength(1);expect(inspectDeckSupports(plan,[q]).map(r=>r.loadKg)).toEqual([5,5]);
+ const plan=make({products:[q],palletBuild:{...request.palletBuild!,config:c}});expect(plan.placements).toHaveLength(1);expect(inspectDeckSupports(plan,[q]).map(r=>r.loadKg)).toEqual([10,10]);
  expect(()=>make({products:[{...q,longSupport:{...q.longSupport,maxSpanMm:599}}],palletBuild:{...request.palletBuild!,config:c}})).toThrow(/deck support constraints/);
  expect(()=>make({products:[{...q,minimumSupportRatio:.995}],palletBuild:{...request.palletBuild!,config:c}})).toThrow();
 });

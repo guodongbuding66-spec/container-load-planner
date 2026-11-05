@@ -3,7 +3,7 @@ import type { ResultAudit, AuditCheckId } from "../lib/packing/result-audit";
 import { REVIEW_STATES, REVIEW_TITLES, type PlanReview } from "../lib/packing/plan-review";
 import { tr, useLanguage } from "./language";
 const TITLES:Record<AuditCheckId,[string,string]>={
-  records:["追踪标识","Tracking identifiers"],products:["产品与模型来源","Product and model provenance"],dimensions:["尺寸与坐标边界","Dimensions and position bounds"],quantities:["数量与订单","Counts and order"],weight:["货物与包装重量","Cargo and packaging mass"],volume:["体积与包装预留","Volume and packaging reservation"],capacity:["利用率统计基准","Utilization denominators"],packaging:["包装结构与整托归属","Packaging and unit membership"],kits:["套装完整性","Kit completeness"],strength:["承重资料完整性","Bearing-data completeness"]
+  records:["追踪标识","Tracking identifiers"],products:["产品与模型来源","Product and model provenance"],dimensions:["尺寸与坐标边界","Dimensions and position bounds"],quantities:["数量与订单","Counts and order"],weight:["货物与包装重量","Cargo and packaging mass"],volume:["体积与包装预留","Volume and packaging reservation"],capacity:["利用率统计基准","Utilization denominators"],packaging:["包装结构与整托归属","Packaging and unit membership"],kits:["套装完整性","Kit completeness"],strength:["承重资料完整性","Bearing-data completeness"],engineering:["地板载荷与配重","Floor load and balance"]
 };
 export function PlanReviewPanel({report}:{report:PlanReview}){
   useLanguage();

@@ -20,12 +20,12 @@ export const FLEET_TAIL_GRID_LIMIT=64;
 export const FLEET_TAIL_CARTON_LIMIT=64;
 
 /** Decisions use stable source rows; complete kits share one global reservation. */
-export function fleetTailGroups(request:PackingRequest):FleetTailGroup[]{
+export function fleetTailGroups(request:PackingRequest,includeOtherCargo=false):FleetTailGroup[]{
  if(request.workflow!=="palletized"||request.mode!=="mixed")return [];
  const build=parsePalletBuild(request.palletBuild),groups=new Map<string,ProductInput[]>(),skuCounts=new Map<string,number>();
  for(const p of request.products){const code=normalizedSetCode(p),id=code?`kit:${code}`:`row:${p.id}`;groups.set(id,[...groups.get(id)??[],p]);skuCounts.set(p.sku,(skuCounts.get(p.sku)??0)+1);}
  return [...groups].flatMap(([id,products])=>{
-  if(products.some(p=>p.cargoType&&!["carton","loose"].includes(p.cargoType)))return [];
+  if(!includeOtherCargo&&products.some(p=>p.cargoType&&!["carton","loose"].includes(p.cargoType)))return [];
   const cartonsPerUnit=products.reduce((n,p)=>n+(normalizedSetCode(p)?normalizedUnitsPerSet(p):1),0),availableUnits=Math.min(Math.floor(64/cartonsPerUnit),...products.map(p=>Math.floor((p.quantity-(build.looseQuantities?.[p.id]??0))/(normalizedSetCode(p)?normalizedUnitsPerSet(p):1))));
   const p=products[0],name=normalizedSetCode(p)||((skuCounts.get(p.sku)??0)>1?`${p.sku} [${p.id}]`:p.sku);
   return availableUnits>0?[{id,name,products,cartonsPerUnit,availableUnits}]:[];

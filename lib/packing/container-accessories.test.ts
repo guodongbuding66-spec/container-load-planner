@@ -82,9 +82,9 @@ it("rejects cycles, dangling edges and before-cargo dependencies on after-cargo"
  const other={...z,id:"other",accessory:{...a,afterAccessoryIds:["wood"]}};
  for(const rows of [[{...z,accessory:{...a,afterAccessoryIds:["wood"]}}],[{...z,accessory:{...a,afterAccessoryIds:["other"]}},other],[{...z,accessory:{...a,afterAccessoryIds:["missing"]}}],[{...z,accessory:{...a,afterAccessoryIds:["other"]}},{...other,accessory:{...a,phase:"after-cargo",afterAccessoryIds:[]}}]])expect(()=>parseSiteExclusions(rows,c)).toThrow();
 });
-it("rejects deleted product links and unsupported pallet-only or floor-laid workflows",()=>{
+it("rejects deleted product links and pallet-only workflows without vehicle coordinates",()=>{
  const bad={...req,container:{...c,exclusions:[{...z,accessory:{...a,relatedProductIds:["deleted"]}}]}};
- expect(()=>pack(bad)).toThrow(/Unknown accessory/);expect(()=>packLoadingWorkflow(bad)).toThrow(/Unknown accessory/);expect(()=>packLoadingWorkflow({...req,workflow:"pallet-only",palletBuild:DEFAULT_PALLET_BUILD})).toThrow();expect(()=>pack({...req,floorPallets:DEFAULT_PALLET_BUILD.config})).toThrow();
+ expect(()=>pack(bad)).toThrow(/Unknown accessory/);expect(()=>packLoadingWorkflow(bad)).toThrow(/Unknown accessory/);expect(()=>packLoadingWorkflow({...req,workflow:"pallet-only",palletBuild:DEFAULT_PALLET_BUILD})).toThrow();
 });
 it("keeps complete pallet cargo, tare and accessory mass separated",()=>{
  const config={...DEFAULT_PALLET_BUILD.config,length:400,width:400,height:100,weight:5,maxLoad:100,maxCargoHeight:200},request={...req,workflow:"palletized" as const,container:{...c,maxWeight:60,exclusions:[z]},products:[{...p,quantity:4}],palletBuild:{...DEFAULT_PALLET_BUILD,config,maxPallets:2}};

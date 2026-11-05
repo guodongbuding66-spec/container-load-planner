@@ -15,7 +15,7 @@ it("renders physical coordinates, region purpose and union-volume accounting in 
  expect(html).toContain("Obstacles and keep-clear regions");expect(html).toContain("physical inner nose");expect(html).toContain("&lt;Obstacle&gt;");expect(html).toContain('aria-label="Region 1 dx"');expect(html).toContain('value="reserved" selected=""');expect(html).not.toMatch(/[\u3400-\u9fff]/u);
 });
 it("exposes invalid bounds and unsupported workflows while retaining a removal action",()=>{
- for(const props of [{container:{...c,width:50}},{container:c,only:true},{container:c,floor:true}]){
+ for(const props of [{container:{...c,width:50}},{container:c,only:true}]){
  const html=renderToStaticMarkup(<SiteExclusionSettings {...props} clearance={0} onChange={()=>{}} onValidityChange={()=>{}}/>);expect(html).toContain('role="alert"');expect(html).toContain("删除区域");expect(html).toContain('disabled=""');
  }
 });

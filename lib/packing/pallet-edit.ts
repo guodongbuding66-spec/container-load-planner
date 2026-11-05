@@ -1,6 +1,5 @@
 import {deckSupportHeight,palletQuarterTurns,rotateDeckRect} from "./deck-support";
-import {palletLayerCopies,parsePalletLayerTemplates,type PalletLayerTemplate} from "./pallet-layer";
-import {cargoShapeOf} from "./cargo-shape";
+import {layerProductShape,palletLayerCopies,parsePalletLayerTemplates,type PalletLayerTemplate} from "./pallet-layer";
 import { MAX_VISIBLE_PLACEMENTS, pack, rebuildPlacementLayers, restorePackingSnapshot } from "./engine";
 import { bearingStatus } from "./bearing";
 import { bodyContactArea,quarterTurnOrientation } from "./cargo-body";
@@ -76,9 +75,9 @@ export function capturePalletLayer(plan:PackingResult,products:ProductInput[],id
  const layer=plan.placements.filter(b=>b.palletIds?.includes(id)&&Math.abs(palletLocalBox(b,p).z-bottom)<EPS);if(!layer.length)throw Error("未找到所选物理层 / Physical layer not found");
  const selected=wholeKits(plan,layer);if(selected.some(b=>b.palletIds?.length!==1||b.palletIds[0]!==id))throw Error("层型套装跨托，不能拆开保存 / Layer kit spans pallets and cannot be split");
  const local=selected.map(b=>palletLocalBox(b,p)),bounds=selectionBounds(local)!,sources=[...new Set(local.map(b=>b.productId))].map(key=>products.find(p=>p.id===key)!);
- if(sources.some(p=>!p||cargoShapeOf(p)!=="box"||p.solidModel))throw Error("首阶段层型仅支持长方体箱规 / This layer stage supports rectangular cartons only");
+ if(sources.some(p=>!p))throw Error("层型引用了缺失的订单行 / A layer references a missing order row");
  const config=specificationForPallet(plan.palletization,p).config,kits=new Map<string,number>();
- return parsePalletLayerTemplates([{version:1,id:`layer-${Date.now().toString(36)}-${++serial}`,name,revision,createdAt:new Date().toISOString(),sourcePallet:{length:config.length,width:config.width},products:sources.map(p=>({sourceProductId:p.id,sku:p.sku,length:p.length,width:p.width,height:p.height,setCode:normalizedSetCode(p),unitsPerSet:normalizedUnitsPerSet(p)})),items:local.map(b=>{const key=`${b.setCode}/${b.setNumber}`;if(b.setCode&&!kits.has(key))kits.set(key,kits.size+1);return {product:sources.findIndex(p=>p.id===b.productId),x:b.x-bounds.x,y:b.y-bounds.y,z:b.z-bounds.z,orientation:b.orientation,orientationSigns:b.orientationSigns,...(b.setCode?{kit:kits.get(key),item:b.setItemNumber}:{})};})}])[0];
+ return parsePalletLayerTemplates([{version:1,id:`layer-${Date.now().toString(36)}-${++serial}`,name,revision,createdAt:new Date().toISOString(),sourcePallet:{length:config.length,width:config.width},products:sources.map(p=>({sourceProductId:p.id,sku:p.sku,length:p.length,width:p.width,height:p.height,setCode:normalizedSetCode(p),unitsPerSet:normalizedUnitsPerSet(p),shape:layerProductShape(p)})),items:local.map(b=>{const key=`${b.setCode}/${b.setNumber}`;if(b.setCode&&!kits.has(key))kits.set(key,kits.size+1);return {product:sources.findIndex(p=>p.id===b.productId),x:b.x-bounds.x,y:b.y-bounds.y,z:b.z-bounds.z,orientation:b.orientation,orientationSigns:b.orientationSigns,...(b.setCode?{kit:kits.get(key),item:b.setItemNumber}:{})};})}])[0];
 }
 const identity=(b:PlacedBox)=>JSON.stringify([b.id,b.productId,b.sku,b.weight,b.x,b.y,b.z,b.dx,b.dy,b.dz,b.orientation,b.orientationSigns,b.setCode,b.setNumber,b.setItemNumber,b.palletIds,b.locked]);
 function validPoint(p:Delta){if(![p.x,p.y,p.z].every(Number.isFinite))throw new Error("坐标必须是有效数字 / Coordinates must be finite");}
