@@ -4,7 +4,7 @@ import {parsePalletBuild} from "./loading-workflow";
 import {packagingInterior} from "./packaging";
 import {palletSpecifications} from "./pallet-specifications";
 import type {OrderCapacityTrial} from "./order-capacity";
-import type {FloorPalletConfig,PackingRequest,PalletBuildOptions} from "./types";
+import type {FloorPalletConfig,PackingRequest,PackingResult,PalletBuildOptions} from "./types";
 
 /** Geometric upper bounds only: they do not certify support, strength or a pack. */
 export function inspectPalletHeights(request:PackingRequest){
@@ -24,6 +24,17 @@ export function inspectPalletHeights(request:PackingRequest){
   return {id:s.id,name:c.name,current,available,crate:inside.crate,stock:s.maxPallets,products,
    canRaise:!inside.crate&&s.maxPallets>0&&products.length>0&&current+.0001<available};
  });
+}
+
+/** Only flag active specifications with actual one-layer cargo and unmet demand. */
+export function oneLayerPalletCeilings(request: PackingRequest, plan?: PackingResult | null) {
+  if (!plan || plan.metrics.loadedCount >= request.products.reduce((n,p)=>n+p.quantity,0)) return [];
+  return inspectPalletHeights(request).filter(s => {
+    const ids = new Set(plan.pallets?.filter(p => (p.specificationId??"primary") === s.id).map(p=>p.id));
+    const boxes = plan.placements.filter(b => b.palletIds?.some(id => ids.has(id)));
+    return boxes.length>0 && boxes.every(b=>b.layer===1) && s.stock>0 && s.current+0.0001<s.available && s.products.some(p=>
+      p.heightLayers===1 && p.minHeight!==null && 2*p.minHeight<=s.available+0.0001 && p.configuredLayers!==1);
+  });
 }
 
 export function withVehiclePalletHeights(build: PalletBuildOptions, ids: readonly string[]): PalletBuildOptions {

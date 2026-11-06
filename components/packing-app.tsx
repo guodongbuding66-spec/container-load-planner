@@ -1,6 +1,9 @@
 "use client";
 import {issueDeliveryIdentity} from "../lib/packing/delivery-identity";
 import {OrderCapacityTrial} from "./order-capacity-trial";
+import {oneLayerPalletCeilings} from "../lib/packing/pallet-height";
+import {canSuggestPalletSize,withPalletRecipe} from "../lib/packing/pallet-recipe";
+import {palletSpecifications} from "../lib/packing/pallet-specifications";
 import {EngineeringChecks} from "./engineering-checks";
 import type {EngineeringDocument} from "../lib/packing/engineering-checks";
 import {QualityBenchmarks} from "./quality-benchmarks";
@@ -1676,7 +1679,19 @@ export function PackingApp() {
     window.requestAnimationFrame(()=>document.querySelector('.wizard-steps')?.scrollIntoView({behavior:"smooth",block:"start"}));
   };
   const canExport = Boolean(result?.validation.valid && result.metrics.loadedCount > 0 && !resultAudit?.hasErrors && !dirty && !hasPendingDimensionChanges);
-  const capacityTrial=mode==="mixed"&&workflow!=="pallet-only"?<OrderCapacityTrial request={capacityRequest} plan={dirty?null:result} measuredEnvelope={!!result?.pallets?.some(p=>p.measuredEnvelope)} volume={targetVolumePercent/100} weight={targetWeightPercent/100} disabled={upgradesDisabled||setupInvalid} canApply={!result?.deliveryIdentity} onApply={applyCapacityStock} onApplyBuild={applyPalletBuildTrial} onDesignPallet={specId=>{
+  const needsPalletRecipe = mode==="mixed"&&workflow==="palletized"&&!dirty&&!result?.deliveryIdentity&&!result?.pallets?.some(p=>p.measuredEnvelope)&&
+    oneLayerPalletCeilings(capacityRequest,result).some(s=>palletSpecifications(palletBuild).some(spec=>spec.id===s.id&&canSuggestPalletSize(spec.config)));
+  const recalculatePlan=()=>{
+    if(needsPalletRecipe){
+      setMessage(tr("当前尺寸只能放一层。请在下方确认打托预览，再点击“采用此打托并重新计算”。","Current dimensions allow only one layer. Review the pallet preview below and apply it to recalculate."));
+      document.getElementById("pallet-recipe")?.scrollIntoView({block:"center",behavior:"smooth"});
+      document.getElementById("pallet-recipe-count")?.focus({preventScroll:true});
+      return;
+    }
+    setManualRun(v=>v+1);
+  };
+  const capacityTrial=mode==="mixed"&&workflow!=="pallet-only"?<OrderCapacityTrial request={capacityRequest} plan={dirty?null:result} measuredEnvelope={!!result?.pallets?.some(p=>p.measuredEnvelope)} volume={targetVolumePercent/100} weight={targetWeightPercent/100} disabled={upgradesDisabled||setupInvalid} canApply={!result?.deliveryIdentity} onApply={applyCapacityStock} onApplyBuild={applyPalletBuildTrial} onRecalculateCurrent={()=>setManualRun(v=>v+1)} onDesignPallet={(specId,patch)=>{
+    if(patch){const next=withPalletRecipe(palletBuild,specId,patch);setPalletBuild(next);persistDraft({palletBuild:next});markDirty();}
     setPalletSetupSpec(specId);
     goToStep(2);
     window.requestAnimationFrame(()=>{
@@ -2072,7 +2087,7 @@ export function PackingApp() {
           <div className="wizard-page-heading"><div><span className="section-kicker">STEP 03</span><h2>{tr(workflow === "pallet-only" ? "打托方案" : "装箱方案", workflow === "pallet-only" ? "Pallet plan" : "Loading plan")}</h2><p>{tr(result?.container.name ?? container.name)} · {result?.workflow === "pallet-only" ? tr("仅打托，未执行装柜", "Pallets only; no vehicle loading") : result?.palletization?tr("先打托，再装柜","Palletize first, then load"):floorPallets?tt`使用托盘 ${floorPallets.length} × ${floorPallets.width} × ${floorPallets.height} mm`:tr("直接装柜，无底层托盘")}</p></div><button className="button" onClick={()=>goToStep(2)}><ChevronLeft size={16}/>{tr("修改装载配置")}</button></div>
           <div className="plan-command-bar">
           <div className="result-strategy-switch" role="group" aria-label={tr("方案算法切换")}><button className={strategy==="practical"?"selected":""} aria-pressed={strategy==="practical"} onClick={()=>switchStrategy("practical")}><ShieldCheck size={18}/><span><strong>{tr("现场易执行")}</strong><small>{cachedPracticalPlan?strategyDisplayLabel(cachedPracticalPlan):tr("等待计算")}</small></span></button><button className={strategy==="maximum"?"selected":""} aria-pressed={strategy==="maximum"} onClick={()=>switchStrategy("maximum")}><Gauge size={18}/><span><strong>{tr("高密度参考")}</strong><small>{cachedMaximumPlan?strategyDisplayLabel(cachedMaximumPlan):tr("等待计算")}</small></span></button></div>
-          <div className="plan-command-actions"><details className="plan-calculation-menu"><summary className="button"><Settings2 size={15}/>{tr("计算设置", "Calculation settings")}</summary><div className="plan-calculation-panel">          <section className="calculation-controls" aria-label={tr("计算控制")}><label><input type="checkbox" checked={autoCalculate} onChange={e=>setAutoCalculate(e.target.checked)}/>{tr("方案阶段自动更新")}</label><label>{tr("计算时限")}<select aria-label={tr("计算时限")} value={calculationBudget} onChange={e=>setCalculationBudget(Number(e.target.value))}><option value={0}>{tr("按设备自动")}</option><option value={15}>{tr("15 秒")}</option><option value={35}>{tr("35 秒")}</option><option value={60}>{tr("60 秒")}</option><option value={120}>{tr("120 秒")}</option></select></label></section></div></details><button className="button primary" disabled={status==="working"||hasPendingDimensionChanges||invalidNumericFields.size>0} onClick={()=>setManualRun(v=>v+1)}>{tr("重新计算方案")}</button>{status==="working"&&<button className="button" onClick={stopCalculation}>{tr("停止并保留已完成方案")}</button>}</div>
+          <div className="plan-command-actions"><details className="plan-calculation-menu"><summary className="button"><Settings2 size={15}/>{tr("计算设置", "Calculation settings")}</summary><div className="plan-calculation-panel">          <section className="calculation-controls" aria-label={tr("计算控制")}><label><input type="checkbox" checked={autoCalculate} onChange={e=>setAutoCalculate(e.target.checked)}/>{tr("方案阶段自动更新")}</label><label>{tr("计算时限")}<select aria-label={tr("计算时限")} value={calculationBudget} onChange={e=>setCalculationBudget(Number(e.target.value))}><option value={0}>{tr("按设备自动")}</option><option value={15}>{tr("15 秒")}</option><option value={35}>{tr("35 秒")}</option><option value={60}>{tr("60 秒")}</option><option value={120}>{tr("120 秒")}</option></select></label></section></div></details><button className="button primary" disabled={status==="working"||hasPendingDimensionChanges||invalidNumericFields.size>0} onClick={recalculatePlan}>{tr("重新计算方案")}</button>{status==="working"&&<button className="button" onClick={stopCalculation}>{tr("停止并保留已完成方案")}</button>}</div>
 
           <div className="feature-action-bar"><button className="button" disabled={!canExport} onClick={()=>setShowViewer(true)}><Layers3 size={16}/>{tr("三维方案查看器")}</button><button className="button" disabled={!canExport||exportingPdf} onClick={()=>void downloadPdf()}><Download size={16}/>{tr("下载 PDF")}</button></div>
           </div>

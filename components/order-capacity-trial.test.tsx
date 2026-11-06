@@ -7,6 +7,7 @@ import {OrderCapacityTrial,useOrderCapacityTrial} from "./order-capacity-trial";
 import {runOrderCapacityTrial} from "../lib/packing/order-capacity";
 import {orderCapacityFixture} from "../tests/order-capacity-fixture";
 import {palletHeightFixture} from "../tests/pallet-height-fixture";
+import {oneLayerCrateFixture} from "../tests/one-layer-crate-fixture";
 import {packagingCapacityFixture} from "../tests/packaging-capacity-fixture";
 import {packLoadingWorkflow} from "../lib/packing/pack-loading";
 import {setAppLanguage} from "./language";
@@ -22,6 +23,20 @@ async function mount(Hook:()=>React.ReactNode){
 }
 afterEach(()=>{vi.useRealTimers();FakeWorker.instances=[];vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("zh");vi.unstubAllGlobals();});
 const defaults=()=>({request:orderCapacityFixture(),volume:.85,weight:.9,disabled:false,canApply:true,onApply:vi.fn()});
+it("exposes a prefilled recipe and direct recalculation on the old 16-carton result",()=>{
+ const request=oneLayerCrateFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request),onApplyBuild:vi.fn(),onDesignPallet:vi.fn(),onRecalculateCurrent:vi.fn()};
+ const html=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);
+ expect(html).toContain('value="23"');
+ expect(html).toContain("采用此打托并重新计算");
+ expect(html).toContain("采用后微调尺寸");
+ expect(html).toContain("保留现有尺寸重算");
+ expect(props.onApplyBuild).not.toHaveBeenCalled();
+ expect(renderToStaticMarkup(<OrderCapacityTrial {...props} measuredEnvelope/>)).not.toContain("采用此打托并重新计算");
+ expect(renderToStaticMarkup(<OrderCapacityTrial {...props} canApply={false}/>)).not.toContain("采用此打托并重新计算");
+ vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");
+ const en=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);
+ expect(en).toContain("Apply this pallet recipe and recalculate");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
+});
 it("previews existing packaging stock and applies only selection, leaving 596 ordered",async()=>{
  const request=packagingCapacityFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request),onApplyBuild:vi.fn()};let task!:ReturnType<typeof useOrderCapacityTrial>;function Hook(){task=useOrderCapacityTrial(props);return <group/>;}
  const root=await mount(Hook);try{

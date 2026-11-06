@@ -15,6 +15,9 @@ type Props = {
   disabled: boolean;
   onApply: (patch: Partial<PalletBuildSpecification>) => void;
   onPendingChange?: (pending: boolean) => void;
+  initialCartons?: number;
+  applyLabel?: string;
+  onFineTune?: (patch: Partial<PalletBuildSpecification>) => void;
 };
 
 function RecipeViews({preview}: {preview:PalletRecipePreview}) {
@@ -45,11 +48,11 @@ function RecipeViews({preview}: {preview:PalletRecipePreview}) {
   </div>;
 }
 
-export function PalletRecipe({request, spec, disabled, onApply, onPendingChange}: Props) {
+export function PalletRecipe({request, spec, disabled, onApply, onPendingChange, initialCartons, applyLabel, onFineTune}: Props) {
   useLanguage();
-  const [draft, setDraft] = useState(String(spec.cartonLimit ?? ""));
+  const [draft, setDraft] = useState(String(initialCartons ?? spec.cartonLimit ?? ""));
   const [selected, setSelected] = useState("");
-  const [method, setMethod] = useState<PalletRecipeInput["mode"]>(spec.cartonLimit ? "current" : "suggest");
+  const [method, setMethod] = useState<PalletRecipeInput["mode"]>(initialCartons !== undefined ? "suggest" : spec.cartonLimit ? "current" : "suggest");
   const [response, setResponse] = useState<{key:string; preview?:PalletRecipePreview; error?:string}>();
   const groups = palletRecipeGroups(request.products, spec.productIds, request.palletBuild?.looseQuantities);
   const group = groups.find(items => packagingGroupKey(items[0]) === selected) ?? groups[0];
@@ -105,12 +108,12 @@ export function PalletRecipe({request, spec, disabled, onApply, onPendingChange}
   const errors = parsed.state === "invalid"
     ? tr("请输入 1–1000 的整数。","Enter a whole number from 1 to 1000.")
     : current?.error ? current.error.includes(" / ") ? tr(...current.error.split(" / ", 2) as [string, string]) : trText(current.error) : "";
-  const usePreview = () => {
-    if (cartons === undefined || !preview) return;
+  const applyPreview = (apply = onApply) => {
+    if (disabled || cartons === undefined || !preview) return;
     const config = mode === "suggest"
       ? {...preview.config, presetId:"carton-sized", name:`${group[0].sku.slice(0, 80)} ${packagingInterior(preview.config).crate ? tr("定制木箱","sized crate") : tr("定制托盘","sized pallet")}`}
       : spec.config;
-    onApply({config, cartonLimit:cartons});
+    apply({config, cartonLimit:cartons});
     setMethod("current");
   };
   const cancel = () => {
@@ -128,10 +131,11 @@ export function PalletRecipe({request, spec, disabled, onApply, onPendingChange}
         {groups.map(items => <option key={packagingGroupKey(items[0])} value={packagingGroupKey(items[0])}>{items[0].setCode || items[0].sku}</option>)}
       </select></label>}
       <label>{tr("每托箱数","Cartons per pallet")}<input id="pallet-recipe-count" inputMode="numeric" value={draft} maxLength={8}
-        aria-invalid={parsed.state === "invalid"} placeholder={tr("例如 20","e.g. 20")} disabled={!group}
+        aria-invalid={parsed.state === "invalid"} placeholder={tr("例如 20","e.g. 20")} disabled={disabled||!group}
         onChange={e=>{setDraft(e.target.value);setMethod(e.target.value.trim() ? "suggest" : "current");}}/></label>
     </div>
     {!group && <p>{tr("请先添加符合本规格的货物或完整套装。","Add eligible cargo or a complete kit for this specification.")}</p>}
+    {initialCartons!==undefined&&<small>{tr("已按本单余量和每托承重预填箱数，可以直接修改。预览通过后采用，再更新装柜结果。","A starting count uses order stock and pallet payload. Edit it as needed, then apply a successful preview to update the loading result.")}</small>}
     {group && <small>{group.map(p => `${p.sku} · ${p.length} × ${p.width} × ${p.height} mm`).join(" / ")}</small>}
     <div role={errors ? "alert" : "status"} className="pallet-recipe-status">
       {errors || (key && !current ? tr("正在生成打托预览…","Generating pallet preview…") : "")}
@@ -151,7 +155,8 @@ export function PalletRecipe({request, spec, disabled, onApply, onPendingChange}
     <div className="packaging-preview-actions">
       {pending && <>{parsed.state === "empty" && spec.cartonLimit
         ? <button type="button" className="button small" onClick={()=>{setMethod("suggest");onApply({cartonLimit:undefined});}}>{tr("取消每托箱数限制","Remove the carton limit")}</button>
-        : <button type="button" className="button primary small" disabled={disabled||!preview} onClick={usePreview}>{mode === "suggest" ? tr("采用建议尺寸","Apply suggested dimensions") : tr("采用每托箱数","Apply cartons per pallet")}</button>}
+        : <button type="button" className="button primary small" disabled={disabled||!preview} onClick={()=>applyPreview()}>{applyLabel ?? (mode === "suggest" ? tr("采用建议尺寸","Apply suggested dimensions") : tr("采用每托箱数","Apply cartons per pallet"))}</button>}
+        {onFineTune&&<button type="button" className="button small" disabled={disabled||!preview} onClick={()=>applyPreview(onFineTune)}>{tr("采用后微调尺寸","Apply and fine-tune dimensions")}</button>}
         {canSuggest && cartons !== undefined && <button type="button" className="button small" onClick={()=>setMethod(mode === "suggest" ? "current" : "suggest")}>
           {mode === "suggest" ? tr("按当前尺寸预览","Preview current dimensions") : tr("自动建议尺寸","Suggest dimensions")}
         </button>}

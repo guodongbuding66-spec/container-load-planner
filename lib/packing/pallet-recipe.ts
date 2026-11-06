@@ -4,10 +4,10 @@ import { getPracticalOrientations } from "./engine";
 import { palletCargoCeiling } from "./floor-pallets";
 import { packagingHeight, packagingInterior } from "./packaging";
 import { packagingGroupKey, packagingPriorityGroups } from "./packaging-choice";
-import { parsePalletCartonLimit } from "./pallet-specifications";
+import { MAX_CARTONS_PER_PALLET, palletSpecifications, parsePalletCartonLimit } from "./pallet-specifications";
 import { loadedPalletDirections, loadedPalletFits, packPalletCargo } from "./palletize";
 import { normalizedSetCode, normalizedUnitsPerSet } from "./set-utils";
-import type { FloorPalletConfig, PackingRequest, PalletBuildSpecification, PlacedBox, ProductInput } from "./types";
+import type { FloorPalletConfig, PackingRequest, PalletBuildOptions, PalletBuildSpecification, PlacedBox, ProductInput } from "./types";
 
 const EPS = .0001;
 const MAX_TRIALS = 18;
@@ -39,6 +39,30 @@ export function palletRecipeGroups(products: readonly ProductInput[], eligible?:
   const allowed = eligible ? new Set(eligible) : undefined;
   return packagingPriorityGroups(products).filter(group => group.every(p =>
     p.quantity - (loose?.[p.id] ?? 0) >= (normalizedSetCode(p) ? normalizedUnitsPerSet(p) : 1) && (!allowed || allowed.has(p.id))));
+}
+
+/** A starting quantity for a preview, never a certified packing capacity. */
+export function initialPalletRecipeCartons(request: PackingRequest, spec: PalletBuildSpecification): number | undefined {
+  if (spec.cartonLimit) return spec.cartonLimit;
+  const group = palletRecipeGroups(request.products, spec.productIds, request.palletBuild?.looseQuantities)[0];
+  if (!group) return undefined;
+  const units = group.map(p => normalizedSetCode(p) ? normalizedUnitsPerSet(p) : 1);
+  const perSet = units.reduce((n,v) => n+v, 0);
+  const weight = group.reduce((n,p,i) => n+p.weight*units[i], 0);
+  const available = Math.min(...group.map((p,i) => Math.floor((p.quantity-(request.palletBuild?.looseQuantities?.[p.id]??0))/units[i])));
+  const sets = Math.min(available, Math.floor(MAX_CARTONS_PER_PALLET/perSet),
+    weight > 0 ? Math.floor((spec.config.maxLoad+EPS)/weight) : Math.floor(100/perSet));
+  return sets > 0 ? sets*perSet : undefined;
+}
+
+/** Apply the displayed recipe to the selected specification in one transaction. */
+export function withPalletRecipe(build: PalletBuildOptions, id: string, patch: Partial<Pick<PalletBuildSpecification,"config"|"cartonLimit">>): PalletBuildOptions {
+  const spec = palletSpecifications(build).find(s => s.id === id);
+  if (!spec) throw new Error("包装规格已变化，请重新预览 / Packaging specification changed. Preview again");
+  const next = {...spec, ...patch};
+  if (id === "primary") return {...build, config:next.config,
+    primaryRule:{...build.primaryRule, maxPallets:next.maxPallets, productIds:next.productIds, cartonLimit:next.cartonLimit}};
+  return {...build, additionalSpecs:build.additionalSpecs?.map(s => s.id === id ? next : s)};
 }
 
 type Size = { length: number; width: number; cargoHeight: number };

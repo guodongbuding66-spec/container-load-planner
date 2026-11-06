@@ -5,8 +5,8 @@ import { restorePackingSnapshot } from "./engine";
 import { parsePalletBuild } from "./loading-workflow";
 import { packLoadingWorkflow } from "./pack-loading";
 import { packagingInterior } from "./packaging";
-import { inspectPalletHeights, withVehiclePalletHeights } from "./pallet-height";
-import { previewPalletRecipe, type PalletRecipeInput } from "./pallet-recipe";
+import { inspectPalletHeights, oneLayerPalletCeilings, withVehiclePalletHeights } from "./pallet-height";
+import { initialPalletRecipeCartons, previewPalletRecipe, withPalletRecipe, type PalletRecipeInput } from "./pallet-recipe";
 import { palletSpecifications } from "./pallet-specifications";
 import { validatePalletizedCargo } from "./prebuilt-pallets";
 import type { PackingRequest } from "./types";
@@ -16,6 +16,53 @@ function input(request = oneLayerCrateFixture(), cartons = 20, groupKey = "sku:l
 }
 
 describe("pallet recipes", () => {
+  it.each(["practical", "maximum"] as const)("offers a usable inline recovery of the persisted one-layer inputs in %s", strategy => {
+    const request = {...oneLayerCrateFixture(), strategy};
+    const original = structuredClone(request);
+    const before = packLoadingWorkflow(request);
+    expect(oneLayerPalletCeilings(request,before).map(s=>s.id)).toEqual(["primary"]);
+    const spec = palletSpecifications(request.palletBuild!)[0];
+    const cartons = initialPalletRecipeCartons(request,spec)!;
+    expect(cartons).toBe(23);
+    const preview = previewPalletRecipe(input(request,cartons));
+    const palletBuild = withPalletRecipe(request.palletBuild!,spec.id,{config:preview.config,cartonLimit:cartons});
+    const next = {...request,palletBuild}, after = packLoadingWorkflow(next);
+    expect(request).toEqual(original);
+    expect(after.metrics).toMatchObject({requestedCount:596,loadedCount:322});
+    expect(after.validation.valid).toBe(true);
+    expect(oneLayerPalletCeilings(next,after)).toEqual([]);
+    expect(restorePackingSnapshot(next,JSON.parse(JSON.stringify(after))).placements).toEqual(after.placements);
+  });
+
+  it("applies count and dimensions to the chosen specification without losing stock, eligibility or loose reservations", () => {
+    const request = oneLayerCrateFixture(), build=request.palletBuild!;
+    build.primaryRule={maxPallets:7,productIds:["long"],cartonLimit:5};
+    build.looseQuantities={long:2};
+    build.additionalSpecs=[{...palletSpecifications(build)[0],id:"second",maxPallets:3}];
+    const config={...build.config,maxCargoHeight:1200};
+    const primary=withPalletRecipe(build,"primary",{config,cartonLimit:20});
+    expect(primary.primaryRule).toEqual({maxPallets:7,productIds:["long"],cartonLimit:20});
+    expect(primary.additionalSpecs).toEqual(build.additionalSpecs);
+    expect(primary.looseQuantities).toEqual({long:2});
+    const second=withPalletRecipe(build,"second",{config,cartonLimit:20});
+    expect(second.config).toEqual(build.config);
+    expect(second.primaryRule).toEqual(build.primaryRule);
+    expect(second.additionalSpecs![0]).toMatchObject({config,cartonLimit:20,maxPallets:3,productIds:["long"]});
+    expect(()=>withPalletRecipe(build,"removed",{config})).toThrow(/已变化/);
+  });
+
+  it("seeds complete kits from remaining stock and payload, retaining an explicit carton count", () => {
+    const request=oneLayerCrateFixture(), a=request.products[0];
+    request.products=[{...a,quantity:14,setCode:"KIT",unitsPerSet:2,weight:300},
+      {...a,id:"b",sku:"B",quantity:7,setCode:"KIT",unitsPerSet:1,weight:100}];
+    request.palletBuild!.looseQuantities={long:2,b:1};
+    const spec=palletSpecifications(request.palletBuild!)[0];
+    expect(initialPalletRecipeCartons(request,spec)).toBe(3);
+    expect(initialPalletRecipeCartons(request,{...spec,cartonLimit:6})).toBe(6);
+    expect(initialPalletRecipeCartons(request,{...spec,config:{...spec.config,maxLoad:699}})).toBeUndefined();
+    expect(initialPalletRecipeCartons(request,{...spec,productIds:["long"]})).toBeUndefined();
+  });
+
   it.each(["practical", "maximum"] as const)("rebuilds the screenshot's 16-carton case in %s", strategy => {
     const request = {...oneLayerCrateFixture(), strategy};
     const before = packLoadingWorkflow(request);
