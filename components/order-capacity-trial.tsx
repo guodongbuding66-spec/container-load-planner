@@ -3,14 +3,14 @@ import {useLayoutEffect,useMemo,useRef,useState} from "react";
 import {prepareOrderCapacityTrial,reviewOrderCapacityTrial,replenishedOrder,type OrderCapacityTrial} from "../lib/packing/order-capacity";
 import {palletSpecifications} from "../lib/packing/pallet-specifications";
 import {packagingInterior} from "../lib/packing/packaging";
-import {inspectPalletHeights,preparePalletHeightTrial} from "../lib/packing/pallet-height";
+import {inspectPalletHeights,preparePalletHeightTrial,withVehiclePalletHeights} from "../lib/packing/pallet-height";
 import {canCompareExistingPackaging,preparePackagingComparisonTrial,improvesPalletTrial,inspectPalletCapacity} from "../lib/packing/pallet-capacity";
 import {PalletCapacityDiagnostics} from "./pallet-capacity-diagnostics";
 import {PalletTailTrial} from "./pallet-tail-trial";
 import type {PackingRequest,PackingResult,ProductInput,PalletBuildOptions} from "../lib/packing/types";
 import {tr,useLanguage} from "./language";
 
-type Props={request:PackingRequest;plan?:PackingResult|null;measuredEnvelope?:boolean;volume:number;weight:number;disabled:boolean;canApply:boolean;onApply:(products:ProductInput[])=>void;onApplyBuild?:(build:PalletBuildOptions)=>void};
+type Props={request:PackingRequest;plan?:PackingResult|null;measuredEnvelope?:boolean;volume:number;weight:number;disabled:boolean;canApply:boolean;onApply:(products:ProductInput[])=>void;onApplyBuild?:(build:PalletBuildOptions)=>void;onDesignPallet?:(specId:string)=>void};
 export function useOrderCapacityTrial({request,volume,weight,disabled:inputDisabled,canApply,onApply,onApplyBuild,plan,measuredEnvelope}:Props){
  const disabled=inputDisabled||!!measuredEnvelope||!!plan?.pallets?.some(p=>p.measuredEnvelope);
  const key=JSON.stringify([request,volume,weight]),identity=useMemo(()=>({key,disabled,canApply}),[key,disabled,canApply]),worker=useRef<Worker|null>(null),timer=useRef<ReturnType<typeof setTimeout>|null>(null),latest=useRef(identity),blocked=useRef(disabled);
@@ -44,9 +44,20 @@ export function OrderCapacityTrial(props:Props){
  const heightTrial=!!trial?.heightChanges,packagingTrial=!!trial?.packagingSelectionChange,buildTrial=heightTrial||packagingTrial,unmet=loaded!==undefined&&loaded<ordered;
  const buildImproves=!!candidate&&!!plan&&improvesPalletTrial(candidate,plan),candidateUnits=packagingTrial&&candidate?inspectPalletCapacity(candidate):null;
  const oneLayer=unmet&&!!plan?.placements.length&&plan.placements.every(b=>b.layer===1);
+ const lowCeilings=oneLayer?heights.filter(s=>s.stock>0&&s.current+.0001<s.available&&s.products.some(p=>
+   p.heightLayers===1&&p.minHeight!==null&&2*p.minHeight<=s.available+.0001&&p.configuredLayers!==1)):[];
+ const openCeilings=lowCeilings.filter(s=>s.canRaise).map(s=>s.id);
  const status=task.current?.kind==="running"?(packagingTrial?tr("正在使用已登记的包装尺寸、库存和承重比选；订单和原方案保持不变。","Comparing registered packaging dimensions, stock and load ratings; the order and original plan are unchanged."):heightTrial?tr("正在提高开放式托盘限高并试装原订单；原方案保持不变。","Testing higher open-pallet ceilings with the original order; the original plan is unchanged."):tr("正在按原尺寸、包装库存和承重规则试装；原订单保持不变。","Testing the original geometry, packaging stock and load rules; the order is unchanged.")):task.current?.kind==="timeout"?tr("30 秒试算结束，未完成结果已丢弃，原方案保留。","The 30-second budget expired. Incomplete results were discarded; the original plan is retained."):task.current?.kind==="cancelled"?tr("已停止试算，原方案保留。","Trial cancelled; the original plan is retained."):task.current?.kind==="error"?tr("试算未完成，原方案保留。","Trial failed; the original plan is retained."):"";
  return <section className="order-capacity-trial" aria-label={tr("订单数量与补货试算","Order quantity and replenishment trial")}>
   <div className="panel-head"><div><h3>{loaded===undefined?tr("订单数量与装载试算","Order quantity and loading trials"):unmet?(request.workflow==="palletized"?tr("订单尚未装完：检查打托与堆叠限制","Order incomplete: review packaging and stacking limits"):tr("订单尚未装完：检查装载限制","Order incomplete: review loading limits")):tr("本单装完 ≠ 整柜装满","Order fulfilled ≠ container full")}</h3><p>{tr("订单量","Ordered")}: {ordered.toLocaleString()} {tr("箱","cartons")}{loaded!==undefined&&<> · {tr("当前已装","Currently loaded")}: {loaded.toLocaleString()} {tr("箱","cartons")}</>}</p></div></div>
+  {lowCeilings.length>0&&<div className="pallet-height-action">
+    {lowCeilings.map(s=><p key={s.id}><strong>{s.name} · {s.crate?tr("木箱内部净高","Crate interior height"):tr("托内货物限高","Pallet cargo height limit")} {Number(s.current.toFixed(1))} mm</strong> · {tr("当前高度只能放一层纸箱。","This height allows only one carton layer.")}</p>)}
+    <div className="upgrade-actions">
+      {props.onDesignPallet&&<button type="button" className="button primary" onClick={()=>props.onDesignPallet!(lowCeilings[0].id)}>{tr("按每托箱数重新打托","Resize packaging by cartons per pallet")}</button>}
+      {openCeilings.length>0&&props.onApplyBuild&&request.palletBuild&&<button type="button" className="button"
+        disabled={props.disabled||!!measured||!canApply||task.running} onClick={()=>props.onApplyBuild!(withVehiclePalletHeights(request.palletBuild!,openCeilings))}>{tr("按柜门净高重新计算","Recalculate using door clearance")}</button>}
+    </div>
+  </div>}
   <PalletCapacityDiagnostics plan={plan}/>
   <PalletTailTrial request={request} plan={plan} disabled={props.disabled||!!measured||task.running} canApply={canApply} onApply={props.onApplyBuild}/>
   {canCompareExistingPackaging(request)&&<div className="existing-packaging-trial"><button type="button" className="button" disabled={props.disabled||!!measured||task.running} onClick={()=>task.run("packaging")}>{tr("保持本单数量，按现有包装比选","Compare existing packaging for this order")}</button><p className="helper-text">{tr("比较已登记的适用规格，同货量优先较小包装；不新增规格，不增加库存，不提高限高或承重。逐托启发式搜索不保证全局最优。","Compare registered eligible specifications, preferring smaller packaging at equal cargo load. No specifications, stock, height limits or ratings are added. The per-unit heuristic is not globally optimal.")}</p></div>}

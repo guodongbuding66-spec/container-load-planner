@@ -2,7 +2,7 @@ import {assertDeckSupportStacking} from "./deck-support";
 import {parseLooseQuantities} from "./loose-cargo";
 import { parseFloorPalletConfig } from "./floor-pallets";
 import { DEFAULT_PACKAGING, packagingHeight } from "./packaging";
-import { parsePackagingLimit, parsePackagingSelection, parsePackagingSpecifications } from "./pallet-specifications";
+import { parsePackagingLimit, parsePackagingSelection, parsePackagingSpecifications, parsePalletCartonLimit } from "./pallet-specifications";
 import type { ContainerSpec, FloorPalletConfig, LoadingWorkflow, PalletBuildOptions, PackingMode } from "./types";
 
 export const DEFAULT_PALLET_BUILD: PalletBuildOptions = {
@@ -21,7 +21,16 @@ export function parsePalletBuild(value: unknown): PalletBuildOptions {
   if (!["single", "mixed"].includes(p.mix) || !Number.isInteger(p.maxPallets) || p.maxPallets < 1 || p.maxPallets > 200 || !Number.isInteger(p.stackLayers) || p.stackLayers < 1 || p.stackLayers > 20 || !Number.isFinite(p.maxTopLoadKg) || p.maxTopLoadKg < 0 || p.maxTopLoadKg > 100000) throw new Error("托盘数量、堆叠层数或承重无效");
   if(p.selection!==undefined&&p.selection!=="ordered"&&p.selection!=="compact")throw new Error("Invalid packaging selection mode");
   let primaryRule: PalletBuildOptions["primaryRule"];
-  if(p.primaryRule!==undefined){if(!p.primaryRule||typeof p.primaryRule!=="object"||Array.isArray(p.primaryRule))throw new Error("Invalid primary packaging rule");const productIds=parsePackagingSelection(p.primaryRule.productIds);primaryRule={maxPallets:parsePackagingLimit(p.primaryRule.maxPallets),...(productIds?{productIds}:{})};}
+  if (p.primaryRule !== undefined) {
+    if (!p.primaryRule || typeof p.primaryRule !== "object" || Array.isArray(p.primaryRule)) throw new Error("Invalid primary packaging rule");
+    const productIds = parsePackagingSelection(p.primaryRule.productIds);
+    const cartonLimit = parsePalletCartonLimit(p.primaryRule.cartonLimit);
+    primaryRule = {
+      maxPallets: parsePackagingLimit(p.primaryRule.maxPallets),
+      ...(productIds ? {productIds} : {}),
+      ...(cartonLimit === undefined ? {} : {cartonLimit}),
+    };
+  }
   let additionalSpecs: PalletBuildOptions["additionalSpecs"];
   if(p.additionalSpecs!==undefined){if(!Array.isArray(p.additionalSpecs)||p.additionalSpecs.length>7)throw new Error("Use at most 8 packaging specifications");if(p.additionalSpecs.length){additionalSpecs=parsePackagingSpecifications(p.additionalSpecs);if(additionalSpecs.some(s=>s.id==="primary"))throw new Error("Primary packaging identifier is reserved");}}
   assertDeckSupportStacking(parseFloorPalletConfig(p.config),p.stackLayers,p.maxTopLoadKg);

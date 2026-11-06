@@ -16,9 +16,50 @@ import { DEFAULT_PALLET_BUILD, parsePalletBuild } from "./loading-workflow";
 import { palletSpecifications, mixedInspectionContainer, independentPalletVolume } from "./pallet-specifications";
 import { cargoShapeOf } from "./cargo-shape";
 import { packagingGroupKey, packagingLoads, choosePackaging, type PackagingCandidate, type PackagingChoice } from "./packaging-choice";
-import type { PackingRequest, PackingResult, PlacedBox, PlacedPallet, ProductInput, FloorPalletConfig, PalletBuildOptions } from "./types";
+import type { ContainerSpec, PackingRequest, PackingResult, PlacedBox, PlacedPallet, ProductInput, FloorPalletConfig, PalletBuildOptions } from "./types";
 
 export type PreparedUnit = { specificationId: string; id: string; cargo: PlacedBox[]; height: number; weight: number; tail: boolean; topCapacity: number };
+
+export function loadedPalletDirections(config: FloorPalletConfig, cargo: PlacedBox[], products: ReadonlyMap<string, ProductInput>) {
+  const canTurn = cargo.every(b => {
+    const p = products.get(b.productId)!;
+    return getOrientations(p, false).some(o => o.dx === b.dy && o.dy === b.dx && o.dz === b.dz &&
+      ((!p.allowedOrientations && cargoShapeOf(p) === "box") || o.label === `${b.orientation[1]}${b.orientation[0]}${b.orientation[2]}`));
+  });
+  const directions: ("LWH" | "WLH")[] = canTurn ? ["LWH", "WLH"] : ["LWH"];
+  return directions.filter(code => config.layout === "auto" || code === (config.layout === "long" ? "LWH" : "WLH"));
+}
+
+export function loadedPalletFits(container: ContainerSpec, clearance: number, config: FloorPalletConfig, height: number, directions: ("LWH" | "WLH")[]) {
+  return directions.some(code => {
+    const [dx, dy] = code === "LWH" ? [config.length, config.width] : [config.width, config.length];
+    const width = container.loadingAccess === "open" ? container.width : Math.min(container.width, container.doorWidth);
+    return dx <= container.length - 2 * clearance + .0001 && dy <= width - 2 * clearance + .0001 &&
+      height <= palletCargoCeiling(container, clearance, {...config, maxCargoHeight: 0}) + .0001;
+  });
+}
+
+export function packPalletCargo(request: PackingRequest, config: FloorPalletConfig, cargoHeight: number, products: ProductInput[], cartonLimit?: number) {
+  const inside = packagingInterior(config);
+  const supports = config.packaging?.deckSupports?.map(s => ({
+    id:s.id, name:s.name, kind:"obstacle" as const, x:s.x-inside.inset, y:s.y-inside.inset, z:0, dx:s.dx, dy:s.dy, dz:s.dz,
+    accessory:{type:"timber" as const, quantity:1, unitWeightKg:s.weightKg, phase:"before-cargo" as const, relatedProductIds:[], afterAccessoryIds:[], source:s.source, revision:s.revision, note:"", support:{version:1 as const, surface:"solid-rectangle" as const, maxLoadKg:s.maxLoadKg}},
+  }));
+  const plan = pack({
+    ...request, delivery:undefined, palletBuildStage:true, palletCartonLimit:cartonLimit, workflow:undefined, palletBuild:undefined,
+    floorPallets:undefined, mode:"mixed", strategy:request.strategy ?? "practical", practicalTargetUtilization:.95, clearance:0, products,
+    container:{id:"build-pallet", name:config.name, category:"pallet", loadingAccess:"open", length:inside.length, width:inside.width,
+      height:cargoHeight, doorWidth:inside.width, doorHeight:cargoHeight, maxWeight:config.maxLoad, ...(supports?.length ? {exclusions:supports} : {})},
+  });
+  if (!plan.validation.valid) throw new Error(plan.validation.errors.join("; "));
+  // The local floor is a search proxy. Recheck the actual measured deck.
+  const supportBase: PlacedPallet = {id:"build-base", presetId:config.presetId, name:config.name, x:0, y:0, z:0, dx:config.length,
+    dy:config.width, dz:config.height, weight:completePackagingTare(config), maxLoad:config.maxLoad, orientation:"LWH", packaging:config.packaging};
+  const physical = {...plan, container:{...plan.container, length:config.length, width:config.width, height:config.height+cargoHeight, exclusions:undefined},
+    pallets:[supportBase], placements:plan.placements.map(b=>({...b, x:b.x+inside.inset, y:b.y+inside.inset, z:b.z+config.height}))};
+  const violation = inspectLongSupport(physical, products).map(longSupportViolation).find(Boolean);
+  return {plan, violation};
+}
 
 /** A flat, complete top and the tightest known residual load limit are required. */
 function topCapacity(cargo: PlacedBox[], request: PackingRequest, config: FloorPalletConfig, options: PalletBuildOptions) {
@@ -64,14 +105,7 @@ function buildPalletCandidate(request: PackingRequest, input: FloorPalletConfig,
   const choiceByUnit=new Map<string,Omit<PackagingChoice,"palletId">>();
   const prepared:PreparedUnit[] = [], failed = new Set<string>(), used = new Map(specifications.map(s=>[s.id,0]));
   let cartonCount=0, coordinateLimit=false, lastReason="";
-  const canTurn=(cargo:PlacedBox[])=>cargo.every(b=>{
-    const p=sourceProducts.get(b.productId)!;
-    return getOrientations(p,false).some(o=>o.dx===b.dy&&o.dy===b.dx&&o.dz===b.dz&&((!p.allowedOrientations&&cargoShapeOf(p)==="box")||o.label===`${b.orientation[1]}${b.orientation[0]}${b.orientation[2]}`));
-  });
-  const unitDirections=(unit:PreparedUnit)=>{
-    const c=bySpecification.get(unit.specificationId)!.config;
-    return (["LWH",...(canTurn(unit.cargo)?["WLH"]:[])] as ("LWH"|"WLH")[]).filter(code=>c.layout==="auto"||code===(c.layout==="long"?"LWH":"WLH"));
-  };
+  const unitDirections = (unit: PreparedUnit) => loadedPalletDirections(bySpecification.get(unit.specificationId)!.config, unit.cargo, sourceProducts);
   while(prepared.length<options.maxPallets&&cartonCount<MAX_VISIBLE_PLACEMENTS){
     const first=remaining.find(p=>p.quantity>0&&!failed.has(groupKey(p)));
     if(!first)break;
@@ -86,26 +120,16 @@ function buildPalletCandidate(request: PackingRequest, input: FloorPalletConfig,
       const cargoHeight=only||interior.crate?c.maxCargoHeight!:palletCargoCeiling(request.container,request.clearance,c)-c.height;
       if(cargoHeight<=0){lastReason="托盘上方没有可用净高";continue;}
       const products=remaining.filter(p=>!failed.has(groupKey(p))&&eligible.get(spec.id)!.has(groupKey(p))&&(options.mix==="mixed"||groupKey(p)===firstKey));
-      const supportRows=c.packaging?.deckSupports?.map(s=>({id:s.id,name:s.name,kind:"obstacle" as const,x:s.x-interior.inset,y:s.y-interior.inset,z:0,dx:s.dx,dy:s.dy,dz:s.dz,accessory:{type:"timber" as const,quantity:1,unitWeightKg:s.weightKg,phase:"before-cargo" as const,relatedProductIds:[],afterAccessoryIds:[],source:s.source,revision:s.revision,note:"",support:{version:1 as const,surface:"solid-rectangle" as const,maxLoadKg:s.maxLoadKg}}}));
       if(deckSupportHeight(c)>=cargoHeight){lastReason="托内支承件已占满当前货物净高 / Deck supports occupy the cargo height";continue;}
-      const local=pack({...request,delivery:undefined,palletBuildStage:true,workflow:undefined,palletBuild:undefined,floorPallets:undefined,mode:"mixed",strategy,practicalTargetUtilization:.95,
-        container:{id:"build-pallet",name:c.name,category:"pallet",loadingAccess:"open",length:interior.length,width:interior.width,height:cargoHeight,doorWidth:interior.width,doorHeight:cargoHeight,maxWeight:c.maxLoad,...(supportRows?.length?{exclusions:supportRows}:{})},clearance:0,products});
-      if(!local.validation.valid)throw new Error(local.validation.errors.join("; "));
-      // The local floor is a search proxy. Recheck the actual measured boards before
-      // committing a complete unit; never trim failed members out of a kit.
-      const supportBase:PlacedPallet={id:"build-base",presetId:c.presetId,name:c.name,x:0,y:0,z:0,dx:c.length,dy:c.width,dz:c.height,weight:completePackagingTare(c),maxLoad:c.maxLoad,orientation:"LWH",packaging:c.packaging};
-      const physical={...local,container:{...local.container,length:c.length,width:c.width,height:c.height+cargoHeight,exclusions:undefined},pallets:[supportBase],placements:local.placements.map(b=>({...b,x:b.x+interior.inset,y:b.y+interior.inset,z:b.z+c.height}))};
-      const violation=inspectLongSupport(physical,products).map(longSupportViolation).find(Boolean);
+      const {plan:local, violation} = packPalletCargo(request,c,cargoHeight,products,spec.cartonLimit);
       if(violation){lastReason=violation;continue;}
-      if(!local.placements.some(b=>groupKey(sourceProducts.get(b.productId)!)===firstKey)){if(supportRows?.length)lastReason="托内支承条件下未找到完整货物；请检查接触、静载、朝向、悬跨、净高及套装规则。有限搜索不证明无解 / No complete cargo found under current deck support constraints; check contact, static limits, orientation, spans, height and kits. Bounded search is not an infeasibility proof";continue;}
+      if(!local.placements.some(b=>groupKey(sourceProducts.get(b.productId)!)===firstKey)){if(c.packaging?.deckSupports?.length)lastReason="托内支承条件下未找到完整货物；请检查接触、静载、朝向、悬跨、净高及套装规则。有限搜索不证明无解 / No complete cargo found under current deck support constraints; check contact, static limits, orientation, spans, height and kits. Bounded search is not an infeasibility proof";continue;}
       if(cartonCount+local.placements.length>MAX_VISIBLE_PLACEMENTS){coordinateLimit=true;if(options.selection==="compact")continue;break;}
       const height=Math.max(deckSupportHeight(c),...local.placements.map(b=>b.z+b.dz));
       let unitId=`unit-${prepared.length+1}`;while(sourceProducts.has(unitId))unitId=`_${unitId}`;
       const unit:PreparedUnit={id:unitId,specificationId:spec.id,cargo:local.placements,height:interior.crate?packagingHeight(c):height+c.height,weight:local.metrics.grossWeight+c.weight,
         tail:local.summaries.every(s=>s.unloaded===0),topCapacity:only?0:topCapacity(local.placements,request,c,{...options,config:c,stackLayers:spec.stackLayers,maxTopLoadKg:spec.maxTopLoadKg})};
-      if(!only&&(multiple||options.selection==="compact")){const directions=unitDirections(unit),v=request.container,g=request.clearance;
-        if(!directions.some(code=>{const dx=code==="LWH"?c.length:c.width,dy=code==="LWH"?c.width:c.length;return dx<=v.length-2*g+.0001&&dy<=Math.min(v.width,v.loadingAccess==="open"?v.width:v.doorWidth)-2*g+.0001&&unit.height<=Math.min(v.height,v.loadingAccess==="open"?v.height:v.doorHeight)-g+.0001;}))continue;
-      }
+      if (!only && (multiple || options.selection === "compact") && !loadedPalletFits(request.container,request.clearance,c,unit.height,unitDirections(unit))) continue;
       if(!only&&options.selection==="compact"&&unit.weight>request.container.maxWeight-containerAccessoryWeight(request.container)+.0001)continue;
       if(options.selection!=="compact"){chosen=unit;break;}
       candidates.push({unit,summary:{specificationId:spec.id,cartons:unit.cargo.length,loads:packagingLoads(unit.cargo,[...groups.values()]),exterior:[c.length,c.width,unit.height],tareKg:completePackagingTare(c)}});

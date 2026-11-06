@@ -386,7 +386,9 @@ export function PackingApp() {
   const [exportingPdf, setExportingPdf] = useState(false);
   const [mode, setMode] = useState<PackingMode>("mixed");
   const [loadingWorkflow, setLoadingWorkflow] = useState<LoadingWorkflow>("direct");
-  const [palletBuild, setPalletBuild] = useState<PalletBuildOptions>(() => structuredClone(DEFAULT_PALLET_BUILD));
+  const [palletBuild, setPalletBuild] = useState<PalletBuildOptions>(() => ({
+    ...DEFAULT_PALLET_BUILD, config:{...structuredClone(DEFAULT_PALLET_BUILD.config),maxCargoHeight:0},
+  }));
   const workflow: LoadingWorkflow = mode === "single" ? "single-capacity" : loadingWorkflow === "single-capacity" ? "direct" : loadingWorkflow;
   const isPalletWorkflow = workflow === "pallet-only" || workflow === "palletized";
   const [strategy, setStrategy] = useState<PackingStrategy>("practical");
@@ -401,6 +403,9 @@ export function PackingApp() {
   const [workflowStep,setWorkflowStep]=useState<1|2|3>(1);
   const [manualRun,setManualRun]=useState(0);
   const [setupInvalid,setSetupInvalid]=useState(false);
+  const [palletRecipePending,setPalletRecipePending]=useState(false);
+  const [palletSetupSpec,setPalletSetupSpec]=useState("primary");
+  const [previewRuleDraft,setPreviewRuleDraft]=useState<{rules:LoadingRules;products:ProductInput[]}|null>(null);
   const palletDraftRef=useRef<{value:FloorPalletConfig|undefined;invalid:boolean}|null>(null);
   const rulesDraftRef=useRef<{rules:LoadingRules;products:ProductInput[]}|null>(null);
   const [calculationBudget, setCalculationBudget] = useState(0);
@@ -1604,7 +1609,7 @@ export function PackingApp() {
   const capacityRequest: PackingRequest = {workflow,palletBuild:isPalletWorkflow?palletBuild:undefined,floorPallets:isPalletWorkflow?undefined:floorPallets,loadingRules,mode,strategy,practicalTargetUtilization:practicalTargetPercent/100,container,clearance,products:activeProducts};
   const applyCapacityStock=(next:ProductInput[])=>{if(result?.deliveryIdentity)return;clearActiveCalculation();setAutoCalculate(false);setProducts(next);clearNumericDraftErrors();rulesDraftRef.current=null;markDirty();setWorkflowStep(3);setManualRun(value=>value+1);};
   const applyPalletBuildTrial=(next:PalletBuildOptions)=>{if(result?.deliveryIdentity)return;clearActiveCalculation();setAutoCalculate(false);setPalletBuild(next);persistDraft({palletBuild:next});clearNumericDraftErrors();palletDraftRef.current=null;rulesDraftRef.current=null;markDirty();setWorkflowStep(3);setManualRun(value=>value+1);};
-  const capacityTrial=mode==="mixed"&&workflow!=="pallet-only"?<OrderCapacityTrial request={capacityRequest} plan={dirty?null:result} measuredEnvelope={!!result?.pallets?.some(p=>p.measuredEnvelope)} volume={targetVolumePercent/100} weight={targetWeightPercent/100} disabled={upgradesDisabled||setupInvalid} canApply={!result?.deliveryIdentity} onApply={applyCapacityStock} onApplyBuild={applyPalletBuildTrial}/>:null;
+  const palletPreviewRequest = previewRuleDraft ? {...capacityRequest, loadingRules:previewRuleDraft.rules, products:selectProductsForMode(previewRuleDraft.products,mode)} : capacityRequest;
   const adoptDeliveryVersion=(next:PackingResult)=>{
     if(result?.deliveryIdentity&&next.deliveryIdentity?.planId===result.deliveryIdentity.planId){const id=result.deliveryIdentity,known=fieldRecordsRef.current.get(`${id.planId}/${id.revisionId}`)??readVersionFieldRecords(id,localStorage),prior=id.previousRevisionId?(fieldRecordsRef.current.get(`${id.planId}/${id.previousRevisionId}`)??readRevisionFieldRecords({planId:id.planId,revisionId:id.previousRevisionId},localStorage)):null;requireKnownFieldHandover(result,known,prior);guardFieldRevision(result,next,known);}
     const inputs=parseWorkspaceBackup(workspaceBackup);
@@ -1633,7 +1638,8 @@ export function PackingApp() {
     const previous=rulesDraftRef.current;
     if(previous && (JSON.stringify(previous.rules)!==JSON.stringify(rules)||JSON.stringify(previous.products)!==JSON.stringify(nextProducts))) markDirty();
     rulesDraftRef.current={rules,products:nextProducts};
-  },[markDirty]);
+    if (isPalletWorkflow) setPreviewRuleDraft(current=>current?.rules===rules&&current.products===nextProducts?current:{rules,products:nextProducts});
+  },[isPalletWorkflow,markDirty]);
   const commitSetup=()=>{
     const base=palletDraftRef.current;
     const rules=rulesDraftRef.current;
@@ -1652,7 +1658,7 @@ export function PackingApp() {
     if(step===3&&!result&&status!=="working"){setMessage(tr("请在第二步确认配置，并点击开始计算。"));return;}
     if(workflowStep===2&&!commitSetup())return;
     if(step!==3&&status==="working"){clearActiveCalculation();setStatus("idle");setMessage(tr("已暂停计算，可继续修改配置。"));}
-    if(step===2){palletDraftRef.current=null;rulesDraftRef.current=null;setSetupInvalid(false);}
+    if(step===2){palletDraftRef.current=null;rulesDraftRef.current=null;setSetupInvalid(false);setPreviewRuleDraft(null);}
     setWorkflowStep(step);window.requestAnimationFrame(()=>document.querySelector('.wizard-steps')?.scrollIntoView({behavior:"smooth",block:"start"}));
   };
   const advanceToConfiguration=()=>{
@@ -1662,6 +1668,7 @@ export function PackingApp() {
     commitPendingDimensions();goToStep(2);
   };
   const startConfiguredCalculation=()=>{
+    if(palletRecipePending){setMessage(tr("请先采用或取消本次打托预览。","Apply or cancel the pending pallet preview first."));return;}
     if(!commitSetup())return;
     const error=validateInputs();
     if(error){setStatus("error");setMessage(error);return;}
@@ -1669,6 +1676,14 @@ export function PackingApp() {
     window.requestAnimationFrame(()=>document.querySelector('.wizard-steps')?.scrollIntoView({behavior:"smooth",block:"start"}));
   };
   const canExport = Boolean(result?.validation.valid && result.metrics.loadedCount > 0 && !resultAudit?.hasErrors && !dirty && !hasPendingDimensionChanges);
+  const capacityTrial=mode==="mixed"&&workflow!=="pallet-only"?<OrderCapacityTrial request={capacityRequest} plan={dirty?null:result} measuredEnvelope={!!result?.pallets?.some(p=>p.measuredEnvelope)} volume={targetVolumePercent/100} weight={targetWeightPercent/100} disabled={upgradesDisabled||setupInvalid} canApply={!result?.deliveryIdentity} onApply={applyCapacityStock} onApplyBuild={applyPalletBuildTrial} onDesignPallet={specId=>{
+    setPalletSetupSpec(specId);
+    goToStep(2);
+    window.requestAnimationFrame(()=>{
+      document.getElementById("pallet-recipe")?.scrollIntoView({block:"start"});
+      document.getElementById("pallet-recipe-count")?.focus({preventScroll:true});
+    });
+  }}/>:null;
 
   return (
     <main className={`app-shell compact-workspace ${navCollapsed ? "nav-collapsed" : "nav-expanded"}`}>
@@ -1967,7 +1982,7 @@ export function PackingApp() {
             </article>
 
 </div>}
-            {isPalletWorkflow ? <><PalletBuildSettings products={activeProducts} resetToken={numericResetVersion} onReset={clearNumericDraftErrors} invalid={invalidNumericFields.size>0} value={palletBuild} only={workflow === "pallet-only"} onChange={value=>{setPalletBuild(value);markDirty();}} onValidityChange={setNumericFieldValidity}/><PalletBuildPreview key={JSON.stringify([palletBuild,activeProducts,strategy,loadingRules])} request={fleetRequest} value={palletBuild} disabled={invalidNumericFields.size>0||!activeProducts.length}/></> : <FloorPalletSettings inline config={floorPallets} container={container} clearance={clearance} customSpaces={customContainers} onDraftChange={receivePalletDraft} onSave={()=>{}} onClose={()=>{}}/>}
+            {isPalletWorkflow ? <><PalletBuildSettings products={activeProducts} request={palletPreviewRequest} initialSpecId={palletSetupSpec} onRecipePending={setPalletRecipePending} resetToken={numericResetVersion} onReset={clearNumericDraftErrors} invalid={invalidNumericFields.size>0} value={palletBuild} only={workflow === "pallet-only"} onChange={value=>{setPalletBuild(value);markDirty();}} onValidityChange={setNumericFieldValidity}/><PalletBuildPreview key={JSON.stringify(palletPreviewRequest)} request={palletPreviewRequest} value={palletBuild} disabled={invalidNumericFields.size>0||!activeProducts.length||palletRecipePending}/></> : <FloorPalletSettings inline config={floorPallets} container={container} clearance={clearance} customSpaces={customContainers} onDraftChange={receivePalletDraft} onSave={()=>{}} onClose={()=>{}}/>}
           </div>
           {(workflow!=="pallet-only"||!!container.exclusions?.length)&&<SiteExclusionSettings container={container} clearance={clearance} only={workflow==="pallet-only"} invalid={invalidNumericFields.size>0} resetToken={numericResetVersion} onValidityChange={setNumericFieldValidity} onChange={next=>{setContainer(next);markDirty();}}/>}
           {(workflow!=="pallet-only"||!!container.exclusions?.some(z=>z.accessory))&&<ContainerAccessorySettings container={container} products={activeProducts} only={workflow==="pallet-only"} prebuilt={workflow==="palletized"} invalid={invalidNumericFields.size>0} resetToken={numericResetVersion} onValidityChange={setNumericFieldValidity} onChange={next=>{setContainer(next);markDirty();}}/>}
@@ -2051,7 +2066,7 @@ export function PackingApp() {
                   : tr("倒推先保持当前 SKU 数量比例；箱型方向、门洞和碎片空间会影响最终实际利用率，应用后将用装箱算法重新验证。")}</p>
             </article>
 </div></details>}
-          <div className="wizard-navigation"><button className="button" onClick={()=>goToStep(1)}><ChevronLeft size={17}/>{tr("上一步：货物清单")}</button><div><span>{setupInvalid?tr("托盘参数尚未完成，请先修正。"):tr("配置完成后生成双算法方案与完整坐标。")}</span><button className="button primary" disabled={setupInvalid||invalidNumericFields.size>0||hasPendingDimensionChanges} onClick={startConfiguredCalculation}>{tr("开始计算 ")}<ChevronRight size={17}/></button></div></div>
+          <div className="wizard-navigation"><button className="button" onClick={()=>goToStep(1)}><ChevronLeft size={17}/>{tr("上一步：货物清单")}</button><div><span>{palletRecipePending?tr("请先采用或取消本次打托预览。","Apply or cancel the pending pallet preview first."):setupInvalid?tr("托盘参数尚未完成，请先修正。"):tr("配置完成后生成双算法方案与完整坐标。")}</span><button className="button primary" disabled={setupInvalid||invalidNumericFields.size>0||hasPendingDimensionChanges||palletRecipePending} onClick={startConfiguredCalculation}>{tr("开始计算 ")}<ChevronRight size={17}/></button></div></div>
         </section>}
         {workflowStep===3 && <section className="wizard-page" aria-label={tr("第三步：装箱方案")}>
           <div className="wizard-page-heading"><div><span className="section-kicker">STEP 03</span><h2>{tr(workflow === "pallet-only" ? "打托方案" : "装箱方案", workflow === "pallet-only" ? "Pallet plan" : "Loading plan")}</h2><p>{tr(result?.container.name ?? container.name)} · {result?.workflow === "pallet-only" ? tr("仅打托，未执行装柜", "Pallets only; no vehicle loading") : result?.palletization?tr("先打托，再装柜","Palletize first, then load"):floorPallets?tt`使用托盘 ${floorPallets.length} × ${floorPallets.width} × ${floorPallets.height} mm`:tr("直接装柜，无底层托盘")}</p></div><button className="button" onClick={()=>goToStep(2)}><ChevronLeft size={16}/>{tr("修改装载配置")}</button></div>

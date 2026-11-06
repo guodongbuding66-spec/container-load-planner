@@ -83,6 +83,7 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
     if(JSON.stringify(p.packaging)!==JSON.stringify(config.packaging)||p.enclosureHeight!==(interior.crate?packagingHeight(config):undefined))errors.push("Packaging structure does not match its specification");
     const cargo = cargoByPallet.get(p.id)!;
     if(!cargo.length&&!value.editRevision)errors.push("Loaded pallet has no cargo");
+    if(specification.cartonLimit !== undefined && cargo.length > specification.cartonLimit) errors.push("每托箱数超过设定上限 / Pallet exceeds its carton limit");
     if(allowedProducts.get(specification.id)&&cargo.some(b=>!allowedProducts.get(specification.id)!.has(b.productId)))errors.push("Cargo is not eligible for this packaging specification");
     const cargoTop=palletEnvelopeTop({...p,enclosureHeight:undefined},cargo);
     if(interior.crate&&cargoTop>p.z+config.height+config.maxCargoHeight!+EPS)errors.push("Cargo exceeds crate interior height");

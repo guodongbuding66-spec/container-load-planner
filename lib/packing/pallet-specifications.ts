@@ -5,6 +5,7 @@ import type { ContainerSpec, FloorPalletConfig, PalletBuildOptions, PalletBuildS
 
 export const PRIMARY_SPECIFICATION = "primary";
 export const MAX_PACKAGING_SPECIFICATIONS = 8;
+export const MAX_CARTONS_PER_PALLET = 1000;
 /** Copy dimensions for a new specification without transferring operational consent. */
 export function newPackagingConfig(config: FloorPalletConfig): FloorPalletConfig {
   const copy = structuredClone(config);
@@ -20,6 +21,13 @@ export function parsePackagingLimit(value: unknown) {
   if (!Number.isInteger(value) || Number(value) < 0 || Number(value) > 200) throw new Error("Packaging availability must be 0–200 / 包装可用数量须为 0–200");
   return value as number;
 }
+export function parsePalletCartonLimit(value: unknown): number | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > MAX_CARTONS_PER_PALLET) {
+    throw new Error("每托箱数须为 1–1000 的整数 / Cartons per pallet must be an integer from 1 to 1000");
+  }
+  return value;
+}
 export function parsePackagingSpecifications(value: unknown): PalletBuildSpecification[] {
   if (!Array.isArray(value) || !value.length || value.length > MAX_PACKAGING_SPECIFICATIONS) throw new Error("Use 1–8 packaging specifications / 包装规格须为 1–8 种");
   const specifications = value.map(raw => {
@@ -28,13 +36,19 @@ export function parsePackagingSpecifications(value: unknown): PalletBuildSpecifi
     if (typeof s.id !== "string" || !/^[a-zA-Z0-9_-]{1,80}$/.test(s.id) || ["__proto__","constructor","prototype"].includes(s.id) || !Number.isInteger(s.stackLayers) || s.stackLayers < 1 || s.stackLayers > 20 || !Number.isFinite(s.maxTopLoadKg) || s.maxTopLoadKg < 0 || s.maxTopLoadKg > 100000) throw new Error("Invalid packaging identifier or stacking rule");
     assertDeckSupportStacking(parseFloorPalletConfig(s.config),s.stackLayers,s.maxTopLoadKg);
     const productIds = parsePackagingSelection(s.productIds);
-    return { id:s.id, config:{...parseFloorPalletConfig(s.config),count:0,allowFloorCargo:false}, maxPallets:parsePackagingLimit(s.maxPallets), ...(productIds ? {productIds} : {}), stackLayers:s.stackLayers, maxTopLoadKg:s.maxTopLoadKg };
+    const cartonLimit = parsePalletCartonLimit(s.cartonLimit);
+    return { id:s.id, config:{...parseFloorPalletConfig(s.config),count:0,allowFloorCargo:false}, maxPallets:parsePackagingLimit(s.maxPallets), ...(productIds ? {productIds} : {}), ...(cartonLimit === undefined ? {} : {cartonLimit}), stackLayers:s.stackLayers, maxTopLoadKg:s.maxTopLoadKg };
   });
   if (new Set(specifications.map(s => s.id)).size !== specifications.length) throw new Error("Duplicate packaging specification / 包装规格标识重复");
   return specifications;
 }
 export function palletSpecifications(options: PalletBuildOptions): PalletBuildSpecification[] {
-  return [{id:PRIMARY_SPECIFICATION,config:options.config,maxPallets:options.primaryRule?.maxPallets??options.maxPallets,...(options.primaryRule?.productIds?{productIds:options.primaryRule.productIds}:{}),stackLayers:options.stackLayers,maxTopLoadKg:options.maxTopLoadKg},...options.additionalSpecs??[]];
+  const {maxPallets = options.maxPallets, productIds, cartonLimit} = options.primaryRule ?? {};
+  return [{
+    id:PRIMARY_SPECIFICATION, config:options.config, maxPallets,
+    ...(productIds ? {productIds} : {}), ...(cartonLimit === undefined ? {} : {cartonLimit}),
+    stackLayers:options.stackLayers, maxTopLoadKg:options.maxTopLoadKg,
+  }, ...options.additionalSpecs ?? []];
 }
 type UnitSpecifications = {config:FloorPalletConfig;stackLayers?:number;maxTopLoadKg?:number;specifications?:PalletBuildSpecification[]};
 export function specificationForPallet(value:UnitSpecifications,pallet:Pick<PlacedPallet,"specificationId">):PalletBuildSpecification {

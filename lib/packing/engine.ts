@@ -9,7 +9,7 @@ import {parseHandlingTasks} from "./handling-sequence";
 import {parseSiteExclusions,siteExclusionBoxes,availablePackingVolume,SITE_EXCLUSION_PREFIX} from "./site-exclusions";
 import { packagingReservedVolume, packagingMassCenter } from "./packaging";
 import { parseLoadingWorkflow, parsePalletBuild } from "./loading-workflow";
-import { palletSpecifications, mixedInspectionContainer, independentPalletVolume, specificationForPallet } from "./pallet-specifications";
+import { palletSpecifications, mixedInspectionContainer, independentPalletVolume, specificationForPallet, parsePalletCartonLimit } from "./pallet-specifications";
 import { parseShapeFields, shapeDetails, cargoShapeOf, isRectilinearShape, withShapeSupport } from "./cargo-shape";
 import { cargoBodyParts, bodyBottomPatches, bodyContactArea, bodyTopLevels, bodyVolumeRatio, bodiesOverlap, surfaceArea, validOrientationSigns, orientationAxes, intersectSurface, surfacePolygon, bodyTopPatches } from "./cargo-body";
 import { parsePalletization, validatePalletizedCargo, orderPalletizedCargo } from "./prebuilt-pallets";
@@ -50,7 +50,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.80.0";
+export const ENGINE_VERSION = "0.81.0";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -134,6 +134,10 @@ export function validateContainerInput(container: ContainerSpec, clearance: numb
 export function assertValidRequest(request: PackingRequest) {
   assertAccessorySupportWorkflow(request);
   if (request.palletBuildStage !== undefined && (request.palletBuildStage !== true || request.container.category !== "pallet" || request.container.loadingAccess !== "open" || request.mode !== "mixed")) throw new Error("Invalid pallet-building stage");
+  if (request.palletCartonLimit !== undefined) {
+    if (!request.palletBuildStage) throw new Error("Cartons per pallet require the pallet-building stage");
+    parsePalletCartonLimit(request.palletCartonLimit);
+  }
   if (request.mode !== "single" && request.mode !== "mixed") {
     throw new Error("计算模式必须是单品最大装柜或多 SKU 拼柜。");
   }
@@ -367,7 +371,7 @@ export function getOrientations(product: ProductInput, deduplicate = true): Orie
  * onto a side. `any` remains meaningful for the theoretical solver while the
  * worker solver deliberately keeps the factory-designated carton height.
  */
-function getPracticalOrientations(product: ProductInput): Orientation[] {
+export function getPracticalOrientations(product: ProductInput): Orientation[] {
   if (product.allowedOrientations) return getOrientations(product);
   const l = positive(product.length);
   const w = positive(product.width);
@@ -1703,7 +1707,11 @@ function packMixedWithStrategy(request: PackingRequest, container: EffectiveCont
   };
 
   const failedProductRevision = new Map<string, number>();
+  const cartonLimit = request.palletCartonLimit ?? Infinity;
   for (const batch of batches) {
+    const slots = cartonLimit - (placements.length - anchors.length);
+    if (slots <= 0) break;
+    if (batch.items.length > slots) continue;
     if (batch.setCode && blockedSetCodes.has(batch.setCode)) continue;
     const batchVolume = batch.items.reduce((sum, product) => sum + product.length * product.width * product.height * bodyVolumeRatio(product), 0);
     if (strategy === "practical" && totalVolume > EPS && totalVolume + batchVolume > volumeLimit + EPS) {

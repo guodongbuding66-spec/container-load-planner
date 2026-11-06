@@ -1,10 +1,10 @@
-import {getOrientations} from "./engine";
+import {getOrientations,getPracticalOrientations} from "./engine";
 import {palletCargoCeiling} from "./floor-pallets";
 import {parsePalletBuild} from "./loading-workflow";
 import {packagingInterior} from "./packaging";
 import {palletSpecifications} from "./pallet-specifications";
 import type {OrderCapacityTrial} from "./order-capacity";
-import type {PackingRequest} from "./types";
+import type {FloorPalletConfig,PackingRequest,PalletBuildOptions} from "./types";
 
 /** Geometric upper bounds only: they do not certify support, strength or a pack. */
 export function inspectPalletHeights(request:PackingRequest){
@@ -15,7 +15,7 @@ export function inspectPalletHeights(request:PackingRequest){
   const available=Math.max(0,palletCargoCeiling(request.container,request.clearance,{...c,maxCargoHeight:0})-c.height-inside.lid);
   const current=inside.crate?c.maxCargoHeight??0:Math.min(available,c.maxCargoHeight||available);
   const products=request.products.filter(p=>p.quantity>0&&(!s.productIds||s.productIds.includes(p.id))).map(p=>{
-   const orientations=getOrientations(p).filter(o=>o.dx<=inside.length+.0001&&o.dy<=inside.width+.0001);
+   const orientations=(request.strategy==="maximum"?getOrientations(p):getPracticalOrientations(p)).filter(o=>o.dx<=inside.length+.0001&&o.dy<=inside.width+.0001);
    const minHeight=orientations.length?Math.min(...orientations.map(o=>o.dz)):null;
    return {productId:p.id,sku:p.sku,minHeight,heightLayers:minHeight?Math.floor((current+.0001)/minHeight):0,
     configuredLayers:p.bottomOnly||p.stackable===false?1:p.maxStackLayers||null,
@@ -24,6 +24,14 @@ export function inspectPalletHeights(request:PackingRequest){
   return {id:s.id,name:c.name,current,available,crate:inside.crate,stock:s.maxPallets,products,
    canRaise:!inside.crate&&s.maxPallets>0&&products.length>0&&current+.0001<available};
  });
+}
+
+export function withVehiclePalletHeights(build: PalletBuildOptions, ids: readonly string[]): PalletBuildOptions {
+  const automatic = (config: FloorPalletConfig, id: string) =>
+    ids.includes(id) && !packagingInterior(config).crate ? {...config, maxCargoHeight:0} : config;
+  return {...build, config:automatic(build.config,"primary"),
+    ...(build.additionalSpecs ? {additionalSpecs:build.additionalSpecs.map(s=>({...s, config:automatic(s.config,s.id)}))} : {}),
+  };
 }
 
 /** Change only explicit open-pallet cargo ceilings; the original order stays intact. */

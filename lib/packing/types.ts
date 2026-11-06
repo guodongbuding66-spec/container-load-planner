@@ -7,6 +7,8 @@ export type PalletBuildSpecification = {
   maxPallets: number;
   /** Omit for all products. Whole kits must be eligible together. */
   productIds?: string[];
+  /** Target cartons per unit. Partial tail units and whole kits are allowed. */
+  cartonLimit?: number;
   stackLayers: number;
   maxTopLoadKg: number;
 };
@@ -15,7 +17,7 @@ export type PalletBuildOptions = {
   looseQuantities?: import("./loose-cargo").LooseQuantities;
   selection?: import("./packaging-choice").PackagingSelection;
   config: FloorPalletConfig;
-  primaryRule?: { maxPallets: number; productIds?: string[] };
+  primaryRule?: Pick<PalletBuildSpecification, "maxPallets" | "productIds" | "cartonLimit">;
   /** Source order after primary; compact mode retains this order for ties. */
   additionalSpecs?: PalletBuildSpecification[];
   mix: "single" | "mixed";
@@ -156,6 +158,8 @@ export type ProductInput = {
 export type PackingRequest = {
   /** Internal pallet-building stage: use the full deck envelope while retaining practical support/orientation rules. */
   palletBuildStage?: true;
+  /** Internal cap for one pallet's mixed-carton search. Never splits a kit. */
+  palletCartonLimit?: number;
   workflow?: LoadingWorkflow;
   palletBuild?: PalletBuildOptions;
   delivery?: import("./access").DeliveryMap;
