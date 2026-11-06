@@ -1,0 +1,76 @@
+{
+  "format": "cargo-fit-measurements",
+  "version": 3,
+  "measurements": [
+    {
+      "id": "5512f174-a6d5-41f3-928e-d28fd56645c3",
+      "name": "QA 规则实体接触面",
+      "createdAt": "2026-11-06T01:47:44.703Z",
+      "visible": true,
+      "scope": "4dcdb542b38056a2",
+      "space": {
+        "length": 1000,
+        "width": 1000,
+        "height": 300,
+        "clearance": 0
+      },
+      "targets": [
+        {
+          "id": "prebuilt-1",
+          "kind": "carton",
+          "source": {
+            "x": 0,
+            "y": 0,
+            "z": 100,
+            "dx": 500,
+            "dy": 500,
+            "dz": 200
+          },
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "z": 100,
+            "dx": 500,
+            "dy": 500,
+            "dz": 200
+          }
+        },
+        {
+          "id": "prebuilt-3",
+          "kind": "carton",
+          "source": {
+            "x": 500,
+            "y": 0,
+            "z": 100,
+            "dx": 500,
+            "dy": 500,
+            "dz": 200
+          },
+          "bounds": {
+            "x": 500,
+            "y": 0,
+            "z": 100,
+            "dx": 500,
+            "dy": 500,
+            "dz": 200
+          }
+        }
+      ],
+      "mode": "gap",
+      "surface": [
+        {
+          "profile": {
+            "cargoShape": "box"
+          },
+          "orientation": "LWH"
+        },
+        {
+          "profile": {
+            "cargoShape": "box"
+          },
+          "orientation": "LWH"
+        }
+      ]
+    }
+  ]
+}

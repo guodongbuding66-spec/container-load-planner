@@ -11,6 +11,21 @@
 
 工程边界包括平面规则外形、实际测量来源和柜内可用空间。曲面与复杂导入模型的最短净距、真实秤具、扫码硬件、工厂试装、温湿度与凝露的现场证据仍待独立验收。已登记柜整柜保留，未登记余货可重排。跨设备通过手动文件交接。
 
-## 验收记录
+## 正式站点验收
 
-运行版本和验收原件随发布归档。
+| 场景 | 受控结果 |
+| --- | --- |
+| 跨柜交接 | 两柜 6 箱，8 个独立箱托编号。二维码定位后由人工确认，重复确认保持同一条事件。原生事件 JSON、CSV 及带二维码的离线分层标签已下载。 |
+| 换柜与缺货 | 已登记第一柜身份、4 箱坐标和托盘保留。后续缺半托时试算减 2 箱，禁止采用。改用已登记替代柜型保持 6 箱，配置费用 208→223 元。 |
+| 逐件核重 | 计划 60＋28＝88 kg。受控手工录入 62＋29＝91 kg，差额 3 kg。第一柜完成时整单仅显示小计，第二柜称重后才显示完整实称。 |
+| 跨站恢复 | Vercel 恢复交接文件，柜号、箱托、人工确认、核重与作业记录通过校验。两站原生实物台账和核重 CSV 逐字节一致。 |
+| 唛头和防潮 | 同柜相邻箱遮挡，读标通道为 0 mm。录入 800 g 水负荷、1.25 安全系数、每件 400 g 额定吸湿量，需 3 件，当前缺 3 件。 |
+| 测量 | 两箱接触面净距为 0 mm，原生 v3 备份和可复制文字 HTML 一并归档。独立测试验证凹槽内 15 mm 净距。 |
+
+## 发布与证据
+
+2,124 项单元测试（164 个文件，新增 11 项）、21 项页面检查、类型及生产构建通过。ESLint 为 0 错误和 2 项既有警告。两站各 20 次固定基准通过，恢复原订单后现场易执行与高密度参考均为 116 箱、3,842 kg。本轮记录 32 项界面断言和 13 项原件复核。
+
+运行提交 `fa162e39fd20283918899bc76182fd623c407990`。Cloudflare Pages 发布 `bea02220-d6f0-4195-b3b5-a27298dcbc1f` 成功，Vercel 发布 `dpl_6VpEqQdayw6D7XUYNYywcBsN1VDa` 为 READY。[GitHub CI](https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/42144937462) · [主站](https://container-load-planner.pages.dev/) · [Vercel](https://container-load-planner-gray.vercel.app/)
+
+[原件及 SHA-256 索引](field-upgrades/evidence/v0.79.0-acceptance-index.json) · [界面验收](field-upgrades/evidence/v0.79.0-native-ui-checks.json) · [文件复核](field-upgrades/evidence/v0.79.0-native-file-checks.json) · [发布状态](field-upgrades/evidence/v0.79.0-release-state.json)

@@ -1,0 +1,47 @@
+{
+  "release": "0.79.0",
+  "runtimeCommit": "fa162e39fd20283918899bc76182fd623c407990",
+  "runtimeTree": "55f7ed07503ccde556354a7e79820299b78e1cf2",
+  "verifiedAt": "2026-11-06T01:50:01.543Z",
+  "ciUrl": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/42144937462",
+  "ci": {
+    "name": "Verify and build",
+    "id": 42144937462,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/42144937462",
+    "sha": "fa162e39fd20283918899bc76182fd623c407990"
+  },
+  "local": {
+    "unit": 2124,
+    "testFiles": 164,
+    "html": 21,
+    "eslintErrors": 0,
+    "eslintExistingWarnings": 2,
+    "typecheck": "passed",
+    "buildPages": "passed"
+  },
+  "pagesDeploymentId": "bea02220-d6f0-4195-b3b5-a27298dcbc1f",
+  "pages": {
+    "name": "Cloudflare Pages",
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://dash.cloudflare.com/?to=/bf21b14200f1ef0bfb82f48d3663411c/pages/view/container-load-planner/bea02220-d6f0-4195-b3b5-a27298dcbc1f"
+  },
+  "vercelDeploymentId": "dpl_6VpEqQdayw6D7XUYNYywcBsN1VDa",
+  "vercel": {
+    "id": "dpl_6VpEqQdayw6D7XUYNYywcBsN1VDa",
+    "state": "READY",
+    "sha": "fa162e39fd20283918899bc76182fd623c407990",
+    "url": "container-load-planner-bq344dxul-guodongbuding66-4957.vercel.app",
+    "aliases": [
+      "container-load-planner-gray.vercel.app",
+      "container-load-planner-guodongbuding66-4957.vercel.app",
+      "container-load-planner-git-main-guodongbuding66-4957.vercel.app"
+    ]
+  },
+  "liveHosts": [
+    "https://container-load-planner.pages.dev/",
+    "https://container-load-planner-gray.vercel.app/"
+  ]
+}

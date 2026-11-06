@@ -1,0 +1,40 @@
+{
+  "format": "cargo-fit-field-readiness",
+  "version": 1,
+  "context": {
+    "planId": "delivery-3a76767e-e0a0-44d6-85ea-216bd8a7f8f0",
+    "revisionId": "revision-7adcf5eb-1b47-401b-bc70-100aa0a89516",
+    "signature": "4dcdb542b38056a2"
+  },
+  "mark": {
+    "input": {
+      "unitId": "carton-ab04fa1d-e6ac-45ff-b54d-3e3c623091a0",
+      "face": "x+",
+      "widthMm": 50,
+      "heightMm": 40,
+      "accessMm": 20
+    },
+    "result": {
+      "status": "obstructed",
+      "cartonId": "prebuilt-1",
+      "clearanceMm": 0,
+      "obstruction": "prebuilt-3"
+    }
+  },
+  "moisture": {
+    "input": {
+      "waterGrams": 800,
+      "ratedGramsPerUnit": 400,
+      "safetyFactor": 1.25,
+      "source": "Controlled test rating and declared water load",
+      "accessoryIds": []
+    },
+    "result": {
+      "requiredGrams": 1000,
+      "requiredUnits": 3,
+      "plannedUnits": 0,
+      "shortage": 3,
+      "accessoryIds": []
+    }
+  }
+}

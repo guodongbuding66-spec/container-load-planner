@@ -1,0 +1,116 @@
+{
+  "format": "cargo-fit-field-records",
+  "version": 1,
+  "current": {
+    "format": "cargo-fit-field-events",
+    "version": 1,
+    "context": {
+      "planId": "delivery-3a76767e-e0a0-44d6-85ea-216bd8a7f8f0",
+      "revision": 1,
+      "revisionId": "revision-7adcf5eb-1b47-401b-bc70-100aa0a89516",
+      "signature": "4dcdb542b38056a2",
+      "atoms": [
+        {
+          "id": "carton-ab04fa1d-e6ac-45ff-b54d-3e3c623091a0",
+          "kind": "carton",
+          "sourceId": "p",
+          "weightKg": 10,
+          "witness": "[\"6bf0bf974e05e225\",0,0,100,500,500,200,\"LWH\",null,[\"floor-pallet-1\"]]",
+          "children": []
+        },
+        {
+          "id": "carton-df24059c-2f82-4e54-91de-6581a89d32c6",
+          "kind": "carton",
+          "sourceId": "p",
+          "weightKg": 10,
+          "witness": "[\"6bf0bf974e05e225\",0,500,100,500,500,200,\"LWH\",null,[\"floor-pallet-1\"]]",
+          "children": []
+        },
+        {
+          "id": "carton-a3a1f70a-237a-45f1-a7ec-1292501f5359",
+          "kind": "carton",
+          "sourceId": "p",
+          "weightKg": 10,
+          "witness": "[\"6bf0bf974e05e225\",500,0,100,500,500,200,\"LWH\",null,[\"floor-pallet-1\"]]",
+          "children": []
+        },
+        {
+          "id": "carton-e299305c-a186-48b8-ae8e-09de8819f4d7",
+          "kind": "carton",
+          "sourceId": "p",
+          "weightKg": 10,
+          "witness": "[\"6bf0bf974e05e225\",500,500,100,500,500,200,\"LWH\",null,[\"floor-pallet-1\"]]",
+          "children": []
+        },
+        {
+          "id": "pallet-5518ab03-e648-4664-9473-b76512304f7e",
+          "kind": "pallet",
+          "sourceId": "primary",
+          "weightKg": 20,
+          "witness": "[\"56261d94875c76be\",0,0,0,1000,1000,100,\"LWH\",null,null]",
+          "children": [
+            "carton-ab04fa1d-e6ac-45ff-b54d-3e3c623091a0",
+            "carton-df24059c-2f82-4e54-91de-6581a89d32c6",
+            "carton-a3a1f70a-237a-45f1-a7ec-1292501f5359",
+            "carton-e299305c-a186-48b8-ae8e-09de8819f4d7"
+          ]
+        }
+      ]
+    },
+    "events": [
+      {
+        "id": "event-df68ea3b-4c4e-4f9e-a679-a819ba178c78",
+        "at": "2026-11-06T01:42:59.625Z",
+        "deviceId": "device-445d2087-c7d0-4bf4-9884-f41c1d336e3a",
+        "unitId": "pallet-5518ab03-e648-4664-9473-b76512304f7e",
+        "action": "load",
+        "changes": [
+          {
+            "id": "pallet-5518ab03-e648-4664-9473-b76512304f7e",
+            "parents": [],
+            "state": {
+              "loaded": true,
+              "condition": "none"
+            }
+          },
+          {
+            "id": "carton-ab04fa1d-e6ac-45ff-b54d-3e3c623091a0",
+            "parents": [],
+            "state": {
+              "loaded": true,
+              "condition": "none"
+            }
+          },
+          {
+            "id": "carton-df24059c-2f82-4e54-91de-6581a89d32c6",
+            "parents": [],
+            "state": {
+              "loaded": true,
+              "condition": "none"
+            }
+          },
+          {
+            "id": "carton-a3a1f70a-237a-45f1-a7ec-1292501f5359",
+            "parents": [],
+            "state": {
+              "loaded": true,
+              "condition": "none"
+            }
+          },
+          {
+            "id": "carton-e299305c-a186-48b8-ae8e-09de8819f4d7",
+            "parents": [],
+            "state": {
+              "loaded": true,
+              "condition": "none"
+            }
+          }
+        ],
+        "note": "",
+        "photos": []
+      }
+    ]
+  },
+  "history": [],
+  "handovers": []
+}

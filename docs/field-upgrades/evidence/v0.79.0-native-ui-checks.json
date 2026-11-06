@@ -1,0 +1,166 @@
+{
+  "engineVersion": "0.79.0",
+  "passed": 32,
+  "checks": [
+    {
+      "site": "Cloudflare Pages",
+      "check": "Legacy fleet restores intact at 208 CNY",
+      "observed": "- strong: 2 柜 · 费用合计 208.00 · 剩余 0 箱"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "First vehicle issued independently",
+      "observed": "- status: 已登记交付版本。现场装载仍需逐件确认。"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "QR selects the first issued vehicle from another slot",
+      "observed": "- status: 二维码已定位至对应柜及版本，请核对后登记。"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "QR selection leaves physical loading pending",
+      "observed": "- paragraph: \"已装箱: 0 / 4 · 已装包装: 0 · 缺箱: 0 · 损伤箱: 0 · 冲突单元: 0 · 已确认的计划重量: 0.00 kg\""
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Pallet confirmation covers four cartons",
+      "observed": "- paragraph: \"已装箱: 4 / 4 · 已装包装: 1 · 缺箱: 0 · 损伤箱: 0 · 冲突单元: 0 · 已确认的计划重量: 60.00 kg\""
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Duplicate confirmation does not add an event",
+      "observed": "- status: 已是此状态，重复扫描未新增计数。"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Partial weighing shows a subtotal and no whole-fleet actual",
+      "observed": "- paragraph: 整单计划 88 kg · 实称小计 62 kg · 完整实称 — kg · 差额 — kg"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Closure requires earlier checks",
+      "observed": "- alert: 前置项尚未全部确认，可登记异常或撤回，暂不能确认此项。"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Preload operation check recorded",
+      "observed": "- status: 记录已保存到本机；并行记录已合并，请检查冲突并保存独立备份。"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Adjacent carton blocks the mark reading corridor",
+      "observed": "- status: 净距不足，需现场复核 · prebuilt-1 · 0 mm · prebuilt-3"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Declared moisture budget requires three missing units",
+      "observed": "- status: 所需 3 · 计划 0 · 缺口 3"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Shortage preview exposes two unallocated cartons",
+      "observed": "- paragraph: 柜数 2 → 1 · 未分配箱数 0 → 2"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Source-row reduction blocks adoption",
+      "observed": "- alert: 至少一条订单行减量，不能采用。"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Independent replacement preview costs 223 CNY",
+      "observed": "- paragraph: 配置费用 208 → 223 CNY"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Replacement adopted with all six cartons",
+      "observed": "- strong: 2 柜 · 费用合计 223.00 · 剩余 0 箱"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "First vehicle weighing survived adoption",
+      "observed": "- paragraph: 整单计划 88 kg · 实称小计 62 kg · 完整实称 — kg · 差额 — kg"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "All weighing scopes complete at 91 kg versus 88 kg planned",
+      "observed": "- paragraph: 整单计划 88 kg · 实称小计 91 kg · 完整实称 91 kg · 差额 3 kg"
+    },
+    {
+      "site": "Vercel",
+      "check": "Vercel restores the original handoff",
+      "observed": "- status: 交接已恢复，同版本记录已合并。"
+    },
+    {
+      "site": "Vercel",
+      "check": "Vercel restored the first vehicle identity, loading and actual weight",
+      "observed": "- row \"1 · Fleet Tail QA v1 · 100aa0a89516 4 4 0 / 0 / 0 60 62 62\":"
+    },
+    {
+      "site": "Vercel",
+      "check": "Vercel restored both complete weighing scopes",
+      "observed": "- paragraph: 整单计划 88 kg · 实称小计 91 kg · 完整实称 91 kg · 差额 3 kg"
+    },
+    {
+      "site": "Vercel",
+      "check": "Vercel restored the confirmed operation prerequisite",
+      "observed": "- strong: 已人工确认"
+    },
+    {
+      "site": "Vercel",
+      "check": "Reimporting identical evidence does not duplicate weights",
+      "observed": "- paragraph: 整单计划 88 kg · 实称小计 91 kg · 完整实称 91 kg · 差额 3 kg"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Rule-solid surface gap measured at the touching boundary",
+      "observed": "- generic \"QA 规则实体接触面 · 规则实体最短净距 · 0.000 mm · 当前有效\""
+    },
+    {
+      "site": "Vercel",
+      "check": "Vercel ran all twenty fixed benchmarks",
+      "observed": "- paragraph: 0.79.0 · 20 / 20 · 全部运行结束"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Removed only the test measurement after exporting it",
+      "observed": "- heading \"已保存测量 · 0 / 20\" [level=3]"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Cloudflare Pages ran all twenty fixed benchmarks",
+      "observed": "- paragraph: 0.79.0 · 20 / 20 · 全部运行结束"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Original practical plan has 116 cartons",
+      "observed": "- button \"现场易执行 116 箱\" [pressed]:"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Original dense plan has 116 cartons",
+      "observed": "- button \"高密度参考 116 箱\":"
+    },
+    {
+      "site": "Cloudflare Pages",
+      "check": "Original order gross weight restored",
+      "observed": "- strong: 3,842 kg"
+    },
+    {
+      "site": "Vercel",
+      "check": "Original practical plan has 116 cartons",
+      "observed": "- button \"现场易执行 116 箱\" [pressed]:"
+    },
+    {
+      "site": "Vercel",
+      "check": "Original dense plan has 116 cartons",
+      "observed": "- button \"高密度参考 116 箱\":"
+    },
+    {
+      "site": "Vercel",
+      "check": "Original order gross weight restored",
+      "observed": "- strong: 3,842 kg"
+    }
+  ]
+}

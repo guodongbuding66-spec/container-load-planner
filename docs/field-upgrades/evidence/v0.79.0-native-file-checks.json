@@ -1,0 +1,90 @@
+{
+  "engineVersion": "0.79.0",
+  "passed": 13,
+  "checks": [
+    {
+      "check": "two independently issued vehicles",
+      "vehicles": [
+        "fleet-tail-qa",
+        "field-replacement"
+      ],
+      "revisions": [
+        "revision-7adcf5eb-1b47-401b-bc70-100aa0a89516",
+        "revision-5e01474d-2d9d-450e-aec5-7b88fa479bc0"
+      ]
+    },
+    {
+      "check": "replacement keeps coordinates, sources, inventory and quotes",
+      "cartons": [
+        4,
+        2
+      ],
+      "configuredCostBefore": 208,
+      "configuredCostAfter": 223
+    },
+    {
+      "check": "historical native field downloads",
+      "fieldEvents": 1,
+      "eventRows": 5,
+      "manifestCartons": 4,
+      "hasQrSvg": true
+    },
+    {
+      "check": "ledger cross-origin exact native bytes",
+      "bytes": 1995,
+      "sha256": "b981a64e242b73588017d1e6795da5ec380cbd5edd47f749bcd7c218bc3dc439"
+    },
+    {
+      "check": "physical ledger relates every carton to the correct pallet",
+      "uniqueIds": 8,
+      "cartonRows": 6
+    },
+    {
+      "check": "weights cross-origin exact native bytes",
+      "bytes": 688,
+      "sha256": "e10963fc8173d2e829231b28a2076b7b0df5abca9177635aae4dd80263f712f1"
+    },
+    {
+      "check": "handoff keeps actual readings, a physical event and the operation check",
+      "plannedKg": 88,
+      "actualKg": 91,
+      "deltaKg": 3
+    },
+    {
+      "check": "revision-bound shipping mark and moisture review",
+      "markClearanceMm": 0,
+      "requiredGrams": 1000,
+      "missingPieces": 3
+    },
+    {
+      "check": "text-selectable measurement HTML and v3 source geometry",
+      "distanceMm": 0,
+      "targets": [
+        "prebuilt-1",
+        "prebuilt-3"
+      ]
+    },
+    {
+      "check": "main original production benchmark report",
+      "cases": 10,
+      "runs": 20,
+      "caseVersion": "business-2026-11-v5"
+    },
+    {
+      "check": "main original workspace and strategy coordinates restored",
+      "cartons": 116,
+      "grossKg": 3842
+    },
+    {
+      "check": "gray original production benchmark report",
+      "cases": 10,
+      "runs": 20,
+      "caseVersion": "business-2026-11-v5"
+    },
+    {
+      "check": "gray original workspace and strategy coordinates restored",
+      "cartons": 116,
+      "grossKg": 3842
+    }
+  ]
+}
