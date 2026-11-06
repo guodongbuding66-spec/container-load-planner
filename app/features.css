@@ -199,3 +199,14 @@
 
 .tail-cost-comparison table{font-variant-numeric:tabular-nums}
 .tail-cost-comparison>summary{font-weight:600}
+
+.cloud-session { border-bottom: 1px solid var(--line, #dfe8ec); padding-bottom: 12px; }
+.cloud-section { min-width: 0; border: 1px solid var(--line, #dfe8ec); border-radius: 12px; padding: 12px; margin: 12px 0; }
+.cloud-section legend, .cloud-section summary { font-weight: 650; }
+.cloud-section label, .cloud-session label { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 8px 4px 0; }
+.cloud-section input, .cloud-section select { max-width: 100%; min-width: 0; }
+.cloud-section ul { margin: 6px 0; padding-inline-start: 20px; }
+.cloud-section .feature-toolbar { align-items: end; }
+.cloud-quotas { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 8px 0; }
+.cloud-quotas dt { font-size: .85rem; }
+.cloud-quotas dd { margin: 3px 0 0; font-variant-numeric: tabular-nums; font-weight: 650; }

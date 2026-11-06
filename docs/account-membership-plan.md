@@ -1,57 +1,50 @@
 # 装柜智算独立账号、会员与付费接入方案
 
-更新：2026-10-21。状态：设计与验收契约完成；账号、支付和云同步尚未部署。本文件不代表已开通会员，不新增收费、商户账号或付费资源。
+2026-11-06（Asia/Shanghai）。v0.80.0 接入独立账号、组织和私有云项目。正式站的开通取决于数据库和发信配置，付费沙箱与正式云数据分开。进度见[发布记录](upgrade-v0.80.0.md)。
 
-## 产品边界
+## 现有服务
 
-装柜智算使用自己的用户、组织、项目和订阅，不再把 AI 外贸工作台作为登录或云端保存前提。v0.52.0 移除旧 OS 弹窗桥接、订单读写按钮与相应宣传入口；旧文件内的来源标识仅用于兼容，不能作为账号或权限凭据。两个正式前端保留，后续共用一个身份服务、一个业务 API 和一份会员账本，禁止两站分别扣费或分别计算额度。
+两个前端使用同源 `/api/cargo/*`。Vercel 运行服务，Pages Functions 只转发这组路径。两站各自持有站点会话，数据库和会员权益共用。邮箱验证码成功后创建账号，可选密码登录、设置或重置密码、当前站退出及全部会话撤销。登录限流使用服务端存储，Pages 签名传递客户端地址。
 
-当前软件仍可本机运行。后续收费范围、免费／试用额度、定价、币种和是否保留离线版需要产品确认；本轮不把现有用户突然锁在付费墙外，也不在本地制造一个可以被修改的“会员=true”。
+本机 Worker 继续处理装柜。云端接收用户确认后的工作区快照，导入前预览箱型和大小，取回时走既有校验和恢复确认。项目和历史版本按组织隔离。快照和 JSON 附件单文件上限 2 MiB，PNG／JPEG／WebP 照片上限 1,000,000 字节。附件以私有字节保存在数据库，可下载完整原件。多柜交接、现场事件、核重及作业档案需要明确选择文件上传。只读链接只开放所选版本的工作区 JSON，有效期七天，可撤销。
 
-## 必须先解决的技术边界
-
-当前 Pages 是静态导出，算法在浏览器 Worker，完整算法及资源会发送给客户端。仅隐藏按钮、检查 localStorage 或在前端加一个登录页，不能构成可靠的收费授权。需要强制会员授权的计算任务、云存储、团队协作和受保护导出须由服务端鉴权并核准额度；若继续售卖本机离线计算，应明确它是软件许可方式，不能宣称算法无法复制。
-
-建议两个站点调用同一个独立 API，鉴权与支付回调只实现一次。Pages Functions 可以运行服务端逻辑，但不要误以为 Next 静态页面中新增一个 API 路由就会部署成服务端。官方参考：[Cloudflare Pages Functions](https://developers.cloudflare.com/pages/functions/)。
-
-## 分阶段实施及验收
-
-| 阶段 | 工作 | 上线门槛 |
+| 范围 | v0.80.0 软件 | 待实际验收 |
 | --- | --- | --- |
-| A1 独立登录 | 邮箱验证／密码重置、可选 OAuth、退出、会话撤销、限流；建立组织及所有者／编辑／只读角色 | 两站登录回调白名单；未登录拒绝云 API；会话过期、切换账号和多设备退出实测 |
-| A2 数据归属 | 项目和不可变版本写入自有云，现场事件、核重和照片单独归档；显式上传、本机迁入预览、配额和失败恢复 | A 账号不能读取、修改或下载 B 账号任何文件；组织成员权限、对象存储下载地址和只读分享逐项检查 |
-| A3 会员授权 | 服务端套餐目录、有效期、试用、使用额度、成员席位、暂停及续费；客户端只展示服务器结果 | 改浏览器存储无效；并发用量原子扣减；任务失败释放保留额度；两站不重复计次 |
-| A4 支付沙箱 | 服务端创建订单／支付会话；签名回调、幂等、重试、乱序、退款及对账 | 重复回调只开通一次；支付失败不发权益；改价格、改用户、假成功 URL、过期订单全部拒绝 |
-| A5 正式开通 | 商户正式资质、支付产品／价格、结算币种、客服及退款规则；小流量逐步开通 | 沙箱完整通过；商户后台与本地订单逐笔一致；用户可查看发票／交易和取消续费结果 |
+| A1 独立登录 | 邮箱验证码、密码设置或重置、两站独立会话、撤销及三种角色 | 已验证发件域名、邮件实投和实际设备会话 |
+| A2 数据归属 | 私有项目、版本、附件、受控分享和本机迁入预览 | 托管库备份恢复、实际组织和大文件数据策略 |
+| A3 会员授权 | 服务端权益、试用、原子用量、存储和席位，暂停云写入 | 正式产品权益、定价、续费规则和商户对账 |
+| A4 支付沙箱 | Stripe 测试订单、签名、幂等、退款、争议及手动复核 | 供应商测试账号实际结账、退款与回调 |
+| A5 正式开通 | 门控及操作手册 | 商户资质、渠道、价格、结算币种、续费、退款政策、发票和正式验收 |
 
-身份服务可用托管 Auth 和数据库，或独立实现同等能力；尚未选定或创建付费服务。若采用 Supabase，数据库启用按用户／组织限制的 RLS，服务密钥只在服务端。参考：[Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)。这是一种可选架构，不是已经接入该供应商。
+## 开通与配置
 
-## 数据和接口契约
+在可信终端及各托管平台的秘密配置中提供以下变量。
 
-| 数据 | 主键与关系 | 必要约束 |
+| 平台 | 设置 | 用途 |
 | --- | --- | --- |
-| users / organizations / memberships | authUserId、orgId、userId、role | 组织关系从服务端会话解析；普通用户不可自升所有者 |
-| projects / revisions | projectId、orgId、planId、revisionId、checksum | 现有装箱 ID 保留为领域 ID，不能代替租户主键；修订追加，内容归属不可由上传 JSON 指定 |
-| field_archives / weighing_archives / photos | revisionId、archiveId、storageKey、contentHash | 分别保存完整历史；照片私有；已上传清单、版本及校验和可下载对账 |
-| plans / prices / subscriptions | internalPlanCode、providerPriceId、user/orgId、periodEnd、state | 金额、币种和有效期来自服务器；支付平台 ID 与内部 ID 分离 |
-| orders / payment_events / entitlement_events | orderId、providerEventId、subscriptionId | eventId 唯一；验签后事务更新；退款和手工调整留审计，不覆盖原始凭证 |
-| usage_reservations / usage_events | taskId、idempotencyKey、orgId、period | 预留、成功结算、失败释放分开；唯一键防两站和重试重复扣次 |
+| Vercel | `CARGOFIT_CLOUD_MODE` | `private` 提供账号和私有云。 `sandbox` 用于独立测试数据库和测试邮箱。未填写时公开入口显示待启用。 |
+| Vercel | `CARGOFIT_DATABASE_URL` | 专用 PostgreSQL 数据库，连接串使用 `sslmode=verify-full`。优先使用支持 startup options 的连接。 |
+| Vercel | `CARGOFIT_AUTH_SECRET` | 至少 32 字符的随机会话密钥。 |
+| Vercel | `CARGOFIT_RESEND_API_KEY`、`CARGOFIT_MAIL_FROM` | 发信密钥和已验证域名的发件地址。 |
+| Vercel 和 Cloudflare Pages | `CARGOFIT_PROXY_SECRET` | 两站服务端使用相同的独立随机秘密，至少 32 字符。 |
+| Vercel（可选） | `CARGOFIT_TRIAL_DAYS` | 0–30 天，默认 0。 |
+| Vercel（沙箱） | `CARGOFIT_SANDBOX_EMAILS` | 逗号分隔的允许测试邮箱。 |
+| Vercel（沙箱支付） | `CARGOFIT_STRIPE_TEST_KEY`、`CARGOFIT_STRIPE_WEBHOOK_SECRET` | 测试 API 密钥和测试事件签名密钥。 |
 
-拟定接口：`GET /v1/me`、`GET /v1/entitlements`、`POST /v1/projects`、`POST /v1/projects/:id/revisions`、`POST /v1/tasks`、`GET /v1/tasks/:id`、`POST /v1/billing/checkout`、`POST /v1/billing/portal`、`POST /v1/payment-events/:provider`。业务接口统一返回 401 未登录、403 权限／会员不足、409 版本冲突、413 超配额文件、429 请求超限；前端保留本机备份及可恢复状态，不把失败描述成保存成功。
+1. 新建专用数据库和授权角色。先设置运行配置，再用同一配置和具备建表权限的连接执行 `npm run cloud:migrate`。脚本安装 Better Auth 表和 `cargofit_cloud` 业务表并绑定部署模式。日常运行角色应限于该模式的专用库和业务架构。
+2. 为 Cloudflare Pages 设置同一代理秘密并部署。分别检查两站的 `GET /api/cargo/status`，确认返回预期模式。数据库和运行模式不一致时停止服务。
+3. 用已获授权的测试邮箱完成验证码登录、两站项目读取、账户退出和私有文件恢复。对新库安排加密、备份与恢复演练，按实际地区和数据保留要求配置。
+4. 在 Stripe 测试环境中将 webhook 指向 Vercel 的 `/api/cargo/billing/webhook`。订阅 Checkout 完成、异步成功／失败、过期，退款及争议事件。首次核验包括测试结账、重复事件、部分及全额退款，再对照页面订单。沙箱报价为固定测试 USD 金额，测试权益为一次性 30 天。测试和正式数据库不可混用。
 
-双站不共享普通 localStorage。登录使用各站受允许的回调／会话，业务数据通过同一 API 访问；不把访问令牌拼进分享链接。分享令牌只授予单一修订的有限只读权限，可过期和撤销；拥有分享链接不产生项目编辑权或会员权益。退出后清理账号专属内存缓存，避免下一个账号看到上一账号的云数据；本机未上传的草稿由用户明确保留／迁移。
+API 以 `/api/cargo/status`、`/api/cargo/auth/*`、`/api/cargo/data`、`/api/cargo/share` 和 `/api/cargo/billing/webhook` 为入口。云写入核对组织权限、预期版本、请求编号、项目数量、每月写入和字节额度。文件写入与额度记录同事务。跨柜现场档案合并继续使用现有校验。沙箱测试从服务端确立权益。已知失败、乱序、重复及退款保留审核记录。
 
-## 支付与开通
+## 软件联调
 
-支付渠道按商户可用资质和目标客户确定。国内微信／支付宝与国际卡支付不是同一接入，也不凭空承诺结算币种；Stripe 仅为可选国际实现参考。订单在服务器保存不可变的用户／组织、套餐、价格、币种和期限，再创建支付会话。浏览器成功跳转不能开通会员，必须等待已验签并核验状态的服务端支付通知／查询；重复或乱序事件不会延长两次有效期。参考：[Stripe Webhooks](https://docs.stripe.com/webhooks) 与 [Checkout fulfillment](https://docs.stripe.com/checkout/fulfillment.md?payment-ui=stripe-hosted)。
+```bash
+npm run test:unit -- lib/cloud/service.test.ts
+npm run build:pages
+```
 
-还需覆盖取消自动续费、到期、宽限期、支付中、失败、退款、部分退款及争议等业务状态；保留用户项目和可导出的历史资料，不能将会员到期简单实现为删除资料。具体套餐权益、退款政策及价格须在正式收款前确定。
+专项通过真实认证和数据库事务执行，邮件送达及 Stripe 查询使用测试替身。真实邮件、托管库、真实供应商沙箱及正式收款须在对应环境再验收。
 
-## 后续开通需要的实际配置
-
-1. 自有账号服务和业务 API 的托管项目、正式域名与允许的两个前端回调。
-2. 免费／试用／个人／团队的权益表、额度、席位、月／年价格、币种及续费规则。
-3. 商户主体、支付渠道、沙箱与正式凭据、回调签名密钥；由拥有者直接在托管平台配置，不在聊天、仓库或前端保存。
-4. 数据区域、私有文件存储、邮件发送、备份恢复、监控和客服渠道。
-
-上述配置未就绪前，保留清晰的“规划中”状态，不展示虚假支付二维码、未接通的开通按钮或已登录会员身份。
+[Better Auth 邮箱验证码](https://better-auth.com/docs/plugins/email-otp) · [Pages Functions 路由](https://developers.cloudflare.com/pages/functions/routing/) · [Vercel Node.js Functions](https://vercel.com/docs/functions/runtimes/node-js) · [Stripe Checkout 对账](https://docs.stripe.com/checkout/fulfillment)

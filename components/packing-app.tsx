@@ -147,6 +147,7 @@ import { ZeroLoadNotice } from "./cargo-fit-notice";
 import { LoadingRuleSettings } from "./loading-rule-settings";
 import { TransportPicker } from "./transport-picker";
 import { LearningHub } from "./learning-hub";
+import { CloudAccount } from "./cloud-account";
 import { PlanViewer } from "./plan-viewer";
 import { DEFAULT_LOADING_RULES, parseLoadingRules } from "../lib/packing/loading-rules";
 import { TRANSPORT_PRESETS } from "../lib/packing/transport-library";
@@ -1716,6 +1717,9 @@ export function PackingApp() {
               event.currentTarget.value = "";
               if (file) void restoreWorkspace(file);
             }} />
+            <CloudAccount backup={workspaceBackup} disabled={upgradesDisabled} onRestore={payload => {
+              void restoreWorkspace(new File([payload], "CargoFit-cloud-workspace.json", { type: "application/json" }));
+            }}/>
         <LearningHub onCase={loadIndustryCase} onStep={tutorialAction} integration={JSON.stringify({schema:"cargo-fit-integration-v1",units:{length:"mm",weight:"kg",volume:"mm3"},runtime:"local-web-worker",request:fleetRequest,result:result?{...result,strategyPlans:undefined}:null},null,2)}/>
           </div>
         </header>
