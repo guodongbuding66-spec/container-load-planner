@@ -36,5 +36,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/cargo.mjs": {
+      "includeFiles": "server-build/cargo.mjs"
+    }
+  }
 }

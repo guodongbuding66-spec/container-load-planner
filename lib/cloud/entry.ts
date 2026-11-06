@@ -1,6 +1,6 @@
-import { CLOUD_ORIGINS } from "../lib/cloud/protocol.ts";
-import { deploymentCloud } from "../lib/cloud/runtime.ts";
-import { cloudRequest, cloudRoute } from "../lib/cloud/service.ts";
+import { CLOUD_ORIGINS } from "./protocol.ts";
+import { deploymentCloud } from "./runtime.ts";
+import { cloudRequest, cloudRoute } from "./service.ts";
 
 const cargoHandler = {
   fetch(request: Request) {
