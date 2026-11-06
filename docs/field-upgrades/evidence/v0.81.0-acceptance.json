@@ -1,0 +1,623 @@
+{
+  "format": "cargofit-release-acceptance",
+  "engineVersion": "0.81.0",
+  "testedAt": "2026-11-06T07:13:21.627Z",
+  "runtime": {
+    "node": "v24.22.1",
+    "platform": "linux",
+    "cpu": "INTEL(R) XEON(R) PLATINUM 8573C"
+  },
+  "repeated": {
+    "runs": 10,
+    "rows": [
+      {
+        "id": "grid",
+        "strategy": "practical",
+        "loaded": 22,
+        "warmups": 2,
+        "samplesMs": [
+          5.271,
+          3.924,
+          2.568,
+          2.982,
+          2.993,
+          2.494,
+          4.073,
+          3.885,
+          2.696,
+          2.83
+        ],
+        "medianMs": 2.988,
+        "p95Ms": 5.271,
+        "maxMs": 5.271
+      },
+      {
+        "id": "grid",
+        "strategy": "maximum",
+        "loaded": 24,
+        "warmups": 2,
+        "samplesMs": [
+          2.97,
+          4.831,
+          3.405,
+          7.18,
+          2.02,
+          2.444,
+          6.55,
+          2.884,
+          3.442,
+          2.26
+        ],
+        "medianMs": 3.187,
+        "p95Ms": 7.18,
+        "maxMs": 7.18
+      },
+      {
+        "id": "payload",
+        "strategy": "practical",
+        "loaded": 12,
+        "warmups": 2,
+        "samplesMs": [
+          1.997,
+          1.851,
+          1.196,
+          0.956,
+          0.813,
+          0.865,
+          1.288,
+          1.658,
+          2.403,
+          1.442
+        ],
+        "medianMs": 1.365,
+        "p95Ms": 2.403,
+        "maxMs": 2.403
+      },
+      {
+        "id": "payload",
+        "strategy": "maximum",
+        "loaded": 12,
+        "warmups": 2,
+        "samplesMs": [
+          1.043,
+          0.892,
+          1.348,
+          1.222,
+          2.424,
+          1.804,
+          1.67,
+          1.179,
+          1.4,
+          1.362
+        ],
+        "medianMs": 1.355,
+        "p95Ms": 2.424,
+        "maxMs": 2.424
+      },
+      {
+        "id": "door",
+        "strategy": "practical",
+        "loaded": 0,
+        "warmups": 2,
+        "samplesMs": [
+          0.528,
+          0.283,
+          0.208,
+          0.429,
+          0.385,
+          0.325,
+          0.378,
+          0.201,
+          0.166,
+          0.349
+        ],
+        "medianMs": 0.337,
+        "p95Ms": 0.528,
+        "maxMs": 0.528
+      },
+      {
+        "id": "door",
+        "strategy": "maximum",
+        "loaded": 0,
+        "warmups": 2,
+        "samplesMs": [
+          0.377,
+          0.264,
+          0.214,
+          0.159,
+          0.142,
+          0.137,
+          0.328,
+          0.187,
+          0.583,
+          0.325
+        ],
+        "medianMs": 0.239,
+        "p95Ms": 0.583,
+        "maxMs": 0.583
+      },
+      {
+        "id": "kits",
+        "strategy": "practical",
+        "loaded": 21,
+        "warmups": 2,
+        "samplesMs": [
+          3.917,
+          3.49,
+          4.257,
+          2.789,
+          5.192,
+          3.111,
+          2.491,
+          2.577,
+          3.261,
+          3.321
+        ],
+        "medianMs": 3.291,
+        "p95Ms": 5.192,
+        "maxMs": 5.192
+      },
+      {
+        "id": "kits",
+        "strategy": "maximum",
+        "loaded": 24,
+        "warmups": 2,
+        "samplesMs": [
+          2.824,
+          4.532,
+          2.294,
+          1.938,
+          2.619,
+          2.142,
+          2.129,
+          1.858,
+          2.718,
+          3.577
+        ],
+        "medianMs": 2.457,
+        "p95Ms": 4.532,
+        "maxMs": 4.532
+      },
+      {
+        "id": "long-business",
+        "strategy": "practical",
+        "loaded": 116,
+        "warmups": 2,
+        "samplesMs": [
+          113.845,
+          99.673,
+          114.978,
+          137.232,
+          96.544,
+          132.663,
+          91.792,
+          92.386,
+          87.169,
+          78.842
+        ],
+        "medianMs": 98.109,
+        "p95Ms": 137.232,
+        "maxMs": 137.232
+      },
+      {
+        "id": "long-business",
+        "strategy": "maximum",
+        "loaded": 116,
+        "warmups": 2,
+        "samplesMs": [
+          112.53,
+          110.223,
+          104.714,
+          106.781,
+          96.629,
+          93.85,
+          94.037,
+          88.045,
+          95.351,
+          96.533
+        ],
+        "medianMs": 96.581,
+        "p95Ms": 112.53,
+        "maxMs": 112.53
+      },
+      {
+        "id": "pallet-loose",
+        "strategy": "practical",
+        "loaded": 32,
+        "warmups": 2,
+        "samplesMs": [
+          10.574,
+          8.177,
+          8.595,
+          7.677,
+          8.547,
+          7.03,
+          6.924,
+          6.936,
+          6.847,
+          7.913
+        ],
+        "medianMs": 7.795,
+        "p95Ms": 10.574,
+        "maxMs": 10.574
+      },
+      {
+        "id": "pallet-loose",
+        "strategy": "maximum",
+        "loaded": 32,
+        "warmups": 2,
+        "samplesMs": [
+          15.213,
+          18.585,
+          14.052,
+          25.71,
+          27.876,
+          28.571,
+          19.471,
+          16.597,
+          16.335,
+          16.344
+        ],
+        "medianMs": 17.591,
+        "p95Ms": 28.571,
+        "maxMs": 28.571
+      },
+      {
+        "id": "compact-stock",
+        "strategy": "practical",
+        "loaded": 299,
+        "warmups": 2,
+        "samplesMs": [
+          130.132,
+          126.188,
+          145.538,
+          173.513,
+          142.782,
+          133.391,
+          131.392,
+          207.839,
+          157.652,
+          124.503
+        ],
+        "medianMs": 138.086,
+        "p95Ms": 207.839,
+        "maxMs": 207.839
+      },
+      {
+        "id": "compact-stock",
+        "strategy": "maximum",
+        "loaded": 299,
+        "warmups": 2,
+        "samplesMs": [
+          282.861,
+          269.081,
+          360.004,
+          254.349,
+          250.636,
+          255.112,
+          270.221,
+          252.439,
+          257.776,
+          273.803
+        ],
+        "medianMs": 263.428,
+        "p95Ms": 360.004,
+        "maxMs": 360.004
+      },
+      {
+        "id": "joint-tails",
+        "strategy": "practical",
+        "loaded": 24,
+        "warmups": 2,
+        "samplesMs": [
+          5.087,
+          4.159,
+          4.147,
+          4.373,
+          3.761,
+          4.912,
+          3.7,
+          3.543,
+          3.599,
+          3.331
+        ],
+        "medianMs": 3.954,
+        "p95Ms": 5.087,
+        "maxMs": 5.087
+      },
+      {
+        "id": "joint-tails",
+        "strategy": "maximum",
+        "loaded": 24,
+        "warmups": 2,
+        "samplesMs": [
+          4.387,
+          3.459,
+          3.166,
+          3.628,
+          3.115,
+          2.829,
+          3.922,
+          3.824,
+          5.544,
+          4.473
+        ],
+        "medianMs": 3.726,
+        "p95Ms": 5.544,
+        "maxMs": 5.544
+      },
+      {
+        "id": "triple-tails",
+        "strategy": "practical",
+        "loaded": 30,
+        "warmups": 2,
+        "samplesMs": [
+          5.606,
+          4.57,
+          4.783,
+          4.508,
+          4.091,
+          4.429,
+          4.351,
+          5.486,
+          6.356,
+          5.179
+        ],
+        "medianMs": 4.677,
+        "p95Ms": 6.356,
+        "maxMs": 6.356
+      },
+      {
+        "id": "triple-tails",
+        "strategy": "maximum",
+        "loaded": 30,
+        "warmups": 2,
+        "samplesMs": [
+          3.882,
+          4.462,
+          4.447,
+          5.537,
+          5.506,
+          6.607,
+          4.308,
+          4.182,
+          3.596,
+          4.445
+        ],
+        "medianMs": 4.446,
+        "p95Ms": 6.607,
+        "maxMs": 6.607
+      },
+      {
+        "id": "four-tails",
+        "strategy": "practical",
+        "loaded": 36,
+        "warmups": 2,
+        "samplesMs": [
+          5.4,
+          6.073,
+          5.236,
+          5.916,
+          7.406,
+          7.958,
+          7.62,
+          7.82,
+          3.891,
+          5.851
+        ],
+        "medianMs": 5.995,
+        "p95Ms": 7.958,
+        "maxMs": 7.958
+      },
+      {
+        "id": "four-tails",
+        "strategy": "maximum",
+        "loaded": 36,
+        "warmups": 2,
+        "samplesMs": [
+          5.033,
+          4.866,
+          6.782,
+          6.908,
+          5.666,
+          4.209,
+          4.314,
+          4.608,
+          5.783,
+          7.454
+        ],
+        "medianMs": 5.349,
+        "p95Ms": 7.454,
+        "maxMs": 7.454
+      },
+      {
+        "id": "crate-125",
+        "strategy": "practical",
+        "loaded": 16,
+        "warmups": 2,
+        "samplesMs": [
+          34.741,
+          43.887,
+          29.194,
+          40.216,
+          52.658,
+          32.109,
+          49.331,
+          36.502,
+          30.608,
+          26.193
+        ],
+        "medianMs": 35.622,
+        "p95Ms": 52.658,
+        "maxMs": 52.658
+      },
+      {
+        "id": "crate-125",
+        "strategy": "maximum",
+        "loaded": 16,
+        "warmups": 2,
+        "samplesMs": [
+          60.039,
+          58.766,
+          53.546,
+          53.992,
+          59.559,
+          54.842,
+          43.99,
+          57.503,
+          51.573,
+          52.605
+        ],
+        "medianMs": 54.417,
+        "p95Ms": 60.039,
+        "maxMs": 60.039
+      },
+      {
+        "id": "crate-480",
+        "strategy": "practical",
+        "loaded": 112,
+        "warmups": 2,
+        "samplesMs": [
+          58.927,
+          51.657,
+          56.066,
+          53.924,
+          58.321,
+          53.908,
+          61.916,
+          65.182,
+          53.221,
+          53.535
+        ],
+        "medianMs": 54.995,
+        "p95Ms": 65.182,
+        "maxMs": 65.182
+      },
+      {
+        "id": "crate-480",
+        "strategy": "maximum",
+        "loaded": 112,
+        "warmups": 2,
+        "samplesMs": [
+          121.936,
+          128.783,
+          119.948,
+          127.424,
+          125.93,
+          125.329,
+          126.675,
+          111.55,
+          132.157,
+          117.641
+        ],
+        "medianMs": 125.63,
+        "p95Ms": 132.157,
+        "maxMs": 132.157
+      },
+      {
+        "id": "crate-1200",
+        "strategy": "practical",
+        "loaded": 280,
+        "warmups": 2,
+        "samplesMs": [
+          105.145,
+          100.927,
+          93.388,
+          89.208,
+          85.915,
+          86.087,
+          94.263,
+          90.203,
+          90.992,
+          91.689
+        ],
+        "medianMs": 91.341,
+        "p95Ms": 105.145,
+        "maxMs": 105.145
+      },
+      {
+        "id": "crate-1200",
+        "strategy": "maximum",
+        "loaded": 280,
+        "warmups": 2,
+        "samplesMs": [
+          241.64,
+          240.454,
+          255.841,
+          239.103,
+          260.811,
+          251.989,
+          245.888,
+          244.154,
+          233.03,
+          269.122
+        ],
+        "medianMs": 245.021,
+        "p95Ms": 269.122,
+        "maxMs": 269.122
+      }
+    ]
+  },
+  "native": {
+    "hosts": [
+      "container-load-planner.pages.dev",
+      "container-load-planner-gray.vercel.app"
+    ],
+    "before": {
+      "cartons": 16,
+      "pallets": 4,
+      "grossKg": 772,
+      "crateInteriorMm": 125
+    },
+    "manual": {
+      "cartonsPerPallet": 8,
+      "layerCount": 4,
+      "crateInteriorMm": 480,
+      "cartons": 112
+    },
+    "adopted": {
+      "cartonsPerPallet": 20,
+      "layerCount": 10,
+      "crateInteriorMm": 1200,
+      "dimensionsMm": [
+        1700,
+        1150,
+        1255
+      ],
+      "cartons": 280,
+      "pallets": 14,
+      "grossKg": 12110
+    },
+    "default": {
+      "cartons": 116,
+      "grossKg": 3842
+    },
+    "benchmarksPerHost": 20,
+    "identicalInputsAndCoordinates": true
+  },
+  "independent": {
+    "vehicleUsableMm": [
+      12012,
+      2330,
+      2587
+    ],
+    "palletUpperByFloorArea": 14,
+    "cartonUpperWithRecipe": 280,
+    "checked": [
+      "vehicle and door envelope",
+      "pallet wall and lid clearances",
+      "non-overlap",
+      "direct carton support",
+      "cartons and weight per pallet",
+      "order quantity conservation"
+    ]
+  },
+  "sha256": {
+    "main-280.json": "ac240e0d1e24468dbd553b1bee7766f6a147fd0fa1ee30b8f1e76fdf397e6567",
+    "gray-280.json": "a724dc961943634f7bf5d6ad66aa01cd2d45367baba5b06ad9b5e382321655b7",
+    "main-benchmarks.json": "1c0c86f55d37572bfdd7769febac3be465fcca96ed1d2d1a50482c371d467625",
+    "gray-benchmarks.json": "ed09f3c557cf58c90e214742f85b6151910e5dbac48cb903cba0e32f1c5c953a",
+    "main-preview.jpg": "d84dff8fdbcf784bd8585cacf4e30b0aade4ba6974e6149c6f87226f4d4b2718",
+    "main-result.jpg": "640d4c969fe97a04b5dbabc98cab69a36cdc8ed7572cb424a92af642f4914d15"
+  }
+}
