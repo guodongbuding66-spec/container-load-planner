@@ -1,4 +1,4 @@
-import {parseRegularSurfaceSpec,regularSurfaceSpec,snapRegularSurface,type RegularSurfaceSpec} from "./surface-inspection";
+import {measureRegularSurfaceGap,parseRegularSurfaceSpec,regularSurfaceSpec,snapRegularSurface,type RegularSurfaceSpec} from "./surface-inspection";
 import {deliveryPlanSignature} from "./delivery-identity";
 import {boxBounds,measureBoxGap,measurePoints,measureWall,sectionBox,snapBoxPoint,type BoundsBox,type Measurement,type Point3,type Section,type SnapMode,type WallSide} from "./inspection";
 import type {PackingResult,PlacedBox} from "./types";
@@ -38,25 +38,29 @@ function parseOne(value:unknown):SavedMeasurement{
     if(points.some((p,i)=>!inside(p,targets[i].bounds)||measurePoints(p,surface?snapRegularSurface(targets[i].bounds,surface[i],p,snaps[i]):snapBoxPoint(targets[i].bounds,p,snaps[i])).distance>1e-5))throw fail();
     return {...base,mode:"points",points,snaps,...(surface?{surface}:{})};
   }
-  if(v.surface!==undefined||v.points!==undefined||v.snaps!==undefined||targets.some(t=>!sameBounds(t.source,t.bounds)))throw fail();
+  if(v.points!==undefined||v.snaps!==undefined||targets.some(t=>!sameBounds(t.source,t.bounds)))throw fail();
   if(v.mode==="gap"){
     if(v.wall!==undefined||targets[0].id===targets[1].id&&targets[0].kind===targets[1].kind)throw fail();
-    return {...base,mode:"gap"};
+    if(v.surface===undefined)return {...base,mode:"gap"};
+    if(!Array.isArray(v.surface)||v.surface.length!==2||targets.some(t=>t.kind!=="carton"))throw fail();
+    return {...base,mode:"gap",surface:v.surface.map(parseRegularSurfaceSpec) as [RegularSurfaceSpec,RegularSurfaceSpec]};
   }
-  if(!["x-","x+","y-","y+","z-","z+"].includes(String(v.wall)))throw fail();
+  if(v.surface!==undefined||!["x-","x+","y-","y+","z-","z+"].includes(String(v.wall)))throw fail();
   return {...base,mode:"wall",wall:v.wall as WallSide};
 }
 export function parseMeasurements(contents:string):SavedMeasurement[]{
   if(new TextEncoder().encode(contents).length>MEASUREMENT_BYTES)throw fail();
   const v=record(JSON.parse(contents));
-  if(v.format!=="cargo-fit-measurements"||![1,2].includes(v.version as number)||!Array.isArray(v.measurements)||v.measurements.length>MEASUREMENT_LIMIT)throw fail();
+  if(v.format!=="cargo-fit-measurements"||![1,2,3].includes(v.version as number)||!Array.isArray(v.measurements)||v.measurements.length>MEASUREMENT_LIMIT)throw fail();
   if(v.version===1&&v.measurements.some(m=>record(m).surface!==undefined))throw fail();
   const items=v.measurements.map(parseOne);
+  if(v.version!==3&&items.some(m=>m.mode==="gap"&&m.surface))throw fail();
   if(new Set(items.map(m=>m.id)).size!==items.length)throw fail();return items;
 }
 export function serializeMeasurements(items:SavedMeasurement[]){
-  const text=JSON.stringify({format:"cargo-fit-measurements",version:2,measurements:items},null,2);
-  return JSON.stringify({format:"cargo-fit-measurements",version:2,measurements:parseMeasurements(text)},null,2);
+  const version=items.some(m=>m.mode==="gap"&&m.surface)?3:2;
+  const text=JSON.stringify({format:"cargo-fit-measurements",version,measurements:items},null,2);
+  return JSON.stringify({format:"cargo-fit-measurements",version,measurements:parseMeasurements(text)},null,2);
 }
 export function mergeMeasurements(current:SavedMeasurement[],incoming:SavedMeasurement[]){
   const next=[...current];for(const item of incoming){const previous=next.find(m=>m.id===item.id);if(previous){if(JSON.stringify(previous)!==JSON.stringify(item))throw new Error("Conflicting measurement ID");}else next.push(item);}
@@ -64,7 +68,7 @@ export function mergeMeasurements(current:SavedMeasurement[],incoming:SavedMeasu
 }
 export function savedMeasureValue(m:SavedMeasurement):Measurement{
   if(m.mode==="points")return measurePoints(m.points![0],m.points![1]);
-  if(m.mode==="gap")return measureBoxGap(m.targets[0].source,m.targets[1].source);
+  if(m.mode==="gap")return m.surface?measureRegularSurfaceGap(m.targets[0].source,m.surface[0],m.targets[1].source,m.surface[1]):measureBoxGap(m.targets[0].source,m.targets[1].source);
   return measureWall(m.targets[0].source,{container:m.space,clearance:m.space.clearance},m.wall!);
 }
 export function savedMeasureCurrent(m:SavedMeasurement,plan:PackingResult,scope=deliveryPlanSignature(plan)){
@@ -73,7 +77,7 @@ export function savedMeasureCurrent(m:SavedMeasurement,plan:PackingResult,scope=
 }
 export function captureMeasurement(plan:PackingResult,mode:SavedMeasurement["mode"],boxes:PlacedBox[],points:Point3[],snap:SnapMode|SnapMode[],wall:WallSide,section:Section,name="",id:string=crypto.randomUUID(),now=new Date().toISOString(),captureBounds?:BoundsBox[],surface?:RegularSurfaceSpec[]):SavedMeasurement{
   const targets=boxes.map((b,i)=>({id:b.id,kind:b.supportOnly?"pallet" as const:"carton" as const,source:cloneBounds(b),bounds:cloneBounds(mode==="points"?(captureBounds?.[i]??sectionBox(b,plan,section)??b):b)}));
-  return parseOne({id,name:name.trim(),createdAt:now,visible:true,scope:deliveryPlanSignature(plan),space:{length:plan.container.length,width:plan.container.width,height:plan.container.height,clearance:plan.clearance},mode,targets,...(mode==="points"?{...(surface?{surface}:{}),points,snaps:Array.isArray(snap)?snap:[snap,snap]}:mode==="wall"?{wall}:{})});
+  return parseOne({id,name:name.trim(),createdAt:now,visible:true,scope:deliveryPlanSignature(plan),space:{length:plan.container.length,width:plan.container.width,height:plan.container.height,clearance:plan.clearance},mode,targets,...(mode==="points"?{...(surface?{surface}:{}),points,snaps:Array.isArray(snap)?snap:[snap,snap]}:mode==="wall"?{wall}:surface?{surface}:{})});
 }
 /** Stale entries stay in the list, but never draw as if they belonged to the current plan. */
 export function savedMeasureOverlays(items:SavedMeasurement[],plan:PackingResult,display:PlacedBox[],section:Section,visibleCount:number,scope?:string):MeasurementOverlay[]{
@@ -81,6 +85,6 @@ export function savedMeasureOverlays(items:SavedMeasurement[],plan:PackingResult
   const currentScope=scope??deliveryPlanSignature(plan),shown=new Map(display.map(b=>[b.id,b]));
   return items.filter(m=>m.visible&&savedMeasureCurrent(m,plan,currentScope)&&m.targets.every((t,i)=>{
     const b=t.kind==="carton"?shown.get(t.id):visiblePlanPallets(plan,visibleCount).find(p=>p.id===t.id&&(section.isolation==="all"||section.isolation==="pallet"&&section.target===p.id));
-    const clipped=b&&sectionBox(b,plan,section);return !!clipped&&(m.mode!=="points"||inside(m.points![i],clipped));
+    const clipped=b&&sectionBox(b,plan,section);return !!clipped&&(!m.surface||section.axis==="off")&&(m.mode!=="points"||inside(m.points![i],clipped));
   })).map(m=>({...savedMeasureValue(m),label:m.name||undefined,basis:m.surface?"surface" as const:"envelope" as const}));
 }

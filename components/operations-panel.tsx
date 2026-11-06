@@ -4,6 +4,7 @@ import { deliveryIdentityState } from "../lib/packing/delivery-identity";
 import { orderedAccessories, ACCESSORY_TYPE_TEXT } from "../lib/packing/container-accessories";
 import { appendOperation, emptyOperationRecords, MAX_OPERATION_BYTES, mergeOperationRecords, OperationError, operationCsv, operationKey, operationStates, parseOperationRecords, persistOperationRecords, type OperationEvent, type OperationRecords, type OperationState } from "../lib/packing/operations";
 import type { PackingResult } from "../lib/packing/types";
+import { FieldReadiness } from "./field-readiness";
 import { ToolSummary } from "./workflow-tools";
 import { tr, useLanguage } from "./language";
 
@@ -17,7 +18,7 @@ export function OperationsPanel(props:Props){
   useLanguage();const current=deliveryIdentityState(props.plan)==="current"&&props.plan.validation.valid;
   return <details className="upgrade-panel"><ToolSummary kind="field" title={tr("防潮、唛头与作业核对","Moisture, marks and operation checks")} description={tr("按当前附件依赖核对安装与拆除，保留前置变更和并行冲突。","Check installation and removal against material dependencies; retain prerequisite changes and concurrent conflicts.")}/><div className="upgrade-body">
     <p>{tr("这是人工作业核对，不能代替防潮计算、固定强度或现场安全认证；不模拟叉车动作，不改写已装标记。记录需独立备份，不包含在工作区和现场事件文件内。","These are manual operation checks, not moisture calculations, securing strength or site safety certification. They do not simulate forklift actions or change loaded flags. Back up records separately; workspace and field-event files do not contain them.")}</p>
-    {current?<OperationsWorkspace key={operationKey(props.plan)} {...props}/>:<p>{tr("请先登记完整有效的当前交付版本，再登记作业核对。","Issue a complete valid current delivery revision before recording operation checks.")}</p>}
+    {current?<><FieldReadiness key={props.plan.deliveryIdentity!.revisionId} plan={props.plan} disabled={props.disabled}/><OperationsWorkspace key={operationKey(props.plan)} {...props}/></>:<p>{tr("请先登记完整有效的当前交付版本，再登记作业核对。","Issue a complete valid current delivery revision before recording operation checks.")}</p>}
   </div></details>;
 }
 export function OperationsWorkspace({plan,disabled,getRecords,onRecords}:Props){

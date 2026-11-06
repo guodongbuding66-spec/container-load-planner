@@ -23,7 +23,7 @@ export function validateFleet(request:PackingRequest,result:FleetResult,options:
  const errors:string[]=[];try{
   assertFleetSettings(request,options,limit,"count",result.pricing);
   if(!Array.isArray(result.loads)||result.loads.length>limit)throw Error("多柜数量超限 / Fleet container limit exceeded");
-  const counts=new Map<string,number>(),prefix:FleetResult["loads"]=[];let freeStarted=false;
+  const issued=new Set<string>(),counts=new Map<string,number>(),prefix:FleetResult["loads"]=[];let freeStarted=false;
   for(const l of result.loads){
    const o=options.find(o=>o.container.id===l.plan.container.id);if(!o||l.cost!==o.cost||fleetCanonical(l.plan.container)!==fleetCanonical(o.container))throw Error("柜型或运费与候选设置不一致 / Vehicle or freight differs from fleet settings");
    counts.set(o.container.id,(counts.get(o.container.id)??0)+1);if(counts.get(o.container.id)!>o.available)throw Error("跨柜柜型库存超限 / Vehicle availability exceeded");
@@ -32,6 +32,11 @@ export function validateFleet(request:PackingRequest,result:FleetResult,options:
    if(!committed)freeStarted=true;
    const context=committed?frozenFleetRequest(request,l.frozen):request,pool=fleetPool(context,prefix),local={...pool.request,container:o.container};
    const restored=restorePackingSnapshot(local,l.plan);
+   const identity=restored.deliveryIdentity;
+   if(identity)for(const id of [identity.planId,identity.revisionId,...identity.units.map(unit=>unit.unitId),...identity.withdrawn.map(unit=>unit.unitId)]){
+    if(issued.has(id))throw Error("跨柜交付或箱托编号重复 / Duplicate fleet delivery or unit identifier");
+    issued.add(id);
+   }
    if(fleetCanonical(l.plan.delivery)!==fleetCanonical(orderDelivery(request.products,request.delivery))||fleetCanonical(l.plan.accessConfig)!==fleetCanonical(parseAccessConfig(request.accessConfig)))throw Error("站次或路径输入不一致 / Delivery or access inputs disagree");
    if(restored.metrics.loadedCount<1||restored.workflow!==pool.request.workflow||request.strategy!==undefined&&restored.strategy!==request.strategy||!l.plan.validation.valid||auditPackingResult(l.plan,local.products).hasErrors)throw Error("单柜方案未通过同源校验 / A container failed source-bound validation");
    if(restored.metrics.loadedCount!==l.plan.metrics.loadedCount||Math.abs(restored.metrics.grossWeight-l.plan.metrics.grossWeight)>.0001)throw Error("单柜数量或重量不一致 / Container counts or weight disagree");

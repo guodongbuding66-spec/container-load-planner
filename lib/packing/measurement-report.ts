@@ -16,7 +16,7 @@ export function createMeasurementReport(plan:PackingResult,items:SavedMeasuremen
   const records=parseMeasurements(serializeMeasurements(items));if(!records.length)throw Error("No saved measurements");
   const en=options.language==="en",t=(zh:string,english:string)=>en?english:zh,scope=deliveryPlanSignature(plan),fmt=(n:number)=>formatMeasure(n,options.unit,options.precision),point=(p:Point3)=>p.map(fmt).join(" / ");
   const entries=records.map((m,i):MeasurementReportEntry=>{
-    const value=savedMeasureValue(m),current=savedMeasureCurrent(m,plan,scope),basis=m.surface?t("规则实体直线距","Regular solid point distance"):sectionedMeasurement(m)?t("剖切外包络","Section envelope"):t("完整外包络","Full envelope"),mode=m.mode==="points"?t("两点距离","Point distance"):m.mode==="gap"?t("两箱间距","Carton gap"):t("柜壁距离","Wall clearance");
+    const value=savedMeasureValue(m),current=savedMeasureCurrent(m,plan,scope),basis=m.surface?m.mode==="gap"?t("规则实体最短净距","Minimum regular-solid clearance"):t("规则实体直线距","Regular solid point distance"):sectionedMeasurement(m)?t("剖切外包络","Section envelope"):t("完整外包络","Full envelope"),mode=m.mode==="points"?t("两点距离","Point distance"):m.mode==="gap"?t("两箱间距","Carton gap"):t("柜壁距离","Wall clearance");
     const fields:ReportField[]=[
       {text:`${mode} | ${basis}`,emphasis:true},
       {text:`A (X / Y / Z): ${point(value.a)}`},{text:`B (X / Y / Z): ${point(value.b)}`},
@@ -42,6 +42,20 @@ export function createMeasurementReport(plan:PackingResult,items:SavedMeasuremen
   const currentCount=entries.filter(e=>e.current).length;
   return {language:options.language,unit:options.unit,precision:options.precision,generatedAt,scope,currentCount,staleCount:entries.length-currentCount,entries,
     context:[`${t("生成时间 UTC","Generated UTC")}: ${generatedAt}`,`${t("查看方案","Viewed plan")}: ${plan.container.name} (${plan.container.id}) | ${plan.strategy==="practical"?t("现场","Practical"):t("高密度","High density")} | ${t("引擎","Engine")} ${plan.engineVersion}`,`${t("当前范围检测码","Current change marker")}: ${scope} | ${t("布局模型校验","Layout model validation")}: ${plan.validation.valid?t("通过","Passed"):t("未通过","Failed")}`,`${t("全部已保存记录","All saved records")}: ${entries.length} | ${t("当前","Current")}: ${currentCount} | ${t("需重测","Remeasure")}: ${entries.length-currentCount} | ${options.unit}, ${options.precision} ${t("位小数","decimals")}`],
-    notes:[t("包含导出时全部已保存记录，包括隐藏及历史记录；状态按点击导出时的完整方案核对。","Includes all saved records at export, including hidden and historical entries. Status is checked against the complete plan when export is clicked."),t("实体两点为直线距离，不代表沿面长度或两件货物全局最短净距；两箱与柜壁测量仍使用外包络。","Solid point distances are straight lines, not surface lengths or global minimum cargo clearances. Carton gaps and wall clearances use envelopes."),t("线框投影仅定位各记录的来源快照和端点，不是装卸路径、承重核验或当前全柜图。历史图不得用于当前箱位。","Wireframe projections locate each recorded source snapshot and its endpoints. They are not access paths, bearing checks or a complete current load view. Historical diagrams are not current positions."),t("显示按所选单位与精度舍入；原始毫米值另列。PDF 为图像页面，不能恢复或合并记录，请另存测量 JSON 备份。","Display values use the selected units and decimals; raw millimetre values are also listed. PDF pages are images and cannot restore or merge records; keep the measurement JSON backup.")],
+    notes:[t("包含导出时全部已保存记录，包括隐藏及历史记录；状态按点击导出时的完整方案核对。","Includes all saved records at export, including hidden and historical entries. Status is checked against the complete plan when export is clicked."),t("实体两点为直线距离。两箱可按外包络或受支持实体的完整表面求最短净距，柜壁测量使用外包络。","Solid point distances are straight lines. Pair clearance uses envelopes or the full supported solid surfaces. Wall clearance uses envelopes."),t("线框投影仅定位各记录的来源快照和端点，不是装卸路径、承重核验或当前全柜图。历史图不得用于当前箱位。","Wireframe projections locate each recorded source snapshot and its endpoints. They are not access paths, bearing checks or a complete current load view. Historical diagrams are not current positions."),t("显示按所选单位与精度舍入；原始毫米值另列。PDF 为图像页面，不能恢复或合并记录，请另存测量 JSON 备份。","Display values use the selected units and decimals; raw millimetre values are also listed. PDF pages are images and cannot restore or merge records; keep the measurement JSON backup.")],
   };
+}
+
+/** A standalone, text-selectable and printable report from the same immutable measurement snapshot. */
+export function measurementReportHtml(report: MeasurementReport) {
+  const esc = (value: string) => value.replace(/[&<>"']/g, character =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]!
+  );
+  const title = report.language === "en" ? "CargoFit measurement report" : "装柜智算测量报告";
+  const entries = report.entries.map(entry => `<article><h2>${entry.number}. ${esc(entry.title)}</h2><p><strong>${esc(entry.distance)}</strong> · ${esc(entry.status)}</p><ul>${
+    entry.fields.map(field => `<li>${field.emphasis ? `<strong>${esc(field.text)}</strong>` : esc(field.text)}</li>`).join("")
+  }</ul></article>`).join("");
+  return `<!doctype html><html lang="${report.language === "en" ? "en" : "zh-CN"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title>
+<style>body{font:15px/1.55 system-ui,sans-serif;color:#182b30;max-width:62rem;margin:2rem auto;padding:0 1.25rem;overflow-wrap:anywhere}article{border-top:1px solid #8ca0a3;padding:.5rem 0}h1,h2{line-height:1.25}li{margin:.18rem 0}@media print{body{margin:0;max-width:none;padding:0}h2{break-after:avoid}li{break-inside:avoid}}</style></head>
+<body><header><h1>${title}</h1>${report.context.map(line => `<p>${esc(line)}</p>`).join("")}</header><main>${entries}</main><footer><ul>${report.notes.map(note => `<li>${esc(note)}</li>`).join("")}</ul></footer></body></html>`;
 }

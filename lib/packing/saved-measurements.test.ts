@@ -32,5 +32,5 @@ describe("invalid files preserve the caller's existing records",()=>{
     ["points inside rather than on feature",m=>({...m,mode:"points",snaps:["vertex","face"],points:[[box.x+1,box.y+1,box.z+1],[box.x,box.y,box.z]]})],
   ];
   it.each(mutations)("rejects %s",(_,mutate)=>{const previous=[gap()];expect(()=>parseMeasurements(archive([mutate(gap())]))).toThrow();expect(previous).toEqual([gap()]);});
-  it("rejects duplicate records, unsupported schemas and excessive raw bytes",()=>{expect(()=>parseMeasurements(archive([gap(),gap()]))).toThrow();expect(()=>parseMeasurements(archive([]).replace('"version":1','"version":3'))).toThrow();expect(()=>parseMeasurements(' '.repeat(MEASUREMENT_BYTES+1))).toThrow();expect(()=>parseMeasurements('{')).toThrow();});
+  it("rejects duplicate records, unsupported schemas and excessive raw bytes",()=>{expect(()=>parseMeasurements(archive([gap(),gap()]))).toThrow();expect(()=>parseMeasurements(archive([]).replace('"version":1','"version":4'))).toThrow();expect(()=>parseMeasurements(' '.repeat(MEASUREMENT_BYTES+1))).toThrow();expect(()=>parseMeasurements('{')).toThrow();});
 });

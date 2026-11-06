@@ -2,7 +2,7 @@ import {cargoShapeOf,parseShapeFields,type ShapeFields} from "./cargo-shape";
 import {cargoSectionOutline} from "./cargo-profile";
 import {orientationAxes,validOrientationSigns} from "./cargo-body";
 import {pointInPolygon,triangulatePolygon,type V2} from "./solid-math";
-import type {BoundsBox,Point3,SnapMode} from "./inspection";
+import {measurePoints,type BoundsBox,type Point3,type SnapMode} from "./inspection";
 import type {OrientationCode,OrientationSigns,PlacedBox} from "./types";
 
 export const REGULAR_SURFACE_SHAPES=["box","wedge","trapezoid","l-profile","u-profile","t-profile","step"] as const;
@@ -60,4 +60,54 @@ export function regularSurfaceFeatures(box:BoundsBox,spec:RegularSurfaceSpec,mod
 export function snapRegularSurface(box:BoundsBox,spec:RegularSurfaceSpec,p:Point3,mode:SnapMode):Point3 {
   const s=regularSurface(box,spec),candidates=mode==="vertex"?s.vertices:mode==="edge"?s.edges.map(([a,b])=>segment(p,a,b)):s.faces.map(f=>closestFace(p,f));
   return candidates.sort((a,b)=>distance(a,p)-distance(b,p))[0];
+}
+
+function along(a: Point3, b: Point3, fraction: number): Point3 {
+  return a.map((value, index) => value + (b[index] - value) * fraction) as Point3;
+}
+
+function edgeFaceIntersection(a: Point3, b: Point3, face: Point3[]): Point3 | undefined {
+  const { n, project } = faceFrame(face);
+  const direction = dot(sub(b, a), n);
+  if (Math.abs(direction) < 1e-10) return;
+  const fraction = dot(sub(face[0], a), n) / direction;
+  if (fraction < 0 || fraction > 1) return;
+  const hit = along(a, b, fraction);
+  if (pointInPolygon(project(hit), face.map(project))) return hit;
+}
+
+/** Closest surface witnesses for two complete polyhedral profiles, in world millimetres. */
+export function measureRegularSurfaceGap(first: BoundsBox, a: RegularSurfaceSpec, second: BoundsBox, b: RegularSurfaceSpec) {
+  const left = regularSurface(first, a);
+  const right = regularSurface(second, b);
+  let best = measurePoints(left.vertices[0], right.vertices[0]);
+  const consider = (p: Point3, q: Point3) => {
+    const value = measurePoints(p, q);
+    if (value.distance < best.distance) best = value;
+  };
+  for (const p of left.vertices) for (const face of right.faces) consider(p, closestFace(p, face));
+  for (const q of right.vertices) for (const face of left.faces) consider(closestFace(q, face), q);
+  for (const [p, q] of left.edges) for (const face of right.faces) {
+    const hit = edgeFaceIntersection(p, q, face);
+    if (hit) return measurePoints(hit, hit);
+  }
+  for (const [p, q] of right.edges) for (const face of left.faces) {
+    const hit = edgeFaceIntersection(p, q, face);
+    if (hit) return measurePoints(hit, hit);
+  }
+  for (const [p, q] of left.edges) for (const [r, s] of right.edges) {
+    consider(p, segment(p, r, s));
+    consider(q, segment(q, r, s));
+    consider(segment(r, p, q), r);
+    consider(segment(s, p, q), s);
+    const u = sub(q, p), v = sub(s, r), w = sub(p, r);
+    const uu = dot(u, u), uv = dot(u, v), vv = dot(v, v);
+    const uw = dot(u, w), vw = dot(v, w);
+    const determinant = uu * vv - uv * uv;
+    if (determinant <= 1e-14 * uu * vv) continue;
+    const x = (uv * vw - vv * uw) / determinant;
+    const y = (uu * vw - uv * uw) / determinant;
+    if (x >= 0 && x <= 1 && y >= 0 && y <= 1) consider(along(p, q, x), along(r, s, y));
+  }
+  return best;
 }

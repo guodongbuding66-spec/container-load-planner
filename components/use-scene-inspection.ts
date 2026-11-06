@@ -1,5 +1,5 @@
 "use client";
-import {regularSurfaceSpec,snapRegularSurface} from "../lib/packing/surface-inspection";
+import {measureRegularSurfaceGap,regularSurfaceSpec,snapRegularSurface} from "../lib/packing/surface-inspection";
 import { useMemo, useState } from "react";
 import { EMPTY_SECTION, inspectBoxes, measureBoxGap, measurePoints, measureWall, sectionBox, snapBoxPoint, type BoundsBox, type MeasureMode, type Point3, type Section, type SnapMode, type WallSide } from "../lib/packing/inspection";
 import type { PackingResult, PlacedBox } from "../lib/packing/types";
@@ -18,12 +18,20 @@ export function useSceneInspection(result:PackingResult|null,visibleProducts:Set
   const displayBoxes=useMemo(()=>result?inspectBoxes(result,visibleProducts,visibleCount,value.section):[],[result,visibleProducts,visibleCount,value.section]);
   const validBoxes=value.boxes.filter(box=>box.supportOnly?!!result?.pallets?.some(p=>p.id===box.id)&&!!sectionBox(box,result!,value.section)&&(value.section.isolation!=="pallet"||value.section.target===box.id):displayBoxes.some(b=>b.id===box.id));
   const validPoints=validBoxes.length===value.boxes.length?value.points:[];
-  const measurement=value.mode==="points"&&validPoints.length===2?{...measurePoints(validPoints[0],validPoints[1]),basis:value.basis}:value.mode==="gap"&&validBoxes.length===2?measureBoxGap(validBoxes[0],validBoxes[1]):value.mode==="wall"&&validBoxes[0]&&result?measureWall(validBoxes[0],result,value.wall):null;
+  const specs=value.basis==="surface"?validBoxes.map(box=>regularSurfaceSpec(box,result?.cargoDetails?.[box.productId]??{})):[];
+  const supportsSolid=value.section.axis==="off"&&specs.length===2&&specs.every(Boolean);
+  const measurement=value.mode==="points"&&validPoints.length===2&&(value.basis==="envelope"||supportsSolid)
+    ?{...measurePoints(validPoints[0],validPoints[1]),basis:value.basis}
+    :value.mode==="gap"&&validBoxes.length===2
+      ?value.basis==="envelope"?measureBoxGap(validBoxes[0],validBoxes[1])
+        :supportsSolid?{...measureRegularSurfaceGap(validBoxes[0],specs[0]!,validBoxes[1],specs[1]!),basis:"surface" as const}:null
+      :value.mode==="wall"&&validBoxes[0]&&result?measureWall(validBoxes[0],result,value.wall):null;
   const pick=(box:PlacedBox,point?:Point3)=>{
     if(value.locked||value.mode==="off")return;
     const original=result?.placements.find(b=>b.id===box.id)??box;
     if(value.mode==="wall"){update({boxes:[original],points:[]});return;}
     if(value.mode==="gap"){
+      if(value.basis==="surface"&&(value.section.axis!=="off"||!regularSurfaceSpec(original,result?.cargoDetails?.[original.productId]??{})))return;
       const previous=validBoxes.length===1?validBoxes:[];
       if(previous[0]?.id===original.id)return;
       update({boxes:[...previous,original],points:[]});return;
@@ -37,7 +45,7 @@ export function useSceneInspection(result:PackingResult|null,visibleProducts:Set
   const scope=useMemo(()=>result?deliveryPlanSignature(result):undefined,[result]);
   const savedOverlays=useMemo(()=>result?savedMeasureOverlays(saved.items,result,displayBoxes,value.section,visibleCount,scope):[],[saved.items,result,displayBoxes,value.section,visibleCount,scope]);
   const clear=()=>update({points:[],snaps:[],captures:[],boxes:[],locked:false});
-  const saveMeasurement=(name:string)=>{if(!result||!measurement||value.mode==="off"||!saved.ready)return false;try{const ok=saved.add(captureMeasurement(result,value.mode,validBoxes,validPoints,value.snaps,value.wall,value.section,name,undefined,undefined,value.captures,value.mode==="points"&&value.basis==="surface"?validBoxes.map(b=>regularSurfaceSpec(b,result.cargoDetails?.[b.productId]??{})!):undefined));if(ok)clear();return ok;}catch{saved.reject();return false;}};
+  const saveMeasurement=(name:string)=>{if(!result||!measurement||value.mode==="off"||!saved.ready)return false;try{const ok=saved.add(captureMeasurement(result,value.mode,validBoxes,validPoints,value.snaps,value.wall,value.section,name,undefined,undefined,value.captures,value.mode!=="wall"&&supportsSolid?specs.map(spec=>spec!):undefined));if(ok)clear();return ok;}catch{saved.reject();return false;}};
   return {value,measurement,displayBoxes,saved,savedOverlays,saveMeasurement,pickedCount:value.mode==="points"?validPoints.length:validBoxes.length,update,pick,setBasis:(basis:Inspection["basis"])=>update({basis,points:[],snaps:[],captures:[],boxes:[],locked:false}),setMode:(mode:MeasureMode)=>update({mode,points:[],snaps:[],captures:[],boxes:[],locked:false}),clear};
 }
 export type SceneInspection=ReturnType<typeof useSceneInspection>;

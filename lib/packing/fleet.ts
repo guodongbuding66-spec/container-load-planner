@@ -1,4 +1,7 @@
 import {auditAccess} from "./access";
+import {restorePackingSnapshot} from "./engine";
+import {parsePalletBuild} from "./loading-workflow";
+import {palletSpecifications} from "./pallet-specifications";
 import {packLoadingWorkflow} from "./pack-loading";
 import {fleetPool,type FleetInventory} from "./fleet-inventory";
 import {fleetCosts,parseFleetPricing,type FleetPricing,type FleetCosts} from "./fleet-costs";
@@ -23,15 +26,31 @@ function compareDelivery(request:PackingRequest,a:readonly FleetLoad[],b:readonl
  const av=deliveredVector(request,a),bv=deliveredVector(request,b);for(let i=0;i<av.length;i++)if(av[i]!==bv[i])return bv[i]-av[i];return 0;
 }
 /** Commit a complete feasible candidate, then debit shared physical units and loose quotas. */
-export function allocateFleet(request:PackingRequest,options:FleetOption[],maxContainers:number,objective:"count"|"cost",onProgress?:(r:FleetResult)=>void,prices?:FleetPricing,prefix:readonly FleetLoad[]=[]):FleetResult{
+export type FleetAllocationRestriction = {vehicleId?: string; unavailablePackaging?: string};
+
+function packAvailableStock(request:PackingRequest, unavailable?:string):PackingResult {
+ if(!unavailable)return packLoadingWorkflow(request);
+ const build=parsePalletBuild(request.palletBuild);
+ const restricted={
+  ...build,
+  primaryRule:unavailable==="primary"?{...build.primaryRule,maxPallets:0}:build.primaryRule,
+  additionalSpecs:build.additionalSpecs?.map(spec=>spec.id===unavailable?{...spec,maxPallets:0}:spec),
+ };
+ const plan=packLoadingWorkflow({...request,palletBuild:restricted});
+ if(!plan.palletization||!plan.validation.valid||!plan.metrics.loadedCount)return plan;
+ // Restore against the full source inventory after solving with the shortage constraint.
+ return restorePackingSnapshot(request,{...plan,palletBuild:build,palletization:{...plan.palletization,specifications:palletSpecifications(build)}});
+}
+
+export function allocateFleet(request:PackingRequest,options:FleetOption[],maxContainers:number,objective:"count"|"cost",onProgress?:(r:FleetResult)=>void,prices?:FleetPricing,prefix:readonly FleetLoad[]=[],restriction:FleetAllocationRestriction={}):FleetResult{
  const pricing=parseFleetPricing(prices,request);assertFleetSettings(request,options,maxContainers,objective,pricing);
  const counts=new Map<string,number>(),loads:FleetLoad[]=[...prefix],notes:string[]=[];let reason="已达到柜数上限";
  if(prefix.length){const check=validateFleet(request,finishFleet(request,loads,reason,pricing),options,maxContainers);if(!check.valid)throw Error(check.errors.join("; "));for(const l of prefix)counts.set(l.plan.container.id,(counts.get(l.plan.container.id)??0)+1);}
  for(let i=prefix.length;i<maxContainers;i++){
   const pool=fleetPool(request,loads);if(pool.products.every(p=>p.quantity===0))break;
   const candidates:FleetLoad[]=[];
-  for(const o of options){if((counts.get(o.container.id)??0)>=o.available)continue;
-   try{const plan=packLoadingWorkflow({...pool.request,container:o.container});plan.id=`fleet-${i+1}-${o.container.id}-${plan.id}`;if(plan.validation.valid&&plan.metrics.loadedCount>0)candidates.push({plan,cost:o.cost});}
+  for(const o of options){if(restriction.vehicleId&&o.container.id!==restriction.vehicleId||(counts.get(o.container.id)??0)>=o.available)continue;
+   try{const plan=packAvailableStock({...pool.request,container:o.container},restriction.unavailablePackaging);plan.id=`fleet-${i+1}-${o.container.id}-${plan.id}`;if(plan.validation.valid&&plan.metrics.loadedCount>0)candidates.push({plan,cost:o.cost});}
    catch(e){notes.push(`${o.container.name}: ${(e instanceof Error?e.message:String(e)).slice(0,1000)}`);}
   }
   if(!candidates.length){reason="剩余货物未找到完整可行方案，请核对包装库存、柜型、尺寸和套装 / No complete feasible load found; check shared stock, vehicle, dimensions and kits";break;}
