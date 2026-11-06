@@ -1,0 +1,9 @@
+{
+  "release": "0.80.0",
+  "scope": "isolated DOM with real CargoFit service and PostgreSQL-compatible transactions",
+  "passed": [
+    "OTP sent and verified from the account form",
+    "Current local workspace previewed and saved as a private cloud version",
+    "Original workspace bytes supplied to the normal restore callback"
+  ]
+}

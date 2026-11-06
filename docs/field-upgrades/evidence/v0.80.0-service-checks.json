@@ -1,0 +1,45 @@
+{
+  "release": "0.80.0",
+  "environment": {
+    "auth": "Better Auth",
+    "database": "PGlite PostgreSQL via pg",
+    "origins": [
+      "Cloudflare Pages",
+      "Vercel"
+    ],
+    "mail": "in-process fixture",
+    "stripe": "signed test events and substituted provider responses"
+  },
+  "startedAt": "2026-11-06T05:06:38.089000+00:00",
+  "passed": 7,
+  "scenarios": [
+    {
+      "name": "fails closed when not configured and rejects cross-origin and guest writes",
+      "status": "passed"
+    },
+    {
+      "name": "requires email verification and resets or revokes sessions across both origins",
+      "status": "passed"
+    },
+    {
+      "name": "requires a signed client IP from the Pages proxy and throttles repeated requests",
+      "status": "passed"
+    },
+    {
+      "name": "checks tenant membership, version conflicts, idempotent quota and explicit pause",
+      "status": "passed"
+    },
+    {
+      "name": "keeps photos private while the selected revision share is expiring and revocable",
+      "status": "passed"
+    },
+    {
+      "name": "limits team invitations by verified email, seats and server-owned roles",
+      "status": "passed"
+    },
+    {
+      "name": "reconciles verified sandbox payments, duplicate and reordered events, and refunds without trusting return URLs",
+      "status": "passed"
+    }
+  ]
+}

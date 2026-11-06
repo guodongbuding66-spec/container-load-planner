@@ -1,0 +1,40 @@
+{
+  "engineVersion": "0.80.0",
+  "verifiedAt": "2026-11-06T05:24:29.630Z",
+  "sites": [
+    {
+      "site": "Cloudflare Pages",
+      "url": "https://container-load-planner.pages.dev/",
+      "api": "https://container-load-planner.pages.dev/api/cargo/status",
+      "status": {
+        "version": 1,
+        "enabled": false
+      },
+      "cartons": 116,
+      "grossKg": 3842,
+      "strategies": [
+        "practical",
+        "maximum"
+      ],
+      "benchmarks": 20,
+      "accountNotice": "云端服务尚未启用。当前可继续本机计算，并从“文件与备份”保存或恢复工作区。"
+    },
+    {
+      "site": "Vercel",
+      "url": "https://container-load-planner-gray.vercel.app/",
+      "api": "https://container-load-planner-gray.vercel.app/api/cargo/status",
+      "status": {
+        "version": 1,
+        "enabled": false
+      },
+      "cartons": 116,
+      "grossKg": 3842,
+      "strategies": [
+        "practical",
+        "maximum"
+      ],
+      "benchmarks": 20,
+      "accountNotice": "云端服务尚未启用。当前可继续本机计算，并从“文件与备份”保存或恢复工作区。"
+    }
+  ]
+}

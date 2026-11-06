@@ -1,0 +1,12 @@
+{
+  "release": "0.80.0",
+  "scope": "local production entry points with controlled proxy upstream",
+  "verifiedAt": "2026-11-06T05:09:55.400Z",
+  "passed": [
+    "Direct and rewritten Vercel status resolve to disabled with unset settings",
+    "Allowed-origin writes fail closed and untrusted origins are rejected",
+    "Pages forwards only CargoFit cookies to the fixed upstream",
+    "Pages signs client IP and preserves the first-party HttpOnly response cookie",
+    "Payment webhooks are not proxied by Pages"
+  ]
+}

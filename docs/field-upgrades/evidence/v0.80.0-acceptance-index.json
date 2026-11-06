@@ -1,0 +1,60 @@
+{
+  "release": "0.80.0",
+  "runtimeCommit": "7f6f89c05b6c2b35206808d11f0f6c14350f4420",
+  "artifacts": [
+    {
+      "path": "v0.80.0-service-checks.json",
+      "bytes": 1342,
+      "sha256": "aee706cbd9825b6e39aff616d613a4e043280c0523a1339d3feb05610775c038",
+      "kind": "integration-test"
+    },
+    {
+      "path": "v0.80.0-routing-checks.json",
+      "bytes": 520,
+      "sha256": "920d31bbacabeec3e55f20504a86434140358177ae26cac25f0ac911c72e6f61",
+      "kind": "routing-test"
+    },
+    {
+      "path": "v0.80.0-release-state.json",
+      "bytes": 1795,
+      "sha256": "aaf0ba8aae0b26c5089f954e480bb7fe2d8d9c9b0eeaacf098e781f45eede621",
+      "kind": "deployment"
+    },
+    {
+      "path": "v0.80.0-online-checks.json",
+      "bytes": 1153,
+      "sha256": "a32f6b2ff04f63eff9b87a59dc19008279453e6e593e7bf8f7c7fc0bf1c6fa05",
+      "kind": "browser-observation"
+    },
+    {
+      "path": "v0.80.0-enabled-ui-checks.json",
+      "bytes": 338,
+      "sha256": "9dd2e91549cfb776f4f7a0e61e2dc42dc07584970a8f86ea339454b1159974c4",
+      "kind": "isolated-ui-integration"
+    },
+    {
+      "path": "v0.80.0-main-benchmarks.json",
+      "bytes": 73903,
+      "sha256": "0e9b480a3b929d3abdaf88ad815800fd8ce408b0988910dd092bdf6a63b47b86",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.80.0-gray-benchmarks.json",
+      "bytes": 73920,
+      "sha256": "c80435ae96e3597d5919f2cb1c1ead01abd2ef0001eb1a4c4d1a5f6ca3705faf",
+      "kind": "native-download"
+    },
+    {
+      "path": "v0.80.0-main-account-proof.jpg",
+      "bytes": 47784,
+      "sha256": "7a1e6d872af4cef1804bf7f3fa8ed15e6f94cec00a0b795054ce3710096eb14d",
+      "kind": "browser-screenshot"
+    },
+    {
+      "path": "v0.80.0-gray-account-proof.jpg",
+      "bytes": 47734,
+      "sha256": "3b93b472d9e128699513ee6197ea5627163b3b45b6d8a72215ba11089110dc67",
+      "kind": "browser-screenshot"
+    }
+  ]
+}
