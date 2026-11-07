@@ -1,3 +1,6 @@
+import {emptyCrateBearing} from "./crate-bearing";
+import {emptyForkInterface} from "./fork-interface";
+import {baseMeasurements} from "./packaging";
 import { describe, expect, it } from "vitest";
 import { oneLayerCrateFixture } from "../../tests/one-layer-crate-fixture";
 import { palletHeightFixture } from "../../tests/pallet-height-fixture";
@@ -6,7 +9,7 @@ import { parsePalletBuild } from "./loading-workflow";
 import { packLoadingWorkflow } from "./pack-loading";
 import { packagingInterior } from "./packaging";
 import { inspectPalletHeights, oneLayerPalletCeilings, withVehiclePalletHeights } from "./pallet-height";
-import { initialPalletRecipeCartons, previewPalletRecipe, withPalletRecipe, type PalletRecipeInput } from "./pallet-recipe";
+import { canSuggestPalletSize, redesignPalletRecipeSpec, initialPalletRecipeCartons, previewPalletRecipe, withPalletRecipe, type PalletRecipeInput } from "./pallet-recipe";
 import { palletSpecifications } from "./pallet-specifications";
 import { validatePalletizedCargo } from "./prebuilt-pallets";
 import type { PackingRequest } from "./types";
@@ -16,6 +19,41 @@ function input(request = oneLayerCrateFixture(), cartons = 20, groupKey = "sku:l
 }
 
 describe("pallet recipes", () => {
+  it.each(["practical", "maximum"] as const)("recovers the documented 1800 mm / 3-carton screenshot without reusing its structural consent in %s", strategy => {
+    const request={...oneLayerCrateFixture(),strategy}, build=request.palletBuild!;
+    Object.assign(build.config,{length:1800,width:1800,crateBearing:emptyCrateBearing(),forkInterface:emptyForkInterface(build.config)});
+    build.primaryRule={maxPallets:50,cartonLimit:3,productIds:["long"]};build.selection="compact";
+    const original=structuredClone(build), before=packLoadingWorkflow(request);
+    expect(before.metrics).toMatchObject({loadedCount:18,grossWeight:906});
+    expect(canSuggestPalletSize(build.config)).toBe(false);
+    const spec=palletSpecifications(build)[0], fresh=redesignPalletRecipeSpec(spec);
+    expect(initialPalletRecipeCartons(request,fresh)).toBe(23);
+    const preview=previewPalletRecipe({...input(request,20),spec:fresh});
+    expect(preview.layerCount).toBe(10);
+    const next=withPalletRecipe(build,"primary",{config:preview.config,cartonLimit:20,redesigned:true});
+    expect(build).toEqual(original);
+    expect(next.additionalSpecs![0]).toEqual({...spec,id:"previous-primary",maxPallets:0});
+    expect(next.config.crateBearing).toBeUndefined();expect(next.config.forkInterface).toBeUndefined();
+    expect(next.primaryRule).toEqual({maxPallets:50,cartonLimit:20,productIds:["long"]});
+    expect(palletSpecifications(next).reduce((n,s)=>n+s.maxPallets,0)).toBe(50);
+    const after=packLoadingWorkflow({...request,palletBuild:parsePalletBuild(next)});
+    expect(after.metrics).toMatchObject({loadedCount:280,grossWeight:12110});expect(after.validation.valid).toBe(true);
+    expect(after.pallets).toHaveLength(14);
+  });
+
+  it("retains original measured parts and refuses redesign when their archive would exceed the specification limit", () => {
+    const request=oneLayerCrateFixture(),build=request.palletBuild!,config=build.config;
+    config.packaging!.measurements=baseMeasurements(config.length,config.width,config.height,config.packaging!);
+    const spec=palletSpecifications(build)[0], original=structuredClone(spec), fresh=redesignPalletRecipeSpec(spec);
+    expect(fresh.config.packaging!.measurements).toBeUndefined();expect(spec).toEqual(original);
+    const patch={config:fresh.config,cartonLimit:20,redesigned:true};
+    build.additionalSpecs=[{...spec,id:"second"}];
+    const next=withPalletRecipe(build,"second",patch);
+    expect(next.config).toEqual(config);expect(next.additionalSpecs![1]).toEqual({...spec,id:"previous-second",maxPallets:0});
+    build.additionalSpecs=Array.from({length:7},(_,i)=>({...spec,id:`s${i}`}));
+    expect(()=>withPalletRecipe(build,"primary",patch)).toThrow(/腾出/);
+  });
+
   it.each(["practical", "maximum"] as const)("offers a usable inline recovery of the persisted one-layer inputs in %s", strategy => {
     const request = {...oneLayerCrateFixture(), strategy};
     const original = structuredClone(request);

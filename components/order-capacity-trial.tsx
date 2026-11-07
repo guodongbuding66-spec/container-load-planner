@@ -4,15 +4,15 @@ import {prepareOrderCapacityTrial,reviewOrderCapacityTrial,replenishedOrder,type
 import {palletSpecifications} from "../lib/packing/pallet-specifications";
 import {packagingInterior} from "../lib/packing/packaging";
 import {inspectPalletHeights,oneLayerPalletCeilings,preparePalletHeightTrial,withVehiclePalletHeights} from "../lib/packing/pallet-height";
-import {canSuggestPalletSize,initialPalletRecipeCartons,withPalletRecipe} from "../lib/packing/pallet-recipe";
+import {initialPalletRecipeCartons,withPalletRecipe,type PalletRecipePatch} from "../lib/packing/pallet-recipe";
 import {PalletRecipe} from "./pallet-recipe";
 import {canCompareExistingPackaging,preparePackagingComparisonTrial,improvesPalletTrial,inspectPalletCapacity} from "../lib/packing/pallet-capacity";
 import {PalletCapacityDiagnostics} from "./pallet-capacity-diagnostics";
 import {PalletTailTrial} from "./pallet-tail-trial";
-import type {PackingRequest,PackingResult,ProductInput,PalletBuildOptions,PalletBuildSpecification} from "../lib/packing/types";
+import type {PackingRequest,PackingResult,ProductInput,PalletBuildOptions} from "../lib/packing/types";
 import {tr,useLanguage} from "./language";
 
-type Props={request:PackingRequest;plan?:PackingResult|null;measuredEnvelope?:boolean;volume:number;weight:number;disabled:boolean;canApply:boolean;onApply:(products:ProductInput[])=>void;onApplyBuild?:(build:PalletBuildOptions)=>void;onDesignPallet?:(specId:string,patch?:Partial<PalletBuildSpecification>)=>void;onRecalculateCurrent?:()=>void};
+type Props={request:PackingRequest;plan?:PackingResult|null;measuredEnvelope?:boolean;volume:number;weight:number;disabled:boolean;canApply:boolean;onApply:(products:ProductInput[])=>void;onApplyBuild?:(build:PalletBuildOptions)=>void;onDesignPallet?:(specId:string,patch?:PalletRecipePatch)=>void;onRecalculateCurrent?:()=>void};
 export function useOrderCapacityTrial({request,volume,weight,disabled:inputDisabled,canApply,onApply,onApplyBuild,plan,measuredEnvelope}:Props){
  const disabled=inputDisabled||!!measuredEnvelope||!!plan?.pallets?.some(p=>p.measuredEnvelope);
  const key=JSON.stringify([request,volume,weight]),identity=useMemo(()=>({key,disabled,canApply}),[key,disabled,canApply]),worker=useRef<Worker|null>(null),timer=useRef<ReturnType<typeof setTimeout>|null>(null),latest=useRef(identity),blocked=useRef(disabled);
@@ -47,7 +47,7 @@ export function OrderCapacityTrial(props:Props){
  const buildImproves=!!candidate&&!!plan&&improvesPalletTrial(candidate,plan),candidateUnits=packagingTrial&&candidate?inspectPalletCapacity(candidate):null;
  const oneLayer=unmet&&!!plan?.placements.length&&plan.placements.every(b=>b.layer===1);
  const lowCeilings=oneLayerPalletCeilings(request,plan);
- const recipeSpec=specifications.find(s=>lowCeilings.some(h=>h.id===s.id)&&canSuggestPalletSize(s.config));
+ const recipeSpec=specifications.find(s=>lowCeilings.some(h=>h.id===s.id));
  const openCeilings=lowCeilings.filter(s=>s.canRaise).map(s=>s.id);
  const status=task.current?.kind==="running"?(packagingTrial?tr("正在使用已登记的包装尺寸、库存和承重比选；订单和原方案保持不变。","Comparing registered packaging dimensions, stock and load ratings; the order and original plan are unchanged."):heightTrial?tr("正在提高开放式托盘限高并试装原订单；原方案保持不变。","Testing higher open-pallet ceilings with the original order; the original plan is unchanged."):tr("正在按原尺寸、包装库存和承重规则试装；原订单保持不变。","Testing the original geometry, packaging stock and load rules; the order is unchanged.")):task.current?.kind==="timeout"?tr("30 秒试算结束，未完成结果已丢弃，原方案保留。","The 30-second budget expired. Incomplete results were discarded; the original plan is retained."):task.current?.kind==="cancelled"?tr("已停止试算，原方案保留。","Trial cancelled; the original plan is retained."):task.current?.kind==="error"?tr("试算未完成，原方案保留。","Trial failed; the original plan is retained."):"";
  return <section className="order-capacity-trial" aria-label={tr("订单数量与补货试算","Order quantity and replenishment trial")}>

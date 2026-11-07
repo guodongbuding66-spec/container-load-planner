@@ -5,6 +5,7 @@ import { packagingInterior } from "../lib/packing/packaging";
 import { parsePalletBuild } from "../lib/packing/loading-workflow";
 import { MAX_PACKAGING_SPECIFICATIONS, palletSpecifications, newPackagingConfig } from "../lib/packing/pallet-specifications";
 import { PackagingEditor } from "./packaging-editor";
+import {withPalletRecipe} from "../lib/packing/pallet-recipe";
 import { PalletRecipe } from "./pallet-recipe";
 import type { PackingRequest, PalletBuildOptions, PalletBuildSpecification, ProductInput } from "../lib/packing/types";
 import { NumericInput } from "./numeric-input";
@@ -46,7 +47,7 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,ini
     <div className="panel-head"><div><span className="section-kicker">PALLET BUILD</span><h2>{only?tr("只打托，不装箱","Palletize only"):tr("先打托，后装箱","Palletize, then load")}</h2><p>{tr("货物限高不含底座；总高和总重均包含托盘。","Cargo height excludes the deck; loaded height and gross weight include the pallet.")}</p></div></div>
     {request&&<PalletRecipe key={`${current.id}/${resetToken}`} request={request} spec={current}
       disabled={(invalid&&issue!=="height")||draftInvalid}
-      onApply={update} onPendingChange={onRecipePending}/>}
+      onApply={patch=>onChange(withPalletRecipe(value,current.id,patch))} onPendingChange={onRecipePending}/>}
     <div className="packaging-specifications">
       <div className="packaging-specification-tabs" role="group" aria-label={tr("包装规格优先顺序","Packaging specification priority")}>{specifications.map((s,i)=><button type="button" key={s.id} className={current.id===s.id?"selected":""} aria-pressed={current.id===s.id} disabled={draftInvalid} onClick={()=>setSelected(s.id)}><strong>{i+1}. {s.config.name||s.id}</strong><small>{s.config.length} × {s.config.width} · {s.maxPallets} {tr("个可用","available")}</small></button>)}<button type="button" className="button small" disabled={draftInvalid||specifications.length>=MAX_PACKAGING_SPECIFICATIONS} onClick={add}>{tr("新增包装规格","Add packaging specification")}</button></div>
       <label className="packaging-selection-mode">{tr("包装选择方式","Packaging selection mode")}<select aria-label={tr("包装选择方式","Packaging selection mode")} disabled={invalid||draftInvalid} value={value.selection??"ordered"} onChange={e=>onChange({...value,selection:e.target.value as "ordered"|"compact"})}><option value="ordered">{tr("按列表顺序","Use list order")}</option><option value="compact">{tr("自动比选：同货量优先小包装","Compare candidates: compact at equal load")}</option></select></label>

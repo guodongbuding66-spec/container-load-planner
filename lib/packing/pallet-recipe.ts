@@ -4,7 +4,7 @@ import { getPracticalOrientations } from "./engine";
 import { palletCargoCeiling } from "./floor-pallets";
 import { packagingHeight, packagingInterior } from "./packaging";
 import { packagingGroupKey, packagingPriorityGroups } from "./packaging-choice";
-import { MAX_CARTONS_PER_PALLET, palletSpecifications, parsePalletCartonLimit } from "./pallet-specifications";
+import { MAX_CARTONS_PER_PALLET, MAX_PACKAGING_SPECIFICATIONS, palletSpecifications, parsePalletCartonLimit } from "./pallet-specifications";
 import { loadedPalletDirections, loadedPalletFits, packPalletCargo } from "./palletize";
 import { normalizedSetCode, normalizedUnitsPerSet } from "./set-utils";
 import type { FloorPalletConfig, PackingRequest, PalletBuildOptions, PalletBuildSpecification, PlacedBox, ProductInput } from "./types";
@@ -35,6 +35,20 @@ export function canSuggestPalletSize(config: FloorPalletConfig) {
     !config.packaging?.deckSupports?.length && !config.forkInterface && !config.crateBearing;
 }
 
+export type PalletRecipePatch = Partial<Pick<PalletBuildSpecification,"config"|"cartonLimit">> & {redesigned?:boolean};
+
+/** A new design draft, never a claim that the existing measured structure changed. */
+export function redesignPalletRecipeSpec(spec: PalletBuildSpecification): PalletBuildSpecification {
+  const config = structuredClone(spec.config);
+  delete config.forkInterface;
+  delete config.crateBearing;
+  if (config.packaging) {
+    delete config.packaging.measurements;
+    delete config.packaging.deckSupports;
+  }
+  return {...spec, config, cartonLimit:undefined, stackLayers:1, maxTopLoadKg:0};
+}
+
 export function palletRecipeGroups(products: readonly ProductInput[], eligible?: readonly string[], loose?: Readonly<Record<string, number>>) {
   const allowed = eligible ? new Set(eligible) : undefined;
   return packagingPriorityGroups(products).filter(group => group.every(p =>
@@ -56,13 +70,26 @@ export function initialPalletRecipeCartons(request: PackingRequest, spec: Pallet
 }
 
 /** Apply the displayed recipe to the selected specification in one transaction. */
-export function withPalletRecipe(build: PalletBuildOptions, id: string, patch: Partial<Pick<PalletBuildSpecification,"config"|"cartonLimit">>): PalletBuildOptions {
+export function withPalletRecipe(build: PalletBuildOptions, id: string, patch: PalletRecipePatch): PalletBuildOptions {
   const spec = palletSpecifications(build).find(s => s.id === id);
   if (!spec) throw new Error("包装规格已变化，请重新预览 / Packaging specification changed. Preview again");
-  const next = {...spec, ...patch};
+  const {redesigned, ...changes} = patch;
+  const next = {...spec, ...changes};
+  let additionalSpecs = build.additionalSpecs;
+  if (redesigned) {
+    const specs = palletSpecifications(build);
+    if (specs.length >= MAX_PACKAGING_SPECIFICATIONS) throw new Error("请先腾出一个包装规格位置以保留旧包装 / Free one specification slot to retain the old packaging");
+    if (!changes.config || !canSuggestPalletSize(changes.config)) throw new Error("请先生成新包装预览 / Generate a new packaging preview first");
+    let archiveId = `previous-${id}`;
+    while (specs.some(s=>s.id===archiveId)) archiveId += "-old";
+    additionalSpecs = [...build.additionalSpecs??[], {...structuredClone(spec),id:archiveId,maxPallets:0}];
+    next.stackLayers = 1;
+    next.maxTopLoadKg = 0;
+  }
   if (id === "primary") return {...build, config:next.config,
+    ...(redesigned?{additionalSpecs,stackLayers:1,maxTopLoadKg:0}:{}),
     primaryRule:{...build.primaryRule, maxPallets:next.maxPallets, productIds:next.productIds, cartonLimit:next.cartonLimit}};
-  return {...build, additionalSpecs:build.additionalSpecs?.map(s => s.id === id ? next : s)};
+  return {...build, additionalSpecs:additionalSpecs?.map(s => s.id === id ? next : s)};
 }
 
 type Size = { length: number; width: number; cargoHeight: number };

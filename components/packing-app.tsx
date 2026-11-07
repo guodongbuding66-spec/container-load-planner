@@ -2,7 +2,7 @@
 import {issueDeliveryIdentity} from "../lib/packing/delivery-identity";
 import {OrderCapacityTrial} from "./order-capacity-trial";
 import {oneLayerPalletCeilings} from "../lib/packing/pallet-height";
-import {canSuggestPalletSize,withPalletRecipe} from "../lib/packing/pallet-recipe";
+import {withPalletRecipe} from "../lib/packing/pallet-recipe";
 import {palletSpecifications} from "../lib/packing/pallet-specifications";
 import {EngineeringChecks} from "./engineering-checks";
 import type {EngineeringDocument} from "../lib/packing/engineering-checks";
@@ -1680,7 +1680,7 @@ export function PackingApp() {
   };
   const canExport = Boolean(result?.validation.valid && result.metrics.loadedCount > 0 && !resultAudit?.hasErrors && !dirty && !hasPendingDimensionChanges);
   const needsPalletRecipe = mode==="mixed"&&workflow==="palletized"&&!dirty&&!result?.deliveryIdentity&&!result?.pallets?.some(p=>p.measuredEnvelope)&&
-    oneLayerPalletCeilings(capacityRequest,result).some(s=>palletSpecifications(palletBuild).some(spec=>spec.id===s.id&&canSuggestPalletSize(spec.config)));
+    oneLayerPalletCeilings(capacityRequest,result).some(s=>palletSpecifications(palletBuild).some(spec=>spec.id===s.id));
   const recalculatePlan=()=>{
     if(needsPalletRecipe){
       setMessage(tr("当前尺寸只能放一层。请在下方确认打托预览，再点击“采用此打托并重新计算”。","Current dimensions allow only one layer. Review the pallet preview below and apply it to recalculate."));

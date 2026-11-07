@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { parseNumericDraft } from "../lib/packing/numeric-draft";
 import { packagingInterior } from "../lib/packing/packaging";
 import { packagingGroupKey } from "../lib/packing/packaging-choice";
-import { canSuggestPalletSize, palletRecipeGroups, type PalletRecipeInput, type PalletRecipePreview } from "../lib/packing/pallet-recipe";
-import { MAX_CARTONS_PER_PALLET } from "../lib/packing/pallet-specifications";
+import { canSuggestPalletSize, initialPalletRecipeCartons, redesignPalletRecipeSpec, palletRecipeGroups, type PalletRecipePatch, type PalletRecipeInput, type PalletRecipePreview } from "../lib/packing/pallet-recipe";
+import { MAX_CARTONS_PER_PALLET, MAX_PACKAGING_SPECIFICATIONS, palletSpecifications } from "../lib/packing/pallet-specifications";
 import type { PackingRequest, PalletBuildSpecification } from "../lib/packing/types";
 import { tr, trText, useLanguage } from "./language";
 
@@ -13,11 +13,11 @@ type Props = {
   request: PackingRequest;
   spec: PalletBuildSpecification;
   disabled: boolean;
-  onApply: (patch: Partial<PalletBuildSpecification>) => void;
+  onApply: (patch: PalletRecipePatch) => void;
   onPendingChange?: (pending: boolean) => void;
   initialCartons?: number;
   applyLabel?: string;
-  onFineTune?: (patch: Partial<PalletBuildSpecification>) => void;
+  onFineTune?: (patch: PalletRecipePatch) => void;
 };
 
 function RecipeViews({preview}: {preview:PalletRecipePreview}) {
@@ -51,19 +51,22 @@ function RecipeViews({preview}: {preview:PalletRecipePreview}) {
 export function PalletRecipe({request, spec, disabled, onApply, onPendingChange, initialCartons, applyLabel, onFineTune}: Props) {
   useLanguage();
   const [draft, setDraft] = useState(String(initialCartons ?? spec.cartonLimit ?? ""));
+  const [redesigned, setRedesigned] = useState(false);
+  const recipeSpec = redesigned ? redesignPalletRecipeSpec(spec) : spec;
+  const canRedesign = !request.palletBuild || palletSpecifications(request.palletBuild).length < MAX_PACKAGING_SPECIFICATIONS;
   const [selected, setSelected] = useState("");
   const [method, setMethod] = useState<PalletRecipeInput["mode"]>(initialCartons !== undefined ? "suggest" : spec.cartonLimit ? "current" : "suggest");
   const [response, setResponse] = useState<{key:string; preview?:PalletRecipePreview; error?:string}>();
   const groups = palletRecipeGroups(request.products, spec.productIds, request.palletBuild?.looseQuantities);
   const group = groups.find(items => packagingGroupKey(items[0]) === selected) ?? groups[0];
   const groupKey = group ? packagingGroupKey(group[0]) : "";
-  const canSuggest = canSuggestPalletSize(spec.config);
+  const canSuggest = canSuggestPalletSize(recipeSpec.config);
   const mode = canSuggest ? method : "current";
   const parsed = parseNumericDraft(draft, {integer:true, min:1, max:MAX_CARTONS_PER_PALLET});
   const cartons = parsed.state === "valid" ? parsed.value : undefined;
   const pending = cartons !== spec.cartonLimit || draft.trim() !== "" && mode === "suggest" || parsed.state === "invalid";
   const key = !disabled && groupKey && cartons !== undefined
-    ? JSON.stringify({request, spec, groupKey, cartons, mode} satisfies PalletRecipeInput)
+    ? JSON.stringify({request, spec:recipeSpec, groupKey, cartons, mode} satisfies PalletRecipeInput)
     : "";
   const current = response?.key === key ? response : undefined;
 
@@ -112,11 +115,13 @@ export function PalletRecipe({request, spec, disabled, onApply, onPendingChange,
     if (disabled || cartons === undefined || !preview) return;
     const config = mode === "suggest"
       ? {...preview.config, presetId:"carton-sized", name:`${group[0].sku.slice(0, 80)} ${packagingInterior(preview.config).crate ? tr("定制木箱","sized crate") : tr("定制托盘","sized pallet")}`}
-      : spec.config;
-    apply({config, cartonLimit:cartons});
+      : recipeSpec.config;
+    apply({config, cartonLimit:cartons, ...(redesigned?{redesigned:true}:{})});
+    setRedesigned(false);
     setMethod("current");
   };
   const cancel = () => {
+    setRedesigned(false);
     setDraft(String(spec.cartonLimit ?? ""));
     setMethod(spec.cartonLimit ? "current" : "suggest");
   };
@@ -126,6 +131,12 @@ export function PalletRecipe({request, spec, disabled, onApply, onPendingChange,
     <p>{canSuggest
       ? tr("填写几箱一托，自动预览推荐尺寸。采用后可调整托盘长宽、底座高和货物限高。","Enter cartons per pallet to preview suggested dimensions. Apply them to fine-tune deck size, deck height and the cargo height limit.")
       : tr("此包装已有固定结构或实测尺寸，可按当前尺寸预览并设置每托箱数。","Preview this fixed or measured packaging and set cartons per pallet using its current dimensions.")}</p>
+    {!canSuggest && <div className="packaging-preview-actions"><button type="button" className="button primary small" disabled={disabled||!canRedesign||!group} onClick={()=>{
+      const fresh=redesignPalletRecipeSpec(spec);setRedesigned(true);setMethod("suggest");setDraft(String(initialPalletRecipeCartons(request,fresh)??""));
+    }}>{tr("按箱数设计新包装","Design new packaging by carton count")}</button><p>{canRedesign
+      ? tr("当前预览沿用旧包装限高和每托箱数。新设计会重新建议尺寸；采用时保留旧规格及结构资料，将其可用数量转给新规格。","The current preview retains the old height and carton limit. A new design suggests new dimensions; applying retains the old specification and structural records and transfers its available units to the new design.")
+      : tr("包装规格已达上限，请先腾出一个位置保留旧包装。","Free one specification slot to retain the old packaging.")}</p></div>}
+    {redesigned&&<p role="status">{tr("正在预览新包装，原方案尚未改变。旧实测部件、叉具及承压核验不套用到新尺寸；底座高、自重和每托承重仍须按新实物核对。","Previewing new packaging; the original plan is unchanged. Old measured parts, fork and bearing reviews do not apply to new dimensions. Verify deck height, tare and payload for the new physical unit.")}</p>}
     <div className="pallet-build-grid">
       {groups.length > 1 && <label>{tr("预览货物","Preview cargo")}<select value={groupKey} onChange={e=>setSelected(e.target.value)}>
         {groups.map(items => <option key={packagingGroupKey(items[0])} value={packagingGroupKey(items[0])}>{items[0].setCode || items[0].sku}</option>)}

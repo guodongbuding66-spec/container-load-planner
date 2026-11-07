@@ -1,3 +1,4 @@
+import {emptyForkInterface} from "../lib/packing/fork-interface";
 import {act} from "react";
 import {createRoot,extend,_roots} from "@react-three/fiber";
 import * as THREE from "three";
@@ -36,6 +37,15 @@ it("exposes a prefilled recipe and direct recalculation on the old 16-carton res
  vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");
  const en=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);
  expect(en).toContain("Apply this pallet recipe and recalculate");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
+});
+it("keeps the new-design entry visible for a documented single-layer crate",()=>{
+ const request=oneLayerCrateFixture();request.palletBuild!.config.forkInterface=emptyForkInterface(request.palletBuild!.config);
+ const props={...defaults(),request,plan:packLoadingWorkflow(request),onApplyBuild:vi.fn()};
+ expect(renderToStaticMarkup(<OrderCapacityTrial {...props}/>)).toContain("按箱数设计新包装");
+ expect(renderToStaticMarkup(<OrderCapacityTrial {...props} measuredEnvelope/>)).not.toContain("按箱数设计新包装");
+ expect(renderToStaticMarkup(<OrderCapacityTrial {...props} canApply={false}/>)).not.toContain("按箱数设计新包装");
+ vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");
+ const en=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);expect(en).toContain("Design new packaging by carton count");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
 });
 it("previews existing packaging stock and applies only selection, leaving 596 ordered",async()=>{
  const request=packagingCapacityFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request),onApplyBuild:vi.fn()};let task!:ReturnType<typeof useOrderCapacityTrial>;function Hook(){task=useOrderCapacityTrial(props);return <group/>;}
