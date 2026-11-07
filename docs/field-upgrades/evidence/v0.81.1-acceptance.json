@@ -1,0 +1,104 @@
+{
+  "version": "0.81.1",
+  "testedAt": "2026-11-07T00:42:00.364Z",
+  "source": "Screenshot reconstruction entered through deployed UI; original user workspace unavailable; browser upload transport timed out, so legacy-file UI import was not verified",
+  "rows": [
+    {
+      "file": "main-322.json",
+      "strategy": "practical",
+      "loaded": 322,
+      "cartonsPerPallet": 23,
+      "layers": 12,
+      "grossKg": 13874,
+      "valid": true
+    },
+    {
+      "file": "main-322.json",
+      "strategy": "maximum",
+      "loaded": 322,
+      "cartonsPerPallet": 23,
+      "layers": 12,
+      "grossKg": 13874,
+      "valid": true
+    },
+    {
+      "file": "main-112.json",
+      "strategy": "practical",
+      "loaded": 112,
+      "cartonsPerPallet": 20,
+      "layers": 4,
+      "grossKg": 5054,
+      "valid": true
+    },
+    {
+      "file": "main-112.json",
+      "strategy": "maximum",
+      "loaded": 112,
+      "cartonsPerPallet": 20,
+      "layers": 4,
+      "grossKg": 5054,
+      "valid": true
+    },
+    {
+      "file": "main-280.json",
+      "strategy": "practical",
+      "loaded": 280,
+      "cartonsPerPallet": 20,
+      "layers": 10,
+      "grossKg": 12110,
+      "valid": true
+    },
+    {
+      "file": "main-280.json",
+      "strategy": "maximum",
+      "loaded": 280,
+      "cartonsPerPallet": 20,
+      "layers": 10,
+      "grossKg": 12110,
+      "valid": true
+    },
+    {
+      "file": "gray-280.json",
+      "strategy": "practical",
+      "loaded": 280,
+      "cartonsPerPallet": 20,
+      "layers": 10,
+      "grossKg": 12110,
+      "valid": true
+    },
+    {
+      "file": "gray-280.json",
+      "strategy": "maximum",
+      "loaded": 280,
+      "cartonsPerPallet": 20,
+      "layers": 10,
+      "grossKg": 12110,
+      "valid": true
+    }
+  ],
+  "identicalMainGrayParsedInputsAndRawCoordinates": true,
+  "normalizationNote": "Main 280 backup follows page reload; default mustLoad/bottomOnly/setCode/unitsPerSet are made explicit and zero-quantity example rows gain display CBM. All parsed calculation inputs match gray exactly.",
+  "sha256": {
+    "main-before-16.json": "c56c741f8ef02a4d203ec4001b975975b0abfc55806c1e39d9c2f6a8ccb19e2c",
+    "main-322.json": "dd4c1c366a9165c229f7198d8ae879510641e02b33f4671d75c403f989dbca86",
+    "main-112.json": "2d57641f04e55ec9fdbcb1fd44c5600271cc0370d0b286d0dbb809718fa0b3d4",
+    "main-280.json": "331248ecbec31f7a1aad753f53bff517c0ebaf4c75d5cbcffc5a5705e9b930e3",
+    "gray-280.json": "1ffef4680e7aed49c2f3d376d26fe98588a3fbec4dfc4a2b4a8e5df0b74b268a"
+  },
+  "runtimeCommit": "7ac2c7c603ca8a7b18db347b417e72e350054229",
+  "ci": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/42210953173",
+  "cloudflareDeployment": "831b6e05-76b1-408d-9e2a-7d6f57d2ccb5",
+  "vercelDeployment": "dpl_FY7jPj6RatsWwcY5N889sPNUasUN",
+  "uiChecks": {
+    "oneLayerRecalcOpensPreview": true,
+    "preserveOldDimensionsRemains16": true,
+    "seed23DirectApplyBoth322": true,
+    "count24RejectedByPayload": true,
+    "fineTuneAdopts1200mm": true,
+    "manual480mmBoth112": true,
+    "reloadRetains20And1200mmBoth280": true,
+    "gray20DirectApplyBoth280": true,
+    "webgl": "Unavailable in QA browser; SVG views verified",
+    "legacyBackupUiImport": "Not verified: browser upload transport timed out"
+  }
+}

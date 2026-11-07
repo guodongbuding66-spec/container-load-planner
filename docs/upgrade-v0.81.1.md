@@ -12,3 +12,33 @@ v0.81.0 的尺寸生成可计算多层纸箱，但旧方案的“重新计算方
 - 多规格只更新所选规格，保留各规格库存、适用 SKU、其他尺寸、散装预留和订单数量。已交付版本、实测整托包络及已有结构资料不自动改尺寸。
 
 截图复现案例仍为 596 箱、单箱 1640 × 545 × 120 mm、42 kg、40HQ、1000 kg 托内额定载荷。原始工作区和工厂实装资料尚未取得。23 箱是此条件下的预填数量，并非全局最优声明。20 箱一托的原有尺寸建议继续兼容。
+
+## 线上操作验收（2026-11-07）
+
+主站和灰度站均通过页面录入同一组截图重建参数，先复现 16 箱，再从结果页采用多层打托。原生导出的工作区保留在下方证据中；没有修改导出坐标来生成验收结果。
+
+| 页面操作 | 托内净高 | 单托实装／层数 | 现场算法 | 高密度算法 |
+| --- | ---: | --- | ---: | ---: |
+| 原 ULD 木箱；保留现有尺寸重算 | 125 mm | 4 箱／1 层 | 16 箱 | 16 箱 |
+| 主站采用预填的 23 箱方案 | 1440 mm | 23 箱／12 层 | 322 箱 | 322 箱 |
+| 改为 20 箱，采用后微调内高为 480 mm | 480 mm | 8 箱／4 层 | 112 箱 | 112 箱 |
+| 主站恢复 1200 mm，刷新页面后再次计算 | 1200 mm | 20 箱／10 层 | 280 箱 | 280 箱 |
+| 灰度站从 16 箱直接采用 20 箱预览并重算 | 1200 mm | 20 箱／10 层 | 280 箱 | 280 箱 |
+
+20 箱建议外尺寸为 **1700 × 1150 × 1255 mm**。采用后 14 托，总重 12,110 kg；23 箱方案为 14 托、13,874 kg。目标 24 箱超过当前每托承重时，预览显示原因并禁用采用按钮。主站刷新后每托箱数 20、木箱内部净高 1200 mm 均保留。
+
+导出文件重新解析后，两站计算输入完全一致，两套原始坐标也完全一致。独立核对了箱数、层数、逐托载荷、毛重、柜内边界、门高、围板／箱盖避让、箱体与托盘互不重叠及直接承托。刷新会显式填充旧格式中省略的默认规则，并为零数量示例行填充显示用 CBM，因此输入一致性比较使用完整解析后的计算参数；原件未改写。
+
+GitHub 完整 CI 通过；本地类型检查、21 项页面检查、API 打包检查和生产构建通过。2,148 项单元测试首轮中有一项未修改的 `fleet-tail-preview` 用例触发默认 5 秒超时，同文件全部 22 项在原超时设置下重跑通过；远程完整 CI 一次通过。
+
+浏览器上传接口超时，未将旧文件的页面导入标为通过；本次通过页面重新录入等价参数验收。测试浏览器未启用 WebGL，已核对真实坐标驱动的俯视／侧视／箱门视图，不代表 GPU 渲染验收或现场承载确认。重建结果也不等于用户原始工作区的装柜数量。
+
+运行提交 `7ac2c7c603ca8a7b18db347b417e72e350054229`。Cloudflare Pages `831b6e05-76b1-408d-9e2a-7d6f57d2ccb5`，Vercel `dpl_FY7jPj6RatsWwcY5N889sPNUasUN`。[GitHub CI](https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/42210953173) · [主站](https://container-load-planner.pages.dev/) · [灰度站](https://container-load-planner-gray.vercel.app/)
+
+证据：[验收数据与原件 SHA-256](field-upgrades/evidence/v0.81.1-acceptance.json) · [20 箱多层预览](field-upgrades/evidence/v0.81.1-main-preview-20.png) · [280 箱真实坐标视图](field-upgrades/evidence/v0.81.1-main-280-layers.png)。原生工作区文件以 gzip 保存：[旧 16 箱](field-upgrades/evidence/v0.81.1-main-before-16.json.gz)、[主站 322 箱](field-upgrades/evidence/v0.81.1-main-322.json.gz)、[主站微调 112 箱](field-upgrades/evidence/v0.81.1-main-112.json.gz)、[主站刷新后 280 箱](field-upgrades/evidence/v0.81.1-main-280.json.gz)、[灰度站 280 箱](field-upgrades/evidence/v0.81.1-gray-280.json.gz)。
+
+可在仓库根目录用 Node 24 重跑[原件校验脚本](field-upgrades/evidence/v0.81.1-verify.mjs)：
+
+```sh
+node --experimental-transform-types --disable-warning=ExperimentalWarning docs/field-upgrades/evidence/v0.81.1-verify.mjs
+```
