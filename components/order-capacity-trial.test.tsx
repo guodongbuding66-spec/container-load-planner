@@ -29,7 +29,7 @@ it("exposes a prefilled recipe and direct recalculation on the old 16-carton res
  const html=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);
  expect(html).toContain('value="23"');
  expect(html).toContain("采用此打托并重新计算");
- expect(html).toContain("采用后微调尺寸");
+ expect(html).toContain("采用并打开完整配置");
  expect(html).toContain("保留现有尺寸重算");
  expect(props.onApplyBuild).not.toHaveBeenCalled();
  expect(renderToStaticMarkup(<OrderCapacityTrial {...props} measuredEnvelope/>)).not.toContain("采用此打托并重新计算");
@@ -38,14 +38,16 @@ it("exposes a prefilled recipe and direct recalculation on the old 16-carton res
  const en=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);
  expect(en).toContain("Apply this pallet recipe and recalculate");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
 });
-it("keeps the new-design entry visible for a documented single-layer crate",()=>{
+it("starts a new-size preview automatically for a documented single-layer crate",()=>{
  const request=oneLayerCrateFixture();request.palletBuild!.config.forkInterface=emptyForkInterface(request.palletBuild!.config);
+ request.palletBuild!.primaryRule={maxPallets:50,cartonLimit:3};
  const props={...defaults(),request,plan:packLoadingWorkflow(request),onApplyBuild:vi.fn()};
- expect(renderToStaticMarkup(<OrderCapacityTrial {...props}/>)).toContain("按箱数设计新包装");
- expect(renderToStaticMarkup(<OrderCapacityTrial {...props} measuredEnvelope/>)).not.toContain("按箱数设计新包装");
- expect(renderToStaticMarkup(<OrderCapacityTrial {...props} canApply={false}/>)).not.toContain("按箱数设计新包装");
+ expect(renderToStaticMarkup(<OrderCapacityTrial {...props}/>)).toContain('value="3"');
+ expect(renderToStaticMarkup(<OrderCapacityTrial {...props}/>)).toContain("新打托预览尚未采用");
+ expect(renderToStaticMarkup(<OrderCapacityTrial {...props} measuredEnvelope/>)).not.toContain("新打托预览尚未采用");
+ expect(renderToStaticMarkup(<OrderCapacityTrial {...props} canApply={false}/>)).not.toContain("新打托预览尚未采用");
  vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");
- const en=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);expect(en).toContain("Design new packaging by carton count");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
+ const en=renderToStaticMarkup(<OrderCapacityTrial {...props}/>);expect(en).toContain("New pallet preview is not applied yet");expect(en).not.toMatch(/[\u3400-\u9fff]/u);
 });
 it("previews existing packaging stock and applies only selection, leaving 596 ordered",async()=>{
  const request=packagingCapacityFixture(),props={...defaults(),request,plan:packLoadingWorkflow(request),onApplyBuild:vi.fn()};let task!:ReturnType<typeof useOrderCapacityTrial>;function Hook(){task=useOrderCapacityTrial(props);return <group/>;}
