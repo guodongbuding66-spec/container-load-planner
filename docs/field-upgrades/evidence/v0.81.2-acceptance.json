@@ -1,0 +1,50 @@
+{
+  "version": "0.81.2",
+  "runtimeCommit": "d1aeacaf112905fa153c2ca2e916fc1068c02171",
+  "date": "2026-11-07",
+  "timezone": "Asia/Shanghai",
+  "scope": "Native UI reconstruction of visible screenshot fields; original workspace not supplied. Hidden crateBearing fields reconstructed as unverified. SVG fallback; WebGL unavailable. Not field validation.",
+  "sha256": {
+    "main-before-18-v812.json": "1eb5fbd025c68fa6420ad60fa2083c67570f169d8c477db2ebcbe650e0252740",
+    "main-280.json": "4961b2c0fc4edf2de7b6b993e1f0e7e20da324ee12cd11d2920513a3674c78f4",
+    "main-reloaded-280.json": "751fea6f032710001278e3f7aa4c60b797ce15a119b9bab000697e3ae15b182c",
+    "gray-280.json": "ad18117e7326f4d240a378e502bc1f58232806c2712a6a66fe5cdba1aee163a8"
+  },
+  "main": {
+    "url": "https://container-load-planner.pages.dev/",
+    "flow": "result → design new packaging → 20 cartons → apply and recalculate",
+    "before": {
+      "cartons": 18,
+      "pallets": 6,
+      "grossWeight": 906
+    },
+    "after": {
+      "cartons": 280,
+      "pallets": 14,
+      "layers": 10,
+      "grossWeight": 12110
+    },
+    "cancelPreservesOriginal": true,
+    "reloadPreservesRecipeAndResult": true
+  },
+  "gray": {
+    "url": "https://container-load-planner-gray.vercel.app/",
+    "flow": "configuration → design new packaging → 20 cartons → adopt suggested dimensions → calculate",
+    "cartons": 280
+  },
+  "deployments": {
+    "cloudflare": "1428110b-c7a8-4a8a-a2aa-7d38f27a4cb6",
+    "cloudflareStatus": "success",
+    "vercel": "dpl_ExaQgMrMxycN7A8xo1XQSTqTBMHr",
+    "vercelStatus": "READY",
+    "ci": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/42347471058",
+    "ciStatus": "success"
+  },
+  "checks": {
+    "vitestFiles": 166,
+    "vitestTests": 2152,
+    "renderedHTMLTests": 21,
+    "buildPages": "pass"
+  },
+  "limitation": "Coordinate validation passes. Execution review still reports a loading-path failure and unverified structural/fixation items; no claim of shipping clearance or physical acceptance."
+}
