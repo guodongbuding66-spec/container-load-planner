@@ -18,3 +18,34 @@ v0.81.2 仍将带结构资料的包装强制切回 current 模式，用户直接
 新增交互状态回归覆盖直接输入、默认预览、保留 3 箱、采用前微调、尺寸装不下目标、空值、取消及过期 Worker 回包，并用真正的打托与装柜求解器校验结果。
 
 验证：`npm run build:pages` 通过，167 个测试文件、2157 个测试、21 个渲染检查、类型检查、API bundle 检查及生产静态导出通过。ESLint 仅保留两个已有警告。
+
+## 已部署页面验收（2026-11-13 完成）
+
+运行时代码：[2552e9e](https://github.com/guodongbuding66-spec/container-load-planner/commit/2552e9ef7df4fb7c08f87ebef6fe179ff29d4467)。[GitHub CI](https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/42393337927) 成功，Cloudflare 部署 `e9fe5829-9de5-4ae9-8bc5-8b7f36a897d9` 成功；Vercel 部署 `dpl_3wLx3yKBzT55uzKKxGajDUzYU5if` 为 READY，提交一致。
+
+通过主站和灰度站原生控件独立录入重建订单，使用实际 Worker 计算，再用“备份工作区”下载原生结果。未注入应用状态，也未把本地求解结果冒充线上导出。
+
+| 页面与操作 | 外尺寸 mm | 每托箱数 / 托内层数 | 整柜托数 | 双算法装箱数 | 毛重 kg |
+| --- | --- | --- | --- | --- | --- |
+| 主站，保留旧尺寸基线 | 1800 × 1800 × 180 | 3 / 1 | 6 | 18 | 906 |
+| 主站，结果页采用自动预览，保留 3 箱 | 1700 × 605 × 415 | 3 / 3 | 21 | 63 | 3171 |
+| 主站，直接输入 20 箱并采用 | 1700 × 1150 × 1255 | 20 / 10 | 14 | 280 | 12110 |
+| 灰度站，采用前将预览长度微调到 1750 | 1750 × 1150 × 1255 | 20 / 10 | 13 | 260 | 11245 |
+
+额外原生界面验收：
+
+- 20 箱目标下，将预览托内净高降为 125 mm，显示只能放 2 箱 / 1 层，采用按钮禁用；取消后恢复已保存的 3 箱、125 mm。
+- 灰度站微调预览长度为 1750 mm 时，已保存长度仍为 1800 mm；采用后才变为 1750 mm。
+- 主站刷新后恢复本机草稿，20 箱、1700 × 1150 mm、1200 mm 净高保留；重新计算仍为双算法 280 箱。
+
+证据位于 `docs/field-upgrades/evidence/v0.81.3-*`。4 个压缩 JSON 是原生下载，验收清单记录解压后的 SHA-256；7 张截图覆盖预览、尺寸不足、微调和多层结果。复核脚本逐项检查 6 个线上方案的箱数、层数、载重、边界、箱盖与门高、完全承托、无重叠，以及原包装归档和总可用数量。主站 280 箱与灰度站 260 箱的标准化输入仅托盘长度不同。
+
+复核命令：
+
+```sh
+node --experimental-transform-types --disable-warning=ExperimentalWarning docs/field-upgrades/evidence/v0.81.3-verify.mjs
+```
+
+结果：`Verified 6 deployed plans, 18-carton baseline, retained 3-carton target, manual dimension application, preserved legacy structure and SHA-256.`
+
+限制：浏览器未启用 WebGL，截图为真实坐标二维视图和简化模型，未验证 GPU 三维渲染。页面仍显示方案复核未全通过；本次布局校验通过不等于结构、装卸路径或现场出货验收。自动方案改变的是新包装尺寸，实际包装需按实物确认；原用户工作区的隐藏参数尚未取得。

@@ -1,0 +1,12 @@
+{
+  "version": "0.81.3",
+  "acceptedAt": "2026-11-13",
+  "runtimeCommit": "2552e9ef7df4fb7c08f87ebef6fe179ff29d4467",
+  "scope": "Screenshot-visible inputs reconstructed through native UI; not the original user workspace or a physical loading acceptance.",
+  "sha256": {
+    "main-before-18.json": "af20361bc823c53f71708b6a022964afb05b8e5bbfd348ca4be9b57c3961b235",
+    "main-63.json": "3e6d472522be5301e7627ae6cae9ca5e5051dc05bc8228a0948246198c75f68a",
+    "main-280.json": "f96890c42681c3418aabb17546e8ed1e72be8b29c2910d17451eb6954963015b",
+    "gray-260.json": "0f8e79a01361498f25bbcc1c9d18abc2100aa48e53f875bcb3a18f5acc834b71"
+  }
+}
