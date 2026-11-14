@@ -1,4 +1,5 @@
 import {deckSupportMass,palletDeckSupportGeometry} from "./deck-support";
+import {parseUnitStacking} from "./unit-stacking";
 import {containerAccessoryWeight} from "./container-accessories";
 import {parseForkInterface} from "./fork-interface";
 import {availablePackingVolume,siteExclusionBoxes,SITE_EXCLUSION_PREFIX} from "./site-exclusions";
@@ -23,6 +24,7 @@ export function parseFloorPalletConfig(value: unknown): FloorPalletConfig {
   validateBaseMeasurements(Number(v.length),Number(v.width),Number(v.height),packaging);
   if(packaging){const inner=packagingInterior({...v,packaging} as FloorPalletConfig);if(inner.length<1||inner.width<1||inner.crate&&!Number(v.maxCargoHeight))throw new Error("木箱壁厚或内高无效 / Invalid crate wall thickness or inner height");}
   const parsed:FloorPalletConfig={ ...(v.forkInterface===undefined?{}:{forkInterface:parseForkInterface(v.forkInterface)}), ...(v.crateBearing===undefined?{}:{crateBearing:parseCrateBearing(v.crateBearing)}), ...(packaging?{packaging}:{}), presetId: v.presetId as string, name: v.name as string, length: v.length as number, width: v.width as number, height: v.height as number, weight: v.weight as number, maxLoad: v.maxLoad as number, count: v.count as number, gap: v.gap as number, layout: v.layout as FloorPalletConfig["layout"], allowFloorCargo: v.allowFloorCargo, ...(v.maxCargoHeight === undefined ? {} : {maxCargoHeight:v.maxCargoHeight as number}) };
+  if(v.unitStacking!==undefined)parsed.unitStacking=parseUnitStacking(v.unitStacking);
   validateDeckSupports(parsed);return parsed;
 }
 

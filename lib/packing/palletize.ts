@@ -1,3 +1,4 @@
+import {declaredUnitStacking,declaredStackLayers,declaredTopLoad,openUnitLayers} from "./unit-stacking";
 import {reviewPalletLowerBound,type PalletSearchSummary} from "./pallet-search";
 import {looseReservationErrors,looseOutsideUnit} from "./loose-cargo";
 import {applyTypeSupport,DEFAULT_LOADING_RULES} from "./loading-rules";
@@ -64,7 +65,8 @@ export function packPalletCargo(request: PackingRequest, config: FloorPalletConf
 /** A flat, complete top and the tightest known residual load limit are required. */
 function topCapacity(cargo: PlacedBox[], request: PackingRequest, config: FloorPalletConfig, options: PalletBuildOptions) {
   if (packagingInterior(config).crate) return crateTopCapacity(config, config.weight + cargo.reduce((n,b)=>n+b.weight,0));
-  if (config.packaging?.deckSupports?.length || options.stackLayers === 1 || options.maxTopLoadKg <= 0) return 0;
+  const layers=openUnitLayers(options),topLimit=config.unitStacking?.enabled?Math.min(declaredTopLoad(config),options.maxTopLoadKg>0?options.maxTopLoadKg:100000):options.maxTopLoadKg;
+  if (config.packaging?.deckSupports?.length || layers === 1 || topLimit <= 0) return 0;
   const top = Math.max(...cargo.map(b => b.z + b.dz));
   const deck: PlacedBox = { id: "__test-top__", productId: "__test-top__", sku: "__loaded-pallet__", name: "Pallet", color: "#997947", x: 0, y: 0, z: top, dx: config.length, dy: config.width, dz: config.height, weight: 1, layer: 1, orientation: "LWH" };
   const rules = new Map(request.products.map(p => [p.id, p]));
@@ -72,7 +74,7 @@ function topCapacity(cargo: PlacedBox[], request: PackingRequest, config: FloorP
   const area = touching.reduce((n, b) => n + bodyContactArea(deck, b, undefined, rules.get(b.productId)), 0);
   if (area < config.length * config.width - .0001 || touching.some(b => rules.get(b.productId)?.stackable === false || rules.get(b.productId)?.allowedAboveSkus !== undefined)) return 0;
   const baseline = bearingLoads(cargo, request.products), unit = bearingLoads([...cargo, deck], request.products);
-  let capacity = Math.min(options.maxTopLoadKg, config.maxLoad - cargo.reduce((n, b) => n + b.weight, 0));
+  let capacity = Math.min(topLimit, config.maxLoad - cargo.reduce((n, b) => n + b.weight, 0));
   for (const b of cargo) {
     const fraction = (unit.get(b.id) ?? 0) - (baseline.get(b.id) ?? 0), limit = bearingLimit(b, rules.get(b.productId));
     if (fraction > 0 && limit !== undefined) capacity = Math.min(capacity, (limit - (baseline.get(b.id) ?? 0)) / fraction);
@@ -144,7 +146,7 @@ function buildPalletCandidate(request: PackingRequest, input: FloorPalletConfig,
   if(!prepared.length&&!looseProducts.length)throw new Error(lastReason||"没有货物能按当前尺寸、限高、载重、朝向或完整套装规则放上托盘");
   const units:ProductInput[]=prepared.map(p=>{
     const spec=bySpecification.get(p.specificationId)!,c=spec.config;
-    return {id:p.id,sku:p.id,name:c.name,length:c.length,width:c.width,height:p.height,weight:p.weight,quantity:1,priority:Math.max(...p.cargo.map(b=>sourceProducts.get(b.productId)!.priority)),mustLoad:p.cargo.some(b=>sourceProducts.get(b.productId)!.mustLoad!==false),rotationPolicy:"upright",allowedOrientations:unitDirections(p),stackable:p.topCapacity>0,maxTopLoadKg:p.topCapacity,maxStackLayers:isCrate(c)?20:spec.stackLayers,bottomOnly:isCrate(c)?!crateAutoEnabled(c):spec.stackLayers===1,minimumSupportRatio:1,protectionGap:c.gap,cargoType:"pallet",palletBaseHeight:c.height,color:"#997947"};
+    return {id:p.id,sku:p.id,name:c.name,length:c.length,width:c.width,height:p.height,weight:p.weight,quantity:1,priority:Math.max(...p.cargo.map(b=>sourceProducts.get(b.productId)!.priority)),mustLoad:p.cargo.some(b=>sourceProducts.get(b.productId)!.mustLoad!==false),rotationPolicy:"upright",allowedOrientations:unitDirections(p),stackable:p.topCapacity>0,maxTopLoadKg:p.topCapacity,maxStackLayers:isCrate(c)?declaredUnitStacking(c)?declaredStackLayers(c):Math.min(20,c.unitStacking?.maxLayers||20):openUnitLayers(spec),bottomOnly:isCrate(c)?!crateAutoEnabled(c):openUnitLayers(spec)===1,minimumSupportRatio:1,protectionGap:c.gap,cargoType:"pallet",palletBaseHeight:c.height,color:"#997947"};
   });
   const columns=Math.min(5,Math.ceil(Math.sqrt(prepared.length))),cellLength=Math.max(...prepared.map(u=>bySpecification.get(u.specificationId)!.config.length)),cellWidth=Math.max(...prepared.map(u=>bySpecification.get(u.specificationId)!.config.width));
   const container=only?mixedInspectionContainer(prepared.map(p=>bySpecification.get(p.specificationId)!.config)):request.container;
@@ -202,7 +204,8 @@ function buildPalletCandidate(request: PackingRequest, input: FloorPalletConfig,
   if(looseProducts.length)plan.warnings.push("按指定箱数预留散装；其余货物保持完整托盘。散箱不占用整托内部，也不与整托互相承托；未装数量仍在订单中 / Loose reservations are explicit; complete units stay intact. Loose cargo cannot use unit voids or cross-support units. Unloaded quantities remain in the order");
   plan.workflow=only?"pallet-only":"palletized";plan.palletBuild=options;
   if(only){plan.metrics.effectiveVolume=independentPalletVolume(palletization,pallets);plan.metrics.volumeUtilization=plan.metrics.loadedVolume/plan.metrics.effectiveVolume;if(plan.metrics.envelopeVolume!==undefined)plan.metrics.envelopeUtilization=plan.metrics.envelopeVolume/plan.metrics.effectiveVolume;plan.warnings.unshift("仅生成独立托盘；三维编组位置用于查看，不代表柜内箱位。利用率按每托限高包络统计");}
-  if(prepared.some(p=>packagingInterior(bySpecification.get(p.specificationId)!.config).crate))plan.warnings.unshift("木箱按实际内尺寸装货、完整外形装柜；自重请填写包含底座与围板的实测总重。仅显式启用且资料有效的四角传力列可自动叠放，其他木箱仍底置 / Crates use measured interior, exterior and complete tare; only explicitly enabled crates with valid four-path evidence may stack; all others remain floor-only");
+  if(prepared.some(p=>declaredUnitStacking(bySpecification.get(p.specificationId)!.config)))plan.warnings.unshift("整托按可堆叠进行空间预排，已检查层数、整托完整承托和已录入上压；未录入的结构额定值仍待核对 / Stackable-unit space estimate; layer limits, complete support and entered top loads checked; missing structural ratings remain unverified");
+  else if(prepared.some(p=>packagingInterior(bySpecification.get(p.specificationId)!.config).crate))plan.warnings.unshift("木箱按实际内尺寸装货、完整外形装柜；自重请填写包含底座与围板的实测总重。仅显式启用且资料有效的四角传力列可自动叠放，其他木箱仍底置 / Crates use measured interior, exterior and complete tare; only explicitly enabled crates with valid four-path evidence may stack; all others remain floor-only");
   if(!only&&specifications.some(s=>s.stackLayers>1))plan.warnings.unshift("整托堆叠按声明的整托上压和已提供的箱体承重核验；缺少箱体承重资料时不能视为逐箱承重已核验");
   plan.metrics.solveTimeMs=performance.now()-started;
   return {plan,prepared,loadedPallets:pallets.length,unloadedPallets:prepared.length-pallets.length,remaining:plan.summaries.filter(s=>s.unloaded>0),bounded};

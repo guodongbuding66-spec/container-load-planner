@@ -86,15 +86,15 @@ function placementCsvCore(result: PackingResult): string {
     return parseCsvRecords(placementCsvCore(base)).map((row,i)=>[...row,...(!i?["包装比选模式","生成时比选记录JSON"]:["compact",choices.has(row[15]==="pallet"?row[1]:row[16])?JSON.stringify(choices.get(row[15]==="pallet"?row[1]:row[16])):""])].map(toCsvCell).join(",")).join("\r\n");
   }
   const crateUnits=planCrateUnits(result);
-  if(crateUnits.some(u=>u.config.crateBearing)){
-    const staticCells=new Map(planCrateStackReview(result).cells.map(c=>[c.id,c]));
-    const strip=(c:NonNullable<PackingResult["palletization"]>["config"])=>{const copy={...c};delete copy.crateBearing;return copy;};
+  if(crateUnits.some(u=>u.config.crateBearing||u.config.unitStacking)){
+    const declaredRules=crateUnits.some(u=>u.config.unitStacking),staticCells=new Map(planCrateStackReview(result).cells.map(c=>[c.id,c]));
+    const strip=(c:NonNullable<PackingResult["palletization"]>["config"])=>{const copy={...c};delete copy.crateBearing;delete copy.unitStacking;return copy;};
     const value=result.palletization!,base={...result,palletization:{...value,config:strip(value.config),specifications:value.specifications?.map(s=>({...s,config:strip(s.config)}))}},byId=new Map(crateUnits.map(u=>[u.pallet.id,u]));
     return parseCsvRecords(placementCsvCore(base)).map((row,i)=>{
-      if(!i)return [...row,"木箱实际叠放状态","木箱累计上压(kg)","木箱每路径总载荷上界(kg)","支承木箱ID","木箱实际层","木箱额定资料JSON","木箱资料状态","木箱核验范围"].map(toCsvCell).join(",");
+      if(!i)return [...row,"木箱实际叠放状态","木箱累计上压(kg)","木箱每路径总载荷上界(kg)","支承木箱ID","木箱实际层","木箱额定资料JSON","木箱资料状态","木箱核验范围",...(declaredRules?["整托堆叠规则JSON"]:[])].map(toCsvCell).join(",");
       const unit=byId.get(row[15]==="pallet"?row[1]:row[16]);
       const cell=unit?staticCells.get(unit.pallet.id):undefined;
-      return [...row,cell?.state??"",cell?.topLoadKg??"",cell?.throughLoadBoundKg??"",cell?.supporterId??"",cell?.level??"",unit?.config.crateBearing?JSON.stringify(unit.config.crateBearing):"",unit?crateEvidence(unit.config).state:"",unit?(unit.config.crateBearing?.automaticStacking?"four-corner-paths-v1; unified-static-review":"independent-preflight-only; automatic-floor-only"):""].map(toCsvCell).join(",");
+      return [...row,cell?.state??"",cell?.topLoadKg??"",cell?.throughLoadBoundKg??"",cell?.supporterId??"",cell?.level??"",unit?.config.crateBearing?JSON.stringify(unit.config.crateBearing):"",unit?crateEvidence(unit.config).state:"",unit?(cell?.state==="declared"?"declared-stackability; geometry-and-entered-limits-only; structure-unverified":unit.config.crateBearing?.automaticStacking?"four-corner-paths-v1; unified-static-review":"independent-preflight-only; automatic-floor-only"):"",...(declaredRules?[unit?.config.unitStacking?JSON.stringify(unit.config.unitStacking):""]:[])].map(toCsvCell).join(",");
     }).join("\r\n");
   }
   if(result.palletization?.looseQuantities){

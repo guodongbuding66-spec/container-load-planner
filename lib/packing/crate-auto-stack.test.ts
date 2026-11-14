@@ -125,3 +125,10 @@ it.each(["practical","maximum"] as const)("uses distinct rated corner paths on t
   lower.crateBearing!.bridgeStacking=false;seal(lower);
   expect(pack(r).metrics.loadedCount).toBe(2);
 },15_000);
+
+it("also constrains rated crates by the separate pallet tier and top-load controls",()=>{
+ for(const rule of [{enabled:true,maxLayers:2},{enabled:true,maxLayers:0,maxTopLoadKg:60}]){
+ const r=request();r.palletBuild!.config.unitStacking=rule;const p=pack(r);
+ expect(p.validation.valid).toBe(true);expect(p.pallets).toHaveLength(2);expect(Math.max(...planCrateStackReview(p).cells.map(c=>c.level))).toBe(2);
+ }
+});

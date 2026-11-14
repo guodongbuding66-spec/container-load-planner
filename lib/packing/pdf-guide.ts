@@ -215,7 +215,7 @@ export async function downloadPdfGuide(result: PackingResult, language: "zh" | "
     text(`${t("额定顶载 kg／总层数","Rated top kg / total layers")}: ${p?.maxTopLoadKg??"—"} / ${p?.maxLayers??"—"}`,100,1170,28,true);
     text(`${t("允许朝向","Rated orientations")}: ${p?.allowedOrientations.join(" / ")||"—"}`,100,1240,26);
     CRATE_CORNERS.forEach((id,i)=>text(`${id} → ${t("同位置立柱与底脚","coaxial post and foot")}: ${p?.columnCapacityKg[id]??"—"} kg`,100,1350+i*65,27));
-    wrap(t("该页为资料摘要，完整来源与条件见工作区／坐标 JSON。仅显式启用且资料有效的四角传力列可叠放，其他木箱仍底置；不核验运输动态、地板、材料与连接件强度。","This is an evidence summary; see workspace / coordinate JSON for full sources and conditions. Only explicitly enabled crates with valid four-path evidence may stack; all others remain floor-only. Transport dynamics, floors, material and joints are unverified."),1740,6);
+    if(group.config.unitStacking?.enabled){wrap(t("该页为资料摘要，完整来源与条件见工作区／坐标 JSON。声明可堆叠的整托按尺寸和已填上压预排，结构承重待核对；额定四角传力模式另按有效资料核验。不核验运输动态、地板、材料与连接件强度。","This is an evidence summary; see workspace / coordinate JSON for full sources and conditions. Declared stackable units use geometry and entered top-load limits, with structure unverified; rated four-path mode separately requires valid evidence. Transport dynamics, floors, material and joints are unverified."),1740,6);}else{wrap(t("该页为资料摘要，完整来源与条件见工作区／坐标 JSON。仅显式启用且资料有效的四角传力列可叠放，其他木箱仍底置；不核验运输动态、地板、材料与连接件强度。","This is an evidence summary; see workspace / coordinate JSON for full sources and conditions. Only explicitly enabled crates with valid four-path evidence may stack; all others remain floor-only. Transport dynamics, floors, material and joints are unverified."),1740,6);}
     await finish();
   }
   const crateStatic=planCrateStackReview(result).cells;

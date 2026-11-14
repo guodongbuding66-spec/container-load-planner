@@ -50,7 +50,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.81.3";
+export const ENGINE_VERSION = "0.81.4";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -2662,7 +2662,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   if (!Array.isArray(raw.placements)||raw.placements.length>MAX_VISIBLE_PLACEMENTS) throw new Error("归档箱体坐标数量无效。");
   const palletization=parsePalletization(raw.palletization);
   if(palletization&&request.floorPallets)throw new Error("Prebuilt and floor pallet modes cannot be combined");
-  if(palletization&&!palletization.specifications&&request.palletBuild&&(palletization.config.crateBearing||request.palletBuild.config.crateBearing)){
+  if(palletization&&!palletization.specifications&&request.palletBuild&&(palletization.config.crateBearing||request.palletBuild.config.crateBearing||palletization.config.unitStacking||request.palletBuild.config.unitStacking)){
     const expected=parsePalletBuild(request.palletBuild).config;
     if(JSON.stringify(expected)!==JSON.stringify(palletization.config))throw new Error("Crate geometry or rating evidence does not match workspace inputs");
   }

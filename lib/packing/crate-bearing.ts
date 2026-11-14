@@ -110,7 +110,7 @@ export function proposeCrateColumn(units:readonly CrateReviewUnit[],offsets:read
 
 export function crateEvidenceGroups(plan:PackingResult){
   const groups=new Map<string,{config:FloorPalletConfig;ids:string[]}>();
-  for(const u of planCrateUnits(plan)){const key=JSON.stringify({structure:crateStructureKey(u.config),profile:u.config.crateBearing??null});const existing=groups.get(key);if(existing)existing.ids.push(u.pallet.id);else groups.set(key,{config:u.config,ids:[u.pallet.id]});}
+  for(const u of planCrateUnits(plan)){const key=JSON.stringify({structure:crateStructureKey(u.config),profile:u.config.crateBearing??null,unitStacking:u.config.unitStacking??null});const existing=groups.get(key);if(existing)existing.ids.push(u.pallet.id);else groups.set(key,{config:u.config,ids:[u.pallet.id]});}
   return [...groups.values()];
 }
 

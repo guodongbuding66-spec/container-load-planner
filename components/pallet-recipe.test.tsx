@@ -36,6 +36,7 @@ async function mount(initialCartons?:number){
 }
 it("typing a count on documented packaging automatically sizes and applies a real multilayer plan",async()=>{
  const ui=await mount();try{
+  expect(ui.task.pending).toBe(false);
   expect(packLoadingWorkflow(ui.request).metrics.loadedCount).toBe(18);
   await act(async()=>ui.task.suggest("20"));await ui.finish();
   expect(ui.task.preview).toMatchObject({layerCount:10,height:1255});expect(ui.task.preview!.placements).toHaveLength(20);
@@ -43,7 +44,7 @@ it("typing a count on documented packaging automatically sizes and applies a rea
   await act(async()=>ui.task.applyPreview());
   const next=withPalletRecipe(ui.request.palletBuild!,"primary",ui.onApply.mock.calls[0][0]);
   expect(next.additionalSpecs![0].config).toEqual(ui.request.palletBuild!.config);
-  for(const strategy of ["practical","maximum"] as const){const result=packLoadingWorkflow({...ui.request,palletBuild:next,strategy});expect(result.metrics.loadedCount).toBe(280);expect(result.validation.valid).toBe(true);}
+  for(const strategy of ["practical","maximum"] as const){const result=packLoadingWorkflow({...ui.request,palletBuild:next,strategy});expect(result.metrics.loadedCount).toBe(strategy==="practical"?540:560);expect(result.pallets!.some(p=>p.z>0)).toBe(true);expect(result.validation.valid).toBe(true);}
  }finally{await ui.close();}
 });
 it("previews recommended counts without another click and permits fine adjustment before committing",async()=>{
@@ -82,6 +83,6 @@ it("keeps the user's three-carton target and automatically previews three layers
   expect(ui.task.preview!.placements).toHaveLength(3);expect(ui.onApply).not.toHaveBeenCalled();
   await act(async()=>ui.task.applyPreview());const next=withPalletRecipe(ui.request.palletBuild!,"primary",ui.onApply.mock.calls[0][0]);
   expect(next.primaryRule!.cartonLimit).toBe(3);
-  for(const strategy of ["practical","maximum"] as const){const result=packLoadingWorkflow({...ui.request,palletBuild:next,strategy});expect(result.metrics.loadedCount).toBe(63);expect(result.pallets).toHaveLength(21);expect(result.validation.valid).toBe(true);}
+  for(const strategy of ["practical","maximum"] as const){const result=packLoadingWorkflow({...ui.request,palletBuild:next,strategy});expect(result.metrics.loadedCount).toBe(378);expect(result.pallets).toHaveLength(126);expect(result.pallets!.some(p=>p.z>0)).toBe(true);expect(result.validation.valid).toBe(true);}
  }finally{await ui.close();}
 });

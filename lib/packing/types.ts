@@ -33,6 +33,8 @@ export type OrientationSigns = [1 | -1, 1 | -1, 1 | -1];
 export type CargoType = "carton" | "pallet" | "crate" | "drum" | "roll" | "loose";
 export type CargoShape = "box" | "cylinder" | "wedge" | "trapezoid" | "frustum" | "l-profile" | "u-profile" | "t-profile" | "step" | "irregular" | "polygon" | "tube" | "reel" | "bend" | "ellipsoid" | "capsule" | "custom-prism" | "compound" | "mesh";
 export type FloorPalletConfig = {
+  /** Declared whole-unit stacking for loading estimates; missing ratings stay unverified. */
+  unitStacking?: import("./unit-stacking").UnitStacking;
   /** Documentary twin-fork preflight; does not authorize handling. */
   forkInterface?: import("./fork-interface").ForkInterface;
   /** Documentary four-path ratings; automatic stacking requires a separate explicit opt-in and current validation. */

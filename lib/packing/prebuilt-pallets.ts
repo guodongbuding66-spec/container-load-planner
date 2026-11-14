@@ -1,3 +1,4 @@
+import {declaredUnitStacking,declaredStackLayers,declaredTopLoad,openUnitLayers} from "./unit-stacking";
 import {parseLooseQuantities,looseReservationErrors,looseOutsideUnit,type LooseQuantities} from "./loose-cargo";
 import {palletLoadEnvelope} from "./unit-envelope";
 import {crateAutoEnabled,inspectCrateStacks,isCrate} from "./crate-auto-stack";
@@ -109,7 +110,7 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
   for (const b of boxes) if (b.setCode) { const key = `${b.setCode}/${b.setNumber}`, ids = sets.get(key) ?? new Set<string>(); for (const id of b.palletIds?.length?b.palletIds:["__loose__"]) ids.add(b.palletIds?.length?`pallet:${id}`:"loose"); sets.set(key, ids); }
   if ([...sets.values()].some(ids => ids.size !== 1)) errors.push("A complete kit must stay on one pallet or entirely loose / 套装不能跨托或拆成打托和散装");
   for(const b of loose)for(const e of envelopes)if(!looseOutsideUnit(b,e,Math.max(productMap.get(b.productId)?.protectionGap??0,specifications.get(e.id)!.config.gap)))errors.push("Loose cargo intersects, supports or violates the gap of a complete unit / 散箱与整托包络相交、互相承托或保护间隙不足");
-  const stackLimit=(id:string)=>{const s=specifications.get(id)!;return isCrate(s.config)?crateAutoEnabled(s.config)?20:1:s.stackLayers;};
+  const stackLimit=(id:string)=>{const s=specifications.get(id)!;return isCrate(s.config)?crateAutoEnabled(s.config)?declaredUnitStacking(s.config)?declaredStackLayers(s.config):Math.min(20,s.config.unitStacking?.maxLayers||20):1:openUnitLayers(s);};
   const crateReview=inspectCrateStacks(pallets.filter(p=>isCrate(specifications.get(p.id)!.config)).map(p=>({pallet:p,config:specifications.get(p.id)!.config,cargoKg:cargoByPallet.get(p.id)!.reduce((n,b)=>n+b.weight,0)})),envelopes);
   const layers = new Map<string, number>(), ancestors=new Map<string,string[]>();
   for (const e of [...envelopes].sort((a, b) => a.z - b.z)) {
@@ -131,7 +132,7 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
   }
   for(const e of envelopes)for(const b of siteExclusionBoxes(container,clearance))if(Math.min(e.x+e.dx,b.x+b.dx)-Math.max(e.x,b.x)>EPS&&Math.min(e.y+e.dy,b.y+b.dy)-Math.max(e.y,b.y)>EPS&&Math.min(e.z+e.dz,b.z+b.dz)-Math.max(e.z,b.z)>EPS)errors.push(`Complete pallet intersects site region: ${b.name}`);
   const loads = bearingLoads(envelopes);
-  for (const e of envelopes) if (!isCrate(specifications.get(e.id)!.config) && (loads.get(e.id) ?? 0) > specifications.get(e.id)!.maxTopLoadKg + EPS) errors.push("Loaded pallet exceeds declared top-load limit");
+  for (const e of envelopes) if (!isCrate(specifications.get(e.id)!.config) && (loads.get(e.id) ?? 0) > (specifications.get(e.id)!.config.unitStacking?.enabled?Math.min(declaredTopLoad(specifications.get(e.id)!.config),specifications.get(e.id)!.maxTopLoadKg>0?specifications.get(e.id)!.maxTopLoadKg:100000):specifications.get(e.id)!.maxTopLoadKg) + EPS) errors.push("Loaded pallet exceeds declared top-load limit");
   errors.push(...crateReview.errors);
   return errors;
 }

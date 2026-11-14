@@ -1,5 +1,7 @@
 "use client";
 
+import {UnitStackingSettings} from "./unit-stacking-settings";
+import type {UnitStacking} from "../lib/packing/unit-stacking";
 import { useEffect, useState } from "react";
 import { parseNumericDraft } from "../lib/packing/numeric-draft";
 import { packagingInterior } from "../lib/packing/packaging";
@@ -55,11 +57,18 @@ const fineFields:FineField[] = ["length","width","height","maxCargoHeight"];
 export function usePalletRecipe({request, spec, disabled, onApply, onPendingChange, initialCartons}: Props) {
   const [draft, setDraft] = useState(String(initialCartons ?? spec.cartonLimit ?? ""));
   const [redesigned, setRedesigned] = useState(initialCartons !== undefined && !canSuggestPalletSize(spec.config));
+  const [stacking,saveStacking]=useState<UnitStacking>(spec.config.crateBearing?.policy==="prohibited"?{enabled:false,maxLayers:0}:spec.config.unitStacking??{enabled:true,maxLayers:0});
+  const [stackingDirty,setStackingDirty]=useState(false);
+  const setStacking=(value:UnitStacking)=>{saveStacking(value);setStackingDirty(true);};
+  const [automaticQuantity,saveAutomaticQuantity]=useState(true);
+  const setAutomaticQuantity=(value:boolean)=>{saveAutomaticQuantity(value);setStackingDirty(true);};
+  const [stackingValid,setStackingValid]=useState(true);
   const [fine, setFine] = useState<FineDraft>();
   const fineNumbers = fineFields.map(field=>parseNumericDraft(fine?.values[field]??"",{min:1,max:100000}));
   const fineInvalid = !!fine && fineNumbers.some(n=>n.state!=="valid");
-  const baseSpec = redesigned ? redesignPalletRecipeSpec(spec) : spec;
-  const recipeSpec = fine && !fineInvalid ? {...baseSpec,config:{...fine.config,
+  const sourceSpec = redesigned ? redesignPalletRecipeSpec(spec) : spec;
+  const baseSpec={...sourceSpec,config:{...sourceSpec.config,unitStacking:stacking}};
+  const recipeSpec = fine && !fineInvalid ? {...baseSpec,config:{...fine.config,unitStacking:stacking,
     ...Object.fromEntries(fineFields.map((field,i)=>[field,fineNumbers[i].state==="valid"?fineNumbers[i].value:0]))}} : baseSpec;
   const canRedesign = !request.palletBuild || palletSpecifications(request.palletBuild).length < MAX_PACKAGING_SPECIFICATIONS;
   const [selected, setSelected] = useState("");
@@ -73,8 +82,8 @@ export function usePalletRecipe({request, spec, disabled, onApply, onPendingChan
   const archiveBlocked = redesigned && !canRedesign;
   const parsed = parseNumericDraft(draft, {integer:true, min:1, max:MAX_CARTONS_PER_PALLET});
   const cartons = parsed.state === "valid" ? parsed.value : undefined;
-  const pending = redesigned || !!fine || cartons !== spec.cartonLimit || draft.trim() !== "" && mode === "suggest" || parsed.state === "invalid";
-  const key = !disabled && !fineInvalid && !archiveBlocked && groupKey && cartons !== undefined
+  const pending = stackingDirty || redesigned || !!fine || cartons !== spec.cartonLimit || draft.trim() !== "" && mode === "suggest" || parsed.state === "invalid";
+  const key = !disabled && stackingValid && !fineInvalid && !archiveBlocked && groupKey && cartons !== undefined
     ? JSON.stringify({request, spec:recipeSpec, groupKey, cartons, mode} satisfies PalletRecipeInput)
     : "";
   const current = response?.key === key ? response : undefined;
@@ -124,16 +133,18 @@ export function usePalletRecipe({request, spec, disabled, onApply, onPendingChan
     : current?.error ? current.error.includes(" / ") ? tr(...current.error.split(" / ", 2) as [string, string]) : trText(current.error) : "";
   const fitsTarget = !!preview && preview.placements.length === preview.sampleCartons;
   const applyPreview = (apply = onApply) => {
-    if (disabled || cartons === undefined || !preview || !fitsTarget || fineInvalid || archiveBlocked) return;
+    if (disabled || cartons === undefined || !preview || !fitsTarget || fineInvalid || archiveBlocked || !stackingValid) return;
     const config = mode === "suggest" || fine
       ? {...preview.config, presetId:"carton-sized", name:`${group[0].sku.slice(0, 80)} ${packagingInterior(preview.config).crate ? tr("定制木箱","sized crate") : tr("定制托盘","sized pallet")}`}
       : recipeSpec.config;
-    apply({config, cartonLimit:cartons, ...(redesigned?{redesigned:true}:{})});
+    apply({config, cartonLimit:cartons, ...(automaticQuantity?{automaticQuantity:true}:{}), ...(redesigned?{redesigned:true}:{})});
     setRedesigned(false);
+    setStackingDirty(false);
     setFine(undefined);
     setMethod("current");
   };
   const cancel = () => {
+    setStacking(spec.config.unitStacking??{enabled:false,maxLayers:0});setAutomaticQuantity(false);setStackingValid(true);setStackingDirty(false);
     setRedesigned(false);
     setFine(undefined);
     setDraft(String(spec.cartonLimit ?? ""));
@@ -151,7 +162,7 @@ export function usePalletRecipe({request, spec, disabled, onApply, onPendingChan
     setRedesigned(redesigned || documented);
     setFine({config,values:Object.fromEntries(fineFields.map(field=>[field,String(config[field]??0)])) as Record<FineField,string>});
   };
-  return {draft,setDraft,redesigned,canRedesign,selected,setSelected,groups,group,groupKey,canSuggest,mode,parsed,cartons,pending,key,current,preview,errors,applyPreview,cancel,suggest,restoreCurrent,fine,fineTune,fineInvalid,fitsTarget,
+  return {stacking,setStacking,automaticQuantity,setAutomaticQuantity,setStackingValid,draft,setDraft,redesigned,canRedesign,selected,setSelected,groups,group,groupKey,canSuggest,mode,parsed,cartons,pending,key,current,preview,errors,applyPreview,cancel,suggest,restoreCurrent,fine,fineTune,fineInvalid,fitsTarget,
     updateFine:(field:FineField,value:string)=>setFine(previous=>previous?{...previous,values:{...previous.values,[field]:value}}:previous),
     removeLimit:()=>{setFine(undefined);setRedesigned(false);setDraft("");setMethod("current");onApply({cartonLimit:undefined});}};
 }
@@ -159,7 +170,7 @@ export function usePalletRecipe({request, spec, disabled, onApply, onPendingChan
 export function PalletRecipe(props:Props) {
   useLanguage();
   const {request,spec,disabled,initialCartons,applyLabel,onFineTune}=props;
-  const {draft,redesigned,canRedesign,setSelected,groups,group,groupKey,canSuggest,mode,parsed,cartons,pending,key,current,preview,errors,applyPreview,cancel,suggest,restoreCurrent,fine,fineTune,fitsTarget,updateFine,removeLimit}=usePalletRecipe(props);
+  const {stacking,setStacking,automaticQuantity,setAutomaticQuantity,setStackingValid,draft,redesigned,canRedesign,setSelected,groups,group,groupKey,canSuggest,mode,parsed,cartons,pending,key,current,preview,errors,applyPreview,cancel,suggest,restoreCurrent,fine,fineTune,fitsTarget,updateFine,removeLimit}=usePalletRecipe(props);
 
   return <section id="pallet-recipe" className="pallet-recipe" aria-label={tr("按箱数自动打托","Pallet sizing by carton count")}>
     <h3>{tr("按箱数自动打托","Pallet sizing by carton count")}</h3>
@@ -168,6 +179,9 @@ export function PalletRecipe(props:Props) {
       : tr("当前显示已保存的包装。修改每托箱数后，会自动生成新的打托尺寸与堆码预览。","Showing the saved packaging. Changing cartons per pallet automatically generates new dimensions and a stacking preview.")}</p>
     {!canSuggest && !redesigned && <div className="packaging-preview-actions"><button type="button" className="button small" disabled={disabled||!canRedesign||!group} onClick={()=>suggest(String(initialPalletRecipeCartons(request,redesignPalletRecipeSpec(spec))??""))}>{tr("自动推荐每托箱数与尺寸","Suggest carton count and dimensions")}</button></div>}
     {redesigned&&<p role="status">{tr("新打托预览尚未采用。采用后才会替换旧限高和箱数，并保留旧包装资料；新尺寸需重新核对自重、承重和结构。","New pallet preview is not applied yet. Applying replaces the old height and carton limit and retains the old packaging records. Verify tare, payload and structure for the new dimensions.")}</p>}
+    <UnitStackingSettings value={stacking} onChange={setStacking} disabled={disabled} onValidityChange={setStackingValid}/>
+    <label><input type="checkbox" checked={automaticQuantity} disabled={disabled} onChange={e=>setAutomaticQuantity(e.target.checked)}/>{tr("按订单生成托盘（本规格与总上限改为 200 托）","Prepare pallets for the order (set this specification and total limits to 200)")}</label>
+    <small>{tr(`当前本规格可用 ${spec.maxPallets} 托；总生成上限 ${request.palletBuild?.maxPallets??50} 托。数量上限也会限制装箱数。`,`This specification allows ${spec.maxPallets} pallets; total generation limit ${request.palletBuild?.maxPallets??50}. Pallet limits also constrain carton capacity.`)}</small>
     <div className="pallet-build-grid">
       {groups.length > 1 && <label>{tr("预览货物","Preview cargo")}<select value={groupKey} onChange={e=>{setSelected(e.target.value);suggest();}}>
         {groups.map(items => <option key={packagingGroupKey(items[0])} value={packagingGroupKey(items[0])}>{items[0].setCode || items[0].sku}</option>)}
@@ -189,6 +203,7 @@ export function PalletRecipe(props:Props) {
         <div><small>{tr("整托毛重","Gross pallet weight")}</small><strong>{Number(preview.grossWeight.toFixed(2))} kg</strong></div>
       </div>
       <RecipeViews preview={preview}/>
+      {stacking.enabled&&<p><strong>{tr("整托叠放高度预估","Pallet-tier height estimate")}: {Math.max(1,Math.min(stacking.maxLayers||99,Math.floor((Math.min(request.container.height,request.container.loadingAccess==="open"?request.container.height:request.container.doorHeight)-request.clearance)/preview.height)))} {tr("托高","tiers")}</strong> · {tr("实际层数由装柜计算核对承托、载重和上压。","The loading calculation checks support, payload and top loads for actual tiers.")}</p>}
       <p>{preview.placements.length < preview.sampleCartons
         ? tr(`当前尺寸可打 ${preview.placements.length} 箱，目标 ${cartons} 箱。调整尺寸或限高可刷新预览。`, `Current dimensions fit ${preview.placements.length} of the target ${cartons} cartons. Edit dimensions or height to refresh.`)
         : tr(`本单所选货物有 ${preview.orderCartons} 箱待打托，尾托按实际余量生成。`, `This order has ${preview.orderCartons} cartons of the selected cargo to palletize. Tail units use the remaining quantity.`)}</p>

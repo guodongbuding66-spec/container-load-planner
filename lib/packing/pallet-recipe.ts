@@ -35,12 +35,13 @@ export function canSuggestPalletSize(config: FloorPalletConfig) {
     !config.packaging?.deckSupports?.length && !config.forkInterface && !config.crateBearing;
 }
 
-export type PalletRecipePatch = Partial<Pick<PalletBuildSpecification,"config"|"cartonLimit">> & {redesigned?:boolean};
+export type PalletRecipePatch = Partial<Pick<PalletBuildSpecification,"config"|"cartonLimit">> & {redesigned?:boolean;automaticQuantity?:boolean};
 
 /** A new design draft, never a claim that the existing measured structure changed. */
 export function redesignPalletRecipeSpec(spec: PalletBuildSpecification): PalletBuildSpecification {
   const config = structuredClone(spec.config);
   delete config.forkInterface;
+  if(config.crateBearing?.policy==="prohibited"&&config.unitStacking)config.unitStacking={...config.unitStacking,enabled:false};
   delete config.crateBearing;
   if (config.packaging) {
     delete config.packaging.measurements;
@@ -73,8 +74,9 @@ export function initialPalletRecipeCartons(request: PackingRequest, spec: Pallet
 export function withPalletRecipe(build: PalletBuildOptions, id: string, patch: PalletRecipePatch): PalletBuildOptions {
   const spec = palletSpecifications(build).find(s => s.id === id);
   if (!spec) throw new Error("包装规格已变化，请重新预览 / Packaging specification changed. Preview again");
-  const {redesigned, ...changes} = patch;
-  const next = {...spec, ...changes};
+  const {redesigned, automaticQuantity, ...changes} = patch;
+  const next = {...spec, ...changes, ...(automaticQuantity?{maxPallets:200}:{})};
+  if(automaticQuantity)build={...build,maxPallets:200};
   let additionalSpecs = build.additionalSpecs;
   if (redesigned) {
     const specs = palletSpecifications(build);

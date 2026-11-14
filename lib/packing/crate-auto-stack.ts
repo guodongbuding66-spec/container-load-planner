@@ -2,21 +2,42 @@ import { crateEvidence, planCrateUnits, reviewCrateStack, type CrateReviewUnit }
 import { palletEnvelopeTop } from "./deck-support";
 import {crateStructure} from "./crate-structure";
 import {contactArea} from "./bearing";
+import {declaredUnitStacking,declaredStackLayers,declaredTopLoad} from "./unit-stacking";
 import type { FloorPalletConfig, PackingResult, PlacedBox } from "./types";
 
 const EPS = .0001;
 export const isCrate = (c: FloorPalletConfig) => !!c.packaging && c.packaging.enclosure !== "none";
 /** Explicit opt-in is independent of the older documentary preflight review. */
 export function crateAutoEnabled(c: FloorPalletConfig, today?: string) {
-  return c.crateBearing?.automaticStacking === true && !c.packaging?.deckSupports?.length && crateEvidence(c, today).state === "ready";
+  return c.unitStacking?.enabled!==false && (declaredUnitStacking(c) || c.crateBearing?.automaticStacking === true && !c.packaging?.deckSupports?.length && crateEvidence(c, today).state === "ready");
 }
 export function crateTopCapacity(c: FloorPalletConfig, grossKg: number) {
-  if (!crateAutoEnabled(c) || c.crateBearing!.maxLayers < 2) return 0;
-  return Math.max(0, Math.min(c.crateBearing!.maxTopLoadKg, ...Object.values(c.crateBearing!.columnCapacityKg).map(n => n - grossKg)));
+  if(declaredUnitStacking(c))return declaredStackLayers(c)>1?Math.max(0,Math.min(declaredTopLoad(c),...Object.values(c.crateBearing?.columnCapacityKg??{}).filter(n=>n>0).map(n=>n-grossKg))):0;
+  if (!crateAutoEnabled(c) || c.crateBearing!.maxLayers < 2 || c.unitStacking?.maxLayers === 1) return 0;
+  return Math.max(0, Math.min(c.unitStacking?.maxTopLoadKg??100000,c.crateBearing!.maxTopLoadKg, ...Object.values(c.crateBearing!.columnCapacityKg).map(n => n - grossKg)));
+}
+function unitColumnIssues(column:readonly CrateReviewUnit[]) {
+  const issues:string[]=[];
+  for(let i=0;i<column.length;i++){
+      const rule=column[i].config.unitStacking,top=column.slice(i+1).reduce((n,u)=>n+u.pallet.weight+u.cargoKg,0);
+      if(rule?.enabled&&rule.maxLayers>0&&column.length-i>rule.maxLayers)issues.push("整托叠放超过层数 / Unit stack layer limit exceeded");
+      if(rule?.enabled&&rule.maxTopLoadKg!==undefined&&top>rule.maxTopLoadKg+EPS)issues.push("整托累计上压超过设定值 / Cumulative unit top load exceeded");
+    }
+  return issues;
+}
+function declaredColumnIssues(column:readonly CrateReviewUnit[]) {
+  const issues:string[]=[];
+  for(let i=0;i<column.length;i++){
+    const u=column[i],top=column.slice(i+1).reduce((n,v)=>n+v.pallet.weight+v.cargoKg,0);
+    if(!declaredUnitStacking(u.config))issues.push("整托叠放规则不兼容 / Incompatible unit stacking rules");
+    if(column.length-i>declaredStackLayers(u.config))issues.push("整托叠放超过层数 / Unit stack layer limit exceeded");
+    if(top>crateTopCapacity(u.config,u.pallet.weight+u.cargoKg)+EPS)issues.push("整托累计上压超过设定值 / Cumulative unit top load exceeded");
+  }
+  return issues;
 }
 const supports = (lower: PlacedBox, upper: PlacedBox) => lower.id !== upper.id && Math.abs(lower.z + lower.dz - upper.z) < EPS && upper.x >= lower.x - EPS && upper.y >= lower.y - EPS && upper.x + upper.dx <= lower.x + lower.dx + EPS && upper.y + upper.dy <= lower.y + lower.dy + EPS;
 function bridgeSupportIds(upper:PlacedBox,placed:readonly PlacedBox[],resolve:(b:PlacedBox)=>CrateReviewUnit|undefined,today?:string){
- const valid=(unit:CrateReviewUnit|undefined):unit is CrateReviewUnit=>!!unit&&crateAutoEnabled(unit.config,today)&&unit.config.crateBearing?.bridgeStacking===true
+ const valid=(unit:CrateReviewUnit|undefined):unit is CrateReviewUnit=>!!unit&&!declaredUnitStacking(unit.config)&&crateAutoEnabled(unit.config,today)&&unit.config.crateBearing?.bridgeStacking===true
   &&unit.config.crateBearing.maxLayers>=2&&unit.config.crateBearing.allowedOrientations.includes(unit.pallet.orientation)&&unit.cargoKg<=unit.config.maxLoad+EPS;
  const top=resolve(upper);if(upper.z<=EPS||!valid(top))return undefined;
  const bases=placed.filter(b=>b.id!==upper.id&&Math.abs(b.z+b.dz-upper.z)<EPS&&contactArea(b,upper)>EPS);
@@ -27,7 +48,7 @@ function bridgeSupportIds(upper:PlacedBox,placed:readonly PlacedBox[],resolve:(b
  const permitted=bases.flatMap(base=>{
   const unit=resolve(base);if(!valid(unit))return [];
   const rating=unit.config.crateBearing!,bound=unit.pallet.weight+unit.cargoKg+gross;
-  if(rating.maxTopLoadKg+EPS<gross||Object.values(rating.columnCapacityKg).some(n=>n+EPS<bound))return [];
+  if(crateTopCapacity(unit.config,unit.pallet.weight+unit.cargoKg)+EPS<gross||Object.values(rating.columnCapacityKg).some(n=>n+EPS<bound))return [];
   return crateStructure(unit.config,unit.pallet).paths.flatMap(path=>path.continuous&&path.top&&path.topZ!==undefined?[{id:`${base.id}/${path.id}`,base:base.id,zone:path.top,z:path.topZ}]:[]);
  });
  const used=new Set<string>(),loadPaths=new Set<string>();
@@ -39,8 +60,8 @@ function bridgeSupportIds(upper:PlacedBox,placed:readonly PlacedBox[],resolve:(b
  }
  return loadPaths.size===bases.length?bases.map(b=>b.id):undefined;
 }
-export type CrateStackCell = { id: string; state: "passed" | "failed" | "unverified" | "prohibited" | "floor-only"; stacked: boolean; level: number; topLoadKg: number; throughLoadBoundKg: number; supporterId?: string; issues: string[] };
-export const CRATE_STACK_STATE_TEXT: Record<CrateStackCell["state"], [string, string]> = {passed:["按录入静载通过","Passed entered static ratings"],failed:["叠放不通过","Stack failed"],unverified:["资料未核验，底置","Unverified evidence, floor-only"],prohibited:["禁止叠放，底置","Stacking prohibited, floor-only"],"floor-only":["资料已核对，本方案未叠放","Evidence reviewed, not stacked"]};
+export type CrateStackCell = { id: string; state: "declared" | "passed" | "failed" | "unverified" | "prohibited" | "floor-only"; stacked: boolean; level: number; topLoadKg: number; throughLoadBoundKg: number; supporterId?: string; issues: string[] };
+export const CRATE_STACK_STATE_TEXT: Record<CrateStackCell["state"], [string, string]> = {declared:["按可堆叠预排，结构承重待核对","Stackable layout; structural rating unverified"],passed:["按录入静载通过","Passed entered static ratings"],failed:["叠放不通过","Stack failed"],unverified:["资料未核验，底置","Unverified evidence, floor-only"],prohibited:["禁止叠放，底置","Stacking prohibited, floor-only"],"floor-only":["资料已核对，本方案未叠放","Evidence reviewed, not stacked"]};
 
 /** Whole-plan check. Only one complete crate per tier and one crate below are supported. */
 export function inspectCrateStacks(units: readonly CrateReviewUnit[], envelopes: readonly PlacedBox[], today?: string) {
@@ -72,16 +93,19 @@ export function inspectCrateStacks(units: readonly CrateReviewUnit[], envelopes:
     const column = ids.map(id => unitMap.get(id)!).sort((a, b) => a.pallet.z - b.pallet.z);
     const stacked = column.length > 1 || column.some(u => u.pallet.z > EPS || children.get(u.pallet.id)?.length);
     let issues: string[] = [];
+    const declared=column.some(u=>declaredUnitStacking(u.config));
     if (stacked) {
       if (column.some(u => !crateAutoEnabled(u.config, today))) issues.push("木箱未启用自动叠放或额定资料无效 / Crate automatic stacking is disabled or its evidence is invalid");
-      if (column.length > 20 || column[0].pallet.z > EPS || column.some(u => (parents.get(u.pallet.id)?.length ?? 0) !== (u.pallet.z > EPS ? 1 : 0) || (children.get(u.pallet.id)?.length ?? 0) > 1 || [...parents.get(u.pallet.id) ?? [], ...children.get(u.pallet.id) ?? []].some(p => !unitMap.has(p.id)))) issues.push("木箱仅允许柜底起始、逐层单箱的完整传力列 / Crates require a floor-rooted column with one complete crate per tier");
+      if (column.length > (declared?200:20) || column[0].pallet.z > EPS || column.some(u => (parents.get(u.pallet.id)?.length ?? 0) !== (u.pallet.z > EPS ? 1 : 0) || (children.get(u.pallet.id)?.length ?? 0) > 1 || [...parents.get(u.pallet.id) ?? [], ...children.get(u.pallet.id) ?? []].some(p => !unitMap.has(p.id)))) issues.push("木箱仅允许柜底起始、逐层单箱的完整传力列 / Crates require a floor-rooted column with one complete crate per tier");
     }
-    const report = stacked && !issues.length ? reviewCrateStack(column, today) : undefined;
+    if(stacked)issues.push(...unitColumnIssues(column));
+    if(stacked&&declared)issues.push(...declaredColumnIssues(column));
+    const report = stacked && !declared && !issues.length ? reviewCrateStack(column, today) : undefined;
     if (report && report.state !== "passed") issues = report.issues.map(i => `${i.unitId}: crate-${i.code}${i.corner ? `/${i.corner}` : ""}`);
     errors.push(...issues);
     column.forEach((u, index) => {
       const evidence = crateEvidence(u.config, today), row = report?.units.find(r => r.id === u.pallet.id);
-      cells.set(u.pallet.id, { id: u.pallet.id, stacked, state: issues.length ? "failed" : stacked ? "passed" : evidence.state === "ready" ? "floor-only" : evidence.state, level: index + 1, topLoadKg: row?.topLoadKg ?? 0, throughLoadBoundKg: row?.throughLoadBoundKg ?? u.pallet.weight + u.cargoKg, supporterId: parents.get(u.pallet.id)?.[0]?.id, issues });
+      cells.set(u.pallet.id, { id: u.pallet.id, stacked, state: issues.length ? "failed" : declared ? "declared" : stacked ? "passed" : evidence.state === "ready" ? "floor-only" : evidence.state, level: index + 1, topLoadKg: row?.topLoadKg ?? (declared?column.slice(index+1).reduce((n,v)=>n+v.pallet.weight+v.cargoKg,0):0), throughLoadBoundKg: row?.throughLoadBoundKg ?? column.slice(index).reduce((n,v)=>n+v.pallet.weight+v.cargoKg,0), supporterId: parents.get(u.pallet.id)?.[0]?.id, issues });
     });
   }
   return { cells: [...cells.values()], errors: [...new Set(errors)],bridgeParents };
@@ -95,11 +119,11 @@ export function crateCandidateAllowed(candidate: PlacedBox, placed: readonly Pla
   if (!resolve(candidate) && !direct.some(p => resolve(p))) return true;
   const column: CrateReviewUnit[] = [];
   let current = candidate;
-  for (let depth = 0; depth < 20; depth++) {
+  for (let depth = 0; depth < 200; depth++) {
     const unit = resolve(current);
     if (!unit || !crateAutoEnabled(unit.config)) return false;
     column.unshift(unit);
-    if (current.z <= EPS) return reviewCrateStack(column).state === "passed";
+    if (current.z <= EPS) return unitColumnIssues(column).length===0 && (column.some(u=>declaredUnitStacking(u.config))?declaredColumnIssues(column).length===0:reviewCrateStack(column).state === "passed");
     const lower = placed.filter(p => supports(p, current));
     if (lower.length !== 1) return false;
     if(placed.some(b=>b.id!==current.id&&Math.abs(b.z-current.z)<EPS&&contactArea(b,lower[0])>EPS))return false;

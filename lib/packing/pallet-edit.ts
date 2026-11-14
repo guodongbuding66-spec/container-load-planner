@@ -175,7 +175,7 @@ export function editPalletContents(plan:PackingResult,products:ProductInput[],id
   result.id=`pallet-revision-${Date.now()}-${++serial}`;
   result.warnings=["托内编辑已按完整订单重新校验；采用后请重新导出现场指导，旧版现场进度不能用于此方案。 / Pallet contents were revalidated against the complete order; re-export field instructions after applying. Previous progress belongs to the old plan."];
   if(result.palletization?.only)result.warnings.unshift("仅生成独立托盘；三维编组位置用于查看，不代表柜内箱位。 / Pallets only; inspection coordinates are not vehicle loading instructions.");
-  if(result.pallets?.some(p=>p.packaging&&p.packaging.enclosure!=="none"))result.warnings.push("木箱实际叠放已重新核对四角传力和录入静载；未启用或资料无效的木箱仍底置，动态和材料强度未核验。 / Actual crate columns were rechecked against entered four-path static ratings; disabled or unreviewed crates remain floor-only. Dynamics and material strength are unverified.");
+  if(result.pallets?.some(p=>p.packaging&&p.packaging.enclosure!=="none"))result.warnings.push("整托叠放已按所选模式复核：可堆叠预排检查尺寸与已填上压，额定模式另核对四角传力；动态和材料强度未核验。 / Unit tiers were rechecked in the selected mode: declared layouts check geometry and entered top loads; rated mode also checks four-path evidence. Dynamics and material strength remain unverified.");
   const unknown=bearingStatus(result.placements,products).unknownIds.length;
   if(unknown)result.warnings.push(`承重未核验：${unknown} 个受压箱体缺少当前朝向的额定资料。 / Bearing unverified: ${unknown} loaded cartons lack orientation-specific ratings.`);
   return result;

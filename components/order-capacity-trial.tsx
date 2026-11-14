@@ -1,4 +1,5 @@
 "use client";
+import {WholePalletStacking} from "./whole-pallet-stacking";
 import {useLayoutEffect,useMemo,useRef,useState} from "react";
 import {prepareOrderCapacityTrial,reviewOrderCapacityTrial,replenishedOrder,type OrderCapacityTrial} from "../lib/packing/order-capacity";
 import {palletSpecifications} from "../lib/packing/pallet-specifications";
@@ -52,9 +53,10 @@ export function OrderCapacityTrial(props:Props){
  const status=task.current?.kind==="running"?(packagingTrial?tr("正在使用已登记的包装尺寸、库存和承重比选；订单和原方案保持不变。","Comparing registered packaging dimensions, stock and load ratings; the order and original plan are unchanged."):heightTrial?tr("正在提高开放式托盘限高并试装原订单；原方案保持不变。","Testing higher open-pallet ceilings with the original order; the original plan is unchanged."):tr("正在按原尺寸、包装库存和承重规则试装；原订单保持不变。","Testing the original geometry, packaging stock and load rules; the order is unchanged.")):task.current?.kind==="timeout"?tr("30 秒试算结束，未完成结果已丢弃，原方案保留。","The 30-second budget expired. Incomplete results were discarded; the original plan is retained."):task.current?.kind==="cancelled"?tr("已停止试算，原方案保留。","Trial cancelled; the original plan is retained."):task.current?.kind==="error"?tr("试算未完成，原方案保留。","Trial failed; the original plan is retained."):"";
  return <section className="order-capacity-trial" aria-label={tr("订单数量与补货试算","Order quantity and replenishment trial")}>
   <div className="panel-head"><div><h3>{loaded===undefined?tr("订单数量与装载试算","Order quantity and loading trials"):unmet?(request.workflow==="palletized"?tr("订单尚未装完：检查打托与堆叠限制","Order incomplete: review packaging and stacking limits"):tr("订单尚未装完：检查装载限制","Order incomplete: review loading limits")):tr("本单装完 ≠ 整柜装满","Order fulfilled ≠ container full")}</h3><p>{tr("订单量","Ordered")}: {ordered.toLocaleString()} {tr("箱","cartons")}{loaded!==undefined&&<> · {tr("当前已装","Currently loaded")}: {loaded.toLocaleString()} {tr("箱","cartons")}</>}</p></div></div>
+  <WholePalletStacking request={request} plan={plan} disabled={props.disabled||!!measured||!canApply||task.running} onApply={props.onApplyBuild}/>
   {lowCeilings.length>0&&<div className="pallet-height-action">
     {lowCeilings.map(s=><p key={s.id}><strong>{s.name} · {s.crate?tr("木箱内部净高","Crate interior height"):tr("托内货物限高","Pallet cargo height limit")} {Number(s.current.toFixed(1))} mm</strong> · {tr("当前高度只能放一层纸箱。","This height allows only one carton layer.")}</p>)}
-    <p>{tr("按现有尺寸重算仍会只有一层。下方预览采用新的打托尺寸，确认后会重新生成整托并计算装柜。","Recalculating the existing dimensions still allows only one layer. Review the new packaging dimensions below, then apply them to rebuild pallets and calculate loading.")}</p>
+    <p>{tr("按现有尺寸托内仍为一层纸箱；整托可独立向上叠放。下方预览采用新的打托尺寸，确认后会重新生成整托并计算装柜。","The existing dimensions hold one carton layer inside each pallet; complete pallets can stack separately. Review the new packaging dimensions below, then apply them to rebuild pallets and calculate loading.")}</p>
     {recipeSpec&&request.palletBuild&&props.onApplyBuild&&canApply&&!measured&&<PalletRecipe
       key={JSON.stringify([request,recipeSpec.id])} request={request} spec={recipeSpec}
       initialCartons={initialPalletRecipeCartons(request,recipeSpec)} disabled={props.disabled||task.running}
