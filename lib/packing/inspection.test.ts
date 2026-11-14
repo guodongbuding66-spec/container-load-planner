@@ -38,10 +38,10 @@ describe("real-coordinate measurement and view-only sectioning",()=>{
     expect(sectionBox(first,physical,{...section,percent:0})).toBeNull();
     expect(sectionBox(first,physical,{...section,percent:100})).toEqual(first);
   });
-  it("isolates layer, pallet and complete set identities while preserving full-plan quantities",()=>{
+  it("isolates a carton, layer, pallet and complete set while preserving full-plan quantities",()=>{
     const placements=[{...first,id:"a",productId:"p",layer:1,setCode:"KIT",setNumber:1,palletIds:["pallet-a"]},{...first,id:"b",productId:"p",layer:2,setCode:"KIT",setNumber:2,palletIds:["pallet-b"]}] as PlacedBox[];
     const result={...physical,placements} as PackingResult,visible=new Set(["p"]),before=JSON.stringify(result);
-    for(const section of [{...EMPTY_SECTION,isolation:"layer" as const,target:"1"},{...EMPTY_SECTION,isolation:"pallet" as const,target:"pallet-a"},{...EMPTY_SECTION,isolation:"set" as const,target:JSON.stringify(["KIT",1])}])expect(inspectBoxes(result,visible,2,section).map(b=>b.id)).toEqual(["a"]);
+    for(const section of [{...EMPTY_SECTION,isolation:"carton" as const,target:"a"},{...EMPTY_SECTION,isolation:"layer" as const,target:"1"},{...EMPTY_SECTION,isolation:"pallet" as const,target:"pallet-a"},{...EMPTY_SECTION,isolation:"set" as const,target:JSON.stringify(["KIT",1])}])expect(inspectBoxes(result,visible,2,section).map(b=>b.id)).toEqual(["a"]);
     expect(inspectBoxes(result,visible,0,EMPTY_SECTION)).toEqual([]);expect(inspectBoxes(result,new Set(),2,EMPTY_SECTION)).toEqual([]);
     expect(inspectBoxes(result,visible,2,{...EMPTY_SECTION,isolation:"set",target:""})).toEqual([]);
     const loose={...result,placements:placements.map(b=>({...b,setCode:undefined,setNumber:undefined}))};

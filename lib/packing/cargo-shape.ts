@@ -1,3 +1,4 @@
+import { parseShippingMark } from "./shipping-mark";
 import {parseOrderLine} from "./order-lines";
 import {parseLongSupport} from "./long-support";
 import type { CargoShape, ProductInput } from "./types";
@@ -55,5 +56,6 @@ export function withShapeSupport(p: ProductInput): ProductInput {
 export function isRectilinearShape(p: ShapeFields) { return ["l-profile", "u-profile", "t-profile", "step"].includes(cargoShapeOf(p)); }
 export function shapeCanSupport(p: ShapeFields) { try{return p.solidModel?!!p.solidModel.loadFaces.length&&(buildSolidModel(p.solidModel).flatFaces.length+buildSolidModel(p.solidModel).caps.length>0):cargoShapeOf(p) === "box" || isRectilinearShape(p);}catch{return false;} }
 export function shapeDetails(p: ProductInput) {
-  return { ...(p.orderLine===undefined?{}:{orderLine:parseOrderLine(p.orderLine)}), ...parseShapeFields(p as unknown as Record<string, unknown>), cargoType: p.cargoType, palletBaseHeight: p.palletBaseHeight, ...(p.longSupport===undefined?{}:{longSupport:parseLongSupport(p.longSupport)}) };
+  const shippingMark = parseShippingMark(p.shippingMark);
+  return { ...(shippingMark?{shippingMark}:{}), ...(p.orderLine===undefined?{}:{orderLine:parseOrderLine(p.orderLine)}), ...parseShapeFields(p as unknown as Record<string, unknown>), cargoType: p.cargoType, palletBaseHeight: p.palletBaseHeight, ...(p.longSupport===undefined?{}:{longSupport:parseLongSupport(p.longSupport)}) };
 }

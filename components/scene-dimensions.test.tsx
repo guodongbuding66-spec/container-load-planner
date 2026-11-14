@@ -16,6 +16,9 @@ import { SceneCameraController } from "../lib/packing/scene-camera";
 import { OrbitControls } from "three-stdlib";
 import { cameraDimensionProjector, projectDimensions, sceneMeasurement } from "../lib/packing/scene-dimensions";
 import { DimensionSvg } from "./dimension-svg";
+import { EMPTY_SECTION, inspectBoxes } from "../lib/packing/inspection";
+import { inspectionPallets, isolatedBounds, selectedBounds } from "../lib/packing/scene-view-scope";
+import { palletAnchors } from "../lib/packing/floor-pallets";
 
 const result=pack({mode:"mixed",strategy:"practical",container:CONTAINER_PRESETS[0],clearance:20,products:[{id:"shed",sku:"SHED-101",name:"shed",length:2200,width:620,height:180,weight:20,quantity:6,color:"#98b9de",priority:1,rotationPolicy:"upright",stackable:true,maxStackLayers:10}]});
 afterEach(()=>{vi.unstubAllGlobals();updateViewPreferences(DEFAULT_VIEW_PREFERENCES);});
@@ -70,9 +73,10 @@ describe("actual scene graph dimensions and selected-carton regression",()=>{
         for(let yaw=0.25;yaw<Math.PI*2;yaw+=.35){
           activeCamera.position.copy(target).add(new THREE.Vector3(Math.sin(yaw),.4,Math.cos(yaw)).normalize().multiplyScalar(distance));activeCamera.lookAt(target);activeCamera.zoom=1.15;activeCamera.updateProjectionMatrix();
           draws.length=0;strokes.length=0;frame();store.getState().scene.updateMatrixWorld(true);
-          const measures=draws.filter(d=>/\bmm$/.test(d.text));expect(measures).toHaveLength(3);
-          expect(measures.map(d=>d.text).sort()).toEqual(["L 2200 mm","W 620 mm","H 180 mm"].sort());
-          expect(strokes).toContain("#ff6600");expect(measures.every(d=>d.color==="#5522aa")).toBe(true);
+          const measures=draws.filter(d=>/\bmm$/.test(d.text));
+          expect(measures.filter(d=>d.color==="#825515").map(d=>d.text).sort()).toEqual(["L 2200 mm","W 620 mm","H 180 mm"].sort());
+          expect(measures.filter(d=>d.color==="#5522aa").map(d=>d.text)).toContain(`L ${result.container.length} mm`);
+          expect(strokes).toContain("#ff6600");expect(strokes).toContain("#b57925");
           for(const d of measures){
             const projected=new THREE.Vector3(d.x/viewport.width*2-1,1-d.y/viewport.height*2,0).applyMatrix4(hud.matrixWorld).project(activeCamera);
             expect((projected.x+1)*viewport.width/2).toBeCloseTo(d.x,5);expect((1-projected.y)*viewport.height/2).toBeCloseTo(d.y,5);
@@ -102,6 +106,28 @@ describe("actual scene graph dimensions and selected-carton regression",()=>{
 });
 
 describe("real-coordinate SVG fallback",()=>{
+  it("isolates one carton or the complete loaded crate, including its lid and linked SKUs",()=>{
+    const pallet = {id:"crate-1",presetId:"crate",name:"Crate 1",x:0,y:0,z:655,dx:1060,dy:1560,dz:25,weight:25,maxLoad:1000,orientation:"LWH" as const,enclosureHeight:655};
+    const first = {...result.placements[0],id:"first",x:30,y:30,z:680,dx:1000,dy:500,dz:300,palletIds:[pallet.id]};
+    const second = {...first,id:"second",productId:"other",sku:"OTHER",y:530};
+    const loose = {...first,id:"loose",x:2000,palletIds:[]};
+    const plan = {...result,pallets:[pallet],placements:[first,second,loose]};
+    const visible = new Set([first.productId]);
+    const onlyCarton = {...EMPTY_SECTION,isolation:"carton" as const,target:first.id};
+    const onlyPallet = {...EMPTY_SECTION,isolation:"pallet" as const,target:pallet.id};
+    expect(selectedBounds(plan,palletAnchors([pallet])[0])).toMatchObject({z:655,dx:1060,dy:1560,dz:655});
+    const draw = (section:typeof onlyCarton|typeof onlyPallet) => renderToStaticMarkup(<TransportAppearanceProvider><LoadingSceneFallback result={plan} visibleProducts={visible} visibleCount={3} selected={null} onSelect={()=>{}} section={section}/></TransportAppearanceProvider>);
+    const carton = draw(onlyCarton);
+    expect(carton).toContain('aria-label="SHED-101 first"');
+    expect(carton).not.toContain('aria-label="托盘 crate-1"');
+    expect(carton).not.toContain('aria-label="OTHER second"');
+    const crate = draw(onlyPallet);
+    expect(crate).toContain('aria-label="托盘 crate-1"');
+    expect(crate).toContain('aria-label="OTHER second"');
+    expect(crate).not.toContain('aria-label="SHED-101 loose"');
+    const cartons = inspectBoxes(plan,visible,3,onlyPallet);
+    expect(isolatedBounds(plan,onlyPallet,cartons,inspectionPallets(plan,3,onlyPallet,cartons))).toMatchObject({dz:655});
+  });
   it("retains footprints beyond the old 500-carton limit, picks the highest stack and respects visibility",()=>{
     const prototype=result.placements[0];
     const placements=Array.from({length:700},(_,i)=>({...prototype,id:`box-${i}`,productId:i===699?"late":"shed",x:i*10,y:0,z:0,dx:10,dy:10,dz:10}));
@@ -115,7 +141,9 @@ describe("real-coordinate SVG fallback",()=>{
   it("renders the same unboxed edge dimensions in main, space and pallet previews",()=>{
     const main=renderToStaticMarkup(<TransportAppearanceProvider><LoadingSceneFallback result={result} visibleProducts={new Set(["shed"])} visibleCount={result.placements.length} selected={result.placements[0]} onSelect={()=>{}}/></TransportAppearanceProvider>);
     expect(main).toContain('data-dimension-count="2"');expect(main).toContain("L 2200 mm");expect(main).toContain("W 620 mm");expect(main).not.toContain("H 180 mm");
-    expect(main.match(/>SHED-101</g) ?? []).toHaveLength(topViewFootprints(result.placements,new Set(["shed"]),result.placements.length).length);
+    expect(main).toContain(`L ${result.container.length} mm`);
+    expect(main).toContain('fill="#825515"');
+    expect(main).toContain(">SHED-101<");
     for(const props of [{space:result.container},{}]){
       const html=renderToStaticMarkup(<TransportAppearanceProvider><ModelPreviewFallback {...props} mode="model" transparency={65}/></TransportAppearanceProvider>);
       expect(html).toContain('data-dimension-count="3"');expect(html).toContain('stroke="#467ee6"');expect(html).toContain('paint-order="stroke"');

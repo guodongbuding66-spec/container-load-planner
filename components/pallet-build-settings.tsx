@@ -44,11 +44,12 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,ini
     ["maxLoad",tr("每托承重","Pallet payload"),"kg",1],["maxCargoHeight",crate?tr("木箱内部净高","Crate interior height"):tr("货物限高","Cargo height limit"),"mm",only||crate?1:0],
     ["gap",tr("整托保护间隙","Pallet protection gap"),"mm",0],
   ] as const;
-  return <article className="panel pallet-build-settings" aria-label={tr("打托配置","Pallet-building settings")}>
-    <div className="panel-head"><div><span className="section-kicker">PALLET BUILD</span><h2>{only?tr("只打托，不装箱","Palletize only"):tr("先打托，后装箱","Palletize, then load")}</h2><p>{tr("货物限高不含底座；总高和总重均包含托盘。","Cargo height excludes the deck; loaded height and gross weight include the pallet.")}</p></div></div>
+  return <>
     {request&&<PalletRecipe key={`${current.id}/${resetToken}`} request={request} spec={current}
       disabled={(invalid&&issue!=="height")||draftInvalid}
       onApply={patch=>onChange(withPalletRecipe(value,current.id,patch))} onPendingChange={onRecipePending}/>}
+    <article className="panel pallet-build-settings" aria-label={tr("打托配置","Pallet-building settings")}>
+    <div className="panel-head"><div><h2>{tr("包装规格与堆叠规则","Packaging specifications and stacking rules")}</h2></div></div>
     <div className="packaging-specifications">
       <div className="packaging-specification-tabs" role="group" aria-label={tr("包装规格优先顺序","Packaging specification priority")}>{specifications.map((s,i)=><button type="button" key={s.id} className={current.id===s.id?"selected":""} aria-pressed={current.id===s.id} disabled={draftInvalid} onClick={()=>setSelected(s.id)}><strong>{i+1}. {s.config.name||s.id}</strong><small>{s.config.length} × {s.config.width} · {s.maxPallets} {tr("个可用","available")}</small></button>)}<button type="button" className="button small" disabled={draftInvalid||specifications.length>=MAX_PACKAGING_SPECIFICATIONS} onClick={add}>{tr("新增包装规格","Add packaging specification")}</button></div>
       <label className="packaging-selection-mode">{tr("包装选择方式","Packaging selection mode")}<select aria-label={tr("包装选择方式","Packaging selection mode")} disabled={invalid||draftInvalid} value={value.selection??"ordered"} onChange={e=>onChange({...value,selection:e.target.value as "ordered"|"compact"})}><option value="ordered">{tr("按列表顺序","Use list order")}</option><option value="compact">{tr("自动比选：同货量优先小包装","Compare candidates: compact at equal load")}</option></select></label>
@@ -81,5 +82,6 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,ini
     <div className="pallet-build-grid packaging-order-rules"><label>{tr("单品托 / 混托","Pallet mix")}<select aria-label={tr("单品托 / 混托","Pallet mix")} value={value.mix} onChange={e=>onChange({...value,mix:e.target.value as "single"|"mixed"})}><option value="single">{tr("单 SKU / 完整套装","One SKU / whole kits")}</option><option value="mixed">{tr("允许多 SKU 混托","Allow mixed SKUs")}</option></select></label><label>{tr("生成托盘上限","Prepared pallet limit")}<NumericInput resetToken={resetToken} ariaLabel={tr("生成托盘上限","Prepared pallet limit")} value={value.maxPallets} integer min={1} max={200} onValueChange={maxPallets=>onChange({...value,maxPallets})} onValidityChange={valid=>fieldValidity("pallet-build:limit",valid)}/><small>{tr("所有规格合计上限","Total across all specifications")}</small></label></div>
     {crate&&!current.config.unitStacking?.enabled&&<p className="helper-text">{tr("木箱限高为内部净高，箱盖另外占用高度。默认底置；在额定资料内明确启用并重新核对后，只允许通过四角路径、累计顶载及每条路径总载荷校验的单列叠放。","Crate height is usable interior height; the lid adds to exterior height. Floor-only by default. Explicit opt-in and current reviewed evidence allow only single columns passing four-path contact, cumulative top-load and each-path through-load checks.")}</p>}
     <p className="helper-text">{only?tr("按订单生成全部可行托盘并保留未打托数量；三维编组区只用于查看，利用率按每托包络计算。","Build feasible pallets for the order and retain unmet quantities. The inspection area is for viewing; utilization uses pallet envelopes."):tr("每种规格独立设置上压和层数；可在上方开启整托叠放。仅完整平顶且通过累计承重和门洞校验的整托可堆叠。","Each specification has its own top-load and layer limits. Enable pallet-on-pallet stacking above. Stacking requires a complete flat top and cumulative-load and door checks.")}</p>
-  </article>;
+    </article>
+  </>;
 }

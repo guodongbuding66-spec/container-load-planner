@@ -179,9 +179,7 @@ export function PalletRecipe(props:Props) {
       : tr("当前显示已保存的包装。修改每托箱数后，会自动生成新的打托尺寸与堆码预览。","Showing the saved packaging. Changing cartons per pallet automatically generates new dimensions and a stacking preview.")}</p>
     {!canSuggest && !redesigned && <div className="packaging-preview-actions"><button type="button" className="button small" disabled={disabled||!canRedesign||!group} onClick={()=>suggest(String(initialPalletRecipeCartons(request,redesignPalletRecipeSpec(spec))??""))}>{tr("自动推荐每托箱数与尺寸","Suggest carton count and dimensions")}</button></div>}
     {redesigned&&<p role="status">{tr("新打托预览尚未采用。采用后才会替换旧限高和箱数，并保留旧包装资料；新尺寸需重新核对自重、承重和结构。","New pallet preview is not applied yet. Applying replaces the old height and carton limit and retains the old packaging records. Verify tare, payload and structure for the new dimensions.")}</p>}
-    <UnitStackingSettings value={stacking} onChange={setStacking} disabled={disabled} onValidityChange={setStackingValid}/>
-    <label><input type="checkbox" checked={automaticQuantity} disabled={disabled} onChange={e=>setAutomaticQuantity(e.target.checked)}/>{tr("按订单生成托盘（本规格与总上限改为 200 托）","Prepare pallets for the order (set this specification and total limits to 200)")}</label>
-    <small>{tr(`当前本规格可用 ${spec.maxPallets} 托；总生成上限 ${request.palletBuild?.maxPallets??50} 托。数量上限也会限制装箱数。`,`This specification allows ${spec.maxPallets} pallets; total generation limit ${request.palletBuild?.maxPallets??50}. Pallet limits also constrain carton capacity.`)}</small>
+    <div className="pallet-recipe-layout"><div className="pallet-recipe-inputs">
     <div className="pallet-build-grid">
       {groups.length > 1 && <label>{tr("预览货物","Preview cargo")}<select value={groupKey} onChange={e=>{setSelected(e.target.value);suggest();}}>
         {groups.map(items => <option key={packagingGroupKey(items[0])} value={packagingGroupKey(items[0])}>{items[0].setCode || items[0].sku}</option>)}
@@ -193,6 +191,10 @@ export function PalletRecipe(props:Props) {
     {!group && <p>{tr("请先添加符合本规格的货物或完整套装。","Add eligible cargo or a complete kit for this specification.")}</p>}
     {initialCartons!==undefined&&<small>{tr("保留你设置的每托箱数，重新建议尺寸；未设置箱数时按余量与承重建议。采用前，装柜结果仍显示原方案。","Your cartons-per-pallet target is retained while dimensions are redesigned. If no count is set, stock and payload suggest one. Loading results remain unchanged until you apply.")}</small>}
     {group && <small>{group.map(p => `${p.sku} · ${p.length} × ${p.width} × ${p.height} mm`).join(" / ")}</small>}
+    <UnitStackingSettings value={stacking} onChange={setStacking} disabled={disabled} onValidityChange={setStackingValid}/>
+    <label><input type="checkbox" checked={automaticQuantity} disabled={disabled} onChange={e=>setAutomaticQuantity(e.target.checked)}/>{tr("按订单生成托盘（本规格与总上限改为 200 托）","Prepare pallets for the order (set this specification and total limits to 200)")}</label>
+    <small>{tr(`当前本规格可用 ${spec.maxPallets} 托；总生成上限 ${request.palletBuild?.maxPallets??50} 托。数量上限也会限制装箱数。`,`This specification allows ${spec.maxPallets} pallets; total generation limit ${request.palletBuild?.maxPallets??50}. Pallet limits also constrain carton capacity.`)}</small>
+    </div><div className="pallet-recipe-output">
     <div role={errors ? "alert" : "status"} className="pallet-recipe-status">
       {errors || (key && !current ? tr("正在生成打托预览…","Generating pallet preview…") : "")}
     </div>
@@ -209,6 +211,7 @@ export function PalletRecipe(props:Props) {
         : tr(`本单所选货物有 ${preview.orderCartons} 箱待打托，尾托按实际余量生成。`, `This order has ${preview.orderCartons} cartons of the selected cargo to palletize. Tail units use the remaining quantity.`)}</p>
       {mode === "suggest" && <small>{tr("底座高、自重和承重采用当前填写值，请按实际托盘核对。","Deck height, tare and payload use the current inputs. Verify them against the actual pallet.")}</small>}
     </div>}
+    </div></div>
     {preview && !fine && <button type="button" className="button small" disabled={disabled} onClick={fineTune}>{tr("微调打托尺寸","Fine-tune pallet dimensions")}</button>}
     {fine && <fieldset className="pallet-build-grid"><legend>{tr("微调打托尺寸（mm）","Fine-tune pallet dimensions (mm)")}</legend>
       {fineFields.map(field=><label key={field}>{field==="length"?tr("预览托盘长","Preview pallet length"):field==="width"?tr("预览托盘宽","Preview pallet width"):field==="height"?tr("预览底座高","Preview deck height"):tr("预览托内净高","Preview cargo height")}

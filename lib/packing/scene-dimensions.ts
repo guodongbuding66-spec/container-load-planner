@@ -74,9 +74,18 @@ export function projectDimensions(bounds: DimensionBounds, values: { L: number; 
     occupied.push(label);
     const tick=(p:ScreenPoint):DimensionSegment=>[{x:p.x-3,y:p.y-4,depth:0},{x:p.x+3,y:p.y+4,depth:0}];
     const segments:DimensionSegment[]=[[point(c.start,3),point(c.start,gap+5)],[point(c.end,3),point(c.end,gap+5)],[a,b],tick(a),tick(b)];
-    // When a label needs edge/collision adjustment, retain a short leader to its own line.
+    // Connect a shifted label to the nearest point on its own ruler. A label
+    // clamped far from a partly offscreen ruler must not create a diagonal across the scene.
     const actualCenter={x:label.x+label.width/2,y:label.y+label.height/2,depth:0};
-    if(Math.hypot(actualCenter.x-labelCenter.x,actualCenter.y-labelCenter.y)>4)segments.push([point(c.mid,gap),actualCenter]);
+    if(Math.hypot(actualCenter.x-labelCenter.x,actualCenter.y-labelCenter.y)>4){
+      const dx=b.x-a.x,dy=b.y-a.y;
+      const t=Math.max(0,Math.min(1,((actualCenter.x-a.x)*dx+(actualCenter.y-a.y)*dy)/(c.length*c.length)));
+      const from={x:a.x+t*dx,y:a.y+t*dy,depth:0};
+      const vx=actualCenter.x-from.x,vy=actualCenter.y-from.y;
+      const inset=Math.min(label.width/(2*Math.abs(vx)),label.height/(2*Math.abs(vy)),1);
+      const to={x:actualCenter.x-vx*inset,y:actualCenter.y-vy*inset,depth:0};
+      if(vx*c.nx+vy*c.ny>0&&Math.hypot(to.x-from.x,to.y-from.y)<=font*2)segments.push([from,to]);
+    }
     result.push({axis,edgeId:c.edgeId,normal:{x:c.nx,y:c.ny,depth:0},text,label,segments,measuredEdge:[c.start,c.end],ticks:[]});
   }
   // Tick values use actual 3D points, not screen-linear interpolation (which is

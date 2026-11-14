@@ -14,6 +14,7 @@ import {PalletBaseDetails} from "./pallet-base-details";
 const MODES:[MeasureMode,string,string][]=[["off","关闭测量","Off"],["points","两点距离","Point distance"],["gap","两箱间距","Carton gap"],["wall","柜壁距离","Wall clearance"]];
 const WALLS:[WallSide,string,string][]=[["x-","柜头","Rear wall"],["x+","箱门","Door plane"],["y-","左侧","Left wall"],["y+","右侧","Right wall"],["z-","柜底","Floor"],["z+","柜顶","Ceiling"]];
 function isolationOptions(result:PackingResult,type:Section["isolation"]){
+  if(type==="carton")return result.placements.map((b,i)=>({value:b.id,label:`#${i+1} · ${b.sku}`}));
   if(type==="pallet")return (result.pallets??[]).map(p=>({value:p.id,label:p.id.replace("floor-pallet-","P")}));
   const keys=[...new Set(result.placements.map(b=>isolationKey(b,type)).filter(Boolean))];
   return keys.map(value=>({value,label:type==="layer"?`${tr("层","Layer")} ${value}`:(JSON.parse(value) as [string,number]).join(" · #")}));
@@ -50,12 +51,12 @@ export function SceneInspector({result,selected,inspection,onClearSelection,onFo
         <div className="scene-inspector-actions"><button disabled={!measurement&&!value.locked} aria-pressed={value.locked} onClick={()=>update({locked:!value.locked})}>{value.locked?<UnlockKeyhole size={14}/>:<LockKeyhole size={14}/>} {tr(value.locked?"解锁测量":"锁定测量",value.locked?"Unlock":"Lock")}</button><button onClick={inspection.clear}>{tr("清除测量","Clear")}</button></div>
       </>}
     </section>
-    <SavedMeasurementsPanel result={result} inspection={inspection}/>
+    <details className="scene-inspector-disclosure"><summary>{tr("已保存测量", "Saved measurements")} · {inspection.saved.items.length}</summary><SavedMeasurementsPanel result={result} inspection={inspection}/></details>
     <section className="scene-inspector-section"><h3><Scissors size={16}/>{tr("剖切与隔离","Section & isolate")}</h3>
       {selected&&value.section.axis!=="off"&&<p>{tr("选中尺寸为完整外箱；剖切显示局部。","Selection dimensions describe the full outer box; sectioning shows only part of it.")}</p>}
       <label>{tr("剖切方向","Section axis")}<select aria-label={tr("剖切方向","Section axis")} value={value.section.axis} onChange={e=>section({axis:e.target.value as Section["axis"]})}>{[["off","关闭剖切","Off"],["x","沿柜长 X","Length X"],["y","沿柜宽 Y","Width Y"],["z","沿柜高 Z","Height Z"]].map(([id,zh,en])=><option key={id} value={id}>{tr(zh,en)}</option>)}</select></label>
       {value.section.axis!=="off"&&<><label className="scene-cut-slider">{tr("剖切位置","Section position")} <output>{value.section.percent}%</output><input type="range" min={0} max={100} value={value.section.percent} aria-label={tr("剖切位置","Section position")} onChange={e=>section({percent:Number(e.target.value)})}/></label><label className="scene-inspector-check"><input type="checkbox" checked={value.section.reverse} onChange={e=>section({reverse:e.target.checked})}/>{tr("保留另一侧","Keep the opposite side")}</label></>}
-      <label>{tr("单独查看","Isolate")}<select aria-label={tr("货物隔离方式","Cargo isolation")} value={value.section.isolation} onChange={e=>{const type=e.target.value as Section["isolation"];section({isolation:type,target:isolationOptions(result,type)[0]?.value??""});}}>{[["all","全部货物","All cargo"],["layer","单层","One layer"],["pallet","单托盘货物","One pallet load"],["set","单套货物","One product set"]].map(([id,zh,en])=><option key={id} value={id}>{tr(zh,en)}</option>)}</select></label>
+      <label>{tr("单独查看","Isolate")}<select aria-label={tr("货物隔离方式","Cargo isolation")} value={value.section.isolation} onChange={e=>{const type=e.target.value as Section["isolation"];section({isolation:type,target:isolationOptions(result,type)[0]?.value??""});}}>{[["all","全部货物","All cargo"],["carton","单箱","One carton"],["layer","单层","One layer"],["pallet","单托盘货物","One pallet load"],["set","单套货物","One product set"]].map(([id,zh,en])=><option key={id} value={id}>{tr(zh,en)}</option>)}</select></label>
       {value.section.isolation!=="all"&&(options.length?<select aria-label={tr("隔离目标","Isolation target")} value={value.section.target} onChange={e=>section({target:e.target.value})}>{options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>:<p>{tr("本方案没有对应的分组。","This plan has no matching groups.")}</p>)}
       {value.section.isolation==="pallet"&&<p>{tr("按承托关联筛选；跨托盘的箱体可出现在多个托盘视图中。","Filtered by support links; a carton spanning pallets may appear in several pallet views.")}</p>}
       <p>{tr("查看范围变化不改变完整方案的箱数、容量、重量与导出。","The view filter leaves full-plan counts, capacity, weight and exports unchanged.")}</p>

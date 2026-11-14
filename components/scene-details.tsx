@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Edges } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
@@ -7,9 +7,52 @@ import { cargoSurfaceLabelGeometry, createCargoLabelMaterial } from "../lib/pack
 import { placedPackagingParts, DEFAULT_PACKAGING, type PackagingPart } from "../lib/packing/packaging";
 import type { PlacedPallet } from "../lib/packing/types";
 import { createSceneLabelMaterial, LABEL_RENDER_ORDER, layoutSceneLabel, sceneLabelFrame, sceneLabelPose } from "../lib/packing/scene-labels";
+import { MARK_ASPECT, markLines, type ShippingMark } from "../lib/packing/shipping-mark";
+
+export function useShippingMarkCanvas(mark: ShippingMark | undefined, sku: string) {
+  const [decoded, setDecoded] = useState<{ src: string; image: HTMLImageElement }>();
+  const source = mark?.image;
+  useEffect(() => {
+    if (!source) return;
+    const image = new Image();
+    let active = true;
+    image.src = source;
+    void image.decode().then(() => { if (active) setDecoded({ src: source, image }); }).catch(() => {});
+    return () => { active = false; };
+  }, [source]);
+  return useMemo(() => {
+    const image = source && decoded?.src === source ? decoded.image : undefined;
+    if (!mark?.text && !image) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = canvas.width / MARK_ASPECT;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#fffffa";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const lines = markLines(mark?.text ?? (image ? "" : sku));
+    const imageHeight = lines.length ? 112 : 224;
+    if (image) {
+      const scale = Math.min(480 / image.naturalWidth, imageHeight / image.naturalHeight);
+      const width = image.naturalWidth * scale;
+      const height = image.naturalHeight * scale;
+      ctx.drawImage(image, (512 - width) / 2, 16 + (imageHeight - height) / 2, width, height);
+    }
+    if (lines.length) {
+      const top = image ? 136 : 16;
+      const lineHeight = Math.min(54, (240 - top) / lines.length);
+      ctx.fillStyle = "#18323a";
+      ctx.font = `700 ${Math.floor(lineHeight * .76)}px Arial, 'Noto Sans SC', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const first = top + (240 - top - lines.length * lineHeight) / 2 + lineHeight / 2;
+      lines.forEach((line, index) => ctx.fillText(line, 256, first + index * lineHeight, 480));
+    }
+    return canvas;
+  }, [mark?.text, source, decoded, sku]);
+}
 
 /** Each face gets a canvas matching its physical aspect, so text never stretches. */
-export function boxFaceTexture(sku: string, color: string, width: number, height: number, up?: string) {
+export function boxFaceTexture(sku: string, color: string, width: number, height: number, up?: string, mark?: HTMLCanvasElement) {
   const ratio = width / height, longest = 1024;
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(8, Math.round(ratio >= 1 ? longest : longest * ratio));
@@ -18,6 +61,14 @@ export function boxFaceTexture(sku: string, color: string, width: number, height
   const w = canvas.width, h = canvas.height;
   ctx.fillStyle = color; ctx.fillRect(0,0,w,h);
   ctx.strokeStyle = "rgba(13,43,50,.28)"; ctx.lineWidth = Math.max(1,Math.min(w,h)*.022); ctx.strokeRect(0,0,w,h);
+  if (mark) {
+    const scale = Math.min(w * .9 / mark.width, h * .82 / mark.height);
+    const dw = mark.width * scale, dh = mark.height * scale;
+    ctx.drawImage(mark, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+  }
   const maxWidth=w*.88, maxHeight=h*.65;
   let font=Math.min(h*.3, w*.16), lines:string[]=[];
   for (;font>2;font-=1) {
@@ -43,7 +94,7 @@ function PackagingInstances({parts,scale,offset,onSelect}:{parts:StructurePart[]
   useLayoutEffect(()=>{if(!ref.current)return;const dummy=new THREE.Object3D();parts.forEach((p,i)=>{dummy.position.set((p.x+p.dx/2)*scale+offset.x,(p.z+p.dz/2)*scale+offset.y,(p.y+p.dy/2)*scale+offset.z);dummy.scale.set(p.dx*scale,p.dz*scale,p.dy*scale);dummy.updateMatrix();ref.current!.setMatrixAt(i,dummy.matrix);const color=new THREE.Color(p.pallet.packaging?.color??(p.pallet.dz<50?"#98a4ae":p.kind==="block"?"#ac8151":"#d4af7b"));if(p.kind==="block")color.multiplyScalar(.88);ref.current!.setColorAt(i,color);});ref.current.instanceMatrix.needsUpdate=true;if(ref.current.instanceColor)ref.current.instanceColor.needsUpdate=true;ref.current.computeBoundingSphere();},[parts,scale,offset]);
   // Historic decks remain opaque; custom shells use the explicitly saved opacity.
   const opacity=parts[0].pallet.packaging?spec.opacity:1;
-  return <instancedMesh name="packaging-structure" ref={ref} args={[undefined,undefined,parts.length]} onClick={e=>{if(e.delta>3)return;if(onSelect&&e.instanceId!==undefined){e.stopPropagation();onSelect(parts[e.instanceId].pallet);}}}><boxGeometry/><meshStandardMaterial map={grain} roughness={spec.material==="steel"?.4:spec.material==="plastic"?.65:.92} metalness={spec.material==="steel"?.75:0} transparent={opacity<1} opacity={opacity} depthWrite={opacity===1}/></instancedMesh>;
+  return <instancedMesh name="packaging-structure" ref={ref} args={[undefined,undefined,parts.length]} raycast={onSelect?THREE.InstancedMesh.prototype.raycast:()=>{}} onClick={e=>{if(e.delta>3)return;if(onSelect&&e.instanceId!==undefined){e.stopPropagation();onSelect(parts[e.instanceId].pallet);}}}><boxGeometry/><meshStandardMaterial map={grain} roughness={spec.material==="steel"?.4:spec.material==="plastic"?.65:.92} metalness={spec.material==="steel"?.75:0} transparent={opacity<1} opacity={opacity} depthWrite={opacity===1}/></instancedMesh>;
 }
 export function PalletStructures({pallets,scale,offset,onSelect}:{pallets:PlacedPallet[];scale:number;offset:THREE.Vector3;onSelect?:(p:PlacedPallet)=>void}) {
   const groups=useMemo(()=>{const map=new Map<string,StructurePart[]>();for(const p of pallets){const spec=p.packaging,key=spec?JSON.stringify([spec.material,spec.opacity]):"legacy";const parts=map.get(key)??[];parts.push(...placedPackagingParts(p).map(part=>({...part,pallet:p})));map.set(key,parts);}return [...map.entries()];},[pallets]);
@@ -61,8 +112,14 @@ export function MetricLabel({text,position,size=.09,color="#376272",screenOffset
 }
 
 /** Physical stickers share the cargo instance matrices and clipping scope. */
-export function CargoSurfaceLabels({sku,source,dimensions,count,instanceRef}:{sku:string;source:THREE.BufferGeometry;dimensions:[number,number,number];count:number;instanceRef:RefObject<THREE.InstancedMesh|null>}){
-  const label=useMemo(()=>{const c=document.createElement('canvas'),ctx=c.getContext('2d')!;ctx.font='600 40px Arial,sans-serif';c.width=Math.ceil(ctx.measureText(sku).width+24);c.height=64;ctx.font='600 40px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fffffa';ctx.fillRect(0,0,c.width,64);ctx.fillStyle='#18323a';ctx.fillText(sku,c.width/2,33);const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;return {texture,ratio:c.width/c.height};},[sku]);
+export function CargoSurfaceLabels({sku,source,dimensions,count,instanceRef,mark}:{sku:string;source:THREE.BufferGeometry;dimensions:[number,number,number];count:number;instanceRef:RefObject<THREE.InstancedMesh|null>;mark?:HTMLCanvasElement}){
+  const label=useMemo(()=>{
+    if(mark){const texture=new THREE.CanvasTexture(mark);texture.colorSpace=THREE.SRGBColorSpace;return {texture,ratio:mark.width/mark.height};}
+    const c=document.createElement('canvas'),ctx=c.getContext('2d')!;
+    ctx.font='600 40px Arial,sans-serif';c.width=Math.ceil(ctx.measureText(sku).width+24);c.height=64;
+    ctx.font='600 40px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fffffa';ctx.fillRect(0,0,c.width,64);ctx.fillStyle='#18323a';ctx.fillText(sku,c.width/2,33);
+    const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;return {texture,ratio:c.width/c.height};
+  },[sku,mark]);
   const material=useMemo(()=>createCargoLabelMaterial(label.texture),[label]),geometry=useMemo(()=>cargoSurfaceLabelGeometry(source,dimensions,label.ratio),[source,dimensions,label.ratio]);
   useEffect(()=>()=>{geometry.dispose();},[geometry]);
   useEffect(()=>()=>{material.dispose();label.texture.dispose();},[material,label]);

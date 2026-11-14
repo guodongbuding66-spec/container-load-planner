@@ -130,6 +130,7 @@ export type ProductInput = {
   palletBaseHeight?: number;
   /** Stable source order-line identity; SKU is not a unique key. */
   orderLine?: import("./order-lines").OrderLine;
+  shippingMark?: import("./shipping-mark").ShippingMark;
   id: string;
   sku: string;
   name: string;
@@ -376,7 +377,7 @@ export type PackingResult = {
   floorPallets?: FloorPalletConfig;
   pallets?: PlacedPallet[];
   loadingRules?: LoadingRules;
-  cargoDetails?: Record<string, Pick<ProductInput, "cargoType" | "palletBaseHeight" | "cargoShape" | "shapeAxis" | "shapeTopRatio" | "shapeWallRatio" | "shapeWallHeightRatio" | "shapeStepLengthRatio" | "shapeStepHeightRatio" | "solidModel" | "protectionGap" | "longSupport" | "orderLine">>;
+  cargoDetails?: Record<string, Pick<ProductInput, "cargoType" | "palletBaseHeight" | "cargoShape" | "shapeAxis" | "shapeTopRatio" | "shapeWallRatio" | "shapeWallHeightRatio" | "shapeStepLengthRatio" | "shapeStepHeightRatio" | "solidModel" | "protectionGap" | "longSupport" | "orderLine" | "shippingMark">>;
   id: string;
   mode: PackingMode;
   strategy: PackingStrategy;

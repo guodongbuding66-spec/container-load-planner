@@ -19,10 +19,13 @@ it("keeps standalone playback as the only progress slider outside fullscreen", (
   expect(html).not.toContain('type="range"');
 });
 
-it("exposes annotations and all dimension options directly in the header before the canvas", () => {
+it("keeps dimension and label toggles visible and groups appearance options before the canvas", () => {
   const html = renderToStaticMarkup(<TransportAppearanceProvider><ContainerScene result={null} visibleProducts={new Set()} visibleCount={0} cameraView="perspective" projectionMode="perspective" onCameraViewChange={()=>{}} onProjectionModeChange={()=>{}}/></TransportAppearanceProvider>);
   const header = html.slice(0, html.indexOf('class="scene-workbench-container"'));
   for (const label of ["箱标", "SKU 汇总", "尺寸单位", "尺寸字号", "标尺样式", "标线颜色", "标尺文字颜色", "透明度"]) expect(header).toContain(label);
-  expect(header).not.toContain("<details");
+  const options = header.indexOf('<details class="scene-display-options">');
+  expect(options).toBeGreaterThan(0);
+  expect(header.slice(0, options)).toContain(">尺寸</button>");
+  expect(header.slice(options)).toContain("显示设置</summary>");
   expect(html).not.toContain('class="scene-progress"');
 });

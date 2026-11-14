@@ -52,6 +52,7 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import {OrderLineEditor} from "./order-line-editor";
+import { parseShippingMark } from "../lib/packing/shipping-mark";
 import {adoptOrderDelivery,inheritOrderDelivery,orderDelivery,copyOrderRows,importOrderRows,updateOrderQuantities,assertOrderReferences,parseOrderLine} from "../lib/packing/order-lines";
 import { shapeDetails, shapeCanSupport } from "../lib/packing/cargo-shape";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -289,6 +290,7 @@ function normalizeProductDraft(product: Partial<ProductInput>, index: number): P
   return {
     ...fallback,
     ...product,
+    shippingMark: parseShippingMark(product.shippingMark),
     ...(product.orderLine===undefined?{}:{orderLine:parseOrderLine(product.orderLine)}),
     id: safeText(product.id, fallback.id, 120),
     sku: safeText(product.sku, fallback.sku, 80),
@@ -1952,7 +1954,7 @@ export function PackingApp() {
         </section>}
         {workflowStep===2 && <section id="workspace" className="wizard-page" aria-label={tr("第二步：装载配置")}>
           <div className="wizard-page-heading"><div><span className="section-kicker">STEP 02</span><h2>{tr("装载配置")}</h2><p>{workflow === "pallet-only" ? tr("设置托盘尺寸、每托限高、重量和单品托 / 混托规则。", "Set pallet dimensions, cargo height, payload and mix policy.") : tr("确认柜内净空；按需要启用托盘，设置承托与搜索规则。")}</p></div><span className="wizard-input-summary">{activeProducts.length}{tr(" 个箱型 · ")}{mode==="single"?tr("单品最大装柜"):tr("按订单拼柜")}</span></div>
-          <div className={`wizard-space-grid ${workflow === "pallet-only" ? "pallet-only-setup" : ""}`}>{workflow !== "pallet-only" && <div className="vehicle-config">            <article className="panel">
+          <div className={`wizard-space-grid ${isPalletWorkflow ? "pallet-workflow-setup" : ""} ${workflow === "pallet-only" ? "pallet-only-setup" : ""}`}>{workflow !== "pallet-only" && <div className="vehicle-config">            <article className="panel">
               <div className="panel-head"><div><span className="section-kicker">02</span><h2>{tr("集装箱 / 车辆","Container / vehicle")}</h2></div><span className="pill">{tr("可编辑")}</span></div>
               <details className="space-preview-details"><summary>{tr("柜体模型与尺寸", "Container model and dimensions")}</summary><SpaceModelPreview space={container}/></details>
               <button className="button small space-library-button" onClick={()=>setShowTransport(true)}><Container size={15}/>{tr("浏览装载空间库","Browse spaces")}</button>
@@ -2108,7 +2110,6 @@ export function PackingApp() {
             </details>
             {result?.metrics.loadedCount === 0 && <ZeroLoadNotice result={result} products={activeProducts} unit={lengthUnit} onEdit={id=>{goToStep(1);if(id)setActiveCargo(id);}}/>}
             {result ? <RemainingCapacity result={result} visibleCount={packingProgress} pending={hasPendingDimensionChanges} /> : null}
-            {capacityTrial}
             {result ? (
               <>
                 <div className="packing-timeline">
@@ -2135,24 +2136,7 @@ export function PackingApp() {
                       : tt`当前第 ${formatNumber(progressSummary.visibleCartons)} 箱`}</span><strong>{progressSummary.currentPlacement.sku}{progressSummary.currentPlacement.setCode ? ` · ${progressSummary.currentPlacement.setCode}` : ""}</strong><b>{tt`坐标 ${formatNumber(progressSummary.currentPlacement.x)} / ${formatNumber(progressSummary.currentPlacement.y)} / ${formatNumber(progressSummary.currentPlacement.z)} mm · 第 ${progressSummary.currentPlacement.layer} 层`}</b></>
                     : <><span>{result.metrics.loadedCount === 0 ? tr("装载为空", "Empty load") : tr("准备开始")}</span><strong>{tr("尚未装入箱体")}</strong><b>{result.metrics.loadedCount === 0 ? tr("请查看上方零装载原因。", "Review the zero-load diagnosis above.") : tr("点击播放或下一步查看装柜顺序")}</b></>}
                 </div>
-                <section className="viewer-projections" aria-label={tr("三视图相机控制")}>
-                  <div className="viewer-projection-head">
-                    <div><span className="section-kicker">2D CHECK</span><strong>{tr("三视图同步复核")}</strong><small>{tr("点击任意视图，三维相机会切换为真正的正交投影并平滑旋转到对应方向")}</small></div>
-                    <span className="projection-progress">{progressSummary?.isSetMode
-                      ? tt`当前整套 ${formatNumber(progressSummary.completedSets)} / ${formatNumber(progressSummary.totalSets)} 套 · ${formatNumber(progressSummary.visibleCartons)} / ${formatNumber(progressSummary.totalCartons)} 箱`
-                      : tt`当前 ${formatNumber(packingProgress)} / ${formatNumber(result.placements.length)} 箱`}</span>
-                  </div>
-                  <OrthographicViews
-                    result={result}
-                    visibleProducts={visibleProducts}
-                    visibleCount={packingProgress}
-                    primaryCountLabel={progressSummary?.isSetMode ? tt`${formatNumber(progressSummary.completedSets)} 套` : tt`${formatNumber(packingProgress)} 箱`}
-                    secondaryCountLabel={progressSummary?.isSetMode ? tt`${formatNumber(progressSummary.visibleCartons)} 箱` : undefined}
-                    renderPrintSvg={renderPrintViews}
-                    activeView={cameraProjection === "orthographic" ? cameraView : "free"}
-                    onViewSelect={selectOrthographicView}
-                  />
-                </section>
+
               </>
             ) : null}
             {result ? (
@@ -2191,6 +2175,24 @@ export function PackingApp() {
                     </button>
                   ))}
                 </div>
+                <section className="viewer-projections" aria-label={tr("三视图相机控制")}>
+                  <div className="viewer-projection-head">
+                    <div><span className="section-kicker">2D CHECK</span><strong>{tr("三视图同步复核")}</strong><small>{tr("点击任意视图，三维相机会切换为真正的正交投影并平滑旋转到对应方向")}</small></div>
+                    <span className="projection-progress">{progressSummary?.isSetMode
+                      ? tt`当前整套 ${formatNumber(progressSummary.completedSets)} / ${formatNumber(progressSummary.totalSets)} 套 · ${formatNumber(progressSummary.visibleCartons)} / ${formatNumber(progressSummary.totalCartons)} 箱`
+                      : tt`当前 ${formatNumber(packingProgress)} / ${formatNumber(result.placements.length)} 箱`}</span>
+                  </div>
+                  <OrthographicViews
+                    result={result}
+                    visibleProducts={visibleProducts}
+                    visibleCount={packingProgress}
+                    primaryCountLabel={progressSummary?.isSetMode ? tt`${formatNumber(progressSummary.completedSets)} 套` : tt`${formatNumber(packingProgress)} 箱`}
+                    secondaryCountLabel={progressSummary?.isSetMode ? tt`${formatNumber(progressSummary.visibleCartons)} 箱` : undefined}
+                    renderPrintSvg={renderPrintViews}
+                    activeView={cameraProjection === "orthographic" ? cameraView : "free"}
+                    onViewSelect={selectOrthographicView}
+                  />
+                </section>
                 <section className="viewer-decision-grid" aria-label={tr("现场与极限方案统一对比")}>
                   <article className="current"><span>{tr("当前可视方案")}</span><strong>{formatNumber(resultLoadedDisplay)} {resultDisplayUnit === "set" ? tr("套") : tr("箱")}</strong><small>{formatNumber(result.metrics.loadedCount)}{tr(" 箱 · 体积 ")}{formatPercent(result.metrics.volumeUtilization)}</small></article>
                   <article><span>{tr("现场易执行")}</span><strong>{practicalPredictionDisplay === null ? "—" : `${formatNumber(practicalPredictionDisplay)} ${reversePlan.displayUnit === "set" ? tr("套") : tr("箱")}`}</strong><small>{tr("经验率 ")}{practicalTargetPercent.toFixed(1)}{tr("% · 完整承托")}</small></article>
@@ -2199,6 +2201,10 @@ export function PackingApp() {
                 </section>
               </>
             ) : null}
+            {capacityTrial&&<details className="result-capacity-details">
+              <summary>{tr("装载诊断与补货试算", "Loading diagnosis and replenishment trials")}{result&&<small>{formatNumber(result.metrics.loadedCount)} / {formatNumber(result.metrics.requestedCount)} {tr("箱", "cartons")}</small>}</summary>
+              {capacityTrial}
+            </details>}
           </section>
 
         {result ? (

@@ -405,6 +405,59 @@
 .pallet-build-grid input,.pallet-build-grid select{width:100%;min-width:0;border:1px solid var(--line,#dbe3ee);border-radius:6px;padding:7px;background:var(--panel,#fff);color:inherit}
 .pallet-build-number{display:flex;align-items:center;gap:6px}.pallet-build-number span{font-size:11px;color:var(--muted,#64748b)}
 .wizard-space-grid.pallet-only-setup{grid-template-columns:minmax(0,1fr)}
+
+/* Keep container controls beside the recipe and give packaging details a full row. */
+.compact-workspace .pallet-workflow-setup { grid-template-columns: minmax(280px, 350px) minmax(0, 1fr); align-items: stretch; }
+.compact-workspace .pallet-workflow-setup.pallet-only-setup { grid-template-columns: minmax(0, 1fr); }
+.pallet-workflow-setup > .pallet-build-settings, .pallet-workflow-setup > .pallet-build-preview { grid-column: 1 / -1; margin: 0; }
+.pallet-workflow-setup > .vehicle-config > .panel { padding: 14px; }
+.pallet-workflow-setup > .pallet-recipe { min-width: 0; margin: 0; }
+.pallet-workflow-setup .vehicle-config .space-library-button { margin: 0 0 8px; }
+.pallet-workflow-setup .vehicle-config .panel-head { margin-bottom: 0; }
+.pallet-workflow-setup .vehicle-config .panel-head .pill { display: none; }
+.pallet-workflow-setup .vehicle-config .field-grid { gap: 8px; }
+.pallet-recipe-layout { display: grid; grid-template-columns: minmax(200px, .85fr) minmax(0, 1.15fr); gap: 12px; }
+.pallet-recipe-inputs, .pallet-recipe-output { min-width: 0; }
+.pallet-recipe-inputs > small { display: block; margin: 4px 0; overflow-wrap: anywhere; }
+.pallet-recipe-inputs > label { display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; font-size: 12px; }
+.pallet-recipe-output .pallet-recipe-metrics { margin-top: 4px; }
+.unit-stacking-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 8px 12px; min-width: 0; padding: 8px; margin: 8px 0; border: 1px solid var(--line); border-radius: 6px; font-size: 12px; }
+.unit-stacking-grid legend { font-weight: 600; }
+.unit-stacking-grid > label { min-width: 0; display: grid; gap: 4px; }
+.unit-stacking-grid > label.unit-stacking-check { display: flex; align-items: flex-start; gap: 6px; }
+.unit-stacking-grid input:not([type="checkbox"]) { width: 100%; min-width: 0; padding: 7px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: inherit; }
+.unit-stacking-grid .unit-stacking-note { grid-column: 1 / -1; }
+.result-capacity-details { order: 6; border-top: 1px solid var(--line); }
+.result-capacity-details > summary, .shipping-mark-editor > summary, .scene-inspector-disclosure > summary { padding: 9px 12px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.result-capacity-details > summary small, .shipping-mark-editor > summary small { margin-inline-start: 10px; color: var(--muted); font-weight: 400; }
+.result-capacity-details .order-capacity-trial { margin: 0 12px 12px; }
+.result-capacity-details .tail-trial-fields { max-width: 840px; }
+.scene-inspector-disclosure { border-bottom: 1px solid var(--line); }
+.scene-selection-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; padding: 6px 10px; border-bottom: 1px solid var(--line); font-size: 12px; }
+.scene-pick-mode { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 6px; }
+.scene-selection-tools button { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.scene-selection-tools button[aria-pressed="true"] { background: #e3f2f4; color: var(--teal-dark); border-color: #9ac4cb; }
+.scene-selection-tools button:disabled { opacity: .5; cursor: default; }
+.scene-selection-tools button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.scene-selection-tools small { color: var(--muted); }
+.scene-display-options { position: relative; }
+.scene-display-options > summary { list-style: none; }
+.scene-display-options > summary::-webkit-details-marker { display: none; }
+.scene-display-options .scene-options-panel { position: absolute; inset-inline-end: 0; top: calc(100% + 4px); width: min(420px, 85vw); }
+.scene-display-options .dimension-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+.scene-display-options .dimension-controls label { display: inline-flex; align-items: center; gap: 5px; }
+@media (max-width: 760px) { .scene-display-options .scene-options-panel { position: fixed; inset: 56px 8px auto; width: auto; } }
+.shipping-mark-editor { border: 1px solid var(--line); border-radius: 7px; }
+.shipping-mark-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(170px, .7fr); gap: 14px; align-items: start; padding: 0 12px 12px; }
+.shipping-mark-fields, .shipping-mark-fields label { display: grid; gap: 6px; min-width: 0; }
+.shipping-mark-fields textarea { width: 100%; padding: 8px; resize: vertical; border: 1px solid var(--line); border-radius: 5px; font: inherit; }
+.shipping-mark-fields input[type="file"] { max-width: 100%; font-size: 12px; }
+.shipping-mark-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.shipping-mark-preview { display: grid; align-content: center; justify-items: center; gap: 4px; min-width: 0; min-height: 100px; padding: 10px; border: 1px solid #ced5cd; border-radius: 5px; background: #fffffa; color: #18323a; font-weight: 600; text-align: center; white-space: pre-wrap; overflow-wrap: anywhere; }
+.shipping-mark-preview img { display: block; max-width: 100%; max-height: 112px; object-fit: contain; }
+@media (max-width: 1050px) { .compact-workspace .pallet-workflow-setup { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 680px) { .pallet-recipe-layout, .shipping-mark-grid { grid-template-columns: minmax(0, 1fr); } .scene-selection-tools button { min-height: 36px; } }
+@media print { .result-capacity-details { display: none; } }
 .pallet-only-setup .pallet-build-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
 @media(max-width:760px){.loading-workflow-options{grid-template-columns:repeat(2,minmax(0,1fr))}.pallet-build-grid,.pallet-only-setup .pallet-build-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .compact-workspace .wizard-mode{grid-template-columns:96px minmax(0,1fr);align-items:start;gap:8px 12px}

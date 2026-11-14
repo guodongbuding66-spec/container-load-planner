@@ -1,3 +1,4 @@
+import { parseShippingMark } from "./shipping-mark";
 import {issueDeliveryIdentity} from "./delivery-identity";
 import {parseOrderLine,assertOrderLineIds} from "./order-lines";
 import {parsePalletLayerTemplates,type PalletLayerTemplate} from "./pallet-layer";
@@ -71,7 +72,8 @@ export function parseProductInput(value: unknown): ProductInput {
   const color = text(v.color, 7);
   if (!/^#[0-9a-f]{6}$/i.test(color)) throw new Error("箱型颜色无效。");
   if (v.cargoType !== undefined && !CARGO_TYPES.includes(v.cargoType as never)) throw new Error("货物类型无效。");
-  return withShapeSupport({ ...(v.orderLine===undefined?{}:{orderLine:parseOrderLine(v.orderLine)}), ...(v.dimensionAllowance===undefined?{}:{dimensionAllowance:parseDimensionAllowance(v.dimensionAllowance)}), ...parseShapeFields(v), ...(v.cargoType === undefined ? {} : { cargoType: v.cargoType as ProductInput["cargoType"] }), ...(v.allowedOrientations === undefined ? {} : { allowedOrientations: parseOrientations(v.allowedOrientations) }), ...(v.minimumSupportRatio === undefined ? {} : { minimumSupportRatio: number(v.minimumSupportRatio, Number.MIN_VALUE, 1) }), ...(v.palletBaseHeight === undefined ? {} : { palletBaseHeight: (() => { const base = number(v.palletBaseHeight); if (base >= number(v.height)) throw new Error("底座必须小于总高。"); return base; })() }), id: text(v.id, 120), sku: text(v.sku, 80), name: text(v.name, 200),
+  const shippingMark = parseShippingMark(v.shippingMark);
+  return withShapeSupport({ ...(shippingMark?{shippingMark}:{}), ...(v.orderLine===undefined?{}:{orderLine:parseOrderLine(v.orderLine)}), ...(v.dimensionAllowance===undefined?{}:{dimensionAllowance:parseDimensionAllowance(v.dimensionAllowance)}), ...parseShapeFields(v), ...(v.cargoType === undefined ? {} : { cargoType: v.cargoType as ProductInput["cargoType"] }), ...(v.allowedOrientations === undefined ? {} : { allowedOrientations: parseOrientations(v.allowedOrientations) }), ...(v.minimumSupportRatio === undefined ? {} : { minimumSupportRatio: number(v.minimumSupportRatio, Number.MIN_VALUE, 1) }), ...(v.palletBaseHeight === undefined ? {} : { palletBaseHeight: (() => { const base = number(v.palletBaseHeight); if (base >= number(v.height)) throw new Error("底座必须小于总高。"); return base; })() }), id: text(v.id, 120), sku: text(v.sku, 80), name: text(v.name, 200),
     length: number(v.length), width: number(v.width), height: number(v.height),
     weight: number(v.weight), quantity: integer(v.quantity, 0, 1_000_000),
     priority: integer(v.priority, 0, 100), rotationPolicy: v.rotationPolicy,

@@ -6,7 +6,7 @@ export type BoundsBox = Pick<PlacedBox,"x"|"y"|"z"|"dx"|"dy"|"dz">;
 export type SnapMode = "vertex" | "edge" | "face";
 export type MeasureMode = "off" | "points" | "gap" | "wall";
 export type WallSide = "x-" | "x+" | "y-" | "y+" | "z-" | "z+";
-export type Section = { axis: "off" | "x" | "y" | "z"; percent: number; reverse: boolean; isolation: "all" | "layer" | "pallet" | "set"; target: string };
+export type Section = { axis: "off" | "x" | "y" | "z"; percent: number; reverse: boolean; isolation: "all" | "carton" | "layer" | "pallet" | "set"; target: string };
 export const EMPTY_SECTION: Section = {axis:"off",percent:100,reverse:false,isolation:"all",target:""};
 export type Measurement = { a: Point3; b: Point3; distance: number; deltas: Point3 };
 const clamp=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));
@@ -51,7 +51,7 @@ export function formatMeasure(value:number,unit:DimensionUnit,precision:number) 
   return `${(value/(unit==="m"?1000:unit==="cm"?10:1)).toFixed(clamp(Math.round(precision),0,3))} ${unit}`;
 }
 export function isolationKey(box:PlacedBox,type:Section["isolation"]) {
-  return type==="layer"?String(box.layer):type==="set"&&box.setCode?JSON.stringify([box.setCode,box.setNumber]):"";
+  return type==="carton"?box.id:type==="layer"?String(box.layer):type==="set"&&box.setCode&&box.setNumber!==undefined?JSON.stringify([box.setCode,box.setNumber]):"";
 }
 export function sectionLimits(result:Pick<PackingResult,"container"|"clearance">,section:Section) {
   const axis="xyz".indexOf(section.axis),lo=axis===2?0:-result.clearance;
@@ -69,7 +69,8 @@ export function sectionBox<T extends BoundsBox>(box:T,result:Pick<PackingResult,
   return {...box,x:pos[0],y:pos[1],z:pos[2],dx:size[0],dy:size[1],dz:size[2]};
 }
 export function inspectBoxes(result:PackingResult,visibleProducts:Set<string>,visibleCount:number,section:Section) {
-  return result.placements.slice(0,visibleCount).filter(b=>visibleProducts.has(b.productId)&&(
+  const wholeGroup=section.isolation==="pallet"||section.isolation==="set";
+  return result.placements.slice(0,visibleCount).filter(b=>(wholeGroup||visibleProducts.has(b.productId))&&(
     section.isolation==="all"||(!!section.target&&(section.isolation==="pallet"?b.palletIds?.includes(section.target):isolationKey(b,section.isolation)===section.target))
   )).flatMap(b=>{const display=sectionBox(b,result,section);return display?[display]:[];});
 }

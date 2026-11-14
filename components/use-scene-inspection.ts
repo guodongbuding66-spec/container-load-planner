@@ -7,6 +7,7 @@ import { useTransportAppearance } from "./transport-appearance";
 import {captureMeasurement,savedMeasureOverlays} from "../lib/packing/saved-measurements";
 import {useSavedMeasurements} from "./use-saved-measurements";
 import {deliveryPlanSignature} from "../lib/packing/delivery-identity";
+import {inspectionPallets} from "../lib/packing/scene-view-scope";
 type Inspection={basis:"envelope"|"surface";mode:MeasureMode;wall:WallSide;points:Point3[];snaps:SnapMode[];captures:BoundsBox[];boxes:PlacedBox[];locked:boolean;section:Section};
 const empty=():Inspection=>({basis:"envelope",mode:"off",wall:"x-",points:[],snaps:[],captures:[],boxes:[],locked:false,section:{...EMPTY_SECTION}});
 export function useSceneInspection(result:PackingResult|null,visibleProducts:Set<string>,visibleCount:number){
@@ -16,7 +17,8 @@ export function useSceneInspection(result:PackingResult|null,visibleProducts:Set
   const value=useMemo(()=>state.plan===result?state.value:empty(),[state,result]);
   const update=(patch:Partial<Inspection>)=>setState(previous=>({plan:result,value:{...(previous.plan===result?previous.value:empty()),...patch}}));
   const displayBoxes=useMemo(()=>result?inspectBoxes(result,visibleProducts,visibleCount,value.section):[],[result,visibleProducts,visibleCount,value.section]);
-  const validBoxes=value.boxes.filter(box=>box.supportOnly?!!result?.pallets?.some(p=>p.id===box.id)&&!!sectionBox(box,result!,value.section)&&(value.section.isolation!=="pallet"||value.section.target===box.id):displayBoxes.some(b=>b.id===box.id));
+  const displayPallets=useMemo(()=>result?inspectionPallets(result,visibleCount,value.section,displayBoxes):[],[result,visibleCount,value.section,displayBoxes]);
+  const validBoxes=value.boxes.filter(box=>box.supportOnly?displayPallets.some(p=>p.id===box.id)&&!!sectionBox(box,result!,value.section):displayBoxes.some(b=>b.id===box.id));
   const validPoints=validBoxes.length===value.boxes.length?value.points:[];
   const specs=value.basis==="surface"?validBoxes.map(box=>regularSurfaceSpec(box,result?.cargoDetails?.[box.productId]??{})):[];
   const supportsSolid=value.section.axis==="off"&&specs.length===2&&specs.every(Boolean);
@@ -46,6 +48,6 @@ export function useSceneInspection(result:PackingResult|null,visibleProducts:Set
   const savedOverlays=useMemo(()=>result?savedMeasureOverlays(saved.items,result,displayBoxes,value.section,visibleCount,scope):[],[saved.items,result,displayBoxes,value.section,visibleCount,scope]);
   const clear=()=>update({points:[],snaps:[],captures:[],boxes:[],locked:false});
   const saveMeasurement=(name:string)=>{if(!result||!measurement||value.mode==="off"||!saved.ready)return false;try{const ok=saved.add(captureMeasurement(result,value.mode,validBoxes,validPoints,value.snaps,value.wall,value.section,name,undefined,undefined,value.captures,value.mode!=="wall"&&supportsSolid?specs.map(spec=>spec!):undefined));if(ok)clear();return ok;}catch{saved.reject();return false;}};
-  return {value,measurement,displayBoxes,saved,savedOverlays,saveMeasurement,pickedCount:value.mode==="points"?validPoints.length:validBoxes.length,update,pick,setBasis:(basis:Inspection["basis"])=>update({basis,points:[],snaps:[],captures:[],boxes:[],locked:false}),setMode:(mode:MeasureMode)=>update({mode,points:[],snaps:[],captures:[],boxes:[],locked:false}),clear};
+  return {value,measurement,displayBoxes,displayPallets,saved,savedOverlays,saveMeasurement,pickedCount:value.mode==="points"?validPoints.length:validBoxes.length,update,pick,setBasis:(basis:Inspection["basis"])=>update({basis,points:[],snaps:[],captures:[],boxes:[],locked:false}),setMode:(mode:MeasureMode)=>update({mode,points:[],snaps:[],captures:[],boxes:[],locked:false}),clear};
 }
 export type SceneInspection=ReturnType<typeof useSceneInspection>;
