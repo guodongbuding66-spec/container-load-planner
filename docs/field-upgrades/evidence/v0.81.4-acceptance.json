@@ -1,0 +1,204 @@
+{
+  "date": "2026-11-14",
+  "runtimeCommit": "c5a20bf03f2d7f58cc281bbcd473a2d1d76dc8da",
+  "scope": "Native UI acceptance using a reconstructed screenshot fixture, not the unavailable original user workspace or verified physical load ratings. Browser lacked WebGL; coordinate projections and exported plans were verified.",
+  "ci": "https://github.com/guodongbuding66-spec/container-load-planner/actions/runs/43535667101",
+  "deployments": {
+    "main": {
+      "url": "https://container-load-planner.pages.dev/",
+      "id": "f11720a6-fd29-47d2-9830-061028b712c0"
+    },
+    "gray": {
+      "url": "https://container-load-planner-gray.vercel.app/",
+      "id": "dpl_Hh817m6o2iAgRzRqyaaw28tB3pfx"
+    }
+  },
+  "cases": {
+    "main-before-18.json": {
+      "sha256": "83043ae3476dc6e4f1de4533112830a10469ded8eaff2e259a918a48a76e714c",
+      "engine": "0.81.3",
+      "perPallet": 3,
+      "dimensions": [
+        1800,
+        1800,
+        125
+      ],
+      "outputs": [
+        {
+          "strategy": "practical",
+          "cartons": 18,
+          "pallets": 6,
+          "aboveFloor": 0,
+          "tiers": 1,
+          "maxBaseZ": 0,
+          "grossWeight": 906
+        },
+        {
+          "strategy": "maximum",
+          "cartons": 18,
+          "pallets": 6,
+          "aboveFloor": 0,
+          "tiers": 1,
+          "maxBaseZ": 0,
+          "grossWeight": 906
+        }
+      ],
+      "supply": {
+        "total": 50,
+        "primary": 50
+      }
+    },
+    "main-252.json": {
+      "sha256": "bd86caf33732d6c27f6f395fa3e4bf915eb1129848f4568ece1a35cd7e3b1b2a",
+      "engine": "0.81.4",
+      "perPallet": 3,
+      "dimensions": [
+        1800,
+        1800,
+        125
+      ],
+      "unitStacking": {
+        "enabled": true,
+        "maxLayers": 0
+      },
+      "outputs": [
+        {
+          "strategy": "practical",
+          "cartons": 252,
+          "pallets": 84,
+          "aboveFloor": 78,
+          "tiers": 14,
+          "maxBaseZ": 2340,
+          "grossWeight": 12684
+        },
+        {
+          "strategy": "maximum",
+          "cartons": 252,
+          "pallets": 84,
+          "aboveFloor": 78,
+          "tiers": 14,
+          "maxBaseZ": 2340,
+          "grossWeight": 12684
+        }
+      ],
+      "supply": {
+        "total": 200,
+        "primary": 200
+      }
+    },
+    "main-378.json": {
+      "sha256": "b918d6e43bef31ef3c30311ffb9a6cf9d3030444d80faa55902d2d150b4d5e51",
+      "engine": "0.81.4",
+      "perPallet": 3,
+      "dimensions": [
+        1700,
+        605,
+        360
+      ],
+      "unitStacking": {
+        "enabled": true,
+        "maxLayers": 0
+      },
+      "outputs": [
+        {
+          "strategy": "practical",
+          "cartons": 378,
+          "pallets": 126,
+          "aboveFloor": 105,
+          "tiers": 6,
+          "maxBaseZ": 2075,
+          "grossWeight": 19026
+        },
+        {
+          "strategy": "maximum",
+          "cartons": 378,
+          "pallets": 126,
+          "aboveFloor": 105,
+          "tiers": 6,
+          "maxBaseZ": 2075,
+          "grossWeight": 19026
+        }
+      ],
+      "supply": {
+        "total": 200,
+        "primary": 200
+      }
+    },
+    "main-540.json": {
+      "sha256": "0c3989c84095a38f4dcd3315c06c6fad6bc27d40b8d4aa9a0b295c0738b68ef7",
+      "engine": "0.81.4",
+      "perPallet": 20,
+      "dimensions": [
+        1700,
+        1150,
+        1200
+      ],
+      "unitStacking": {
+        "enabled": true,
+        "maxLayers": 0
+      },
+      "outputs": [
+        {
+          "strategy": "practical",
+          "cartons": 540,
+          "pallets": 27,
+          "aboveFloor": 13,
+          "tiers": 2,
+          "maxBaseZ": 1255,
+          "grossWeight": 23355
+        },
+        {
+          "strategy": "maximum",
+          "cartons": 560,
+          "pallets": 28,
+          "aboveFloor": 14,
+          "tiers": 2,
+          "maxBaseZ": 1255,
+          "grossWeight": 24220
+        }
+      ],
+      "supply": {
+        "total": 200,
+        "primary": 200
+      }
+    },
+    "gray-520.json": {
+      "sha256": "91e4324810ac9ced3da9a9e7e38872dc1a0abcc6a61dd0cf45c589e1e71104c1",
+      "engine": "0.81.4",
+      "perPallet": 20,
+      "dimensions": [
+        1750,
+        1150,
+        1200
+      ],
+      "unitStacking": {
+        "enabled": true,
+        "maxLayers": 0
+      },
+      "outputs": [
+        {
+          "strategy": "practical",
+          "cartons": 520,
+          "pallets": 26,
+          "aboveFloor": 13,
+          "tiers": 2,
+          "maxBaseZ": 1255,
+          "grossWeight": 22490
+        },
+        {
+          "strategy": "maximum",
+          "cartons": 520,
+          "pallets": 26,
+          "aboveFloor": 13,
+          "tiers": 2,
+          "maxBaseZ": 1255,
+          "grossWeight": 22490
+        }
+      ],
+      "supply": {
+        "total": 200,
+        "primary": 200
+      }
+    }
+  }
+}
