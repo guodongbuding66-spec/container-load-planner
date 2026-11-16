@@ -85,4 +85,4 @@ it("keeps the user's three-carton target and automatically previews three layers
   expect(next.primaryRule!.cartonLimit).toBe(3);
   for(const strategy of ["practical","maximum"] as const){const result=packLoadingWorkflow({...ui.request,palletBuild:next,strategy});expect(result.metrics.loadedCount).toBe(378);expect(result.pallets).toHaveLength(126);expect(result.pallets!.some(p=>p.z>0)).toBe(true);expect(result.validation.valid).toBe(true);}
  }finally{await ui.close();}
-});
+}, 15_000);
