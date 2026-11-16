@@ -168,7 +168,7 @@
   .compact-workspace .packing-timeline { grid-template-columns: 32px minmax(80px,1fr) auto; gap: 4px 8px; }.compact-workspace .packing-timeline > input { grid-column: 1 / -1; grid-row: 2; min-width: 0; }.compact-workspace .timeline-all { display: none; }.compact-workspace .timeline-current { flex-wrap: wrap; }
   .compact-workspace .wizard-mode { grid-template-columns: 1fr; gap: 8px; padding: 12px !important; }.compact-workspace .wizard-page .panel { padding: 12px; }.compact-workspace .inline-loading-rules .feature-choice-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }.compact-workspace .wizard-navigation .button { width: auto; }.compact-workspace .wizard-navigation > div { align-items: stretch; width: 100%; }
   .compact-workspace .workflow-heading p { display: none; }.compact-workspace .planning-upgrades { padding: 12px; }.compact-workspace .workflow-switcher button { padding: 8px 4px; gap: 4px; }.compact-workspace .tool-summary-text small { display: none; }
-  .scene-options-panel { position: fixed; left: 8px; right: 8px; top: 64px; width: auto; max-height: calc(100dvh - 80px); }.scene-workspace-heading { padding: 4px 8px; }.scene-workspace-heading strong { font-size: 13px; }.scene-workspace-heading .button { min-height: 32px; padding: 4px 6px; font-size: 12px; }.scene-fullscreen-toggle kbd { display: none; }
+  .scene-workspace-heading { padding: 4px 8px; }.scene-workspace-heading strong { font-size: 13px; }.scene-workspace-heading .button { min-height: 32px; padding: 4px 6px; font-size: 12px; }.scene-fullscreen-toggle kbd { display: none; }
   .scene-view-options { right: 84px; }.scene-view-options > summary { min-height: 32px; padding: 4px 6px; }.scene-dock-toolbar { padding: 4px 8px; }.scene-dock-toolbar button { min-height: 36px; padding: 4px 8px; }.scene-inspector-dock button,.scene-inspector-section select { min-height: 40px; }.scene-cargo-items > button { min-height: 40px; }.scene-cargo-items { grid-template-columns: 1fr; }.scene-progress { padding: 6px 8px; }
   .compact-workspace input:not([type=range]):not([type=checkbox]):not([type=color]),.compact-workspace select { font-size: 16px; }
 }
@@ -229,7 +229,6 @@
   .feature-dialog-heading { padding: 12px; }.feature-dialog-heading h2 { font-size: 18px; }.feature-dialog-body { padding: 12px; }.feature-dialog-footer { padding: 12px; }
   .scene-workspace-heading { gap: 6px; }.scene-view-options { inset: auto; }
   .scene-quick-controls .scene-camera-controls button { min-height: 36px; padding: 6px 8px; }
-  .scene-options-panel { left: 8px; right: 8px; width: auto; }
   .compact-workspace .product-table td input:not([type=checkbox]):not([type=color]) { font-size: 16px; }
   .compact-workspace .product-table .cargo-settings-button { min-height: 40px; }
 }
@@ -487,7 +486,10 @@
 .scene-display-options .scene-options-panel { position: absolute; inset-inline-end: 0; top: calc(100% + 4px); width: min(420px, 85vw); }
 .scene-display-options .dimension-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
 .scene-display-options .dimension-controls label { display: inline-flex; align-items: center; gap: 5px; }
-@media (max-width: 760px) { .scene-display-options .scene-options-panel { position: fixed; inset: 56px 8px auto; width: auto; } }
+@container scene (max-width: 760px) {
+  .scene-display-options[open] { flex: 1 0 100%; }
+  .scene-display-options .scene-options-panel { position: static; width: 100%; margin-top: 4px; padding: 8px; box-shadow: none; }
+}
 .scene-inline-options { display: none; }
 @container scene (min-width: 1660px) {
   .scene-display-options { display: none; }
