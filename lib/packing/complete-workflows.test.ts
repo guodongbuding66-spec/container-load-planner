@@ -5,7 +5,7 @@ import {restoreWorkspacePlans,serializeWorkspaceBackup,parseWorkspaceBackup,type
 import {compareFleets,fleetEconomics,proposeOrderTopUp,optimizeFleetTail} from './fleet';
 import {executionAudit,snapTranslation,fieldBlocks} from './execution';
 import {customerReport,offlineFieldHtml} from './field-report';
-import {calibrationReport,parseCatalog,type FieldRecord} from './catalog';
+import {calibrationReport,fieldCalibrationSignature,parseCatalog,type FieldRecord} from './catalog';
 import {importOsOrder,exportOsPlan} from './os-adapter';
 import type {ProductInput,ContainerSpec,PackingRequest,PlacedBox} from './types';
 const c:ContainerSpec={id:'c',name:'C',length:2000,width:1000,height:2000,doorWidth:1000,doorHeight:2000,maxWeight:10000};
@@ -29,7 +29,14 @@ describe('complete project and packaging persistence',()=>{
  it('round trips both independent plans and packaging metadata',()=>{const products=[{...p,quantity:3,allowedAboveSkus:['P'],topLoadByVerticalAxis:{height:100},packaging:{revision:'B',effectiveDate:'2026-09-01',notes:'new'}}];const i={...inputs,products};const plan=packWithComparison({...req(products),practicalTargetUtilization:.88});const text=serializeWorkspaceBackup(i,'test',plan);const parsed=parseWorkspaceBackup(text),restored=restoreWorkspacePlans(text,parsed)!;expect(restored.strategyPlans?.practical?.metrics.loadedCount).toBe(plan.strategyPlans!.practical!.metrics.loadedCount);expect(restored.strategyPlans?.maximum?.metrics.loadedCount).toBe(plan.strategyPlans!.maximum!.metrics.loadedCount);expect(parsed.products[0].packaging?.revision).toBe('B');});
  it('rejects forged secondary plan as well as selected plan',()=>{const plan=packWithComparison(req());const raw=JSON.parse(serializeWorkspaceBackup(inputs,'test',plan));raw.coordinatePlans.practical.placements[0].weight=999;expect(()=>restoreWorkspacePlans(JSON.stringify(raw),inputs)).toThrow();});
  it('rejects corrupted catalog photos',()=>{expect(()=>parseCatalog(JSON.stringify({format:'cargo-fit-catalog',version:1,entries:[],records:[{photos:['javascript:alert(1)'],split:'acceptance'}]}))).toThrow();});
- it('acceptance data never trains the calibration factor',()=>{const common={id:'a',name:'A',packagingSignature:'revA',container:c,minutes:1,reason:'',photos:[],createdAt:'2026-09-08'};const records:FieldRecord[]=[{...common,split:'calibration',predicted:100,actual:110},{...common,id:'b',split:'acceptance',predicted:100,actual:120}];expect(calibrationReport(records).evaluate[0].predicted).toBe(110);records[1].actual=900;expect(calibrationReport(records).evaluate[0].predicted).toBe(110);});
+ it('acceptance data never trains the calibration factor',async()=>{
+  const settingsSignature=await fieldCalibrationSignature(pack(req()),[p]);
+  const common={id:'a',name:'A',packagingSignature:'revA',settingsSignature,container:c,minutes:1,reason:'',photos:[],createdAt:'2026-09-08'};
+  const records:FieldRecord[]=[{...common,split:'calibration',predicted:100,actual:110},{...common,id:'b',split:'acceptance',predicted:100,actual:120}];
+  expect(calibrationReport(records).evaluate[0].predicted).toBe(110);
+  records[1].actual=900;
+  expect(calibrationReport(records).evaluate[0].predicted).toBe(110);
+ });
 });
 describe('commercial and offline workflows',()=>{
  it('compares completed fleet schedules and conserves cost allocation',()=>{const results=compareFleets(req(),[{container:c,cost:100,available:4},{container:{...c,id:'larger',length:4000},cost:150,available:4}],4,'cost');expect(results[0].result.complete).toBe(true);expect(results[0].result.totalCost).toBe(150);const allocated=fleetEconomics(results[0].result);expect(allocated.reduce((n,a)=>n+a.cost,0)).toBeCloseTo(150);});
