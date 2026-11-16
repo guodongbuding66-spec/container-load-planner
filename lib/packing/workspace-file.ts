@@ -14,6 +14,7 @@ import type { ContainerSpec, PackingMode, PackingResult, PackingStrategy, Produc
 import { isLengthUnit, isWeightUnit, type LengthUnit, type WeightUnit } from "./units";
 import { restorePackingSnapshot } from "./engine";
 import { MAX_CSV_ROWS } from "./csv";
+import {parsePreparedPalletLayout,type PreparedPalletLayout} from "./prepared-pallet-layout";
 
 // Two 20,000-carton plans exceed the former 5 MB import cap.
 // The independent per-plan limit is enforced by restorePackingSnapshot.
@@ -22,6 +23,7 @@ export type WorkspaceInputs = {
   palletLayerTemplates?: PalletLayerTemplate[];
   workflow?: import("./types").LoadingWorkflow;
   palletBuild?: import("./types").PalletBuildOptions;
+  preparedPalletLayout?: PreparedPalletLayout;
   floorPallets?: FloorPalletConfig;
   loadingRules?: LoadingRules;
   mode: PackingMode;
@@ -101,7 +103,8 @@ export function parseWorkspaceBackup(contents: string): WorkspaceInputs {
   if (!Array.isArray(v.products) || !v.products.length || v.products.length > MAX_CSV_ROWS) throw new Error("备份的箱型数量无效。");
   if (!Array.isArray(v.customContainers) || v.customContainers.length > 100) throw new Error("自定义柜型数量无效。");
   const products=v.products.map(parseProductInput);assertOrderLineIds(products);
-  return { ...(v.palletLayerTemplates===undefined?{}:{palletLayerTemplates:parsePalletLayerTemplates(v.palletLayerTemplates)}), ...(v.workflow===undefined?{}:{workflow:parseLoadingWorkflow(v.workflow,v.mode)}), ...(v.palletBuild===undefined?{}:{palletBuild:parsePalletBuild(v.palletBuild)}), ...(v.floorPallets === undefined ? {} : {floorPallets:parseFloorPalletConfig(v.floorPallets)}), ...(v.loadingRules === undefined ? {} : { loadingRules: parseLoadingRules(v.loadingRules) }), mode: v.mode, strategy: v.strategy, practicalTargetPercent: number(v.practicalTargetPercent, 50, 95),
+  const preparedPalletLayout=parsePreparedPalletLayout(v.preparedPalletLayout);
+  return { ...(preparedPalletLayout?{preparedPalletLayout}:{}), ...(v.palletLayerTemplates===undefined?{}:{palletLayerTemplates:parsePalletLayerTemplates(v.palletLayerTemplates)}), ...(v.workflow===undefined?{}:{workflow:parseLoadingWorkflow(v.workflow,v.mode)}), ...(v.palletBuild===undefined?{}:{palletBuild:parsePalletBuild(v.palletBuild)}), ...(v.floorPallets === undefined ? {} : {floorPallets:parseFloorPalletConfig(v.floorPallets)}), ...(v.loadingRules === undefined ? {} : { loadingRules: parseLoadingRules(v.loadingRules) }), mode: v.mode, strategy: v.strategy, practicalTargetPercent: number(v.practicalTargetPercent, 50, 95),
     container: container(v.container), clearance: number(v.clearance, 0, 50),
     products, customContainers: v.customContainers.map(container),
     targetVolumePercent: integer(v.targetVolumePercent, 1, 100), targetWeightPercent: integer(v.targetWeightPercent, 1, 100),

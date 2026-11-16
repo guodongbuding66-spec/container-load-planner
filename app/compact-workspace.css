@@ -488,6 +488,16 @@
 .scene-display-options .dimension-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
 .scene-display-options .dimension-controls label { display: inline-flex; align-items: center; gap: 5px; }
 @media (max-width: 760px) { .scene-display-options .scene-options-panel { position: fixed; inset: 56px 8px auto; width: auto; } }
+.scene-inline-options { display: none; }
+@container scene (min-width: 1660px) {
+  .scene-display-options { display: none; }
+  .scene-inline-options { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
+  .scene-inline-options .dimension-controls { margin: 0; gap: 4px; }
+  .scene-inline-options .dimension-controls label { gap: 3px; }
+  .scene-inline-options .transport-opacity { flex-basis: 145px; min-width: 145px; }
+  .scene-header-controls, .scene-header-controls .scene-tools { column-gap: 5px; }
+  .scene-header-controls .scene-tools button, .scene-inline-options .transport-model-modes button { padding-inline: 6px; }
+}
 .shipping-mark-editor { border: 1px solid var(--line); border-radius: 7px; }
 .shipping-mark-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(170px, .7fr); gap: 14px; align-items: start; padding: 0 12px 12px; }
 .shipping-mark-fields, .shipping-mark-fields label { display: grid; gap: 6px; min-width: 0; }
@@ -550,7 +560,7 @@
 .workspace-section-links .button { min-height: 30px; }
 .workspace-topic-link { margin-inline-start: auto; }
 #loading-rules, #vehicle-setup, #packaging-settings, #pallet-recipe, #result, #plan-review,
-#load-summary, #loaded-pallets, #coordinates, #products, #workflow-tools { scroll-margin-top: 12px; }
+#load-summary, #loaded-pallets, #coordinates, #products, #workflow-tools, #pallet-build-preview { scroll-margin-top: 12px; }
 @media (max-width: 680px) {
   .workspace-section-links .button { min-height: 36px; }
   .workspace-topic-link { margin-inline-start: 0; }
@@ -604,4 +614,74 @@
   .tutorial-results { max-height: min(175px,27dvh); }
   .tutorial-article { padding: 12px; }
   .tutorial-search-suggestions .button, .tutorial-categories .button { min-height: 32px; }
+}
+
+.result-overview { margin: 0; gap: 6px; }
+.result-overview .metric-card { min-height: 0; padding: 8px 10px; gap: 8px; }
+.result-overview .metric-icon { width: 30px; height: 30px; flex: 0 0 30px; }
+.result-overview .metric-card strong { font-size: 18px; }
+.result-overview .metric-card small { font-size: 11px; }
+.record-panel { padding: 8px 10px; margin-top: 8px; min-width: 0; scroll-margin-top: 12px; }
+.record-panel > .panel-head { gap: 6px 12px; margin-bottom: 4px; align-items: center; flex-wrap: wrap; }
+.record-panel .panel-head h2 { font-size: 15px; }
+.record-panel .panel-head p { margin: 3px 0 0; }
+.record-disclosure > summary, .packaging-structure-options > summary, .pallet-preview-projections > summary,
+.result-method-details > summary, .result-warnings > summary { cursor: pointer; padding: 6px 0; font-size: 13px; font-weight: 650; }
+.record-disclosure > summary:focus-visible, .packaging-structure-options > summary:focus-visible, .pallet-preview-projections > summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.record-disclosure > summary small { margin-inline-start: 8px; color: var(--muted); font-weight: 500; }
+.record-disclosure > .helper-text { margin: 2px 0 6px; }
+.record-disclosure > :is(section,details) { margin-top: 8px; }
+.record-page-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 5px 0 7px; font-size: 12px; color: var(--muted); }
+.record-search { display: flex; align-items: center; gap: 6px; flex: 0 1 320px; min-width: min(120px,100%); padding-inline: 8px; border: 1px solid var(--line); background: white; border-radius: 6px; }
+.record-search svg { flex: 0 0 auto; }
+.record-search input { border: 0; background: transparent; min-height: 34px; width: 100%; min-width: 0; font: inherit; }
+.record-search:focus-within, .record-table:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+.record-pagination { display: flex; align-items: center; gap: 6px; margin-inline-start: auto; font-variant-numeric: tabular-nums; }
+.record-pagination .button { min-height: 34px; padding: 4px 6px; }
+.record-table, .record-disclosure section > :is(.coordinate-wrap,.upgrade-table-wrap), .manifest-comparison { max-height: min(52dvh,420px); overflow: auto; }
+.record-table th { position: sticky; top: 0; z-index: 1; background: #eff5f5; }
+.record-table .coordinate-table :is(th,td) { padding: 5px 8px; }
+.record-table .pallet-inspect-button { min-height: 26px; }
+.record-table .pallet-inspect-button small { display: block; }
+.manifest-comparison section + section { margin-top: 8px; }
+.result-method-details { border: 1px solid var(--line); padding: 0 10px; border-radius: 8px; }
+.result-method-details[open] { padding-bottom: 8px; }
+.result-warnings .warning-list { margin: 4px 0 0; }
+.pallet-workflow-setup:not(:has(> .pallet-recipe)) > .vehicle-config { grid-column: 1 / -1; }
+.pallet-workflow-setup:not(:has(> .pallet-recipe)) .vehicle-config .field-grid { grid-template-columns: repeat(6,minmax(0,1fr)); }
+.packaging-fields .pallet-build-grid.packaging-dimensions { margin-block-start: 0; }
+.packaging-structure-options { border-block: 1px solid var(--line); margin-block: 8px; }
+.packaging-structure-options[open] { padding-bottom: 8px; }
+.packaging-preview-column { align-content: start; }
+.packaging-preview .space-model-preview { height: clamp(130px,20dvh,190px); min-height: 0; }
+.pallet-preview-selection { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; }
+.pallet-preview-scene, .pallet-unit-scene { overflow: hidden; border: 1px solid var(--line); border-radius: 8px; }
+.pallet-preview-scene .scene-workspace-heading { min-height: 32px; padding: 2px 6px; }
+.pallet-preview-scene .scene-workspace-heading strong { font-size: 12px; }
+.pallet-preview-scene .scene-header-controls, .pallet-preview-scene :is(.scene-dock-toolbar,.scene-cargo-dock,.scene-inspector-dock,.dock-resize,.door-marker,.scene-hint) { display: none; }
+.pallet-preview-scene .scene-workbench { display: block; height: clamp(205px,31dvh,335px); }
+.pallet-preview-scene .scene-workbench-view, .pallet-preview-scene .scene-workbench.is-compact .scene-workbench-view > .scene-shell { height: 100%; min-height: 0; }
+.pallet-preview-projections { margin-top: 4px; }
+.pallet-unit-scene .scene-workbench { height: clamp(240px,42dvh,460px); }
+.pallet-unit-scene .scene-workbench.is-compact { height: auto; }
+.feature-dialog:has(.pallet-unit-scene) .feature-dialog-heading .eyebrow { display: none; }
+.feature-dialog:has(.pallet-unit-scene) .feature-dialog-footer p { flex: 1; margin: 0; }
+.feature-dialog .pallet-editor { gap: 6px; margin: 8px 0; padding: 8px; }
+.pallet-editor .tool-form-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.pallet-editor .pallet-editor-search { padding: 5px 0; }
+.pallet-editor .pallet-editor-search > label { flex: 0 1 340px; }
+@media (max-width: 760px) {
+  .pallet-workflow-setup:not(:has(> .pallet-recipe)) .vehicle-config .field-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .packaging-preview-column .pallet-build-preview { order: -1; }
+  .result-overview { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .result-overview .metric-icon { display: none; }
+  .pallet-unit-scene .scene-workbench.is-compact .scene-workbench-view > .scene-shell { height: 245px; min-height: 0; }
+  .record-search input { font-size: 16px; }
+  .record-table .pallet-inspect-button { min-height: 34px; }
+}
+@media print {
+  .record-page-controls, .record-panel .panel-actions { display: none; }
+  .record-panel, .record-table { break-inside: auto; max-height: none; overflow: visible; }
+  .record-table th { position: static; }
+  .record-table tr { break-inside: avoid; }
 }

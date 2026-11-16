@@ -13,7 +13,7 @@ import {PalletTailTrial} from "./pallet-tail-trial";
 import type {PackingRequest,PackingResult,ProductInput,PalletBuildOptions} from "../lib/packing/types";
 import {tr,useLanguage} from "./language";
 
-type Props={request:PackingRequest;plan?:PackingResult|null;measuredEnvelope?:boolean;volume:number;weight:number;disabled:boolean;canApply:boolean;onApply:(products:ProductInput[])=>void;onApplyBuild?:(build:PalletBuildOptions)=>void;onDesignPallet?:(specId:string,patch?:PalletRecipePatch)=>void;onRecalculateCurrent?:()=>void};
+type Props={request:PackingRequest;plan?:PackingResult|null;measuredEnvelope?:boolean;volume:number;weight:number;disabled:boolean;canApply:boolean;adoptionBlockedReason?:string;onApply:(products:ProductInput[])=>void;onApplyBuild?:(build:PalletBuildOptions)=>void;onDesignPallet?:(specId:string,patch?:PalletRecipePatch)=>void;onRecalculateCurrent?:()=>void};
 export function useOrderCapacityTrial({request,volume,weight,disabled:inputDisabled,canApply,onApply,onApplyBuild,plan,measuredEnvelope}:Props){
  const disabled=inputDisabled||!!measuredEnvelope||!!plan?.pallets?.some(p=>p.measuredEnvelope);
  const key=JSON.stringify([request,volume,weight]),identity=useMemo(()=>({key,disabled,canApply}),[key,disabled,canApply]),worker=useRef<Worker|null>(null),timer=useRef<ReturnType<typeof setTimeout>|null>(null),latest=useRef(identity),blocked=useRef(disabled);
@@ -71,7 +71,7 @@ export function OrderCapacityTrial(props:Props){
     </div>
   </div>}
   <PalletCapacityDiagnostics plan={plan}/>
-  <PalletTailTrial request={request} plan={plan} disabled={props.disabled||!!measured||task.running} canApply={canApply} onApply={props.onApplyBuild}/>
+  <PalletTailTrial request={request} plan={plan} disabled={props.disabled||!!measured||task.running} canApply={canApply} adoptionBlockedReason={props.adoptionBlockedReason} onApply={props.onApplyBuild}/>
   {canCompareExistingPackaging(request)&&<div className="existing-packaging-trial"><button type="button" className="button" disabled={props.disabled||!!measured||task.running} onClick={()=>task.run("packaging")}>{tr("保持本单数量，按现有包装比选","Compare existing packaging for this order")}</button><p className="helper-text">{tr("比较已登记的适用规格，同货量优先较小包装；不新增规格，不增加库存，不提高限高或承重。逐托启发式搜索不保证全局最优。","Compare registered eligible specifications, preferring smaller packaging at equal cargo load. No specifications, stock, height limits or ratings are added. The per-unit heuristic is not globally optimal.")}</p></div>}
   {heights.length>0&&<details open={oneLayer} className="pallet-height-diagnostic" aria-label={tr("托内高度诊断","Pallet cargo height diagnosis")}><summary>{tr("托内限高与纸箱层数","Cargo ceilings and carton layers")}</summary>
    {oneLayer&&<p role="status"><strong>{tr("当前只生成了第一层，且仍有订单未装。","Only the first cargo layer was generated and order demand remains.")}</strong> {tr("整托堆叠 1 层只限制托盘之间叠放；托内纸箱仍可按以下规则加层。","A loaded-unit stack limit of 1 controls pallet-on-pallet stacking; cartons within a pallet use the rules below.")}</p>}
@@ -99,7 +99,7 @@ export function OrderCapacityTrial(props:Props){
    {candidate.palletization&&<p>{tr("已生成／已入柜整托","Prepared / loaded units")}: {candidate.palletization.preparedCount??candidate.pallets?.length} / {candidate.pallets?.length}{candidate.palletization.bounded?tr(" · 已触及包装或箱位搜索上限"," · Packaging or coordinate search limit reached"):""}</p>}
    <button type="button" className="button primary" disabled={props.disabled||!canApply||(buildTrial?(!props.onApplyBuild||!buildImproves):added<=0)} onClick={task.adopt}>{packagingTrial?tr("采用包装比选并重新计算","Apply packaging selection and recalculate"):heightTrial?tr("采用此限高，保持订单并重新计算","Apply cargo ceilings and recalculate this order"):tr("补充已验证货量并重新计算","Add validated stock and recalculate")} {!buildTrial&&added>0?`(+${added})`:""}</button>
    {(buildTrial?!buildImproves:added<=0)&&<p>{buildTrial?tr("候选未在保留各已装订单行数量的前提下增加总装箱数，不能一键采用。请检查限高、朝向、承托、载荷和包装库存；不会自动放宽这些规则。","The candidate did not increase total cartons while retaining every loaded order-row quantity, so it cannot be applied. Review height, orientation, support, payload and packaging stock; these rules are not relaxed automatically."):tr("未验证到新增订单量；请检查上述限高、层数、承重、尺寸及包装数量。不能仅凭剩余 CBM 判断能否补货。","No additional order stock was validated. Review the limits above; remaining CBM alone does not establish feasibility.")}</p>}
-   {!canApply&&<p>{tr("已有交付版本，仅供试算；请在方案副本中调整订单。","An issued delivery version is preview-only. Change the order in a plan copy.")}</p>}
+   {!canApply&&<p>{props.adoptionBlockedReason??tr("已有交付版本，仅供试算；请在方案副本中调整订单。","An issued delivery version is preview-only. Change the order in a plan copy.")}</p>}
   </div>}
   <small>{tr("最多 4000 箱，30 秒；关闭、停止或参数变化会丢弃未完成试算。","Up to 4000 cartons and 30 seconds. Unmounting, cancellation or changed inputs discard unfinished trials.")}</small>
  </section>;

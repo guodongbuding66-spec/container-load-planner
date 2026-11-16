@@ -14,7 +14,7 @@ import type {PackingRequest,PackingResult,PalletBuildOptions} from "../lib/packi
 import {tr,useLanguage} from "./language";
 
 type Row=TailComparisonRow;
-type Props={request:PackingRequest;plan?:PackingResult|null;disabled:boolean;canApply:boolean;onApply?:(build:PalletBuildOptions)=>void};
+type Props={request:PackingRequest;plan?:PackingResult|null;disabled:boolean;canApply:boolean;adoptionBlockedReason?:string;onApply?:(build:PalletBuildOptions)=>void};
 
 export function usePalletTailTrial({request,plan,disabled:inputDisabled,canApply,onApply}:Props){
  const groups=useMemo(()=>{try{return tailCargoGroups(request,plan);}catch{return [];}},[request,plan]);
@@ -112,7 +112,7 @@ export function PalletTailTrial(props:Props){
   {!!current?.rows.length&&<div className="pallet-capacity-table tail-candidate-table" tabIndex={0} role="region" aria-label={tr("尾数候选比较结果","Tail candidate comparison results")}><table><thead><tr><th>{tr("新增散装份数／组合","Extra loose units / allocation")}</th><th>{tr("整单已装箱数","Total cartons loaded")}</th><th>{tr("已装订单行","Loaded order rows")}</th><th>{tr("复核说明","Review")}</th></tr></thead><tbody>{current.rows.map(r=><tr key={r.allocation??r.units}><td>{r.allocation??r.units}</td><td>{r.loaded??tr("未通过复核","Not validated")}</td><td>{r.retained?tr("数量不减","Retained"):tr("不可采用","Unavailable")}</td><td>{r.problem?problemText(r.problem):r.loaded!==null&&!r.retained?tr("会减少至少一个已装订单行","Would reduce at least one loaded order row"):r.loaded!==null&&r.loaded<=(plan?.metrics.loadedCount??0)?tr("未增加总箱数","No total-carton increase"):tr("通过模型校验","Model validation passed")}</td></tr>)}</tbody></table></div>}
   {current?.status==="done"&&!best&&<p>{tr("本批次未找到总箱数增加且各已装订单行不减量的合法候选；不代表其他数量无解。","No validated candidate in this batch increased the total while retaining every loaded order row; other quantities may still work.")}</p>}
   {current?.status==="done"&&<TailReportDownloads enabled={!disabled} hasCandidate={!!best} getReport={getReport}/>}
-  {!canApply&&<p>{tr("已有交付版本，仅可预览；请在方案副本中修改。","Issued delivery versions are preview-only; change a plan copy.")}</p>}
+  {!canApply&&<p>{props.adoptionBlockedReason??tr("已有交付版本，仅可预览；请在方案副本中修改。","Issued delivery versions are preview-only; change a plan copy.")}</p>}
   <small>{tr("不增加订单、包装库存、限高或承重；散箱与整托不互相承托、不占托内空隙。只比较所选的最多四组订单行／套装，30 秒，订单最多 4000 箱；不代表原位补货、最优解或运输固定核验。","Order demand, packaging stock, height ceilings and ratings remain intact. Loose cartons cannot cross-support pallets or use their internal voids. Compare up to four selected rows / kits, up to 4000 ordered cartons and 30 seconds; this is not in-place insertion, an optimality proof or securing verification.")}</small>
  </details>;
 }

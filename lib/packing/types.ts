@@ -165,6 +165,7 @@ export type PackingRequest = {
   palletCartonLimit?: number;
   workflow?: LoadingWorkflow;
   palletBuild?: PalletBuildOptions;
+  preparedPalletLayout?: import("./prepared-pallet-layout").PreparedPalletLayout;
   delivery?: import("./access").DeliveryMap;
   accessConfig?: import("./maneuver").AccessConfig;
   floorPallets?: FloorPalletConfig;

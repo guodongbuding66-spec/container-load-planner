@@ -28,7 +28,7 @@ export function orderPalletizedCargo(boxes: PlacedBox[], pallets: PlacedPallet[]
   }
   ordered.push(...loose.slice(i),...[...groups.values()].flat());return ordered;
 }
-export type Palletization = { looseQuantities?:LooseQuantities; selection?:PackagingSelection;selectionChoices?:PackagingChoice[]; editRevision?:number; config: FloorPalletConfig; mix: "single" | "mixed"; stackLayers?: number; maxTopLoadKg?: number; preparedCount?: number; bounded?: boolean; only?: boolean; specifications?:PalletBuildSpecification[]; preparedBySpecification?:Record<string,number> };
+export type Palletization = { looseQuantities?:LooseQuantities; selection?:PackagingSelection;selectionChoices?:PackagingChoice[]; editRevision?:number; manualPreparation?:boolean; config: FloorPalletConfig; mix: "single" | "mixed"; stackLayers?: number; maxTopLoadKg?: number; preparedCount?: number; bounded?: boolean; only?: boolean; specifications?:PalletBuildSpecification[]; preparedBySpecification?:Record<string,number> };
 export function parsePalletization(value: unknown): Palletization | undefined {
   if (value === undefined) return undefined;
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid prebuilt pallets");
@@ -40,7 +40,7 @@ export function parsePalletization(value: unknown): Palletization | undefined {
   if (p.stackLayers !== undefined && (!Number.isInteger(p.stackLayers) || p.stackLayers < 1 || p.stackLayers > 20)) throw new Error("Invalid pallet stack layers");
   if (p.maxTopLoadKg !== undefined && (!Number.isFinite(p.maxTopLoadKg) || p.maxTopLoadKg < 0 || p.maxTopLoadKg > 100000)) throw new Error("Invalid pallet top load");
   if (p.preparedCount !== undefined && (!Number.isInteger(p.preparedCount) || p.preparedCount < 0 || p.preparedCount > 200)) throw new Error("Invalid prepared pallet count");
-  for (const k of ["bounded", "only"] as const) if (p[k] !== undefined && typeof p[k] !== "boolean") throw new Error("Invalid pallet metadata");
+  for (const k of ["bounded", "only", "manualPreparation"] as const) if (p[k] !== undefined && typeof p[k] !== "boolean") throw new Error("Invalid pallet metadata");
   if(p.selection!==undefined&&p.selection!=="ordered"&&p.selection!=="compact")throw new Error("Invalid packaging selection mode");
   const config=parseFloorPalletConfig(p.config);assertDeckSupportStacking(config,p.stackLayers??1,p.maxTopLoadKg??0);const specifications=p.specifications===undefined?undefined:parsePackagingSpecifications(p.specifications);
   let preparedBySpecification:Record<string,number>|undefined;
@@ -54,7 +54,7 @@ export function parsePalletization(value: unknown): Palletization | undefined {
   }else if(p.preparedBySpecification!==undefined)throw new Error("Prepared packaging definitions are missing");
   const selectionChoices=parsePackagingChoices(p.selectionChoices,new Set(specifications?.map(s=>s.id)??["primary"]));
   if(selectionChoices&&p.selection!=="compact")throw new Error("Packaging choice records require compact selection");
-  return { ...(looseQuantities?{looseQuantities}:{}), ...(p.selection===undefined?{}:{selection:p.selection}),...(selectionChoices?{selectionChoices}:{}), config, mix: p.mix, ...(p.editRevision===undefined?{}:{editRevision:p.editRevision}), ...(p.stackLayers === undefined ? {} : { stackLayers: p.stackLayers }), ...(p.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: p.maxTopLoadKg }), ...(p.preparedCount === undefined ? {} : { preparedCount: p.preparedCount }), ...(p.bounded === undefined ? {} : { bounded: p.bounded }), ...(p.only === undefined ? {} : { only: p.only }),...(specifications?{specifications,preparedBySpecification}:{}) };
+  return { ...(looseQuantities?{looseQuantities}:{}), ...(p.selection===undefined?{}:{selection:p.selection}),...(selectionChoices?{selectionChoices}:{}), config, mix: p.mix, ...(p.editRevision===undefined?{}:{editRevision:p.editRevision}), ...(p.manualPreparation?{manualPreparation:true}:{}), ...(p.stackLayers === undefined ? {} : { stackLayers: p.stackLayers }), ...(p.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: p.maxTopLoadKg }), ...(p.preparedCount === undefined ? {} : { preparedCount: p.preparedCount }), ...(p.bounded === undefined ? {} : { bounded: p.bounded }), ...(p.only === undefined ? {} : { only: p.only }),...(specifications?{specifications,preparedBySpecification}:{}) };
 }
 export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPallet[], container: ContainerSpec, clearance: number, value: Palletization, products:readonly ProductInput[] = []) {
   value=parsePalletization(value)!;

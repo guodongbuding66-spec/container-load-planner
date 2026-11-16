@@ -6,11 +6,11 @@ import { editPalletContents, type PalletEdit } from "../lib/packing/pallet-edit"
 import type { PackingResult, ProductInput } from "../lib/packing/types";
 import { tr } from "./language";
 type State={source:PackingResult|null;plan:PackingResult|null;undo:PackingResult[];redo:PackingResult[];ids:string[];enabled:boolean;rectangle:boolean;group:EditGroup;grid:number;tolerance:number;message:string};
-const initial=(source:PackingResult|null):State=>({source,plan:source,undo:[],redo:[],ids:[],enabled:false,rectangle:false,group:"selection",grid:10,tolerance:30,message:""});
-export function usePlanEditor(source:PackingResult|null,products:ProductInput[],disabled:boolean,onAdopt:(plan:PackingResult)=>void){
-  const [stored,setStored]=useState<State>(()=>initial(source));
-  const state=stored.source===source?stored:initial(source);
-  const update=(patch:Partial<State>)=>setStored(s=>({...((s.source===source)?s:initial(source)),...patch}));
+const initial=(source:PackingResult|null,enabled:boolean):State=>({source,plan:source,undo:[],redo:[],ids:[],enabled,rectangle:false,group:"selection",grid:10,tolerance:30,message:""});
+export function usePlanEditor(source:PackingResult|null,products:ProductInput[],disabled:boolean,onAdopt:(plan:PackingResult)=>void,initiallyEnabled=false){
+  const [stored,setStored]=useState<State>(()=>initial(source,initiallyEnabled));
+  const state=stored.source===source?stored:initial(source,initiallyEnabled);
+  const update=(patch:Partial<State>)=>setStored(s=>({...((s.source===source)?s:initial(source,initiallyEnabled)),...patch}));
   const selected=useMemo(()=>state.plan?expandSelection(state.plan,state.ids,state.group):[],[state.plan,state.ids,state.group]);
   const commit=(next:PackingResult)=>update({plan:next,undo:[...state.undo.slice(-19),state.plan!],redo:[],message:tr("调整通过校验；采用后同步指标与导出。","Edit validated. Apply to update totals and exports.")});
   const attempt=(action:()=>PackingResult)=>{if(disabled)return false;try{commit(action());return true;}catch(e){update({message:e instanceof Error?e.message:String(e)});return false;}};
@@ -34,6 +34,6 @@ export function usePlanEditor(source:PackingResult|null,products:ProductInput[],
     undoEdit:()=>replay(false),
     redoEdit:()=>replay(true),
     apply:()=>{if(state.plan&&!disabled){try{onAdopt(revalidate(state.plan));}catch(e){update({message:e instanceof Error?e.message:String(e)});}}},
-    discard:()=>setStored(initial(source))};
+    discard:()=>setStored(initial(source,initiallyEnabled))};
 }
 export type PlanEditor=ReturnType<typeof usePlanEditor>;

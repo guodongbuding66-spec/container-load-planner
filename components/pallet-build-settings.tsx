@@ -9,13 +9,18 @@ import { PackagingEditor } from "./packaging-editor";
 import {withPalletRecipe} from "../lib/packing/pallet-recipe";
 import { PalletRecipe } from "./pallet-recipe";
 import { PalletBuildPreview } from "./pallet-build-preview";
+import type {PreparedPalletLayout} from "../lib/packing/prepared-pallet-layout";
+import type {PalletLayerTemplate} from "../lib/packing/pallet-layer";
 import type { PackingRequest, PalletBuildOptions, PalletBuildSpecification, ProductInput } from "../lib/packing/types";
 import { NumericInput } from "./numeric-input";
 import { tr, useLanguage } from "./language";
 const NO_PRODUCTS:readonly ProductInput[]=[];
 
-type Props={value:PalletBuildOptions;only:boolean;products?:readonly ProductInput[];request?:PackingRequest;initialSpecId?:string;onRecipePending?:(pending:boolean)=>void;onChange:(value:PalletBuildOptions)=>void;onValidityChange:(key:string,valid:boolean)=>void;resetToken?:number;onReset?:()=>void;invalid?:boolean};
-export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,initialSpecId="primary",onRecipePending,onChange,onValidityChange,resetToken=0,onReset,invalid=false}:Props){
+type Props={value:PalletBuildOptions;only:boolean;products?:readonly ProductInput[];request?:PackingRequest;
+  preparedLayout?:PreparedPalletLayout;onPreparedLayoutChange?:(layout:PreparedPalletLayout|undefined)=>void;
+  layerTemplates?:PalletLayerTemplate[];onLayerTemplatesChange?:(templates:PalletLayerTemplate[])=>void;
+  initialSpecId?:string;onRecipePending?:(pending:boolean)=>void;onChange:(value:PalletBuildOptions)=>void;onValidityChange:(key:string,valid:boolean)=>void;resetToken?:number;onReset?:()=>void;invalid?:boolean};
+export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,preparedLayout,onPreparedLayoutChange,layerTemplates,onLayerTemplatesChange,initialSpecId="primary",onRecipePending,onChange,onValidityChange,resetToken=0,onReset,invalid=false}:Props){
   useLanguage();
   const [recipePending,setRecipePending]=useState(false);
   const recipeValidity=useCallback((pending:boolean)=>{setRecipePending(pending);onRecipePending?.(pending);},[onRecipePending]);
@@ -48,7 +53,7 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,ini
     ["gap",tr("整托保护间隙","Pallet protection gap"),"mm",0],
   ] as const;
   return <>
-    {request&&<PalletRecipe key={`${current.id}/${resetToken}`} request={request} spec={current}
+    {request&&!preparedLayout&&<PalletRecipe key={`${current.id}/${resetToken}`} request={request} spec={current}
       disabled={(invalid&&issue!=="height")||draftInvalid}
       onApply={patch=>onChange(withPalletRecipe(value,current.id,patch))} onPendingChange={recipeValidity}/>}
     <article id="packaging-settings" className="panel pallet-build-settings" aria-label={tr("打托配置","Pallet-building settings")}>
@@ -76,7 +81,8 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,ini
       <UnitStackingSettings key={`${current.id}-${resetToken}`} value={current.config.unitStacking} onChange={unitStacking=>update({config:{...current.config,unitStacking}})} onValidityChange={valid=>fieldValidity("pallet-build:unit-stacking",valid)}/>
     </details>}
     <PackagingEditor key={current.id} value={current.config} onChange={config=>update({config})} onValidityChange={fieldValidity} resetToken={resetToken} onReset={reset} invalid={invalid}
-      preview={request&&<PalletBuildPreview key={JSON.stringify(request)} request={request} value={value} specId={current.id} disabled={invalid||draftInvalid||recipePending}/>}>
+      preview={request&&<PalletBuildPreview key={JSON.stringify([request,resetToken])} request={request} value={value} specId={current.id} disabled={invalid||draftInvalid||recipePending}
+        preparedLayout={preparedLayout} onPreparedLayoutChange={onPreparedLayoutChange} layerTemplates={layerTemplates} onLayerTemplatesChange={onLayerTemplatesChange}/>}>
     <div className="pallet-build-grid packaging-dimensions" key={`dimensions-${current.id}`}>{fields.map(([key,label,unit,min])=><label key={key}>{label}<div className="pallet-build-number"><NumericInput resetToken={resetToken} ariaLabel={label} value={current.config[key]??0} min={min} max={key==="gap"||key==="weight"?10000:100000} precision={1} onValueChange={v=>update({config:{...current.config,[key]:v}})} onValidityChange={valid=>fieldValidity(`pallet-build:${key}`,valid)}/><span>{unit}</span></div>
       {key==="maxCargoHeight"&&!only&&!crate&&<small>{tr("0 = 按柜内和柜门净高自动","0 = use vehicle and door clearance")}</small>}</label>)}
       {!only&&<label>{tr("托盘方向","Loaded pallet orientation")}<select aria-label={tr("托盘方向","Loaded pallet orientation")} value={current.config.layout} onChange={e=>update({config:{...current.config,layout:e.target.value as PalletBuildOptions["config"]["layout"]}})}><option value="auto">{tr("自动水平旋转","Auto horizontal rotation")}</option><option value="long">{tr("长边沿柜长","Length along vehicle")}</option><option value="cross">{tr("宽边沿柜长","Width along vehicle")}</option></select></label>}

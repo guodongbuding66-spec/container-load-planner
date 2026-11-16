@@ -11,7 +11,7 @@ export const guideCategories = {
 
 export type GuideCategory = keyof typeof guideCategories;
 export type GuideTarget =
-  | "products" | "setup" | "recipe" | "packaging" | "rules"
+  | "products" | "setup" | "recipe" | "packaging" | "pallet-preview" | "rules"
   | "review" | "checks" | "pallets" | "coordinates"
   | "projects" | "loading" | "delivery" | "files" | "account";
 
@@ -130,14 +130,15 @@ export const guideTopics: readonly GuideTopic[] = [
     tip: ["成套货物按完整套数打托。只改预览时，先采用或取消本次调整再计算。", "Kits are palletized whole. Apply or cancel the preview draft before calculating."],
   },
   {
-    id: "whole-preview", category: "setup", target: "packaging",
-    title: ["生成整体打托预览与逐托清单", "Preview all prepared pallets and inspect each unit"],
-    path: ["装载配置 → 包装规格与堆叠规则 → 包装模型下方", "Loading setup → Packaging specifications and stacking rules → Below the packaging model"],
-    keywords: "生成整体打托预览 木箱对比 空木箱 整托预览 实装预览 托盘清单 尾托 prepared manifest preview complete pallet loads",
+    id: "whole-preview", category: "setup", target: "pallet-preview",
+    title: ["整体打托预览与装柜前 3D 托内编辑", "Preview all pallets and edit them in 3D before loading"],
+    path: ["装载配置 → 打托预览与编辑", "Loading setup → Pallet preview & edits"],
+    keywords: "生成整体打托预览 木箱对比 空木箱 整托预览 实装预览 托盘清单 尾托 3D托内编辑 装柜前移动 拖拽 人工摆放 应用托内布置 prepared manifest preview drag move cartons complete pallet loads manual layout",
     steps: [
       ["先采用自动打托方案，或填好实际包装尺寸、承重及库存。对照右侧模型的外尺寸和可用内部尺寸。", "Apply the pallet design or enter actual packaging dimensions, payload and stock. Check exterior and interior dimensions beside the empty model."],
       ["点模型下方「生成整体打托预览」。检查已打托箱数、整托数和待打托箱数。", "Below the model, choose Preview complete pallet loads. Check prepared cartons, units and remaining cartons."],
-      ["在「当前规格实装预览」切换托号，或点「查看打托清单」检查全部规格。确认后点「开始计算」生成装柜结果。", "Pick a pallet under Load preview for this specification, or open the full manifest to check every spec. Then calculate the vehicle plan."],
+      ["从「预览托盘」切换托号，点「3D 托内编辑」。在模型中选箱拖动手柄，或输入 X/Y/Z 偏移再验证移动。需要查某箱时展开「托内箱号与坐标」。", "Choose a pallet and open Edit pallet in 3D. Select a carton and drag its handles, or enter and validate an X/Y/Z offset. Expand Carton identifiers and coordinates to find a specific carton."],
+      ["点「应用托内布置」，然后点「开始计算」。两个算法均沿用已确认的托内位置。要重新自动摆箱，点「恢复自动打托」。", "Apply the pallet layout and start calculation. Both solvers keep approved positions inside each pallet. Use Return to automatic palletizing to regenerate positions."],
     ],
     tip: ["整体预览按已采用规格和预留散箱生成。整托最终能入柜多少还要看门洞、占地、堆叠和载重。", "The preview uses saved specs and loose reservations. Vehicle capacity also depends on door clearance, footprint, stacking and payload."],
   },
@@ -281,7 +282,7 @@ export const guideTopics: readonly GuideTopic[] = [
     path: ["装箱方案 → 三维装载视图 → 尺寸 / 属性与测量", "Loading plan → 3D loading view → Dimensions / Inspect & measure"],
     keywords: "尺寸标注 尺寸线 标尺 mm 单位 线色 量尺 测量备份 最短距离 两点 实体净距 剖切 截面 measurement clearance ruler section",
     steps: [
-      ["开「尺寸」显示柜体尺寸。选择货物后同时查看对象尺寸，标签单位、字号和线色在「显示设置」里调整。", "Turn on Dimensions for the container. Select cargo to see its dimensions alongside the container, and adjust units, size and color under Display settings."],
+      ["开「尺寸」显示柜体尺寸。选择货物后也会显示对象尺寸。工具栏可调整单位、字号、颜色和模型外观，窄窗口从「显示设置」展开。", "Turn on Dimensions for container dimensions. Selecting cargo adds its dimensions. Adjust units, text size, colors and appearance in the toolbar or open Display settings in a narrow window."],
       ["在「属性与测量」选测量方式，再按提示点模型上的点或对象。需要观察内部时在「剖切与隔离」设置方向和位置。", "Select a measurement mode in Inspect & measure, then pick points or objects as instructed. To inspect the interior, choose a section direction and position."],
       ["需要保留时命名并「保存当前测量」。用测量 JSON 备份或 PDF 交接已保存的测量。", "Name and save measurements you need to retain. Share saved measurements with their JSON backup or PDF."],
     ],
@@ -323,10 +324,10 @@ export const guideTopics: readonly GuideTopic[] = [
     id: "edit-pallet", category: "optimize", target: "pallets",
     title: ["整托查看、托内移箱、转托和复制层", "Inspect and edit pallet contents and copy layers"],
     path: ["装箱方案 → 整托入柜与货物基准 → 点击托盘编号", "Loading plan → Pallet placement and cargo basis → Select a pallet ID"],
-    keywords: "托内编辑 移动箱子 旋转箱子 精细调整 复制此层 实体层 转移托盘 余量 本托 选择整托 pallet editor transfer copy layer",
+    keywords: "托内编辑 移动箱子 旋转箱子 精细调整 复制此层 实体层 转移托盘 余量 本托 选择整托 整托表 折叠整托清单 搜索整托 分页 pallet editor transfer copy layer search pallet manifest",
     steps: [
-      ["点托盘编号打开「整托查看与托内编辑」，勾选「启用托内编辑」，从托内列表选箱。", "Open a pallet ID and enable pallet editing. Select cartons from its contents list."],
-      ["在左侧「调整所选货物」输入 X/Y/Z 偏移后验证移动，也可水平旋转或选择物理层复制。", "Under Adjust selected cargo, enter X/Y/Z offsets and validate the move, rotate horizontally or copy a physical layer."],
+      ["点结果页上方「整托清单」直接展开明细，可按托号、包装规格、SKU 或套装搜索。点托号，勾选「启用托内编辑」。", "Open Pallet manifest from the results shortcuts. Search by pallet ID, packaging, SKU or kit, then open a pallet ID and enable editing."],
+      ["在模型中选箱，或展开「托内箱号与坐标」勾选。可拖动手柄，或在「调整所选货物」输入 X/Y/Z 偏移后验证。这里也能水平旋转和复制层。", "Select cartons in the model or in Carton identifiers and coordinates. Drag the handles or enter and validate an X/Y/Z offset under Adjust selected cargo. Rotation and layer copying are available there too."],
       ["在「添加或转移货物」输入接收托盘的托内坐标。选择 SKU 从订单余量添加，或选目标托盘转移所选箱组。", "In Add or transfer cargo, enter coordinates local to the receiving pallet. Choose a SKU and add from the pool, or select a destination and transfer the selection."],
       ["核对预览及校验状态，点底部「采用托内调整」。需要恢复时在采用前点撤销或放弃调整。", "Review the preview and validation, then click Apply pallet edits in the footer. Use Undo or Discard before applying to revert changes."],
     ],
@@ -424,10 +425,11 @@ export const guideTopics: readonly GuideTopic[] = [
     id: "export", category: "delivery", target: "coordinates",
     title: ["导出 PDF、装载坐标 CSV 或方案 JSON", "Export a PDF, placement CSV or plan JSON"],
     path: ["装箱方案 → 下载 PDF / 三维坐标与装载清单", "Loading plan → Download PDF / 3D coordinates and load manifest"],
-    keywords: "下载 下载方案 打印指导书 输出坐标 excel PDF CSV JSON 导出灰色 print export coordinates",
+    keywords: "下载 下载方案 打印指导书 输出坐标 excel PDF CSV JSON 导出灰色 折叠坐标清单 搜索箱位 查箱号 坐标分页 print export coordinates search carton positions",
     steps: [
       ["先选需要交付的算法结果，并确认计算完成、当前输入与已校验方案一致。", "Select the result you intend to share. Make sure calculation is complete and the inputs match the checked plan."],
-      ["点「下载 PDF」或「打印指导书」。坐标区可下载完整坐标 CSV 和方案 JSON。", "Download the PDF or print the loading guide. Export all placement rows as CSV or the complete plan as JSON from the coordinates section."],
+      ["点「坐标与导出」展开箱位明细。输入 # 加序号可查某行，也可按 SKU、托号、套装或批次搜索。", "Open Coordinates & exports to view carton positions. Search by # and row number, SKU, pallet, kit or batch."],
+      ["可在清单收起时下载完整坐标 CSV 和方案 JSON，也可下载 PDF 或打印指导书。", "Download the full CSV or plan JSON with the list collapsed. PDF and the print guide are also available."],
       ["要跨设备继续编辑，用顶部「文件与备份 → 备份工作区」。现场交接还可在「交付与现场」生成对应版本和指导书。", "Use Files & backups → Back up workspace to continue editing on another device. For field handover, generate the corresponding revision and guide under Delivery & field work."],
     ],
   },
