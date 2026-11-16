@@ -13,7 +13,7 @@ import type { PackingResult, ProductInput } from "../lib/packing/types";
 import { palletCargoCeiling } from "../lib/packing/floor-pallets";
 import { CHOICE_REASON_TEXT } from "../lib/packing/packaging-choice";
 import { specificationForPallet } from "../lib/packing/pallet-specifications";
-export function PalletManifest({ result, products, disabled=false, onAdopt,layerTemplates,onLayerTemplatesChange }: { result: PackingResult;products?:ProductInput[];disabled?:boolean;layerTemplates?:PalletLayerTemplate[];onLayerTemplatesChange?:(templates:PalletLayerTemplate[])=>void;onAdopt?:(plan:PackingResult)=>void }) {
+export function PalletManifest({ result, anchor, products, disabled=false, onAdopt,layerTemplates,onLayerTemplatesChange }: { result: PackingResult;anchor?:string;products?:ProductInput[];disabled?:boolean;layerTemplates?:PalletLayerTemplate[];onLayerTemplatesChange?:(templates:PalletLayerTemplate[])=>void;onAdopt?:(plan:PackingResult)=>void }) {
   useLanguage();
   const [inspect,setInspect]=useState<string|null>(null);
   if (!result.pallets?.length&&!result.palletization?.looseQuantities) return null;
@@ -27,7 +27,7 @@ export function PalletManifest({ result, products, disabled=false, onAdopt,layer
     const contents = new Map<string, number>(); for (const b of cargo) contents.set(b.sku, (contents.get(b.sku) ?? 0) + 1);
     return { p, cargo, top, ceiling, height: palletEnvelopeTop(p,cargo) - p.z, gross: p.weight + cargo.reduce((n,b)=>n+b.weight,0), contents: [...contents].map(([sku,n])=>`${sku} × ${n}`).join(" · ") };
   });
-  return <article className="panel pallet-manifest">
+  return <article id={anchor} className="panel pallet-manifest">
     <div className="panel-head"><div><span className="section-kicker">PALLET PLACEMENT</span><h2>{only ? tr("打托清单与托内货物", "Pallet manifest and contents") : tr(result.palletization ? "整托入柜与货物基准" : "托盘铺设与货物基准", result.palletization ? "Loaded pallets and cargo coordinates" : "Floor pallets and cargo coordinates")}</h2>
       <p>{only ? tr("各托盘独立打托；XYZ 为三维编组查看坐标，不是装柜指令。", "Build each pallet independently. XYZ coordinates are for inspection, not vehicle loading.") : result.palletization ? tr("每托都包含自己的底座；先完成打托，再按完整托盘坐标装柜。上层整托也保留底座及自重。", "Each unit includes its own base. Build its contents first, then load the complete unit. Elevated units retain their bases and tare.") : tr("先铺底座再装货；货物 Z 已包含底座高度。", "Place decks first; cargo Z already includes deck height.")}</p></div><span className="pill">{(result.pallets?.length??0)}{tr(" 个托盘")}</span></div>
     {!!result.palletization && <p className="helper-text">{only ? tr("已生成 / 当前清单", "Prepared / in this manifest") : tr("已生成 / 当前方案 / 未入柜", "Prepared / in this plan / not loaded")}: {prepared} / {(result.pallets?.length??0)}{!only && ` / ${prepared-(result.pallets?.length??0)}`}{result.palletization.bounded ? tr(" · 达到搜索上限，剩余订单仍保留", " · Search limit reached; unmet quantities are retained") : ""}</p>}

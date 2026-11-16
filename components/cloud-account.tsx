@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
+import { useEffect, useState, useSyncExternalStore, type FormEvent, type Ref } from "react";
 import { Cloud } from "lucide-react";
 import { CLOUD_API_VERSION, type CloudRevision, type CloudSession } from "../lib/cloud/protocol";
 import { cargoRequest, CloudClientError, cloudMessage } from "./cloud-client";
@@ -21,7 +21,7 @@ function readLink() {
   return hash === "#cloudPayment=return" || /^#cloudShare=[\w-]{43}$/.test(hash) ? hash : EMPTY_LINK;
 }
 
-export function CloudAccount(props: Props) {
+export function CloudAccount({buttonRef,backup,disabled,onRestore}:Props & {buttonRef?:Ref<HTMLButtonElement>}) {
   useLanguage();
   const link = useSyncExternalStore(subscribeLink, readLink, serverLink);
   const [opened, setOpened] = useState(false);
@@ -34,10 +34,10 @@ export function CloudAccount(props: Props) {
     }
   }
   return <>
-    <button type="button" className="button ghost" onClick={() => setOpened(true)}><Cloud size={16} aria-hidden="true"/>{tr("账号与云项目", "Account and cloud projects")}</button>
+    <button ref={buttonRef} type="button" className="button ghost" onClick={() => setOpened(true)}><Cloud size={16} aria-hidden="true"/>{tr("账号与云项目", "Account and cloud projects")}</button>
     {(opened || !!link && link !== dismissed) && <FeatureDialog wide title={tr("账号与云项目", "Account and cloud projects")}
       subtitle={tr("用独立账号管理私有项目、版本与组织成员。", "Manage private projects, revisions and organization members with a CargoFit account.")} onClose={close}>
-      <CloudDialogBody {...props} link={link} onRestore={payload => { props.onRestore(payload); close(); }} />
+      <CloudDialogBody backup={backup} disabled={disabled} link={link} onRestore={payload => { onRestore(payload); close(); }} />
     </FeatureDialog>}
   </>;
 }

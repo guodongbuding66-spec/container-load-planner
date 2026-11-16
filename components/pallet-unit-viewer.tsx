@@ -29,7 +29,13 @@ export function PalletEditorControls({editor,products,id,onPendingChange,layerTe
   const pool=palletOrderPool(plan,products),cargo=plan.placements.filter(b=>b.palletIds?.includes(id)),selected=editor.selected.filter(b=>b.palletIds?.includes(id));
   const filtered=cargo.filter(b=>`${b.sku} ${b.id}`.toLowerCase().includes(query.toLowerCase())),current=Math.min(page,Math.max(0,Math.ceil(filtered.length/40)-1));
   const [layerPending,setLayerPending]=useState(false),[repackPending,setRepackPending]=useState(false);
-  const blocked=editor.disabled||!editor.enabled||!!p.locked,bad=Object.values(invalid).some(Boolean);
+  const blocked=editor.disabled||!editor.enabled||!!p.locked;
+  const invalidOffset=Object.entries(invalid).some(([key,value])=>key.startsWith("offset-")&&value);
+  const invalidPosition=Object.entries(invalid).some(([key,value])=>key.startsWith("position-")&&value);
+  const bad=invalidOffset||invalidPosition;
+  const activeLayer=layers.find(l=>l.bottom===bottom)??layers[0];
+  const fromPool=pool.find(row=>row.productId===sku);
+  const targetPallet=plan.pallets!.find(q=>q.id===target&&!q.locked);
   useEffect(()=>onPendingChange?.(bad||layerPending||repackPending),[bad,layerPending,repackPending,onPendingChange]);
   const checked=(key:string)=>(valid:boolean)=>setInvalid(s=>({...s,[key]:!valid}));
   return <section className="pallet-editor" aria-label={tr("托内编辑","Pallet contents editor")}>
@@ -39,16 +45,37 @@ export function PalletEditorControls({editor,products,id,onPendingChange,layerTe
     <p>{tr("本托","This pallet")} {cargo.length} {tr("箱，已选","cartons; selected")} {selected.length} · {tr("编辑版本","Edit revision")} {plan.palletization?.editRevision??0}{p.locked&&` · ${tr("整托已锁定","Pallet locked")}`}</p>
     <details><summary>{tr("完整订单与待分配余量","Complete order and unassigned pool")}</summary><div className="coordinate-wrap"><table className="coordinate-table"><thead><tr><th>SKU</th><th>{tr("订单","Order")}</th><th>{tr("已分配","Assigned")}</th><th>{tr("待分配","Unassigned")}</th></tr></thead><tbody>{pool.map(row=><tr key={row.productId}><td>{row.sku}</td><td>{row.requested}</td><td>{row.loaded}</td><td>{row.remaining}</td></tr>)}</tbody></table></div></details>
     <PalletRepackControls editor={editor} products={products} id={id} blocked={blocked||bad||layerPending} onPendingChange={setRepackPending}/>
-    <label>{tr("搜索托内货物","Search pallet cargo")}<input value={query} onChange={e=>{setQuery(e.target.value);setPage(0);}}/></label>
-    <div className="upgrade-actions"><button className="button" disabled={blocked} onClick={()=>editor.selectMany(cargo.map(b=>b.id))}>{tr("选择本托全部","Select all pallet cargo")}</button><button className="button" onClick={()=>editor.selectMany([])}>{tr("清除选择","Clear selection")}</button></div>
+    <div className="upgrade-actions pallet-editor-search"><label>{tr("搜索托内货物","Search pallet cargo")}<input type="search" value={query} onChange={e=>{setQuery(e.target.value);setPage(0);}}/></label><button className="button" disabled={blocked} onClick={()=>editor.selectMany(cargo.map(b=>b.id))}>{tr("选择本托全部","Select all pallet cargo")}</button><button className="button" onClick={()=>editor.selectMany([])}>{tr("清除选择","Clear selection")}</button></div>
     <div className="coordinate-wrap"><table className="coordinate-table"><thead><tr><th>{tr("选择","Select")}</th><th>SKU / ID</th><th>{tr("托内坐标","Local position")} mm</th><th>{tr("尺寸","Dimensions")} mm</th><th>{tr("套号","Kit number")}</th></tr></thead><tbody>{filtered.slice(current*40,(current+1)*40).map(b=>{const local=palletLocalBox(b,p);return <tr key={b.id}><td><input type="checkbox" aria-label={`${tr("选择箱体","Select carton")} ${b.id}`} checked={selected.some(s=>s.id===b.id)} disabled={blocked} onChange={()=>editor.select(b.id,true)}/></td><td>{b.sku}<small>{b.id}{b.locked?` · ${tr("已锁定","Locked")}`:""}</small></td><td>{[local.x,local.y,local.z].map(n=>Math.round(n*1000)/1000).join(" / ")}</td><td>{local.dx} × {local.dy} × {local.dz}</td><td>{b.setCode?`${b.setCode} / ${b.setNumber}`:"—"}</td></tr>;})}</tbody></table></div>
     {filtered.length>40&&<div className="upgrade-actions"><button className="button" disabled={!current} onClick={()=>setPage(current-1)}>{tr("上一页","Previous")}</button><span>{current+1} / {Math.ceil(filtered.length/40)}</span><button className="button" disabled={(current+1)*40>=filtered.length} onClick={()=>setPage(current+1)}>{tr("下一页","Next")}</button></div>}
-    <fieldset disabled={blocked}><legend>{tr("调整所选货物","Adjust selected cargo")}</legend><div className="tool-form-grid">{(["x","y","z"] as const).map(axis=><label key={axis}>{axis.toUpperCase()} {tr("偏移 mm","offset mm")}<NumericInput ariaLabel={`${tr("托内偏移","Pallet offset")} ${axis.toUpperCase()}`} value={offset[axis]} min={-100000} max={100000} onValueChange={v=>setOffset(s=>({...s,[axis]:v}))} onValidityChange={checked(`offset-${axis}`)}/></label>)}</div>
-    <div className="upgrade-actions"><button className="button" disabled={!selected.length||bad} onClick={()=>editor.palletEdit(id,{type:"move",ids:selected.map(b=>b.id),delta:offset})}>{tr("验证移动","Validate move")}</button><button className="button" disabled={!selected.length} onClick={()=>editor.palletEdit(id,{type:"rotate",ids:selected.map(b=>b.id)})}>{tr("水平转 90°","Rotate 90°")}</button><button className="button" disabled={!selected.length} onClick={()=>editor.palletEdit(id,{type:"remove",ids:selected.map(b=>b.id)})}>{tr("退回订单余量","Return to unassigned pool")}</button></div>
-    <label>{tr("物理层（托面以上 mm）","Physical layer (mm above deck)")}<select value={layers.some(l=>Math.abs(l.bottom-bottom)<.0001)?bottom:layers[0]?.bottom??0} onChange={e=>setBottom(Number(e.target.value))}>{layers.map(l=><option key={l.bottom} value={l.bottom}>{l.bottom}–{l.top} mm · {l.ids.length} {tr("箱","cartons")}</option>)}</select></label><button className="button" disabled={!layers.length} onClick={()=>editor.palletEdit(id,{type:"copy-layer",bottom:layers.some(l=>Math.abs(l.bottom-bottom)<.0001)?bottom:layers[0]?.bottom??0})}>{tr("复制此层到上方","Copy layer above")}</button></fieldset>
-    <fieldset disabled={blocked}><legend>{tr("添加或转移货物","Add or transfer cargo")}</legend><p>{tr("目标坐标采用目标托盘的托内坐标。每次添加一箱或一个完整套装；仅使用订单余量。","Destination coordinates use the target pallet's local axes. Each add inserts one carton or one complete kit from the unassigned pool.")}</p><div className="tool-form-grid">{(["x","y","z"] as const).map(axis=><label key={axis}>{tr("目标","Target")} {axis.toUpperCase()} mm<NumericInput ariaLabel={`${tr("托内目标","Pallet target")} ${axis.toUpperCase()}`} value={position[axis]} min={0} max={100000} onValueChange={v=>setPosition(s=>({...s,[axis]:v}))} onValidityChange={checked(`position-${axis}`)}/></label>)}</div>
-    <div className="tool-form-grid"><label>SKU<select value={sku} onChange={e=>setSku(e.target.value)}>{pool.map(row=><option key={row.productId} value={row.productId}>{row.sku} · {tr("待分配","Unassigned")} {row.remaining}</option>)}</select></label><label>{tr("目标托盘","Target pallet")}<select value={target} onChange={e=>setTarget(e.target.value)}><option value="">{tr("请选择","Select")}</option>{plan.pallets!.filter(q=>q.id!==id).map(q=><option key={q.id} value={q.id} disabled={q.locked}>{q.id} · {q.name}{q.locked?` · ${tr("已锁定","Locked")}`:""}</option>)}</select></label></div>
-    <div className="upgrade-actions"><button className="button" disabled={!sku||bad} onClick={()=>editor.palletEdit(id,{type:"add",productId:sku,position})}>{tr("从余量添加一箱／整套","Add one carton / kit from pool")}</button><button className="button" disabled={!selected.length||!target||bad} onClick={()=>editor.palletEdit(id,{type:"transfer",ids:selected.map(b=>b.id),targetId:target,position})}>{tr("转移到目标托盘","Transfer to target pallet")}</button></div></fieldset>
+    <div className="pallet-editor-operations">
+      <fieldset disabled={blocked}><legend>{tr("调整所选货物","Adjust selected cargo")}</legend>
+        <div className="tool-form-grid">{(["x","y","z"] as const).map(axis=><label key={axis}>{axis.toUpperCase()} {tr("偏移 mm","offset mm")}<NumericInput ariaLabel={`${tr("托内偏移","Pallet offset")} ${axis.toUpperCase()}`} value={offset[axis]} min={-100000} max={100000} onValueChange={v=>setOffset(s=>({...s,[axis]:v}))} onValidityChange={checked(`offset-${axis}`)}/></label>)}</div>
+        <div className="upgrade-actions">
+          <button className="button" disabled={!selected.length||invalidOffset} onClick={()=>editor.palletEdit(id,{type:"move",ids:selected.map(b=>b.id),delta:offset})}>{tr("验证移动","Validate move")}</button>
+          <button className="button" disabled={!selected.length} onClick={()=>editor.palletEdit(id,{type:"rotate",ids:selected.map(b=>b.id)})}>{tr("水平转 90°","Rotate 90°")}</button>
+          <button className="button" disabled={!selected.length} onClick={()=>editor.palletEdit(id,{type:"remove",ids:selected.map(b=>b.id)})}>{tr("退回订单余量","Return to unassigned pool")}</button>
+        </div>
+        <div className="pallet-editor-layer-row">
+          <label>{tr("物理层（托面以上 mm）","Physical layer (mm above deck)")}
+            <select value={activeLayer?.bottom??""} disabled={!activeLayer} onChange={e=>setBottom(Number(e.target.value))}>{layers.map(l=><option key={l.bottom} value={l.bottom}>{l.bottom}–{l.top} mm · {l.ids.length} {tr("箱","cartons")}</option>)}</select>
+          </label>
+          <button className="button" disabled={!activeLayer} onClick={()=>activeLayer&&editor.palletEdit(id,{type:"copy-layer",bottom:activeLayer.bottom})}>{tr("复制此层到上方","Copy layer above")}</button>
+        </div>
+      </fieldset>
+      <fieldset disabled={blocked}><legend>{tr("添加或转移货物","Add or transfer cargo")}</legend>
+        <div className="tool-form-grid">{(["x","y","z"] as const).map(axis=><label key={axis}>{tr("目标","Target")} {axis.toUpperCase()} mm<NumericInput ariaLabel={`${tr("托内目标","Pallet target")} ${axis.toUpperCase()}`} value={position[axis]} min={0} max={100000} onValueChange={v=>setPosition(s=>({...s,[axis]:v}))} onValidityChange={checked(`position-${axis}`)}/></label>)}</div>
+        <div className="pallet-editor-destination">
+          <label>SKU<select value={fromPool?.productId??""} onChange={e=>setSku(e.target.value)}>{pool.map(row=><option key={row.productId} value={row.productId}>{row.sku} · {tr("待分配","Unassigned")} {row.remaining}</option>)}</select></label>
+          <label>{tr("目标托盘","Target pallet")}<select value={targetPallet?.id??""} onChange={e=>setTarget(e.target.value)}><option value="">{tr("请选择","Select")}</option>{plan.pallets!.filter(q=>q.id!==id).map(q=><option key={q.id} value={q.id} disabled={q.locked}>{q.id} · {q.name}{q.locked?` · ${tr("已锁定","Locked")}`:""}</option>)}</select></label>
+        </div>
+        <div className="upgrade-actions">
+          <button className="button" disabled={!fromPool?.remaining||invalidPosition} onClick={()=>editor.palletEdit(id,{type:"add",productId:sku,position})}>{tr("从余量添加一箱／整套","Add one carton / kit from pool")}</button>
+          <button className="button" disabled={!selected.length||!targetPallet||invalidPosition} onClick={()=>editor.palletEdit(id,{type:"transfer",ids:selected.map(b=>b.id),targetId:target,position})}>{tr("转移到目标托盘","Transfer to target pallet")}</button>
+        </div>
+        <p>{tr("坐标以接收货物的托盘为基准。添加时使用订单余量，套装按整套添加。","Use the receiving pallet's local coordinates. Add cargo from the unassigned pool, keeping kits complete.")}</p>
+      </fieldset>
+    </div>
     <PalletLayerTemplates editor={editor} products={products} id={id} templates={layerTemplates} onChange={onLayerTemplatesChange} blocked={blocked||bad} onPendingChange={setLayerPending}/>
     <p role="status">{palletMessage(editor.message)}</p><p className="helper-text">{tr("所有操作先检查完整方案，失败时整次回退。清空某托仍保留托盘及自重。关闭或放弃调整不会改动已采用方案。","Each operation checks the complete plan and rolls back entirely on failure. Empty pallets and their tare remain. Closing or discarding does not change the adopted plan.")}</p>
   </section>;
@@ -69,7 +96,11 @@ export function PalletUnitViewer({result,id,onClose,products=[],disabled=false,o
   };
   const [view,setView]=useState<CameraView>("perspective"),[projection,setProjection]=useState<CameraProjection>("perspective");
   const visible=useMemo(()=>new Set(plan.summaries.map(s=>s.productId)),[plan]);
-  return <FeatureDialog wide title={canEdit?tr("整托查看与托内编辑","Inspect and edit pallet contents"):tr("整托独立查看","Inspect complete pallet load")} subtitle={id} onClose={onClose}>
+  return <FeatureDialog wide title={canEdit?tr("整托查看与托内编辑","Inspect and edit pallet contents"):tr("整托独立查看","Inspect complete pallet load")} subtitle={id} onClose={onClose} footer={canEdit&&<>
+    <p>{tr("采用后同步整柜清单、重量和导出。","Apply edits to update the full manifest, weight and exports.")}</p>
+    <button className="button" onClick={onClose}>{tr("取消并关闭","Cancel and close")}</button>
+    <button className="button primary" disabled={!editor.changed||editor.disabled||pending} onClick={editor.apply}>{tr("采用托内调整","Apply pallet edits")}</button>
+  </>}>
     <div className="pallet-unit-summary"><strong>{plan.placements.length} {tr("箱","cartons")} · {plan.metrics.grossWeight.toFixed(1)} kg</strong><span>{plan.container.length} × {plan.container.width} × {plan.container.height} mm</span></div>
     <PalletBaseDetails result={plan} pallet={plan.pallets![0]}/>
     {canEdit&&<PalletEditorControls layerTemplates={layerTemplates} onLayerTemplatesChange={onLayerTemplatesChange} key={formVersion} editor={{...editor,discard}} products={products} id={id} onPendingChange={setPending}/>}
@@ -77,6 +108,5 @@ export function PalletUnitViewer({result,id,onClose,products=[],disabled=false,o
     <Scene editor={canEdit?scoped:undefined} products={products} result={plan} visibleProducts={visible} visibleCount={plan.placements.length} cameraView={view} projectionMode={projection} onCameraViewChange={setView} onProjectionModeChange={setProjection}/>
     <div className="pallet-unit-contents">{plan.summaries.map(s=><span key={s.productId}><i style={{background:s.color}}/>{s.sku} × {s.loaded} · {s.loadedWeight.toFixed(1)} kg</span>)}</div>
     <p className="helper-text">{tr("当前只显示这一托的包装和货物，坐标已移到独立查看原点；采用前，原装柜方案保持不变。","Only this unit and its contents are shown, rebased to a local inspection origin. The vehicle plan is unchanged until edits are applied.")}</p>
-    {canEdit&&<div className="feature-dialog-footer"><button className="button" onClick={onClose}>{tr("取消并关闭","Cancel and close")}</button><button className="button primary" disabled={!editor.changed||editor.disabled||pending} onClick={editor.apply}>{tr("采用托内调整","Apply pallet edits")}</button><p>{tr("采用后同步整柜清单、重量和导出，并生成新方案版本。","Applying updates the complete manifest, weight and exports and creates a new plan version.")}</p></div>}
   </FeatureDialog>;
 }

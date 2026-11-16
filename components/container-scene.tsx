@@ -319,7 +319,7 @@ export function ContainerScene({
       : <><button type="button" disabled={!selected || selected.supportOnly || editor?.enabled} onClick={() => isolate("carton", selected!.id)}>{tr("孤立单箱", "Isolate carton")}</button>
         <button type="button" disabled={!selectedPalletId || editor?.enabled} onClick={() => isolate("pallet", selectedPalletId!)}>{tr("孤立整托", "Isolate pallet load")}</button>
         {result.placements.some(box => box.setCode) && <button type="button" disabled={!setKey || editor?.enabled} onClick={() => isolate("set", setKey)}>{tr("孤立同套", "Isolate product set")}</button>}
-        {!selected && <small>{tr("点击货物列表或模型选择", "Select from the list or model")}</small>}</>}
+        </>}
   </>;
   const [captureError,setCaptureError] = useState("");
   const saveImage=async()=>{ try { const blob=await captureRef.current?.();if(!blob)throw new Error(tr("图形尚未准备完成。", "Scene is not ready."));const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download="CargoFit_3D.png";link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);setCaptureError(""); } catch(e) {setCaptureError(e instanceof Error?e.message:"Image export failed");}};

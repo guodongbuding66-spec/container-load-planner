@@ -8,6 +8,7 @@ import { MAX_PACKAGING_SPECIFICATIONS, palletSpecifications, newPackagingConfig 
 import { PackagingEditor } from "./packaging-editor";
 import {withPalletRecipe} from "../lib/packing/pallet-recipe";
 import { PalletRecipe } from "./pallet-recipe";
+import { PalletBuildPreview } from "./pallet-build-preview";
 import type { PackingRequest, PalletBuildOptions, PalletBuildSpecification, ProductInput } from "../lib/packing/types";
 import { NumericInput } from "./numeric-input";
 import { tr, useLanguage } from "./language";
@@ -16,6 +17,8 @@ const NO_PRODUCTS:readonly ProductInput[]=[];
 type Props={value:PalletBuildOptions;only:boolean;products?:readonly ProductInput[];request?:PackingRequest;initialSpecId?:string;onRecipePending?:(pending:boolean)=>void;onChange:(value:PalletBuildOptions)=>void;onValidityChange:(key:string,valid:boolean)=>void;resetToken?:number;onReset?:()=>void;invalid?:boolean};
 export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,initialSpecId="primary",onRecipePending,onChange,onValidityChange,resetToken=0,onReset,invalid=false}:Props){
   useLanguage();
+  const [recipePending,setRecipePending]=useState(false);
+  const recipeValidity=useCallback((pending:boolean)=>{setRecipePending(pending);onRecipePending?.(pending);},[onRecipePending]);
   const [selected,setSelected]=useState(initialSpecId),[draftErrors,setDraftErrors]=useState(()=>({token:resetToken,keys:new Set<string>()}));
   const specifications=palletSpecifications(value),current=specifications.find(s=>s.id===selected)??specifications[0],crate=packagingInterior(current.config).crate;
   const fieldValidity=useCallback((key:string,valid:boolean)=>{
@@ -47,8 +50,8 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,ini
   return <>
     {request&&<PalletRecipe key={`${current.id}/${resetToken}`} request={request} spec={current}
       disabled={(invalid&&issue!=="height")||draftInvalid}
-      onApply={patch=>onChange(withPalletRecipe(value,current.id,patch))} onPendingChange={onRecipePending}/>}
-    <article className="panel pallet-build-settings" aria-label={tr("打托配置","Pallet-building settings")}>
+      onApply={patch=>onChange(withPalletRecipe(value,current.id,patch))} onPendingChange={recipeValidity}/>}
+    <article id="packaging-settings" className="panel pallet-build-settings" aria-label={tr("打托配置","Pallet-building settings")}>
     <div className="panel-head"><div><h2>{tr("包装规格与堆叠规则","Packaging specifications and stacking rules")}</h2></div></div>
     <div className="packaging-specifications">
       <div className="packaging-specification-tabs" role="group" aria-label={tr("包装规格优先顺序","Packaging specification priority")}>{specifications.map((s,i)=><button type="button" key={s.id} className={current.id===s.id?"selected":""} aria-pressed={current.id===s.id} disabled={draftInvalid} onClick={()=>setSelected(s.id)}><strong>{i+1}. {s.config.name||s.id}</strong><small>{s.config.length} × {s.config.width} · {s.maxPallets} {tr("个可用","available")}</small></button>)}<button type="button" className="button small" disabled={draftInvalid||specifications.length>=MAX_PACKAGING_SPECIFICATIONS} onClick={add}>{tr("新增包装规格","Add packaging specification")}</button></div>
@@ -68,9 +71,13 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,ini
       {only?<p>{tr("只打托模式不生成散装货物；清除预留或切换先打托后装柜。","Pallet-only mode cannot include loose cargo. Clear reservations or switch to palletize, then load.")}</p>:<div className="pallet-build-grid">{products.map(p=><label key={p.id}>{p.sku}{p.setCode&&` · ${p.setCode} (${p.unitsPerSet??1} ${tr("箱/套","cartons/set")})`}<NumericInput resetToken={resetToken} ariaLabel={`${tr("预留散装箱数","Reserved loose cartons")} ${p.sku}`} value={value.looseQuantities?.[p.id]??0} integer min={0} max={p.quantity} onValueChange={n=>onChange({...value,looseQuantities:{...value.looseQuantities,[p.id]:n}})} onValidityChange={valid=>fieldValidity(`pallet-build:loose:${p.id}`,valid)}/><small>{tr("订单箱数","Ordered cartons")}: {p.quantity}</small></label>)}</div>}
       <button type="button" className="button small" onClick={()=>{onChange({...value,looseQuantities:undefined});for(const p of products)fieldValidity(`pallet-build:loose:${p.id}`,true);}}>{tr("清除散装预留","Clear loose reservations")}</button>
     </details>}
-    {!only&&<UnitStackingSettings key={`${current.id}-${resetToken}`} value={current.config.unitStacking} onChange={unitStacking=>update({config:{...current.config,unitStacking}})} onValidityChange={valid=>fieldValidity("pallet-build:unit-stacking",valid)}/>}
-    <PackagingEditor key={current.id} value={current.config} onChange={config=>update({config})} onValidityChange={fieldValidity} resetToken={resetToken} onReset={reset} invalid={invalid}/>
-    <div className="pallet-build-grid" key={`dimensions-${current.id}`}>{fields.map(([key,label,unit,min])=><label key={key}>{label}<div className="pallet-build-number"><NumericInput resetToken={resetToken} ariaLabel={label} value={current.config[key]??0} min={min} max={key==="gap"||key==="weight"?10000:100000} precision={1} onValueChange={v=>update({config:{...current.config,[key]:v}})} onValidityChange={valid=>fieldValidity(`pallet-build:${key}`,valid)}/><span>{unit}</span></div>
+    {!only&&<details className="packaging-product-selection saved-stacking-rules">
+      <summary>{tr("已采用规格的整托堆叠","Stacking for the saved specification")} · {current.config.unitStacking?.enabled||(!current.config.unitStacking&&current.stackLayers>1)?tr("已启用","Enabled"):tr("未启用","Off")}</summary>
+      <UnitStackingSettings key={`${current.id}-${resetToken}`} value={current.config.unitStacking} onChange={unitStacking=>update({config:{...current.config,unitStacking}})} onValidityChange={valid=>fieldValidity("pallet-build:unit-stacking",valid)}/>
+    </details>}
+    <PackagingEditor key={current.id} value={current.config} onChange={config=>update({config})} onValidityChange={fieldValidity} resetToken={resetToken} onReset={reset} invalid={invalid}
+      preview={request&&<PalletBuildPreview key={JSON.stringify(request)} request={request} value={value} specId={current.id} disabled={invalid||draftInvalid||recipePending}/>}>
+    <div className="pallet-build-grid packaging-dimensions" key={`dimensions-${current.id}`}>{fields.map(([key,label,unit,min])=><label key={key}>{label}<div className="pallet-build-number"><NumericInput resetToken={resetToken} ariaLabel={label} value={current.config[key]??0} min={min} max={key==="gap"||key==="weight"?10000:100000} precision={1} onValueChange={v=>update({config:{...current.config,[key]:v}})} onValidityChange={valid=>fieldValidity(`pallet-build:${key}`,valid)}/><span>{unit}</span></div>
       {key==="maxCargoHeight"&&!only&&!crate&&<small>{tr("0 = 按柜内和柜门净高自动","0 = use vehicle and door clearance")}</small>}</label>)}
       {!only&&<label>{tr("托盘方向","Loaded pallet orientation")}<select aria-label={tr("托盘方向","Loaded pallet orientation")} value={current.config.layout} onChange={e=>update({config:{...current.config,layout:e.target.value as PalletBuildOptions["config"]["layout"]}})}><option value="auto">{tr("自动水平旋转","Auto horizontal rotation")}</option><option value="long">{tr("长边沿柜长","Length along vehicle")}</option><option value="cross">{tr("宽边沿柜长","Width along vehicle")}</option></select></label>}
       {!only&&!current.config.unitStacking&&!crate&&!current.config.packaging?.deckSupports?.length&&<><label>{tr("整托堆叠层数","Loaded pallet stack layers")}<NumericInput resetToken={resetToken} ariaLabel={tr("整托堆叠层数","Loaded pallet stack layers")} value={current.stackLayers} integer min={1} max={20} onValueChange={stackLayers=>update({stackLayers})} onValidityChange={valid=>fieldValidity("pallet-build:layers",valid)}/></label><label>{tr("整托可承上压","Loaded pallet top load")}<div className="pallet-build-number"><NumericInput resetToken={resetToken} ariaLabel={tr("整托可承上压","Loaded pallet top load")} value={current.maxTopLoadKg} min={0} max={100000} precision={1} onValueChange={maxTopLoadKg=>update({maxTopLoadKg})} onValidityChange={valid=>fieldValidity("pallet-build:top",valid)}/><span>kg</span></div></label></>}
@@ -80,6 +87,7 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,ini
       <small>{tr("托内纸箱可以多层堆码，整托堆叠层数单独设置。","Cartons can stack within a pallet. Pallet-on-pallet stacking has its own setting.")}</small>
     </div>}
     <div className="pallet-build-grid packaging-order-rules"><label>{tr("单品托 / 混托","Pallet mix")}<select aria-label={tr("单品托 / 混托","Pallet mix")} value={value.mix} onChange={e=>onChange({...value,mix:e.target.value as "single"|"mixed"})}><option value="single">{tr("单 SKU / 完整套装","One SKU / whole kits")}</option><option value="mixed">{tr("允许多 SKU 混托","Allow mixed SKUs")}</option></select></label><label>{tr("生成托盘上限","Prepared pallet limit")}<NumericInput resetToken={resetToken} ariaLabel={tr("生成托盘上限","Prepared pallet limit")} value={value.maxPallets} integer min={1} max={200} onValueChange={maxPallets=>onChange({...value,maxPallets})} onValidityChange={valid=>fieldValidity("pallet-build:limit",valid)}/><small>{tr("所有规格合计上限","Total across all specifications")}</small></label></div>
+    </PackagingEditor>
     {crate&&!current.config.unitStacking?.enabled&&<p className="helper-text">{tr("木箱限高为内部净高，箱盖另外占用高度。默认底置；在额定资料内明确启用并重新核对后，只允许通过四角路径、累计顶载及每条路径总载荷校验的单列叠放。","Crate height is usable interior height; the lid adds to exterior height. Floor-only by default. Explicit opt-in and current reviewed evidence allow only single columns passing four-path contact, cumulative top-load and each-path through-load checks.")}</p>}
     <p className="helper-text">{only?tr("按订单生成全部可行托盘并保留未打托数量；三维编组区只用于查看，利用率按每托包络计算。","Build feasible pallets for the order and retain unmet quantities. The inspection area is for viewing; utilization uses pallet envelopes."):tr("每种规格独立设置上压和层数；可在上方开启整托叠放。仅完整平顶且通过累计承重和门洞校验的整托可堆叠。","Each specification has its own top-load and layer limits. Enable pallet-on-pallet stacking above. Stacking requires a complete flat top and cumulative-load and door checks.")}</p>
     </article>
