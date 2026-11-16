@@ -146,7 +146,7 @@ export const guideTopics: readonly GuideTopic[] = [
     id: "stack-pallets", category: "setup", target: "packaging",
     title: ["整托上下堆叠与只装一层排查", "Stack complete pallets and diagnose a single tier"],
     path: ["装载配置 → 已采用规格的整托堆叠 / 装箱方案 → 装载诊断与补货试算", "Loading setup → Stacking for the saved specification / Loading plan → Loading diagnosis and replenishment trials"],
-    keywords: "只装底下一层 只装一层 装一层 装柜只有一层 怎么叠托 堆叠不上 托不能上下叠 整托上下堆叠 托内限高 18箱 16箱 上压 pallet stacking tiers one layer",
+    keywords: "只装底下一层 货只在底下一层 只装一层 装一层 装柜只有一层 柜里明明有空间却放不进第二层 怎么叠托 堆叠不上 托不能上下叠 整托上下堆叠 托内限高 18箱 16箱 上压 pallet stacking tiers one layer",
     steps: [
       ["区分托内纸箱层数和柜内整托层数。先在打托侧视确认每托箱数与托内净高，再展开「已采用规格的整托堆叠」。", "Separate carton layers inside a pallet from whole-pallet tiers in the vehicle. Check the pallet elevation and cargo ceiling, then open the saved stacking settings."],
       ["实物允许整托叠放时勾选「允许整托上下堆叠」，填写层数上限（0 按可用高度）和实际累计上压上限。自动打托预览里的同类设置需随该预览一起采用。", "If the units are stackable, allow loaded pallets to stack. Enter the tier cap (0 uses available height) and actual cumulative top load. Apply any draft stacking settings with the recipe."],
@@ -312,10 +312,10 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "capacity", category: "review", target: "review",
     title: ["排查未装和零装载、试算还能补多少", "Diagnose unloaded cargo or zero loads and trial replenishment"],
-    path: ["装箱方案 → 装载诊断与补货试算 / 方案工具 → 装载优化", "Loading plan → Loading diagnosis and replenishment trials / Plan tools → Load optimization"],
-    keywords: "剩余容积 为什么装不下 零装载 少装 装不满 未装入原因 补货 试算增加货量 CBM nonloaded remaining capacity trial",
+    path: ["装箱方案 → 未装原因 → 查看详细诊断", "Loading plan → Unloaded cargo diagnosis → View detailed diagnosis"],
+    keywords: "剩余容积 为什么装不下 零装载 少装 装不满 没装满 未装入原因 未装原因 每托箱数改了装柜数量没有变 每托箱数改了装柜数量没变 改了每托箱数还是18箱 补货 试算增加货量 CBM nonloaded remaining capacity trial",
     steps: [
-      ["先检查剩余容积、载重和未装原因。能增加多少箱还取决于连续空间、门洞、朝向、承托和完整套装。", "Check volume, payload and non-load reasons. Additional capacity depends on contiguous space, clearance, orientation, support and whole kits."],
+      ["先看结果首屏的未装箱数和已确认限制，区分备托上限、已备未入柜、托内纸箱净高和整托层数。点「查看详细诊断」核对其他限制。", "Start with the remaining count and confirmed limits at the top of the results. Check preparation limits, pallets awaiting loading, carton clearance and pallet tiers. Open View detailed diagnosis for other constraints."],
       ["需要试算同类货物时，展开「装载诊断与补货试算」，点「试算增加货量（不改订单）」，查看候选及限制项。", "For similar cargo, open Loading diagnosis and replenishment trials and run Trial additional cargo (keep order). Review the candidate and its limiting constraints."],
       ["查看试算新增量和各 SKU 变化。在需要调整订单或包装时才采用候选并重新计算。", "Review additional quantities and SKU changes. Apply a candidate and recalculate when you need those order or packaging changes."],
     ],
@@ -519,7 +519,7 @@ export const guideTopics: readonly GuideTopic[] = [
     keywords: "项目归档 产品库 历史方案 包装版本 标定 校准 固定业务基准 质量 现场验收 catalog archive benchmarking",
     steps: [
       ["在「方案归档与产品版本库」按批次或客户保存可重用方案；恢复前核对当前项目和候选版本。", "Save reusable work by customer or batch in the archive. Check the current project and the candidate version before restoring."],
-      ["在「产品包装档案与实装验收」为产品管理包装版本、录入实装数量及条件，核对预测差额。", "Manage packaging revisions and record observed quantities and conditions under product packaging and field verification, then review forecast differences."],
+      ["先计算通过校验的方案，再到「产品包装档案与实装验收」录入实装数量和条件。修正参考只匹配相同柜门、载重、货物、包装与算法设置。", "Calculate a validated plan, then record observed quantities and conditions under product packaging and field verification. Forecast adjustments match door clearance, payload, cargo, packaging and solver settings."],
       ["需要比较算法时运行「固定业务基准与算法质量」，查看同一案例的数量、耗时与复核状态。", "Run fixed business benchmarks to compare counts, times and review status for the same case."],
     ],
   },

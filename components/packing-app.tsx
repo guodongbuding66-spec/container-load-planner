@@ -151,6 +151,7 @@ import { SceneErrorBoundary } from "./scene-error-boundary";
 
 import { CargoSettings } from "./cargo-settings";
 import { ZeroLoadNotice } from "./cargo-fit-notice";
+import { LoadingShortfall } from "./loading-shortfall";
 import { LoadingRuleSettings } from "./loading-rule-settings";
 import { TransportPicker } from "./transport-picker";
 import { LearningHub } from "./learning-hub";
@@ -1602,6 +1603,7 @@ export function PackingApp() {
     const target=document.getElementById(id);
     const disclosure=target?.querySelector<HTMLDetailsElement>(":scope > details.record-disclosure");
     if(disclosure)disclosure.open=true;
+    if(target instanceof HTMLDetailsElement)target.open=true;
     target?.scrollIntoView({behavior:"smooth",block:"start"});
   };
   const stopCalculation = () => {
@@ -1773,6 +1775,11 @@ export function PackingApp() {
       document.getElementById("pallet-recipe-count")?.focus({preventScroll:true});
     });
   }}/>:null;
+  const openLoadDiagnosis=()=>{
+    if(result?.palletization&&capacityTrial){scrollTo("loading-diagnosis");return;}
+    setToolGroup("loading");
+    window.requestAnimationFrame(()=>scrollTo("unloaded-reasons"));
+  };
 
   return (
     <main className={`app-shell compact-workspace ${navCollapsed ? "nav-collapsed" : "nav-expanded"}`}>
@@ -2203,6 +2210,7 @@ export function PackingApp() {
               <MetricCard icon={<Weight size={21} />} label={tr("已装毛重")} value={`${formatNumber(result.metrics.grossWeight, 1)} kg`} detail={tt`载重利用 ${formatPercent(result.metrics.weightUtilization)}`} tone="amber" />
               <MetricCard icon={<ShieldCheck size={21} />} label={tr("方案复核", "Plan review")} value={planReview?.failed ? `${planReview.failed} ${tr("项不通过", "failed")}` : `${planReview?.unverified ?? 0} ${tr("项未核验", "unverified")}`} detail={tr("数据 · 几何 · 承重 · 路径 · 固定", "Data · geometry · bearing · access · securing")} tone={planReview?.failed ? "red" : "amber"} />
             </div>}
+          {result&&!hasPendingDimensionChanges&&!resultAudit?.hasErrors&&<LoadingShortfall plan={result} products={activeProducts} onDetails={openLoadDiagnosis} onGuide={setGuide}/>}
           <section id="result" className="viewer-column">
             <div className="viewer-head">
               <div><span className="section-kicker">2D + LIVE 3D</span><h2>{tr("装柜方案联动复核")}</h2></div>
@@ -2311,7 +2319,7 @@ export function PackingApp() {
                 </section>
               </>
             ) : null}
-            {capacityTrial&&<details className="result-capacity-details">
+            {capacityTrial&&<details id="loading-diagnosis" className="result-capacity-details">
               <summary>{tr("装载诊断与补货试算", "Loading diagnosis and replenishment trials")}{result&&<small>{formatNumber(result.metrics.loadedCount)} / {formatNumber(result.metrics.requestedCount)} {tr("箱", "cartons")}</small>}</summary>
               {capacityTrial}
             </details>}
@@ -2489,7 +2497,7 @@ export function PackingApp() {
           projects={<>
           <ArchiveLibrary backup={workspaceBackup} disabled={upgradesDisabled} onRestore={backup=>{void restoreWorkspace(new File([backup],tr("工作区归档.json"),{type:"application/json"}));}} onProducts={replaceProductInputs}/>
           <QualityBenchmarks/>
-          <ProductCatalog products={activeProducts} plan={result} disabled={upgradesDisabled} onProducts={replaceProductInputs}/>
+          <ProductCatalog products={activeProducts} plan={resultAudit?.hasErrors?null:result} preparedLayout={preparedPalletLayout} disabled={upgradesDisabled} onProducts={replaceProductInputs}/>
           </>}
           loading={<>
           {!isPalletWorkflow && <PrebuiltPalletPanel key={JSON.stringify(fleetRequest)} request={fleetRequest} disabled={upgradesDisabled} onAdopt={next=>{const build=next.palletBuild??{...DEFAULT_PALLET_BUILD,config:next.palletization!.config,mix:next.palletization!.mix};palletDraftRef.current=null;setFloorPallets(undefined);setLoadingWorkflow("palletized");setPreparedPalletLayout(undefined);setPalletBuild(build);persistDraft({workflow:"palletized",palletBuild:build,preparedPalletLayout:undefined,floorPallets:undefined,strategy:next.strategy});strategyRef.current=next.strategy;setStrategy(next.strategy);setWorkflowStep(3);adoptManualPlan(next);}}/>}

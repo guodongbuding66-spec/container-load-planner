@@ -623,6 +623,14 @@
 .result-overview .metric-icon { width: 30px; height: 30px; flex: 0 0 30px; }
 .result-overview .metric-card strong { font-size: 18px; }
 .result-overview .metric-card small { font-size: 11px; }
+.loading-shortfall { display: grid; gap: 6px; min-width: 0; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+.loading-shortfall-head, .loading-shortfall-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; }
+.loading-shortfall-head { justify-content: space-between; }
+.loading-shortfall-head h3 { font-size: 15px; margin: 0; text-wrap: balance; }
+.loading-shortfall ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 4px 12px; padding-inline-start: 16px; }
+.loading-shortfall :is(ul,p) { font-size: 13px; margin: 0; color: var(--muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; text-wrap: pretty; }
+#loading-diagnosis, #unloaded-reasons { scroll-margin-top: 12px; }
+@media print { .loading-shortfall-actions { display: none; } }
 .record-panel { padding: 8px 10px; margin-top: 8px; min-width: 0; scroll-margin-top: 12px; }
 .record-panel > .panel-head { gap: 6px 12px; margin-bottom: 4px; align-items: center; flex-wrap: wrap; }
 .record-panel .panel-head h2 { font-size: 15px; }
