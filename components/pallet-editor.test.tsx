@@ -34,10 +34,13 @@ it("keeps pallet edits in shared 20-step draft history, restores the order pool 
 });
 it("renders accessible local-coordinate controls, physical layer choices and the complete order pool in both languages",()=>{
   const plan=make(),id=plan.pallets![0].id;
-  const editor={plan,selected:[],enabled:false,disabled:false,changed:false,undo:[],redo:[],message:"",select:vi.fn(),selectMany:vi.fn(),update:vi.fn(),palletEdit:vi.fn(),undoEdit:vi.fn(),redoEdit:vi.fn(),discard:vi.fn()} as unknown as PlanEditor;
+  const editor={plan,selected:[],enabled:false,disabled:false,changed:false,undo:[],redo:[],message:"归档坐标未通过当前校验：P: cargo must remain within one complete pallet",select:vi.fn(),selectMany:vi.fn(),update:vi.fn(),palletEdit:vi.fn(),undoEdit:vi.fn(),redoEdit:vi.fn(),discard:vi.fn()} as unknown as PlanEditor;
   vi.stubGlobal("document",{documentElement:{lang:""}});
   const zh=renderToStaticMarkup(<PalletEditorControls editor={editor} products={[product]} id={id}/>);
+  expect(zh).toContain("托内调整未通过校验 · P · 箱体超出单托可用空间");
+  expect(zh).not.toContain("归档坐标");
   expect(zh).toContain("完整订单与待分配余量");expect(zh).toContain('aria-label="托内目标 X"');expect(zh).toContain('<fieldset disabled=""');expect(zh).toContain('0–200 mm');expect(zh).toContain('200–400 mm');expect(zh).toContain("清空某托仍保留托盘及自重");
   setAppLanguage("en");const en=renderToStaticMarkup(<PalletEditorControls editor={{...editor,enabled:true}} products={[product]} id={id}/>);
+  expect(en).toContain("Pallet edit failed validation");
   expect(en).toContain("Add one carton / kit from pool");expect(en).toContain("Complete order and unassigned pool");expect(en).not.toMatch(/[\u3400-\u9fff]/u);expect(en).toContain('<fieldset><legend>Adjust selected cargo</legend>');
 });

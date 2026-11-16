@@ -48,8 +48,8 @@ export function TutorialGuide({initialTopic="",onNavigate}:{initialTopic?:string
     </div>
     <p className="tutorial-match-count" role="status">{tr(`${matches.length} 篇教程`,`${matches.length} tutorials`)}</p>
     {article
-      ? <div className="tutorial-content">
-        <nav className="tutorial-results" aria-label={tr("匹配教程","Matching tutorials")}>
+      ? <div className={matches.length===1?"tutorial-content tutorial-content-single":"tutorial-content"}>
+        {matches.length>1&&<nav className="tutorial-results" aria-label={tr("匹配教程","Matching tutorials")}>
           <ul>{matches.map(topic=><li key={topic.id}>
             <button type="button" aria-current={topic.id===article.id?"true":undefined} onClick={()=>{
               setSelected(topic.id);
@@ -60,7 +60,7 @@ export function TutorialGuide({initialTopic="",onNavigate}:{initialTopic?:string
               <span>{tr(...topic.title)}</span><ArrowRight size={14} aria-hidden="true"/>
             </button>
           </li>)}</ul>
-        </nav>
+        </nav>}
         <article className="tutorial-article" aria-labelledby="tutorial-article-title">
           <h3 id="tutorial-article-title" ref={articleHeading} tabIndex={-1}>{tr(...article.title)}</h3>
           <p className="tutorial-path">{tr(...article.path)}</p>

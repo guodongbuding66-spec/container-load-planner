@@ -17,7 +17,19 @@ import { palletLayers, palletLocalBox, palletLocalDelta, palletOrderPool } from 
 import { snapGroupTranslation, type Delta } from "../lib/packing/plan-edit";
 import { specificationForPallet } from "../lib/packing/pallet-specifications";
 import { packagingInterior } from "../lib/packing/packaging";
-function palletMessage(value:string){const parts=value.split(" / ");if(parts.length===2&&/[\u3400-\u9fff]/u.test(parts[0])&&!/[\u3400-\u9fff]/u.test(parts[1]))return tr(parts[0],parts[1]);return trText(value);}
+function palletMessage(value:string) {
+  const validation = "归档坐标未通过当前校验：";
+  if(value.startsWith(validation)){
+    const boundaryError = ": cargo must remain within one complete pallet";
+    const detail = value.slice(validation.length).split("；").map(issue=>issue.endsWith(boundaryError)
+      ? `${issue.slice(0,-boundaryError.length)} · ${tr("箱体超出单托可用空间","Carton exceeds a pallet's usable space")}`
+      : trText(issue));
+    return `${tr("托内调整未通过校验","Pallet edit failed validation")} · ${[...new Set(detail)].join(" · ")}`;
+  }
+  const parts = value.split(" / ");
+  if(parts.length===2&&/[\u3400-\u9fff]/u.test(parts[0])&&!/[\u3400-\u9fff]/u.test(parts[1])) return tr(parts[0],parts[1]);
+  return trText(value);
+}
 const Scene=dynamic(()=>import("./container-scene").then(m=>m.ContainerScene),{ssr:false});
 export function PalletEditorControls({editor,products,id,onPendingChange,layerTemplates,onLayerTemplatesChange}:{layerTemplates?:PalletLayerTemplate[];onLayerTemplatesChange?:(templates:PalletLayerTemplate[])=>void;editor:PlanEditor;products:ProductInput[];id:string;onPendingChange?:(pending:boolean)=>void}){
   useLanguage();

@@ -575,8 +575,9 @@
 .tutorial-categories .button[aria-pressed="true"] { border-color: var(--teal); background: var(--teal-soft); color: var(--teal-dark); }
 .tutorial-match-count { margin: 0; color: var(--muted); font-size: 12px; }
 .tutorial-content { display: grid; grid-template-columns: minmax(180px,.72fr) minmax(0,1.28fr); gap: 12px; align-items: start; }
+.tutorial-content-single { grid-template-columns: minmax(0,1fr); }
 .tutorial-results {
-  max-height: min(460px,50dvh); overflow: auto; overscroll-behavior: contain;
+  max-height: min(304px,42dvh); overflow: auto; overscroll-behavior: contain;
   border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
 }
 .tutorial-results ul { list-style: none; padding: 0; margin: 0; }
@@ -592,8 +593,9 @@
 .tutorial-article { padding: 16px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
 .tutorial-article h3 { margin: 0 0 6px; color: var(--ink); font-size: 19px; text-wrap: balance; }
 .tutorial-path { margin: 0; font-size: 12px; font-weight: 600; color: var(--teal-dark); }
-.tutorial-article ol { display: grid; gap: 8px; padding-inline-start: 22px; margin: 12px 0; font-size: 14px; line-height: 1.65; }
+.tutorial-article ol { list-style: decimal; display: grid; gap: 8px; padding-inline-start: 22px; margin: 12px 0; font-size: 14px; line-height: 1.65; }
 .tutorial-article li { text-wrap: pretty; }
+.tutorial-article li::marker { color: var(--teal-dark); font-weight: 650; }
 .tutorial-tip { margin: 0 0 12px; padding: 8px 12px; background: var(--teal-soft); border-radius: 6px; font-size: 13px; line-height: 1.6; }
 .tutorial-notice, .tutorial-empty p { margin: 8px 0; font-size: 13px; color: var(--muted); }
 .tutorial-empty { padding: 16px; border: 1px solid var(--line); border-radius: 8px; }
