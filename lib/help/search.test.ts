@@ -14,6 +14,8 @@ describe("tutorial search", () => {
     ["装柜前移动", "whole-preview"],
     ["搜索箱位", "export"],
     ["折叠整托清单", "edit-pallet"],
+    ["批量套用托内摆放", "copy-pallet-layout"],
+    ["copy pallet layout in bulk", "copy-pallet-layout"],
     ["ＴＯＰ ＬＯＡＤ；一层", "stack-pallets"],
     ["扫码 离线交接", "scan"],
     ["MULTI-CONTAINER", "fleet"],

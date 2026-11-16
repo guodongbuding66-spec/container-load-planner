@@ -672,6 +672,16 @@
 .pallet-editor .tool-form-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
 .pallet-editor .pallet-editor-search { padding: 5px 0; }
 .pallet-editor .pallet-editor-search > label { flex: 0 1 340px; }
+.pallet-review-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; max-width: 100%; }
+.pallet-review-picker select { min-width: 0; max-width: 100%; min-height: 34px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.pallet-layout-copy { border: 1px solid var(--line); border-radius: 6px; padding: 0 8px; }
+.pallet-layout-copy > summary { cursor: pointer; padding: 6px 0; font-weight: 650; }
+.pallet-layout-copy[open] { padding-bottom: 8px; }
+.pallet-layout-copy .record-search { display: flex; }
+.pallet-layout-copy .record-search input { border: 0; padding-inline: 0; }
+.pallet-layout-copy > .upgrade-actions { margin-top: 8px; }
+.pallet-layout-targets .coordinate-table { min-width: 0; }
+.pallet-layout-targets .coordinate-table :is(th,td) { white-space: normal; overflow-wrap: anywhere; }
 @media (max-width: 760px) {
   .pallet-workflow-setup:not(:has(> .pallet-recipe)) .vehicle-config .field-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .packaging-preview-column .pallet-build-preview { order: -1; }

@@ -334,6 +334,19 @@ export const guideTopics: readonly GuideTopic[] = [
     tip: ["Z 从托面起算。涉及整套时一并移动、退回或复制套内组件。", "Z starts at the cargo deck. Kit operations account for all components."],
   },
   {
+    id: "copy-pallet-layout", category: "optimize", target: "pallet-preview",
+    title: ["批量套用托内摆放", "Copy pallet layout in bulk"],
+    path: ["装载配置 → 打托预览与编辑 → 3D 托内编辑", "Loading setup → Pallet preview & edits → Edit pallet in 3D"],
+    keywords: "批量套用托内摆放 批量复制托内布局 整托复制 同规格套用 多托同步 一托复制多托 copy pallet layout duplicate pallet positions bulk pallet",
+    steps: [
+      ["打开一托，移动或旋转箱体并验证。展开「批量套用托内摆放」。", "Open a pallet, move or rotate its cartons and validate the edits. Expand Copy pallet layout in bulk."],
+      ["按托号搜索、逐托勾选，或点「全选可套用托盘」。目标需要相同包装规格、订单行和套装构成。", "Search by pallet ID and select individual targets, or select all eligible pallets. Targets must match packaging, order rows and kit contents."],
+      ["点「套用到已选托盘」。校验通过后，可用弹窗上方的「查看托盘」核对目标。撤销一次可回到批量套用前。", "Choose Copy to selected pallets. After validation, use View pallet to check any target. One undo restores the pre-copy draft."],
+      ["点「应用托内布置」保存，再开始计算。也可在装箱方案的整托编辑器中套用，确认时点「采用托内调整」。", "Apply the pallet layout before calculating. You can also copy layouts in the results pallet editor, then choose Apply pallet edits."],
+    ],
+    tip: ["每托原有箱号、套号和货量保留。已锁定或已录入实测包络的目标会标示原因。", "Targets keep their carton and kit IDs and quantities. Locked targets and those with measured envelopes show their status."],
+  },
+  {
     id: "layers", category: "optimize", target: "pallets",
     title: ["层型模板、批量叠层和单托局部重排", "Layer templates, batch layers and local pallet repacking"],
     path: ["整托查看与托内编辑 → 层型模板与批量叠层 / 单托局部自动重排", "Pallet contents editor → Layer templates and batch stacking / Local pallet repacking"],

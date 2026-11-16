@@ -2,6 +2,7 @@
 import dynamic from "next/dynamic";
 import {PalletLayerTemplates} from "./pallet-layer-templates";
 import {PalletBaseDetails} from "./pallet-base-details";
+import {PalletLayoutCopy} from "./pallet-layout-copy";
 import {PalletRepackControls} from "./pallet-repack-controls";
 import {LongSupportPanel} from "./long-support-panel";
 import type {PalletLayerTemplate} from "../lib/packing/pallet-layer";
@@ -94,6 +95,7 @@ export function PalletEditorControls({editor,products,id,onPendingChange,layerTe
         <p>{tr("坐标以接收货物的托盘为基准。添加时使用订单余量，套装按整套添加。","Use the receiving pallet's local coordinates. Add cargo from the unassigned pool, keeping kits complete.")}</p>
       </fieldset>
     </div>
+    <PalletLayoutCopy plan={plan} id={id} disabled={editor.disabled||!editor.enabled||bad||layerPending||repackPending} onCopy={targetIds=>editor.palletEdit(id,{type:"copy-layout",targetIds})}/>
     <p role="status">{palletMessage(editor.message)}</p>
     <p className="helper-text">{preparation?tr("应用时只保留有货的托盘，货物余量保留在订单。","Applying keeps loaded pallets and retains unassigned quantities in the order."):tr("清空某托仍保留托盘及自重。","Empty pallets and their tare remain.")}</p>
     <details><summary>{tr("托内箱号与坐标","Carton identifiers and coordinates")} · {cargo.length} {tr("箱","cartons")}</summary>
@@ -106,11 +108,12 @@ export function PalletEditorControls({editor,products,id,onPendingChange,layerTe
     <PalletLayerTemplates editor={editor} products={products} id={id} templates={layerTemplates} onChange={onLayerTemplatesChange} blocked={blocked||bad} onPendingChange={setLayerPending}/>
   </section>;
 }
-export function PalletUnitViewer({result,id,onClose,products=[],disabled=false,onAdopt,layerTemplates,onLayerTemplatesChange,preparation=false}:{preparation?:boolean;layerTemplates?:PalletLayerTemplate[];onLayerTemplatesChange?:(templates:PalletLayerTemplate[])=>void;result:PackingResult;id:string;onClose:()=>void;products?:ProductInput[];disabled?:boolean;onAdopt?:(plan:PackingResult)=>void}) {
+export function PalletUnitViewer({result,id:initialId,onClose,products=[],disabled=false,onAdopt,layerTemplates,onLayerTemplatesChange,preparation=false}:{preparation?:boolean;layerTemplates?:PalletLayerTemplate[];onLayerTemplatesChange?:(templates:PalletLayerTemplate[])=>void;result:PackingResult;id:string;onClose:()=>void;products?:ProductInput[];disabled?:boolean;onAdopt?:(plan:PackingResult)=>void}) {
   useLanguage();
   const canEdit=!!onAdopt&&!!products.length&&!!result.palletization;
   const editor=usePlanEditor(result,products,disabled||!canEdit,onAdopt??(()=>{}),preparation);
   const [pending,setPending]=useState(false),[formVersion,setFormVersion]=useState(0);
+  const [id,setId]=useState(initialId);
   const discard=()=>{editor.discard();setPending(false);setFormVersion(v=>v+1);};
   const draft=editor.plan??result;
   const plan=useMemo(()=>isolatePalletPlan(draft,id),[draft,id]);
@@ -125,9 +128,15 @@ export function PalletUnitViewer({result,id,onClose,products=[],disabled=false,o
     <button className="button" onClick={onClose}>{tr("取消并关闭","Cancel and close")}</button>
     <button className="button primary" disabled={!editor.changed||editor.disabled||pending} onClick={editor.apply}>{preparation?tr("应用托内布置","Apply pallet layout"):tr("采用托内调整","Apply pallet edits")}</button>
   </>}>
-    <div className="pallet-unit-summary"><strong>{plan.placements.length} {tr("箱","cartons")} · {plan.metrics.grossWeight.toFixed(1)} kg</strong><span>{plan.container.length} × {plan.container.width} × {plan.container.height} mm</span></div>
-    <div className="pallet-unit-scene"><PalletUnitScene plan={plan} products={products} editor={canEdit?scoped:undefined}/></div>
-    {canEdit&&<PalletEditorControls preparation={preparation} layerTemplates={layerTemplates} onLayerTemplatesChange={onLayerTemplatesChange} key={formVersion} editor={{...editor,discard}} products={products} id={id} onPendingChange={setPending}/>}
+    <div className="pallet-unit-summary"><strong>{plan.placements.length} {tr("箱","cartons")} · {plan.metrics.grossWeight.toFixed(1)} kg</strong><span>{plan.container.length} × {plan.container.width} × {plan.container.height} mm</span>
+      {canEdit&&draft.pallets!.length>1&&<label className="pallet-review-picker">{tr("查看托盘","View pallet")}
+        <select value={id} disabled={pending} onChange={e=>{editor.selectMany([]);setId(e.currentTarget.value);}}>
+          {draft.pallets!.map(q=><option key={q.id} value={q.id}>{q.id} · {q.name}</option>)}
+        </select>
+      </label>}
+    </div>
+    <div className="pallet-unit-scene"><PalletUnitScene key={id} plan={plan} products={products} editor={canEdit?scoped:undefined}/></div>
+    {canEdit&&<PalletEditorControls preparation={preparation} layerTemplates={layerTemplates} onLayerTemplatesChange={onLayerTemplatesChange} key={`${id}/${formVersion}`} editor={{...editor,discard}} products={products} id={id} onPendingChange={setPending}/>}
     <div className="pallet-unit-contents">{plan.summaries.map(s=><span key={s.productId}><i style={{background:s.color}}/>{s.sku} × {s.loaded} · {s.loadedWeight.toFixed(1)} kg</span>)}</div>
     <PalletBaseDetails result={plan} pallet={plan.pallets![0]}/>
     <LongSupportPanel plan={draft} products={products}/>

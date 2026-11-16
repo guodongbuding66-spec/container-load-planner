@@ -18,6 +18,7 @@ export type PalletEdit =
   | {type:"transfer";ids:string[];targetId:string;position:Delta}
   | {type:"add";productId:string;position:Delta}
   | {type:"apply-layer";template:PalletLayerTemplate;position:Delta;turns:number;repeat:number;alternate180:boolean}
+  | {type:"copy-layout";targetIds:string[]}
   | {type:"repack";positions:PlacedBox[];sourceKey:string}
   | {type:"lock"|"lock-others";locked:boolean}
   | {type:"lock-cargo";ids:string[];locked:boolean};
@@ -64,6 +65,87 @@ export function palletOrderPool(plan:PackingResult,products:readonly ProductInpu
   const counts=new Map<string,number>();for(const b of plan.placements)counts.set(b.productId,(counts.get(b.productId)??0)+1);
   return products.map(p=>{const loaded=counts.get(p.id)??0;return {productId:p.id,sku:p.sku,requested:p.quantity,loaded,remaining:p.quantity-loaded};});
 }
+
+export type PalletLayoutTarget = {
+  id:string;
+  name:string;
+  count:number;
+  issue?:"empty-source"|"specification"|"contents"|"locked"|"measured";
+};
+
+function palletLayoutGroups(cargo:PlacedBox[],pallet:PlacedPallet) {
+  const groups=new Map<string,PlacedBox[]>();
+  for(const b of cargo){
+    const key=JSON.stringify(b.setCode?["kit",b.setCode,b.setNumber]:["row",b.productId]);
+    const boxes=groups.get(key)??[];
+    boxes.push(palletLocalBox(b,pallet));
+    groups.set(key,boxes);
+  }
+  return [...groups.values()].map(boxes=>{
+    boxes.sort((a,b)=>a.productId.localeCompare(b.productId)||a.z-b.z||a.y-b.y||a.x-b.x||
+      (a.setItemNumber??0)-(b.setItemNumber??0)||a.id.localeCompare(b.id));
+    return {boxes,key:JSON.stringify([boxes[0].setCode??null,boxes.map(b=>b.productId)])};
+  }).sort((a,b)=>a.key.localeCompare(b.key)||(a.boxes[0].setNumber??0)-(b.boxes[0].setNumber??0));
+}
+
+function inspectLayoutTargets(plan:PackingResult,sourceId:string,requested?:ReadonlySet<string>) {
+  const source=plan.pallets?.find(p=>p.id===sourceId);
+  if(!plan.palletization||!source)return {pattern:[],targets:[]};
+  const cargo=new Map<string,PlacedBox[]>();
+  for(const b of plan.placements){
+    if(b.palletIds?.length!==1)continue;
+    const id=b.palletIds[0];
+    if(requested&&id!==sourceId&&!requested.has(id))continue;
+    const items=cargo.get(id)??[];
+    items.push(b);
+    cargo.set(id,items);
+  }
+  const pattern=palletLayoutGroups(cargo.get(sourceId)??[],source);
+  const targets=plan.pallets!.filter(p=>p.id!==sourceId&&(!requested||requested.has(p.id))).map(pallet=>{
+    const boxes=cargo.get(pallet.id)??[];
+    const info:PalletLayoutTarget={id:pallet.id,name:pallet.name,count:boxes.length};
+    if(!pattern.length)return {pallet,info:{...info,issue:"empty-source" as const}};
+    if((pallet.specificationId??"primary")!==(source.specificationId??"primary"))return {pallet,info:{...info,issue:"specification" as const}};
+    if(pallet.locked||boxes.some(b=>b.locked))return {pallet,info:{...info,issue:"locked" as const}};
+    if(pallet.measuredEnvelope)return {pallet,info:{...info,issue:"measured" as const}};
+    const groups=palletLayoutGroups(boxes,pallet);
+    if(groups.length!==pattern.length||groups.some((group,i)=>group.key!==pattern[i].key))return {pallet,info:{...info,issue:"contents" as const}};
+    return {pallet,info,groups};
+  });
+  return {pattern,targets};
+}
+
+export function palletLayoutTargets(plan:PackingResult,sourceId:string):PalletLayoutTarget[] {
+  return inspectLayoutTargets(plan,sourceId).targets.map(t=>t.info);
+}
+
+export const PALLET_LAYOUT_ISSUE_TEXT:Record<NonNullable<PalletLayoutTarget["issue"]>,readonly [string,string]> = {
+  "empty-source":["本托没有货物","Source pallet is empty"],
+  specification:["包装规格不同","Different packaging specification"],
+  contents:["订单行或套装构成不同","Different order rows or kit contents"],
+  locked:["托盘或箱位已锁定","Pallet or carton locked"],
+  measured:["已有实测包络","Has a measured envelope"],
+};
+
+function replicatePalletLayout(plan:PackingResult,sourceId:string,targetIds:string[]):PlacedBox[] {
+  const ids=new Set(targetIds);
+  if(!ids.size||ids.size!==targetIds.length||ids.has(sourceId))throw Error("请选择不同的目标托盘 / Select distinct target pallets");
+  const {pattern,targets}=inspectLayoutTargets(plan,sourceId,ids);
+  if(targets.length!==ids.size)throw Error("未找到所选目标托盘 / A selected target pallet is missing");
+  const replacements=new Map<string,PlacedBox>();
+  for(const {pallet,info,groups} of targets){
+    if(info.issue||!groups)throw Error(`${info.id} · ${PALLET_LAYOUT_ISSUE_TEXT[info.issue??"contents"].join(" / ")}`);
+    for(const [i,group] of groups.entries())for(const [j,box] of group.boxes.entries()){
+      const {x,y,z,dx,dy,dz,orientation,orientationSigns}=pattern[i].boxes[j];
+      if([x-box.x,y-box.y,z-box.z,dx-box.dx,dy-box.dy,dz-box.dz].every(d=>Math.abs(d)<EPS)&&
+        orientation===box.orientation&&JSON.stringify(orientationSigns)===JSON.stringify(box.orientationSigns))continue;
+      replacements.set(box.id,palletWorldBox({...box,x,y,z,dx,dy,dz,orientation,orientationSigns},pallet));
+    }
+  }
+  if(!replacements.size)throw Error("所选托盘的摆放已一致 / Selected pallets already use this layout");
+  return plan.placements.map(b=>replacements.get(b.id)??b);
+}
+
 function wholeKits(plan:PackingResult,boxes:PlacedBox[]){
   const ids=new Set(boxes.map(b=>b.id)),kits=new Set(boxes.filter(b=>b.setCode).map(b=>`${b.setCode}/${b.setNumber}`));
   return plan.placements.filter(b=>ids.has(b.id)||!!b.setCode&&kits.has(`${b.setCode}/${b.setNumber}`));
@@ -88,7 +170,7 @@ export function editPalletContents(plan:PackingResult,products:ProductInput[],id
   if(auditPackingResult(plan,products).hasErrors)throw new Error("方案与订单资料不一致，请重新计算 / Plan and order data disagree; recalculate first");
   const p=plan.pallets?.find(p=>p.id===id);if(!p)throw new Error("未找到托盘 / Pallet not found");
   const isLock=action.type==="lock"||action.type==="lock-others";
-  if(p.locked&&!isLock)throw new Error("请先解除整托锁定 / Unlock this pallet first");
+  if(p.locked&&!isLock&&action.type!=="copy-layout")throw new Error("请先解除整托锁定 / Unlock this pallet first");
   let pallets=plan.pallets!,placements=[...plan.placements];
   const onPallet=plan.placements.filter(b=>b.palletIds?.length===1&&b.palletIds[0]===id);
   const ids="ids" in action?action.ids:[],selection=new Set(ids);
@@ -109,6 +191,8 @@ export function editPalletContents(plan:PackingResult,products:ProductInput[],id
     pallets=pallets.map(q=>(action.type==="lock"?q.id===id:q.id!==id)?{...q,locked:action.locked}:q);
   }else if(action.type==="lock-cargo"){
     placements=placements.map(b=>selectedIds.has(b.id)?{...b,locked:action.locked}:b);
+  }else if(action.type==="copy-layout"){
+    placements=replicatePalletLayout(plan,id,action.targetIds);
   }else if(action.type==="repack"){
     if(action.sourceKey!==palletRepackSource(plan,products,id))throw Error("局部重排预览已失效，请重新搜索 / Local repack preview is stale; search again");
     const next=new Map(action.positions.map(b=>[b.id,b]));
