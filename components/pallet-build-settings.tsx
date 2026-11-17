@@ -21,8 +21,8 @@ const NO_PRODUCTS:readonly ProductInput[]=[];
 type Props={value:PalletBuildOptions;only:boolean;products?:readonly ProductInput[];request?:PackingRequest;
   preparedLayout?:PreparedPalletLayout;onPreparedLayoutChange?:(layout:PreparedPalletLayout|undefined)=>void;
   layerTemplates?:PalletLayerTemplate[];onLayerTemplatesChange?:(templates:PalletLayerTemplate[])=>void;
-  initialSpecId?:string;onSelectSpec?:(id:string)=>void;chooseOnly?:boolean;onRecipePending?:(pending:boolean)=>void;onChange:(value:PalletBuildOptions)=>void;onValidityChange:(key:string,valid:boolean)=>void;resetToken?:number;onReset?:()=>void;invalid?:boolean};
-export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,preparedLayout,onPreparedLayoutChange,layerTemplates,onLayerTemplatesChange,initialSpecId="primary",onSelectSpec,chooseOnly=false,onRecipePending,onChange,onValidityChange,resetToken=0,onReset,invalid=false}:Props){
+  initialSpecId?:string;onSelectSpec?:(id:string)=>void;chooseOnly?:boolean;previewActive?:boolean;onRecipePending?:(pending:boolean)=>void;onChange:(value:PalletBuildOptions)=>void;onValidityChange:(key:string,valid:boolean)=>void;resetToken?:number;onReset?:()=>void;invalid?:boolean};
+export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,preparedLayout,onPreparedLayoutChange,layerTemplates,onLayerTemplatesChange,initialSpecId="primary",onSelectSpec,chooseOnly=false,previewActive=true,onRecipePending,onChange,onValidityChange,resetToken=0,onReset,invalid=false}:Props){
   useLanguage();
   const [recipePending,setRecipePending]=useState(false);
   const recipeValidity=useCallback((pending:boolean)=>{setRecipePending(pending);onRecipePending?.(pending);},[onRecipePending]);
@@ -60,28 +60,25 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
       disabled={(invalid&&issue!=="height")||draftInvalid}
       onApply={patch=>onChange(withPalletRecipe(value,current.id,patch))} onPendingChange={recipeValidity}/>;
   const spec=current.config.packaging??DEFAULT_PACKAGING;
+  const basePreset=BASE_PRESETS.find(preset=>spec.base===preset.base&&
+    (spec.bottomDeck??"runners")===(preset.bottomDeck??"runners")&&spec.topDeck===preset.topDeck&&
+    spec.deckBoards===preset.deckBoards&&spec.runners===preset.runners&&!spec.measurements&&
+    (spec.assembledBase||spec.base==="solid"||spec.base==="corner-feet"));
   return <>
     <article id="packaging-settings" className="panel pallet-build-settings" aria-label={tr("打托配置","Pallet-building settings")}>
-    <div className="panel-head"><div><h2>{chooseOnly?tr("选择包装规格","Choose packaging specifications"):tr("包装尺寸、结构与打托布置","Packaging dimensions, construction and layout")}</h2></div></div>
     <div className="packaging-specifications">
-      <div className="packaging-specification-tabs" role="group" aria-label={tr("包装规格优先顺序","Packaging specification priority")}>{specifications.map((s,i)=><button type="button" key={s.id} className={current.id===s.id?"selected":""} aria-pressed={current.id===s.id} disabled={draftInvalid} onClick={()=>select(s.id)}><strong>{i+1}. {s.config.name||s.id}</strong><small>{s.config.length} × {s.config.width} · {s.maxPallets} {tr("个可用","available")}</small></button>)}<button type="button" className="button small" disabled={draftInvalid||specifications.length>=MAX_PACKAGING_SPECIFICATIONS} onClick={add}>{tr("新增包装规格","Add packaging specification")}</button></div>
-      {draftInvalid&&<p role="status">{tr("请先修正当前无效数字，再切换或增删规格。","Correct the current invalid number before switching, adding or removing specifications.")}</p>}
-      {!chooseOnly&&error&&<p role="alert">{error}</p>}
-      <div className="packaging-specification-rule">
-        <label className="packaging-specification-name">{tr("包装规格名称","Packaging specification name")}<input aria-label={tr("包装规格名称","Packaging specification name")} value={current.config.name} maxLength={120} onChange={e=>update({config:{...current.config,name:e.target.value}})}/></label>
-        <label className="packaging-specification-stock">{tr("此规格可用数量","Available units")}<NumericInput key={`stock-${current.id}`} resetToken={resetToken} ariaLabel={tr("此规格可用数量","Available units of this specification")} value={current.maxPallets} integer min={0} max={200} onValueChange={maxPallets=>update({maxPallets})} onValidityChange={valid=>fieldValidity("pallet-build:stock",valid)}/></label>
-        <label className="packaging-selection-mode">{tr("包装选择方式","Packaging selection mode")}<select aria-label={tr("包装选择方式","Packaging selection mode")} disabled={invalid||draftInvalid} value={value.selection??"ordered"} onChange={e=>onChange({...value,selection:e.target.value as "ordered"|"compact"})}><option value="ordered">{tr("按列表顺序","Use list order")}</option><option value="compact">{tr("自动比选：同货量优先小包装","Compare candidates: compact at equal load")}</option></select></label>
-        {current.id!=="primary"&&<div className="packaging-specification-actions"><button type="button" className="button small" disabled={draftInvalid||value.additionalSpecs?.[0]?.id===current.id} onClick={()=>reorder(-1)}>{tr("上移优先级","Move earlier")}</button><button type="button" className="button small" disabled={draftInvalid||value.additionalSpecs?.at(-1)?.id===current.id} onClick={()=>reorder(1)}>{tr("下移优先级","Move later")}</button><button type="button" className="button small" disabled={draftInvalid} onClick={remove}>{tr("删除此规格","Remove specification")}</button></div>}
+      <div className="package-spec-head">
+        <div><h2>{chooseOnly?tr("包装类型","Packaging type"):tr("包装尺寸","Packaging dimensions")}</h2>
+        <p>{current.config.name} · {current.config.length} × {current.config.width} mm</p></div>
+        {specifications.length>1&&<label>{tr("当前规格","Current specification")}<select aria-label={tr("当前包装规格","Current packaging specification")} value={current.id} disabled={draftInvalid} onChange={e=>select(e.target.value)}>
+          {specifications.map(s=><option key={s.id} value={s.id}>{s.config.name} · {s.maxPallets} {tr("个可用","available")}</option>)}
+        </select></label>}
       </div>
-      <details className="packaging-selection-help">
-        <summary>{tr("比选规则","Selection rules")}</summary>
-        <p className="helper-text">{value.selection==="compact"?tr("每托先比较必装与高优先级货量。同货量依次比较外包络、占地、自重，尾托可选更小规格。比选只针对当前这一托。","Compare required and high-priority loads first, then envelope, footprint and tare at equal load. Tail loads may use smaller packaging. The per-unit comparison does not guarantee minimum units or cost."):tr("按列表顺序使用适用规格，库存用尽或不适装时尝试下一种。套装整套打托。","Try eligible specifications in list order. When one is exhausted or does not fit, try the next. Whole kits stay in one packaging unit.")}</p>
-      </details>
       {chooseOnly&&<section className="packaging-picker"><div className="packaging-picker-options">
         <div className="packaging-picker-heading">
           <h3>{tr("围护预设","Enclosure presets")}</h3>
-          <label>{tr("底座预设","Base preset")}<select aria-label={tr("底座预设","Base preset")} value="" disabled={draftInvalid} onChange={event=>{const preset=BASE_PRESETS.find(item=>item.id===event.target.value);if(preset)update({config:withBasePreset(current.config,preset)});}}>
-            <option value="">{tr("选择底座结构","Select base construction")}</option>
+          <label>{tr("底座预设","Base preset")}<select aria-label={tr("底座预设","Base preset")} value={basePreset?.id??""} disabled={draftInvalid} onChange={event=>{const preset=BASE_PRESETS.find(item=>item.id===event.target.value);if(preset)update({config:withBasePreset(current.config,preset)});}}>
+            <option value="">{tr("现有底座","Current base")}</option>
             {BASE_PRESETS.map(preset=><option key={preset.id} value={preset.id}>{tr(...preset.label)}</option>)}
           </select></label>
         </div>
@@ -94,7 +91,25 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
         </div>
         </div><SpaceModelPreview pallet={current.config} appearanceOnly/>
       </section>}
+      <details className="package-options">
+        <summary>{tr("包装规格与库存","Packaging specifications and stock")}</summary>
+      <div className="packaging-specification-tabs" role="group" aria-label={tr("包装规格优先顺序","Packaging specification priority")}>{specifications.map((s,i)=><button type="button" key={s.id} className={current.id===s.id?"selected":""} aria-pressed={current.id===s.id} disabled={draftInvalid} onClick={()=>select(s.id)}><strong>{i+1}. {s.config.name||s.id}</strong><small>{s.config.length} × {s.config.width} · {s.maxPallets} {tr("个可用","available")}</small></button>)}<button type="button" className="button small" disabled={draftInvalid||specifications.length>=MAX_PACKAGING_SPECIFICATIONS} onClick={add}>{tr("新增包装规格","Add packaging specification")}</button></div>
+      {draftInvalid&&<p role="status">{tr("请先修正当前无效数字，再切换或增删规格。","Correct the current invalid number before switching, adding or removing specifications.")}</p>}
+      <div className="packaging-specification-rule">
+        <label className="packaging-specification-name">{tr("包装规格名称","Packaging specification name")}<input aria-label={tr("包装规格名称","Packaging specification name")} value={current.config.name} maxLength={120} onChange={e=>update({config:{...current.config,name:e.target.value}})}/></label>
+        <label className="packaging-specification-stock">{tr("此规格可用数量","Available units")}<NumericInput key={`stock-${current.id}`} resetToken={resetToken} ariaLabel={tr("此规格可用数量","Available units of this specification")} value={current.maxPallets} integer min={0} max={200} onValueChange={maxPallets=>update({maxPallets})} onValidityChange={valid=>fieldValidity("pallet-build:stock",valid)}/></label>
+        <label className="packaging-selection-mode">{tr("包装选择方式","Packaging selection mode")}<select aria-label={tr("包装选择方式","Packaging selection mode")} disabled={invalid||draftInvalid} value={value.selection??"ordered"} onChange={e=>onChange({...value,selection:e.target.value as "ordered"|"compact"})}><option value="ordered">{tr("按列表顺序","Use list order")}</option><option value="compact">{tr("自动比选：同货量优先小包装","Compare candidates: compact at equal load")}</option></select></label>
+        {current.id!=="primary"&&<div className="packaging-specification-actions"><button type="button" className="button small" disabled={draftInvalid||value.additionalSpecs?.[0]?.id===current.id} onClick={()=>reorder(-1)}>{tr("上移优先级","Move earlier")}</button><button type="button" className="button small" disabled={draftInvalid||value.additionalSpecs?.at(-1)?.id===current.id} onClick={()=>reorder(1)}>{tr("下移优先级","Move later")}</button><button type="button" className="button small" disabled={draftInvalid} onClick={remove}>{tr("删除此规格","Remove specification")}</button></div>}
+      </div>
+      <details className="packaging-selection-help">
+        <summary>{tr("比选规则","Selection rules")}</summary>
+        <p className="helper-text">{value.selection==="compact"?tr("每托先比较必装与高优先级货量。同货量依次比较外包络、占地、自重，尾托可选更小规格。比选只针对当前这一托。","Compare required and high-priority loads first, then envelope, footprint and tare at equal load. Tail loads may use smaller packaging. The per-unit comparison does not guarantee minimum units or cost."):tr("按列表顺序使用适用规格，库存用尽或不适装时尝试下一种。套装整套打托。","Try eligible specifications in list order. When one is exhausted or does not fit, try the next. Whole kits stay in one packaging unit.")}</p>
+      </details>
+      </details>
+      {!chooseOnly&&error&&<p role="alert">{error}</p>}
       {!chooseOnly&&<>
+      <details className="package-options">
+      <summary>{tr("适用货物、混装与整托堆叠","Eligible cargo, loose cartons and stacking")}</summary>
       <div className="packaging-policy-grid">
         {products.length>0&&<details className="packaging-policy packaging-product-selection">
           <summary>{tr("适用货物","Eligible products")} <small>{current.productIds?`${current.productIds.length} SKU`:tr("全部 SKU","All SKUs")}</small></summary>
@@ -125,13 +140,14 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
           </div>
         </details>}
       </div>
+      </details>
       </>}
     </div>
     {!chooseOnly&&<>
     <PackagingEditor key={current.id} value={current.config} onChange={config=>update({config})} onValidityChange={fieldValidity} resetToken={resetToken} onReset={reset} invalid={invalid}
-      preview={request&&<PalletBuildPreview key={JSON.stringify([request,resetToken])} request={request} value={value} specId={current.id} disabled={invalid||draftInvalid||recipePending}
-        preparedLayout={preparedLayout} onPreparedLayoutChange={onPreparedLayoutChange} layerTemplates={layerTemplates} onLayerTemplatesChange={onLayerTemplatesChange}/>}>
-    <div className="pallet-build-grid packaging-dimensions" key={`dimensions-${current.id}`}>{fields.map(([key,label,unit,min])=><label key={key}>{label}<div className="pallet-build-number"><NumericInput resetToken={resetToken} ariaLabel={label} value={current.config[key]??0} min={min} max={key==="gap"||key==="weight"?10000:100000} precision={1} onValueChange={v=>update({config:{...current.config,[key]:v}})} onValidityChange={valid=>fieldValidity(`pallet-build:${key}`,valid)}/><span>{unit}</span></div>
+      preview={request?(appearance,empty)=><PalletBuildPreview request={request} value={value} specId={current.id} active={previewActive} appearance={appearance} empty={empty} disabled={invalid||draftInvalid||recipePending}
+        preparedLayout={preparedLayout} onPreparedLayoutChange={onPreparedLayoutChange} layerTemplates={layerTemplates} onLayerTemplatesChange={onLayerTemplatesChange}/>:undefined}>
+    <div className="pallet-build-grid packaging-dimensions" key={`dimensions-${current.id}`}>{fields.map(([key,label,unit,min])=><label key={key}>{label}<div className="pallet-build-number"><NumericInput showError resetToken={resetToken} ariaLabel={label} value={current.config[key]??0} min={min} max={key==="gap"||key==="weight"?10000:100000} precision={1} onValueChange={v=>update({config:{...current.config,[key]:v}})} onValidityChange={valid=>fieldValidity(`pallet-build:${key}`,valid)}/><span>{unit}</span></div>
       {key==="maxCargoHeight"&&!only&&!crate&&<small>{tr("0 = 按柜内和柜门净高自动","0 = use vehicle and door clearance")}</small>}</label>)}
       {!only&&<label>{tr("托盘方向","Loaded pallet orientation")}<select aria-label={tr("托盘方向","Loaded pallet orientation")} value={current.config.layout} onChange={e=>update({config:{...current.config,layout:e.target.value as PalletBuildOptions["config"]["layout"]}})}><option value="auto">{tr("自动水平旋转","Auto horizontal rotation")}</option><option value="long">{tr("长边沿柜长","Length along vehicle")}</option><option value="cross">{tr("宽边沿柜长","Width along vehicle")}</option></select></label>}
       {!only&&!current.config.unitStacking&&!crate&&!current.config.packaging?.deckSupports?.length&&<><label>{tr("整托堆叠层数","Loaded pallet stack layers")}<NumericInput resetToken={resetToken} ariaLabel={tr("整托堆叠层数","Loaded pallet stack layers")} value={current.stackLayers} integer min={1} max={20} onValueChange={stackLayers=>update({stackLayers})} onValidityChange={valid=>fieldValidity("pallet-build:layers",valid)}/></label><label>{tr("整托可承上压","Loaded pallet top load")}<div className="pallet-build-number"><NumericInput resetToken={resetToken} ariaLabel={tr("整托可承上压","Loaded pallet top load")} value={current.maxTopLoadKg} min={0} max={100000} precision={1} onValueChange={maxTopLoadKg=>update({maxTopLoadKg})} onValidityChange={valid=>fieldValidity("pallet-build:top",valid)}/><span>kg</span></div></label></>}
@@ -140,12 +156,14 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
       <button type="button" className="button small" onClick={()=>{fieldValidity("pallet-build:maxCargoHeight",true);update({config:{...current.config,maxCargoHeight:0}});}}>{tr("按柜门净高自动加层","Use door clearance for carton layers")}</button>
       <small>{tr("托内纸箱可以多层堆码，整托堆叠层数单独设置。","Cartons can stack within a pallet. Pallet-on-pallet stacking has its own setting.")}</small>
     </div>}
+    {recipe&&<details className="package-options" open={recipePending||undefined}><summary>{tr("按每托箱数自动配尺寸","Size by cartons per pallet")}</summary>{recipe}</details>}
+    <details className="package-options"><summary>{tr("打托数量与混托规则","Pallet limits and mixing")}</summary>
     <div className="pallet-build-grid packaging-order-rules"><label>{tr("单品托 / 混托","Pallet mix")}<select aria-label={tr("单品托 / 混托","Pallet mix")} value={value.mix} onChange={e=>onChange({...value,mix:e.target.value as "single"|"mixed"})}><option value="single">{tr("单 SKU / 完整套装","One SKU / whole kits")}</option><option value="mixed">{tr("允许多 SKU 混托","Allow mixed SKUs")}</option></select></label><label>{tr("生成托盘上限","Prepared pallet limit")}<NumericInput resetToken={resetToken} ariaLabel={tr("生成托盘上限","Prepared pallet limit")} value={value.maxPallets} integer min={1} max={200} onValueChange={maxPallets=>onChange({...value,maxPallets})} onValidityChange={valid=>fieldValidity("pallet-build:limit",valid)}/><small>{tr("所有规格合计上限","Total across all specifications")}</small></label></div>
+    </details>
     </PackagingEditor>
     {crate&&!current.config.unitStacking?.enabled&&<p className="helper-text">{tr("木箱限高为内部净高，箱盖另外占用高度。默认底置；在额定资料内明确启用并重新核对后，只允许通过四角路径、累计顶载及每条路径总载荷校验的单列叠放。","Crate height is usable interior height; the lid adds to exterior height. Floor-only by default. Explicit opt-in and current reviewed evidence allow only single columns passing four-path contact, cumulative top-load and each-path through-load checks.")}</p>}
     <p className="helper-text">{only?tr("按订单生成全部可行托盘并保留未打托数量；三维编组区只用于查看，利用率按每托包络计算。","Build feasible pallets for the order and retain unmet quantities. The inspection area is for viewing; utilization uses pallet envelopes."):tr("每种规格独立设置上压和层数；可在上方开启整托叠放。仅完整平顶且通过累计承重和门洞校验的整托可堆叠。","Each specification has its own top-load and layer limits. Enable pallet-on-pallet stacking above. Stacking requires a complete flat top and cumulative-load and door checks.")}</p>
     </>}
     </article>
-    {!chooseOnly&&recipe}
   </>;
 }

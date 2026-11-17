@@ -23,11 +23,14 @@ it("keeps compact selection explicit and describes priority and heuristic limits
   expect(html).toContain('aria-label="Packaging selection mode"');expect(html).toContain('value="compact" selected=""');expect(html).toContain("minimum units or cost");expect(html).not.toMatch(/[\u3400-\u9fff]/u);
 });
 
-it("places the complete load preview beneath the packaging model",()=>{
+it("offers one live preview area with opacity alongside the current model",()=>{
   const request={container:TRANSPORT_PRESETS[0],workflow:"palletized" as const,palletBuild:options,products:[],clearance:10,mode:"mixed" as const,strategy:"practical" as const};
   const html=renderToStaticMarkup(<TransportAppearanceProvider><PalletBuildSettings value={options} only={false} request={request} onChange={()=>{}} onValidityChange={()=>{}}/></TransportAppearanceProvider>);
   const models=html.split('class="packaging-preview-column"');
   expect(models).toHaveLength(2);
-  expect(models[1]).toMatch(/class="packaging-preview"[\s\S]*?class="pallet-build-preview"/u);
-  expect(models[1]).toContain("生成整体打托预览");
+  expect(models[1]).toContain('class="pallet-build-preview live-pallet-preview"');
+  expect(models[1]).toContain("实时打托预览");
+  expect(models[1]).toContain('aria-label="包装模型不透明度"');
+  expect(models[1].match(/class="space-model-preview"/g)).toHaveLength(1);
+  expect(models[1]).not.toContain("生成整体打托预览");
 });

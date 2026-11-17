@@ -21,6 +21,7 @@ import { snapGroupTranslation, type Delta } from "../lib/packing/plan-edit";
 import { specificationForPallet } from "../lib/packing/pallet-specifications";
 import { packagingInterior } from "../lib/packing/packaging";
 import { SceneErrorBoundary } from "./scene-error-boundary";
+import { PlanViews } from "./plan-views";
 function palletMessage(value:string) {
   const validation = "归档坐标未通过当前校验：";
   if(value.startsWith(validation)){
@@ -35,14 +36,20 @@ function palletMessage(value:string) {
   return trText(value);
 }
 const Scene=dynamic(()=>import("./container-scene").then(m=>m.ContainerScene),{ssr:false});
-function PalletUnitScene({plan,products,editor}:{plan:PackingResult;products?:ProductInput[];editor?:PlanEditor}){
+function PalletUnitScene({plan,products,editor,actions}:{plan:PackingResult;products?:ProductInput[];editor?:PlanEditor;actions?:React.ReactNode}){
   const [view,setView]=useState<CameraView>("perspective"),[projection,setProjection]=useState<CameraProjection>("perspective");
   const visible=useMemo(()=>new Set(plan.summaries.map(s=>s.productId)),[plan]);
-  return <SceneErrorBoundary resetKey={plan.id}><Scene editor={editor} products={products} result={plan} visibleProducts={visible} visibleCount={plan.placements.length} cameraView={view} projectionMode={projection} onCameraViewChange={setView} onProjectionModeChange={setProjection}/></SceneErrorBoundary>;
+  return <PlanViews result={plan} visibleProducts={visible} visibleCount={plan.placements.length}
+    primaryCountLabel={`${plan.placements.length} ${tr("箱","cartons")}`} activeView={projection==="orthographic"?view:"free"}
+    onViewSelect={next=>{setProjection("orthographic");setView(next);}} actions={actions}
+    scene={<SceneErrorBoundary resetKey={plan.id}>
+      <Scene editor={editor} products={products} result={plan} visibleProducts={visible} visibleCount={plan.placements.length}
+        cameraView={view} projectionMode={projection} onCameraViewChange={setView} onProjectionModeChange={setProjection}/>
+    </SceneErrorBoundary>}/>;
 }
-export function PalletUnitPreviewScene({result,id}:{result:PackingResult;id:string}){
+export function PalletUnitPreviewScene({result,id,actions,products}:{result:PackingResult;id:string;actions?:React.ReactNode;products?:ProductInput[]}){
   const plan=useMemo(()=>isolatePalletPlan(result,id),[result,id]);
-  return <div className="pallet-preview-scene"><PalletUnitScene plan={plan}/></div>;
+  return <div className="pallet-preview-scene"><PalletUnitScene plan={plan} actions={actions} products={products}/></div>;
 }
 export function PalletEditorControls({editor,products,id,onPendingChange,onViewPallet,layerTemplates,onLayerTemplatesChange,preparation=false}:{preparation?:boolean;layerTemplates?:PalletLayerTemplate[];onLayerTemplatesChange?:(templates:PalletLayerTemplate[])=>void;editor:PlanEditor;products:ProductInput[];id:string;onPendingChange?:(pending:boolean)=>void;onViewPallet?:(id:string)=>void}){
   useLanguage();

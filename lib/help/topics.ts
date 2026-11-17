@@ -30,11 +30,11 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "start", category: "cargo", target: "products",
     title: ["第一次做装柜方案", "Create your first load plan"],
-    path: ["装载空间 → 打托包装 → 货物与托内布置", "Load space → Packaging → Cargo & layout"],
+    path: ["选柜型 → 选包装 → 货物与布置 → 查看方案", "Container → Packaging → Cargo & layout → Results"],
     keywords: "入门 快速开始 新手 新建 计算流程 使用流程 quick start getting started",
     steps: [
-      ["在「装载空间」选柜型或车辆，核对柜内尺寸、柜门和净载重。只做打托可跳过选柜。", "Choose a container or vehicle under Load space, then check interior dimensions, doorway and net payload. Skip vehicle selection for pallet-only work."],
-      ["在「打托包装」选开放托盘、封板箱或框架等规格。在「货物与托内布置」填外箱、重量、数量及包装尺寸，预览托内摆放后计算。", "Under Packaging, choose a pallet, closed crate or frame. Under Cargo & layout, enter cartons, mass, quantities and packaging dimensions, then preview positions before calculating."],
+      ["在「选柜型」选择集装箱或车辆，核对柜内尺寸、柜门和净载重。只做打托可跳过选柜。", "Choose a container or vehicle under Container, then check interior dimensions, doorway and net payload. Skip vehicle selection for pallet-only work."],
+      ["在「选包装」选择托盘、封板木箱或框架。随后在「货物与布置」录入箱规、毛重和数量，按需打开「包装与托内预览」。", "Choose a pallet, closed crate or frame under Packaging. Enter carton sizes, weights and quantities under Cargo & layout, then open Packaging & pallet preview if needed."],
       ["在「装箱方案」确认已装箱数、余货和校验结果。用 3D 和三视图复核后，下载 PDF 或导出坐标。", "On Loading plan, check loaded cartons, remainder and validation. Review the 3D and orthographic views, then download the PDF or export coordinates."],
     ],
   },
@@ -98,7 +98,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "space", category: "setup", target: "setup",
     title: ["选柜型、核对门洞和自定义装载空间", "Choose a vehicle, check the door and save a custom space"],
-    path: ["装载空间 → 集装箱 / 车辆 → 装载空间库", "Load space → Container / vehicle → Space library"],
+    path: ["选柜型 → 装载空间库", "Container → Space library"],
     keywords: "40HQ 40GP 20GP 货车 柜门 门宽 门高 安全间隙 净高 内尺寸 浏览装载空间库 container dimensions clearance door",
     steps: [
       ["选常用预设，或打开「装载空间库」选择货车、集装箱及已有自定义空间。", "Choose a common preset or open Space library to select a truck, container or saved custom space."],
@@ -109,7 +109,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "workflow", category: "setup", target: "setup",
     title: ["选择直接装箱、只打托或先打托后装箱", "Choose direct loading, pallet-only or palletize then load"],
-    path: ["装载空间 → 计算模式", "Load space → Calculation mode"],
+    path: ["选柜型 → 装载方式", "Container → Loading method"],
     keywords: "装载方式 装载模式 底层铺托 落地托盘 只打托不装箱 先打托后装箱 单品最大装柜 direct load floor pallet",
     steps: [
       ["只需散箱入柜时选「直接装箱」。需要固定的底层托盘时，在第二步配置这些底座。", "Choose Direct load for loose cartons. Configure floor pallets in step two if the load needs fixed bases."],
@@ -136,7 +136,7 @@ export const guideTopics: readonly GuideTopic[] = [
     keywords: "生成整体打托预览 木箱对比 空木箱 整托预览 实装预览 托盘清单 尾托 3D托内编辑 装柜前移动 拖拽 人工摆放 应用托内布置 prepared manifest preview drag move cartons complete pallet loads manual layout",
     steps: [
       ["先采用自动打托方案，或填好实际包装尺寸、承重及库存。对照右侧模型的外尺寸和可用内部尺寸。", "Apply the pallet design or enter actual packaging dimensions, payload and stock. Check exterior and interior dimensions beside the empty model."],
-      ["点模型下方「生成整体打托预览」。检查已打托箱数、整托数和待打托箱数。", "Below the model, choose Preview complete pallet loads. Check prepared cartons, units and remaining cartons."],
+      ["打开「包装与托内预览」，查看自动试排的箱数、托数和待打托箱数。修改尺寸后，右侧自动更新。", "Open Packaging & pallet preview to review prepared cartons, total units and remaining cartons. The preview refreshes after size changes."],
       ["从「预览托盘」切换托号，点「3D 托内编辑」。在模型中选箱拖动手柄，或输入 X/Y/Z 偏移再验证移动。需要查某箱时展开「托内箱号与坐标」。", "Choose a pallet and open Edit pallet in 3D. Select a carton and drag its handles, or enter and validate an X/Y/Z offset. Expand Carton identifiers and coordinates to find a specific carton."],
       ["点「应用托内布置」，然后点「开始计算」。两个算法均沿用已确认的托内位置。要重新自动摆箱，点「恢复自动打托」。", "Apply the pallet layout and start calculation. Both solvers keep approved positions inside each pallet. Use Return to automatic palletizing to regenerate positions."],
     ],
@@ -162,7 +162,7 @@ export const guideTopics: readonly GuideTopic[] = [
     steps: [
       ["新增规格后命名，填每种可用数量，展开「适用货物」核对可用 SKU。0 个可用表示保留规格供查看。", "Name each new spec and enter its stock. Check Eligible products. A spec with zero availability remains visible for reference."],
       ["按列表顺序尝试包装，或选「自动比选：同货量优先小包装」，让尾量可以选小规格。", "Use list order or Compare candidates: compact at equal load, which lets smaller packaging compete for tails."],
-      ["设置单 SKU／完整套装或允许多 SKU 混托，核对所有规格合计的生成上限。生成整体打托预览检查规格使用量。", "Set one SKU/whole kits or mixed SKU packing, and check the total unit limit. Generate the complete preview to see spec usage."],
+      ["设置单 SKU／完整套装或允许多 SKU 混托，核对所有规格合计的生成上限。打开实时打托预览检查规格使用量。", "Set one SKU/whole kits or mixed SKU packing, and check the total unit limit. Open the live pallet preview to see spec usage."],
     ],
   },
   {
@@ -365,7 +365,7 @@ export const guideTopics: readonly GuideTopic[] = [
     path: ["货物与托内布置 → 整体打托预览 → 全单自动减托；或装箱方案 → 已入柜减托", "Cargo & layout → Complete pallet preview → Consolidate order pallets, or Loading plan → Consolidate loaded pallets"],
     keywords: "全单自动减托 整单减托 自动合并尾托 托盘减重 已入柜减托 释放多托 pallet reduction order consolidation fewer pallets",
     steps: [
-      ["生成整体打托预览后，点「全单自动减托」。已经装柜时，从结果工具栏点「已入柜减托」，试排当前方案中的托盘。", "Generate the complete pallet preview and choose Consolidate order pallets. After loading, choose Consolidate loaded pallets in the results toolbar to search the current plan."],
+      ["实时打托预览出现后，点「全单自动减托」。装柜计算后，在「清单与导出」可对已入柜托盘试排减托。", "Once the live preview is ready, choose Consolidate order pallets. After calculating, open Manifests & exports to consolidate loaded pallets."],
       ["点「预览减托建议」，核对前后托数、保留箱数与减少的包装自重。展开「查看受影响托盘」，查看被释放的托号以及留用托盘的新毛重和高度。", "Preview pallet reduction and review the unit count, retained cartons and tare saved. Open Review affected pallets to see released IDs and remaining units' new weights and heights."],
       ["写入草稿后，可一次撤销整批试排。确认后应用托内布置再计算，或采用托内调整更新已入柜清单和导出。", "Use the reduction in the draft. One undo restores the batch. Apply pallet layout before calculating, or apply pallet edits to update the loaded manifest and exports."],
     ],

@@ -19,7 +19,7 @@ type Template={name:string;config:FloorPalletConfig};
 function readTemplates(){try{return localStorage.getItem(STORAGE)??"[]";}catch{return "[]";}}
 function subscribeTemplates(callback:()=>void){window.addEventListener("storage",callback);return()=>window.removeEventListener("storage",callback);}
 
-export function PackagingEditor({value,onChange,onValidityChange,resetToken=0,onReset,invalid=false,children,preview}:{value:FloorPalletConfig;onChange:(v:FloorPalletConfig)=>void;onValidityChange:(key:string,valid:boolean)=>void;resetToken?:number;onReset?:()=>void;invalid?:boolean;children?:ReactNode;preview?:ReactNode}) {
+export function PackagingEditor({value,onChange,onValidityChange,resetToken=0,onReset,invalid=false,children,preview}:{value:FloorPalletConfig;onChange:(v:FloorPalletConfig)=>void;onValidityChange:(key:string,valid:boolean)=>void;resetToken?:number;onReset?:()=>void;invalid?:boolean;children?:ReactNode;preview?:(appearance:ReactNode,empty:ReactNode)=>ReactNode}) {
   useLanguage();
   const spec=value.packaging??{...DEFAULT_PACKAGING,opacity:1},inner=packagingInterior(value);
   const rails=spec.enclosure==="slatted"||spec.enclosure==="frame";
@@ -34,9 +34,14 @@ export function PackagingEditor({value,onChange,onValidityChange,resetToken=0,on
   const patch=(v:Partial<PackagingSpec>)=>onChange({...value,packaging:{...spec,...v}});
   const presets=TRANSPORT_PRESETS.filter(p=>p.category==="pallet");
   const save=()=>{const label=name.trim();if(!label||error)return;const next=[{name:label,config:parseFloorPalletConfig({...value,name:label})},...templates.filter(t=>t.name!==label)].slice(0,30);setTemplates(next);try{localStorage.setItem(STORAGE,JSON.stringify(next));setNotice(tr("模板已保存；当前规格也会随工作区备份。","Template saved; the current specification is included in workspace backups."));}catch{setNotice(tr("模板仅保留本次会话；可备份工作区保留当前规格。","Template retained for this session; back up the workspace to keep its current specification."));}};
+  const appearance=<label className="preview-opacity">
+    <span>{tr("包装不透明度","Packaging opacity")}</span>
+    <input type="range" aria-label={tr("包装模型不透明度","Packaging model opacity")} min={5} max={100} value={Math.round(spec.opacity*100)} onChange={e=>patch({opacity:Number(e.target.value)/100})}/>
+    <output>{Math.round(spec.opacity*100)}%</output>
+  </label>;
   return <div className={`packaging-editor${preview?" packaging-editor-with-preview":""}`}><section className="packaging-fields">
     {children}
-    <details className="packaging-structure-options" open>
+    <details className="packaging-structure-options">
     <summary>{tr("包装结构、材质与模板","Packaging structure, materials and templates")}</summary>
     <div className="pallet-build-grid">
       <label>{tr("托盘预设","Pallet preset")}<select aria-label={tr("打托托盘预设","Build pallet preset")} value="" onChange={e=>{const p=presets.find(p=>p.id===e.target.value);if(p){onReset?.();onChange({...value,presetId:p.id,name:p.name,length:p.length,width:p.width,height:p.baseHeight??144});}}}><option value="">{tr("自定义 / 选择预设","Custom / choose preset")}</option>{presets.map(p=><option key={p.id} value={p.id}>{tr(p.name)} · {p.length} × {p.width}</option>)}</select></label>
@@ -55,22 +60,29 @@ export function PackagingEditor({value,onChange,onValidityChange,resetToken=0,on
         <label>{tr("横档高度 mm","Rail height mm")}<NumericInput resetToken={resetToken} ariaLabel={tr("横档高度","Rail height")} value={spec.railHeight??0} min={0} max={200} precision={1} onValueChange={railHeight=>patch({railHeight:railHeight||undefined})} onValidityChange={v=>onValidityChange("pallet-build:rail-height",v)}/><small>{tr("0 = 按围护净高自动","0 = automatic from interior height")}</small></label>
       </>}
       <label>{tr("结构颜色","Structure color")}<input type="color" aria-label={tr("结构颜色","Structure color")} value={spec.color} onChange={e=>patch({color:e.target.value})}/></label>
-      <label>{tr("模型不透明度","Model opacity")} · {Math.round(spec.opacity*100)}%<input type="range" aria-label={tr("包装模型不透明度","Packaging model opacity")} min={5} max={100} value={Math.round(spec.opacity*100)} onChange={e=>patch({opacity:Number(e.target.value)/100})}/></label>
+
     </div>
     <p className="helper-text">{spec.base==="corner-feet"?tr("四角承压脚只有四个角脚，不是通长底梁。请按实物选择底座结构；具体部件尺寸可在下方底座实测资料中填写。", "Four corner feet are separate feet, not continuous runners. Choose the actual base structure and enter its component dimensions in the base measurements below."):tr("每个整托分别生成并保留自己的底座，底座随货组一起装柜；部件尺寸按实物录入。", "Each complete unit retains its own base and is loaded together with its cargo. Enter measured component dimensions for the actual base.")}</p>
     <div className="packaging-template-row"><input aria-label={tr("包装模板名称","Packaging template name")} value={name} maxLength={80} placeholder={tr("自定义模板名称","Custom template name")} onChange={e=>setName(e.target.value)}/><button type="button" className="button small" disabled={invalid||!name.trim()||!!error} onClick={save}>{tr("保存模板","Save template")}</button>{templates.length>0&&<select aria-label={tr("已保存包装模板","Saved packaging templates")} value="" onChange={e=>{const t=e.target.value===""?undefined:templates[Number(e.target.value)];if(t){onReset?.();onChange(structuredClone(t.config));}}}><option value="">{tr("载入模板","Load template")}</option>{templates.map((t,i)=><option key={t.name} value={i}>{t.name}</option>)}</select>}</div>
     <BottomDeckSettings value={value} onChange={onChange} disabled={invalid}/>
     </details>
     {inner.crate&&<CrateExteriorHeight value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken}/>}
-    <DeckSupportSettings value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken} invalid={invalid}/>
+    <details className="packaging-engineering">
+      <summary>{tr("承重与实测资料","Load ratings and measurements")}</summary>
+      <DeckSupportSettings value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken} invalid={invalid}/>
     <ForkInterfaceSettings value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken} invalid={invalid}/>
     {inner.crate&&<CrateBearingSettings value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken} invalid={invalid}/>}
+    </details>
     {notice&&<small role="status">{notice}</small>}
     <p className="helper-text">{tr("输入的长宽为外尺寸；原包装自重包含底座、围板和箱盖；新增托内支承件自重另填并自动合计。材质用于显示，额定承重采用实测数据。","Length and width are exterior dimensions. Base tare includes the deck, enclosure and lid; added deck-support mass is entered separately and summed automatically. Material controls appearance; use measured load ratings.")}</p>
     {error&&<p role="alert">{trText(error)}</p>}
   </section>
   <div className="packaging-preview-column">
-    <aside className="packaging-preview">{!error&&<SpaceModelPreview pallet={value}/>}<strong>{inner.crate?tr("木箱外形 / 可用内部","Crate exterior / usable interior"):tr("托盘尺寸","Pallet dimensions")}</strong><span>{value.length} × {value.width} × {inner.crate?packagingHeight(value):value.height} mm</span>{inner.crate&&<span>{inner.length} × {inner.width} × {value.maxCargoHeight} mm</span>}</aside>
-    {preview}
+    {preview ? preview(appearance,error?null:<SpaceModelPreview pallet={value} appearanceOnly/>) :
+      <aside className="packaging-preview">{appearance}{!error&&<SpaceModelPreview pallet={value}/>}</aside>}
+    <dl className="packaging-dimension-summary">
+      <div><dt>{inner.crate?tr("木箱外尺寸","Crate exterior"):tr("托盘尺寸","Pallet dimensions")}</dt><dd>{value.length} × {value.width} × {inner.crate?packagingHeight(value):value.height} mm</dd></div>
+      {inner.crate&&<div><dt>{tr("内部净尺寸","Clear interior")}</dt><dd>{inner.length} × {inner.width} × {value.maxCargoHeight} mm</dd></div>}
+    </dl>
   </div></div>;
 }

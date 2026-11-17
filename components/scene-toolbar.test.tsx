@@ -19,13 +19,14 @@ it("keeps standalone playback as the only progress slider outside fullscreen", (
   expect(html).not.toContain('type="range"');
 });
 
-it("keeps dimension and label toggles visible and groups appearance options before the canvas", () => {
+it("groups camera, label and appearance options under one reachable disclosure", () => {
   const html = renderToStaticMarkup(<TransportAppearanceProvider><ContainerScene result={null} visibleProducts={new Set()} visibleCount={0} cameraView="perspective" projectionMode="perspective" onCameraViewChange={()=>{}} onProjectionModeChange={()=>{}}/></TransportAppearanceProvider>);
   const header = html.slice(0, html.indexOf('class="scene-workbench-container"'));
   for (const label of ["箱标", "SKU 汇总", "尺寸单位", "尺寸字号", "标尺样式", "标线颜色", "标尺文字颜色", "透明度"]) expect(header).toContain(label);
-  const options = header.indexOf('<details class="scene-display-options">');
+  const options = header.indexOf('<details class="scene-header-controls scene-controls-disclosure">');
   expect(options).toBeGreaterThan(0);
-  expect(header.slice(0, options)).toContain(">尺寸</button>");
-  expect(header.slice(options)).toContain("显示设置</summary>");
+  expect(header.slice(options)).toContain("视图设置</summary>");
+  expect(header.slice(options)).toContain(">尺寸</button>");
+  expect(header.slice(0,options)).not.toContain(">箱标</button>");
   expect(html).not.toContain('class="scene-progress"');
 });

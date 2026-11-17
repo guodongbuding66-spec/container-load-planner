@@ -11,6 +11,6 @@ describe("Galaxy ecosystem menu", () => {
     expect(source).toContain("https://galaxy-downloader.guodongbuding66.workers.dev/zh");
     expect(source).not.toContain("https://github.com/guodongbuding66-spec/galaxy-downloader");
     expect(source).toContain("createPortal");
-    expect(source).toContain(".top-actions");
+    expect(source).toContain(".workspace-footer-links");
   });
 });

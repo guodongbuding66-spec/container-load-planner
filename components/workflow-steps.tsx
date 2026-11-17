@@ -1,25 +1,27 @@
 "use client";
-import {Check, Boxes, Container, PackageOpen} from "lucide-react";
-import {tr, useLanguage} from "./language";
+
+import { Check } from "lucide-react";
+import { tr, useLanguage } from "./language";
 
 export type WorkflowStep = 1 | 2 | 3 | 4;
 
 const steps = [
-  {id:1,label:"装载空间",en:"Load space",icon:Container},
-  {id:2,label:"打托包装",en:"Packaging",icon:PackageOpen},
-  {id:3,label:"货物与托内布置",en:"Cargo & layout",icon:Boxes},
+  [1, "选柜型", "Container"],
+  [2, "选包装", "Packaging"],
+  [3, "货物与布置", "Cargo & layout"],
+  [4, "查看方案", "Results"],
 ] as const;
 
-export function WorkflowSteps({current,onSelect}: {
-  current:WorkflowStep;onSelect:(step:WorkflowStep)=>void;
+export function WorkflowSteps({current,canOpenPlan,onSelect}:{
+  current:WorkflowStep; canOpenPlan:boolean; onSelect:(step:WorkflowStep)=>void;
 }) {
   useLanguage();
-  const activeStep=current===4?3:current;
   return <nav className="wizard-steps" aria-label={tr("装柜计算步骤","Loading workflow")}>
-    {steps.map(({id,label,en,icon:Icon})=><button key={id} aria-current={activeStep===id?"step":undefined} className={`${activeStep===id?"current":""} ${id<activeStep?"complete":""}`} onClick={()=>onSelect(id)}>
-      <span className="wizard-step-number" aria-hidden="true">{id<activeStep?<Check size={16}/>:id}</span>
-      <span className="wizard-step-copy"><strong>{tr(label,en)}</strong></span>
-      <Icon size={19} aria-hidden="true"/>
+    {steps.map(([id,label,en])=><button type="button" key={id} aria-current={current===id?"step":undefined}
+      className={current===id?"current":id<current?"complete":""} disabled={id===4&&!canOpenPlan}
+      onClick={()=>onSelect(id)}>
+      <span className="wizard-step-number" aria-hidden="true">{id<current?<Check size={15}/>:id}</span>
+      <strong>{tr(label,en)}</strong>
     </button>)}
   </nav>;
 }

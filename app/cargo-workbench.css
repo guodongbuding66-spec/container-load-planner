@@ -1,0 +1,402 @@
+body:has(.cargo-workbench) {
+  background: #f3f6f7;
+  font-family: Inter, "Segoe UI", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+}
+
+.cargo-workbench {
+  --ink: #172a32;
+  --muted: #516670;
+  --line: #d6e0e4;
+  --surface: #fff;
+  --canvas: #f3f6f7;
+  --teal: #116c64;
+  --teal-dark: #0e544f;
+  --teal-soft: #e6f4f0;
+  --glass-heavy: #fff;
+  --glass-medium: #fff;
+  --glass-soft: #f6f8f9;
+  --glass-line: var(--line);
+  --glass-shadow: none;
+  display: block;
+  min-height: 100dvh;
+}
+
+.cargo-workbench .app-main {
+  max-width: 1536px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 4vw, 56px);
+  padding-bottom: 16px;
+}
+
+.cargo-workbench .topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  min-height: 64px;
+  margin: 0;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.workspace-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.cargo-workbench .workspace-brand .brand-mark {
+  border-radius: 8px;
+  color: white;
+  background: var(--teal);
+  box-shadow: none;
+}
+.cargo-workbench .workspace-brand h1 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--ink);
+  letter-spacing: -.025em;
+}
+.cargo-workbench .top-actions { gap: 6px; }
+.cargo-workbench .top-actions :is(button, summary).button {
+  min-height: 36px;
+  font-size: 13px;
+  background: transparent;
+  border-color: transparent;
+}
+.cargo-workbench .top-actions :is(button, summary).button:hover { background: #e6edef; }
+.cargo-workbench .workspace-toolbox > .wizard-page-heading { margin: 24px 0 12px; }
+.cargo-workbench .planning-upgrades { margin-top: 0; }
+.workspace-footer-links { margin-left: auto; }
+.workspace-footer-links .workspace-other-panel { inset: auto 0 calc(100% + 6px) auto; }
+.workspace-version { font-variant-numeric: tabular-nums; }
+
+.cargo-workbench .wizard-steps {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  margin: 22px 0 0;
+  padding: 4px;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: none;
+}
+.cargo-workbench .wizard-steps button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+  gap: 9px;
+  min-height: 52px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--ink);
+  background: transparent;
+  font-size: 14px;
+  text-align: left;
+}
+.cargo-workbench .wizard-steps button:disabled { color: var(--muted); opacity: .72; cursor: default; }
+.cargo-workbench .wizard-steps button:not(:disabled):hover { background: #f2f7f7; }
+.cargo-workbench .wizard-steps button.current { background: var(--teal-soft); border-color: #a4c9c0; color: var(--teal-dark); }
+.cargo-workbench .wizard-step-number { display: grid; place-items: center; flex: 0 0 25px; width: 25px; height: 25px; background: #eef2f4; border: 0; color: #4a6269; }
+.cargo-workbench .wizard-steps .current .wizard-step-number { color: white; background: var(--teal); }
+.cargo-workbench .wizard-steps .complete .wizard-step-number { color: var(--teal); background: var(--teal-soft); }
+
+.cargo-workbench .status-strip {
+  margin: 6px 0 0;
+  min-height: 29px;
+  padding: 4px 3px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+}
+.cargo-workbench .status-strip[data-status=error] { color: #9c332e; }
+.cargo-workbench .status-dot { box-shadow: none; flex: 0 0 7px; }
+.cargo-workbench .wizard-page { display: grid; gap: 16px; padding-top: 12px; min-width: 0; }
+.cargo-workbench .wizard-page-heading { padding: 0; gap: 10px; min-width: 0; }
+.cargo-workbench .wizard-page-heading h2 { color: var(--ink); font-size: clamp(22px,3vw,28px); letter-spacing: -.024em; line-height: 1.28; }
+.cargo-workbench .wizard-page-heading p { color: var(--muted); font-size: 14px; }
+.cargo-workbench :is(.panel,.viewer-column,.result-overview .metric-card) {
+  background: var(--surface);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.cargo-workbench :is(.panel,.viewer-column)::before { display: none; }
+.cargo-workbench .wizard-page :is(.panel,.viewer-column) { border-color: var(--line); border-radius: 12px; }
+.cargo-workbench .wizard-page .panel { padding: clamp(14px,2vw,22px); }
+.cargo-workbench :is(.wizard-page,.workspace-toolbox) :is(h3,.panel-head h2) { color: var(--ink); font-size: 16px; line-height: 1.4; }
+.cargo-workbench .button { min-height: 40px; text-wrap: balance; }
+.cargo-workbench .button.primary { color: white; background: var(--teal); border-color: var(--teal); }
+.cargo-workbench .button.primary:not(:disabled):hover { background: var(--teal-dark); border-color: var(--teal-dark); }
+.cargo-workbench :is(button,input,select,summary):focus-visible,
+.scene-controls-disclosure summary:focus-visible { outline: 2px solid #287f74; outline-offset: 2px; }
+
+.stage-action-bar {
+  position: sticky;
+  z-index: 20;
+  bottom: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 8px 10px 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 4px 18px #253a4220;
+}
+.stage-action-bar .stage-context { flex: 1; min-width: 0; font-size: 13px; color: var(--muted); }
+.stage-action-bar .button.primary { min-height: 44px; padding-inline: 16px; }
+.stage-options,
+.package-options,
+.packaging-engineering {
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+:is(.stage-options,.package-options,.packaging-engineering)>summary {
+  padding: 9px 12px;
+  min-height: 40px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink);
+}
+:is(.stage-options,.package-options,.packaging-engineering)[open] { padding-bottom: 10px; }
+.stage-options[open]>:not(summary),
+.package-options[open]>:not(summary),
+.packaging-engineering[open]>:not(summary) { margin-inline: 10px; }
+.space-advanced > details { margin-block: 6px 0; }
+.space-stage-grid { grid-template-columns: minmax(0,1fr) minmax(0,.96fr); align-items: start; gap: 16px; }
+.cargo-workbench .space-stage-form .vehicle-config > .panel { padding: 0; border: 0; border-radius: 0; }
+.space-stage-grid.is-pallet-only { grid-template-columns: minmax(0,720px); }
+.space-stage-grid.is-pallet-only .stage-mode { margin-top: 0; }
+.space-stage-form .panel-head { align-items: center; margin: 0 0 10px; }
+.space-stage-form .stage-options { margin-top: 12px; }
+.space-stage-form .stage-mode { margin-top: 16px; }
+.space-stage-form .stage-mode h3 { margin: 0 0 8px; }
+.space-stage-form .select-wrap { display: grid; gap: 5px; }
+.space-stage-form .select-wrap select { min-height: 42px; }
+.space-stage-form .loading-workflow-options { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.space-stage-form .loading-workflow-options button {
+  justify-content: center;
+  min-height: 64px;
+  text-align: left;
+  white-space: normal;
+}
+.space-stage-form .loading-workflow-options .active { background: var(--teal-soft); color: var(--teal-dark); border-color: #8ebfb4; }
+.space-stage-form .loading-workflow-options small { font-size: 12px; }
+.space-overview { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px 14px; margin-bottom: 10px; font-size: 13px; color: var(--muted); }
+.space-overview strong { flex-basis: 100%; color: var(--ink); font-size: 18px; }
+.cargo-workbench .space-stage-preview .space-model-preview { height: clamp(220px,32dvh,340px); }
+.space-stage-preview .transport-model-controls { margin-bottom: 7px; }
+.space-stage-preview .space-model-section { margin-bottom: 0; }
+
+.workbench-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: end;
+  border-bottom: 1px solid var(--line);
+}
+.workbench-tabs button {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 620;
+  text-align: left;
+}
+.workbench-tabs button[aria-pressed=true] { border-bottom-color: var(--teal); color: var(--teal-dark); }
+.workbench-tabs button:hover { color: var(--ink); background: #eaf0f2; }
+.workbench-pane { min-width: 0; }
+:is(.workbench-pane,.workspace-toolbox,.workspace-flow,.plan-view-model,.plan-view-diagrams)[hidden] { display: none; }
+.cargo-workbench #products > .panel-head { align-items: center; }
+.cargo-workbench #products .panel-actions :is(button,summary) { min-height: 34px; }
+.cargo-workbench .unit-toolbar { padding: 6px 0; background: transparent; border: 0; margin: 0 0 4px; }
+.cargo-workbench .unit-toolbar > div { flex-basis: auto; }
+.cargo-workbench .cargo-kits { margin-bottom: 12px; }
+.example-order-note { margin: 4px 0 10px; padding: 8px 10px; color: #31544d; background: var(--teal-soft); border-radius: 6px; }
+.cargo-kits summary > span { margin-inline-start: 10px; color: var(--muted); font-weight: 400; }
+.cargo-workbench .set-builder { margin-top: 0; }
+.spreadsheet-import-mode { display: grid; gap: 4px; padding: 6px; font-size: 12px; color: var(--muted); }
+.spreadsheet-import-mode select { width: 100%; min-height: 36px; }
+
+.cargo-workbench .packaging-specifications { background: transparent; border: 0; padding: 0; }
+.package-spec-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+.package-spec-head h2 { margin: 0; color: var(--ink); font-size: 17px; }
+.package-spec-head p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.package-spec-head label { display: grid; gap: 4px; font-size: 13px; min-width: 0; max-width: 100%; }
+.package-spec-head select { min-height: 38px; max-width: 100%; }
+.package-options { margin-top: 8px; }
+.cargo-workbench .packaging-picker { margin: 0 0 8px; gap: 20px; grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+.cargo-workbench .packaging-picker .space-model-section { background: #f7f9fa; padding: 8px; margin: 0; border-radius: 9px; }
+.cargo-workbench .packaging-picker .space-model-preview { height: clamp(225px,33dvh,340px); }
+.cargo-workbench .packaging-preset-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.cargo-workbench .packaging-preset-grid button { min-height: 62px; }
+.cargo-workbench .packaging-preset-grid button[aria-pressed=true] { background: var(--teal-soft); border-color: #8abbb1; }
+.cargo-workbench .packaging-editor-with-preview { grid-template-columns: minmax(0,.86fr) minmax(0,1.32fr); gap: 16px; }
+.cargo-workbench .packaging-editor-with-preview .packaging-fields { min-width: 0; }
+.cargo-workbench .packaging-preview-column { align-self: start; min-width: 0; }
+.packaging-structure-options { font-size: 13px; }
+.packaging-engineering { margin: 8px 0 0; }
+.packaging-dimension-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--muted);
+  background: #f5f8f9;
+}
+.packaging-dimension-summary div { min-width: 0; display: grid; gap: 2px; }
+.packaging-dimension-summary dd { margin: 0; color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+.cargo-workbench .live-pallet-preview { display: grid; min-width: 0; gap: 8px; padding: 12px; margin: 0; border: 1px solid var(--line); }
+.live-preview-heading { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.live-preview-heading h3 { margin: 0; }
+.live-preview-heading span { font-size: 12px; color: var(--teal-dark); }
+.live-preview-metrics {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 0;
+  margin: 0;
+  padding: 7px 0;
+  background: #f2f6f7;
+  border-radius: 7px;
+}
+.live-preview-metrics div { padding: 0 10px; min-width: 0; }
+.live-preview-metrics div + div { border-left: 1px solid var(--line); }
+.live-preview-metrics dt { font-size: 12px; color: var(--muted); }
+.live-preview-metrics dd { margin: 0; font-size: clamp(16px, 2vw, 20px); font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.live-preview-metrics dd small { font-size: 11px; color: var(--muted); font-weight: 450; }
+.live-pallet-preview .pallet-build-preview-status { margin: 0; padding: 3px 0; font-size: 12px; color: var(--muted); }
+.preview-opacity {
+  display: inline-flex;
+  flex: 0 1 238px;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.preview-opacity input { width: 100%; min-width: 54px; accent-color: var(--teal); }
+.preview-opacity output { min-width: 34px; font-variant-numeric: tabular-nums; text-align: right; color: var(--ink); }
+.cargo-workbench .pallet-preview-scene .scene-header-controls,
+.cargo-workbench .pallet-preview-scene .scene-dock-toolbar { display: flex; }
+.cargo-workbench .pallet-preview-scene :is(.scene-cargo-dock,.scene-inspector-dock,.dock-resize) { display: block; }
+.cargo-workbench .pallet-preview-scene .scene-workbench { display: grid; height: clamp(255px,36dvh,386px); }
+.cargo-workbench .pallet-preview-scene .scene-workbench.is-compact { display: flex; flex-direction: column; height: auto; }
+.cargo-workbench .pallet-preview-scene .scene-workbench.is-compact .scene-workbench-view > .scene-shell { height: clamp(255px,36dvh,386px); }
+
+.plan-views { min-width: 0; }
+.plan-view-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  min-width: 0;
+  padding: 6px 8px;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  background: #f7f9fa;
+}
+.plan-view-switch { display: flex; gap: 3px; flex-wrap: wrap; }
+.plan-view-switch button { display: inline-flex; gap: 6px; align-items: center; min-height: 36px; padding: 5px 8px; border: 1px solid transparent; border-radius: 6px; color: var(--muted); background: transparent; font-size: 13px; }
+.plan-view-switch button[aria-pressed=true] { color: var(--teal-dark); background: white; border-color: var(--line); font-weight: 700; }
+.cargo-workbench .plan-view-diagrams { padding: 8px; margin: 0; }
+.cargo-workbench .plan-view-diagrams .projection-card { background: white; border: 1px solid var(--line); box-shadow: none; }
+.cargo-workbench .plan-view-diagrams .projection-canvas { height: clamp(135px,23dvh,230px); }
+.live-pallet-preview .plan-view-diagrams .projection-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.live-pallet-preview .plan-view-diagrams .projection-card:first-child { grid-column: 1 / -1; }
+.live-pallet-preview .plan-view-diagrams .projection-canvas { height: clamp(145px,23dvh,205px); }
+.scene-workspace-heading .scene-controls-disclosure {
+  display: flex;
+  justify-content: end;
+  min-width: 0;
+  position: static;
+}
+.scene-controls-disclosure > summary { list-style: none; cursor: pointer; }
+.scene-controls-disclosure > summary::-webkit-details-marker { display: none; }
+.scene-control-body {
+  position: absolute;
+  z-index: 12;
+  top: 42px;
+  right: 8px;
+  display: grid;
+  width: min(540px,calc(100% - 16px));
+  max-height: min(60dvh,420px);
+  overflow: auto;
+  gap: 9px;
+  padding: 10px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  box-shadow: 0 12px 32px #243a4526;
+}
+.scene-control-body .scene-appearance-fields { display: grid; gap: 6px; }
+.scene-controls-disclosure:not([open])>.scene-control-body { display: none; }
+
+.cargo-workbench .plan-command-bar { margin: 0; gap: 8px; background: transparent; }
+.cargo-workbench .result-overview { gap: 8px; margin: 0; }
+.cargo-workbench .result-overview .metric-card { border: 1px solid var(--line); }
+.cargo-workbench .result-review-pane { display: grid; gap: 12px; }
+.cargo-workbench .result-review-pane[hidden] { display: none; }
+.cargo-workbench .result-export-pane { display: grid; gap: 12px; }
+.cargo-workbench .result-export-pane[hidden] { display: none; }
+.cargo-workbench .result-export-pane .feature-action-bar { margin: 0; justify-content: flex-start; }
+.cargo-workbench .solver-comparison { margin: 8px 0; }
+.cargo-workbench .viewer-column { padding: clamp(10px,1.5vw,18px); }
+.cargo-workbench .viewer-head { margin-bottom: 8px; padding: 0; }
+.cargo-workbench .app-footer { flex-wrap: wrap; gap: 8px; margin-block: 16px 0; }
+
+@media (min-width: 1100px) {
+  .cargo-workbench .packaging-editor-with-preview .packaging-preview-column { position: sticky; top: 10px; }
+}
+@media (max-width: 900px) {
+  .cargo-workbench .space-stage-grid,
+  .cargo-workbench .packaging-picker,
+  .cargo-workbench .packaging-editor-with-preview { grid-template-columns: minmax(0,1fr); }
+  .cargo-workbench .packaging-preview-column { grid-row: auto; }
+  .cargo-workbench .topbar > div:first-child { flex-basis: auto; }
+}
+@media (max-width: 600px) {
+  .cargo-workbench .app-main { padding-inline: 10px; }
+  .cargo-workbench .topbar { align-items: flex-start; }
+  .cargo-workbench .top-actions { gap: 3px; }
+  .cargo-workbench .workspace-brand h1 { font-size: 17px; }
+  .cargo-workbench .wizard-steps button { flex-direction: column; justify-content: center; text-align: center; gap: 4px; padding: 5px 2px; font-size: 11px; }
+  .cargo-workbench .wizard-step-number { flex-basis: auto; width: 22px; height: 22px; }
+  .cargo-workbench .wizard-page-heading h2 { font-size: 22px; }
+  .workbench-tabs button { padding: 7px 8px; min-height: 42px; font-size: 13px; }
+  .stage-action-bar { bottom: 4px; padding: 6px; gap: 5px; }
+  .stage-action-bar .stage-context { font-size: 11px; }
+  .stage-action-bar .button.primary { padding-inline: 8px; font-size: 12px; }
+  .stage-action-bar .button.ghost { padding-inline: 6px; }
+  .cargo-workbench .pallet-preview-selection { align-items: stretch; }
+  .cargo-workbench .plan-view-diagrams .projection-grid { grid-template-columns: 1fr; }
+}
+@media print {
+  .stage-action-bar,.workbench-tabs,.plan-view-bar,.workspace-toolbox { display:none!important; }
+  .workspace-flow[hidden],.result-view-pane[hidden],.result-review-pane[hidden],.result-export-pane[hidden],.plan-view-diagrams[hidden] { display:block!important; }
+}

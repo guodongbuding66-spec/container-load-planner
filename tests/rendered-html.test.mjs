@@ -14,8 +14,12 @@ test("declares preview metadata without relying on a stale local build", async (
 test("includes result-only progress and three-view interfaces", async () => {
   const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
   assert.match(source, /码垛进度/);
-  assert.match(source, /三视图同步复核/);
-  assert.match(source, /OrthographicViews/);
+  const preview = await readFile(new URL("../components/pallet-unit-viewer.tsx", import.meta.url), "utf8");
+  const views = await readFile(new URL("../components/plan-views.tsx", import.meta.url), "utf8");
+  assert.match(source, /<PlanViews result=\{result\}/);
+  assert.match(preview, /<PlanViews result=\{plan\}/);
+  assert.match(views, /三视图/);
+  assert.match(views, /<OrthographicViews/);
 });
 
 test("prints three-view diagrams as undistorted vector artwork", async () => {

@@ -61,9 +61,9 @@ export function GalaxyEcosystemMenu() {
   const [target, setTarget] = useState<Element | null>(null);
 
   useEffect(() => {
-    const resolveTarget = () => setTarget(document.querySelector(".top-actions"));
+    const resolveTarget = () => setTarget(document.querySelector(".workspace-footer-links"));
     resolveTarget();
-    if (document.querySelector(".top-actions")) return;
+    if (document.querySelector(".workspace-footer-links")) return;
     const observer = new MutationObserver(resolveTarget);
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();

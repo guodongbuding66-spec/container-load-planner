@@ -1,7 +1,7 @@
 "use client";
 import {siteExclusionBoxes,SITE_EXCLUSION_PREFIX} from "../lib/packing/site-exclusions";
 
-import { projectBox, shapePolygons, projectionBoxes } from "../lib/packing/plan-projection";
+import { projectBox, shapePolygons, projectionBoxes, type ProjectionBox } from "../lib/packing/plan-projection";
 import { visiblePlanPallets } from "../lib/packing/prebuilt-pallets";
 import {tr, tt, useLanguage} from "./language";
 import { Check, Rotate3D } from "lucide-react";
@@ -37,7 +37,7 @@ function ProjectionPrintSvg({
   details,
 }: {
   kind: ViewKind;
-  boxes: PlacedBox[];
+  boxes: ProjectionBox[];
   horizontalSize: number;
   verticalSize: number;
   details:PackingResult['cargoDetails'];
@@ -92,7 +92,7 @@ function ProjectionPrintSvg({
             d={path}
             fillRule="nonzero"
             fill={box.color}
-            fillOpacity={box.supportOnly&&box.palletIds?.length?.25:.82}
+            fillOpacity={box.displayOpacity===undefined ? (box.supportOnly && box.palletIds?.length ? .25 : .82) : box.displayOpacity * .55}
             stroke={!details?.[box.productId]?.solidModel && cargoShapeOf(details?.[box.productId]??{})==='box' ? '#ffffff' : 'none'}
             strokeOpacity="0.82"
             strokeWidth="1.2"
@@ -145,7 +145,7 @@ function ProjectionCanvas({
   details,
 }: {
   kind: ViewKind;
-  boxes: PlacedBox[];
+  boxes: ProjectionBox[];
   horizontalSize: number;
   verticalSize: number;
   renderPrintSvg: boolean;
@@ -207,7 +207,7 @@ function ProjectionCanvas({
       const projected = boxes.map((box) => ({ box, projection: projectBox(box, kind) })).sort((a, b) => a.projection.depth - b.projection.depth);
       for (const { box, projection } of projected) {
         const boxWidth = Math.max(1, projection.width * scale);
-        context.globalAlpha = box.supportOnly&&box.palletIds?.length?.25:.82;
+        context.globalAlpha = box.displayOpacity===undefined ? (box.supportOnly && box.palletIds?.length ? .25 : .82) : box.displayOpacity * .55;
         context.fillStyle = box.color;
         context.beginPath();
         for(const polygon of shapePolygons(box,kind,details)){
@@ -312,6 +312,7 @@ export function OrthographicViews({
     <div className="projection-grid">
       {views.map((view) => {
         const copy = VIEW_COPY[view.kind];
+        const title = view.kind==="door"&&result.workflow==="pallet-only"?tr("正视图","Front view"):tr(copy.title);
         const occupied = occupiedExtent(boxes.filter(b=>!b.id.startsWith(SITE_EXCLUSION_PREFIX)), view.kind);
         return (
           <button
@@ -319,11 +320,11 @@ export function OrthographicViews({
             className={`projection-card projection-card-action ${activeView === view.kind ? "active" : ""}`}
             key={view.kind}
             aria-pressed={activeView === view.kind}
-            aria-label={tt`${tr(copy.title)}，点击让三维视角旋转到${tr(copy.title)}`}
+            aria-label={tt`${title}，点击让三维视角旋转到${title}`}
             onClick={() => onViewSelect(view.kind)}
           >
             <header>
-              <div><strong>{tr(copy.title)}</strong><span>{tr(copy.axes)} · {tr(copy.description)}</span></div>
+              <div><strong>{title}</strong><span>{tr(copy.axes)}</span></div>
               <div className="projection-card-meta">
                 <b>{primaryCountLabel}</b>
                 {secondaryCountLabel ? <small>{secondaryCountLabel}</small> : null}
