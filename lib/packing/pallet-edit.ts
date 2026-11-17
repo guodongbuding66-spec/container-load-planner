@@ -10,6 +10,12 @@ import { auditPackingResult } from "./result-audit";
 import { collectSetGroups, normalizedSetCode, normalizedUnitsPerSet } from "./set-utils";
 import type { PackingResult, PlacedBox, PlacedPallet, ProductInput } from "./types";
 
+export const MAX_CONSOLIDATION_PALLETS=6;
+export const MAX_CONSOLIDATION_CARTONS=240;
+type PalletCartonPose=Pick<PlacedBox,"x"|"y"|"z"|"dx"|"dy"|"dz"|"orientation"|"orientationSigns">;
+export type PalletConsolidationMove={cartonId:string;targetId:string;pose:PalletCartonPose};
+export type PalletConsolidationEdit={type:"consolidate";palletIds:string[];releaseId:string;moves:PalletConsolidationMove[];sourceKey:string};
+
 export type PalletEdit =
   | {type:"move";ids:string[];delta:Delta}
   | {type:"rotate";ids:string[]}
@@ -21,6 +27,7 @@ export type PalletEdit =
   | {type:"copy-layout";targetIds:string[]}
   | {type:"repack";positions:PlacedBox[];sourceKey:string}
   | {type:"refill";additions:PlacedBox[];sourceKey:string}
+  | PalletConsolidationEdit
   | {type:"lock"|"lock-others";locked:boolean}
   | {type:"lock-cargo";ids:string[];locked:boolean};
 const EPS=.0001;
@@ -47,6 +54,30 @@ export function palletContentMeasures(p:PlacedPallet,cargo:PlacedBox[]):PalletRe
 }
 export function betterPalletContent(a:PalletRepackMeasures,b:PalletRepackMeasures){return a.cargoTopMm<b.cargoTopMm-EPS||Math.abs(a.cargoTopMm-b.cargoTopMm)<EPS&&a.footprintMm2<b.footprintMm2-EPS;}
 export const palletContentsSourceKey=(plan:PackingResult,products:ProductInput[],id:string)=>JSON.stringify([id,plan.id,plan.createdAt,plan.workflow,plan.strategy,plan.palletization,plan.palletBuild,plan.container,plan.clearance,plan.loadingRules,plan.pallets,plan.placements,products]);
+export function palletCartonPose({x,y,z,dx,dy,dz,orientation,orientationSigns}:PalletCartonPose):PalletCartonPose {
+  return {x,y,z,dx,dy,dz,orientation,orientationSigns};
+}
+
+export function palletConsolidationUnits(plan:PackingResult){
+  const byId=new Map<string,PlacedBox[]>();
+  for(const box of plan.placements){
+    if(box.palletIds?.length!==1)continue;
+    const id=box.palletIds[0],cargo=byId.get(id)??[];
+    cargo.push(box);
+    byId.set(id,cargo);
+  }
+  return (plan.pallets??[]).map(pallet=>({pallet,cargo:byId.get(pallet.id)??[]}));
+}
+
+export function selectedConsolidationUnits(plan:PackingResult,id:string,palletIds:readonly string[]){
+  const ids=new Set(palletIds);
+  if(!ids.has(id)||ids.size!==palletIds.length||ids.size<2||ids.size>MAX_CONSOLIDATION_PALLETS)throw Error("请选择 2–6 托参与重排 / Select two to six pallets to consolidate");
+  const units=palletConsolidationUnits(plan).filter(unit=>ids.has(unit.pallet.id));
+  if(units.length!==ids.size)throw Error("所选托盘已变化，请重新选择 / The selected pallets have changed; select again");
+  if(units.some(({pallet})=>pallet.locked||pallet.measuredEnvelope))throw Error("所选托盘含锁定整托或实测包络 / A selected pallet is locked or has a measured envelope");
+  if(units.reduce((sum,unit)=>sum+unit.cargo.length,0)>MAX_CONSOLIDATION_CARTONS)throw Error("单次联合重排最多 240 箱 / Consolidation accepts up to 240 cartons per trial");
+  return units;
+}
 /** Retain complete kits and recursively all actual cargo supporters of locked cargo. */
 export function palletRepackFixedIds(cargo:PlacedBox[],products:ProductInput[]){
   const rules=new Map(products.map(p=>[p.id,p])),fixed=new Set(cargo.filter(b=>b.locked).map(b=>b.id));
@@ -172,7 +203,7 @@ export function editPalletContents(plan:PackingResult,products:ProductInput[],id
   const p=plan.pallets?.find(p=>p.id===id);if(!p)throw new Error("未找到托盘 / Pallet not found");
   const isLock=action.type==="lock"||action.type==="lock-others";
   if(p.locked&&!isLock&&action.type!=="copy-layout")throw new Error("请先解除整托锁定 / Unlock this pallet first");
-  let pallets=plan.pallets!,placements=[...plan.placements];
+  let pallets=plan.pallets!,placements=[...plan.placements],palletization=plan.palletization;
   const onPallet=plan.placements.filter(b=>b.palletIds?.length===1&&b.palletIds[0]===id);
   const ids="ids" in action?action.ids:[],selection=new Set(ids);
   let selected=onPallet.filter(b=>selection.has(b.id));
@@ -199,6 +230,26 @@ export function editPalletContents(plan:PackingResult,products:ProductInput[],id
     if(p.measuredEnvelope)throw Error("本托已录入实测包络，暂不可自动补货 / Automatic refill is paused for this pallet’s measured envelope");
     if(!action.additions.length||action.additions.some(b=>b.supportOnly))throw Error("请选择有效的补货预览 / Choose a valid refill preview");
     placements.push(...cloneCargo(action.additions).map(b=>palletWorldBox(b,p)));
+  }else if(action.type==="consolidate"){
+    if(action.sourceKey!==palletContentsSourceKey(plan,products,id))throw Error("联合重排预览已失效，请重新试排 / The consolidation preview is stale; try again");
+    const units=selectedConsolidationUnits(plan,id,action.palletIds);
+    const donor=units.find(unit=>unit.pallet.id===action.releaseId);
+    if(!donor||donor.cargo.some(b=>b.locked))throw Error("无法释放所选托盘，须保留锁定箱位 / The selected pallet cannot be released while its cartons are locked");
+    const receivers=new Map(units.filter(unit=>unit!==donor).map(unit=>[unit.pallet.id,unit.pallet]));
+    const eligible=new Set(units.flatMap(unit=>unit.cargo.map(b=>b.id)));
+    const fixed=new Set(units.flatMap(unit=>[...palletRepackFixedIds(unit.cargo,products)]));
+    const moves=new Map(action.moves.map(move=>[move.cartonId,move]));
+    if(moves.size!==action.moves.length||donor.cargo.some(b=>!moves.has(b.id))||action.moves.some(move=>!eligible.has(move.cartonId)||fixed.has(move.cartonId)||!receivers.has(move.targetId)))throw Error("重排须移完释放托盘的货物并保留固定箱位 / Move all donor cargo and keep fixed carton positions");
+    placements=placements.map(box=>{
+      const move=moves.get(box.id);
+      return move?palletWorldBox({...box,...palletCartonPose(move.pose)},receivers.get(move.targetId)!):box;
+    });
+    pallets=pallets.filter(unit=>unit.id!==action.releaseId);
+    const specId=specificationForPallet(palletization,donor.pallet).id;
+    const bySpec=palletization.preparedBySpecification;
+    palletization={...palletization,
+      ...(palletization.preparedCount===undefined?{}:{preparedCount:palletization.preparedCount-1}),
+      ...(bySpec?{preparedBySpecification:{...bySpec,[specId]:bySpec[specId]-1}}:{})};
   }else if(action.type==="repack"){
     if(action.sourceKey!==palletContentsSourceKey(plan,products,id))throw Error("局部重排预览已失效，请重新搜索 / Local repack preview is stale; search again");
     const next=new Map(action.positions.map(b=>[b.id,b]));
@@ -252,10 +303,11 @@ export function editPalletContents(plan:PackingResult,products:ProductInput[],id
     if(lockedPallet&&(!next||identity(old)!==identity(next)))throw new Error("其他锁定托盘必须保持不变 / Other locked pallets must remain unchanged");
     if(old.locked&&action.type!=="lock-cargo"&&(!next||identity(old)!==identity(next)))throw new Error("锁定箱位必须保持不变 / Locked cargo must remain unchanged");
   }
-  const candidate={...plan,pallets,placements:rebuildPlacementLayers(placements,pallets,products,plan.loadingRules,plan.container,plan.clearance),palletization:{...plan.palletization,selectionChoices:undefined,editRevision:(plan.palletization.editRevision??0)+1}};
+  const candidate={...plan,pallets,placements:rebuildPlacementLayers(placements,pallets,products,plan.loadingRules,plan.container,plan.clearance),palletization:{...palletization,selectionChoices:undefined,editRevision:(palletization.editRevision??0)+1}};
   const result=restorePackingSnapshot({workflow:plan.workflow,mode:plan.mode,strategy:plan.strategy,palletBuild:plan.palletBuild,container:plan.container,clearance:plan.clearance,loadingRules:plan.loadingRules,practicalTargetUtilization:plan.practicalTargetUtilization,products},candidate);
   // A local contents edit cannot silently reassign neighbouring cargo to another unit.
   for(const b of result.placements){const expected=byId.get(b.id)!;if(JSON.stringify(b.palletIds)!==JSON.stringify(expected.palletIds))throw new Error("箱位失去目标托盘支撑 / Cargo lost support from its assigned pallet");
+    if(action.type==="consolidate"&&identity(expected)!==identity(b))throw Error("联合重排未保留候选的箱体身份和坐标 / Consolidation changed carton identity or coordinates during validation");
     const source=sourceById.get(b.id);if(source&&source.palletIds?.some(id=>lockedIds.has(id))&&identity(source)!==identity(b))throw new Error("锁定托盘发生变化 / A locked pallet changed");
   }
   if(action.type==="repack"){

@@ -60,8 +60,18 @@ export function independentPalletVolume(value:UnitSpecifications,pallets:PlacedP
   return pallets.reduce((n,p)=>{const c=specificationForPallet(value,p).config;return n+c.length*c.width*packagingHeight(c);},0);
 }
 /** Fixed cells use the largest specification; their spacing is never cargo capacity. */
-export function mixedInspectionContainer(configs:FloorPalletConfig[]):ContainerSpec {
+export function mixedInspectionContainer(configs:FloorPalletConfig[],retained?:{pallets:readonly PlacedPallet[];specifications:readonly FloorPalletConfig[]}):ContainerSpec {
   if(!configs.length||configs.some(c=>!c.maxCargoHeight))throw new Error("Pallet-only specifications require cargo height limits / 只打托的规格须填写货物限高");
-  const count=configs.length,columns=Math.min(5,Math.ceil(Math.sqrt(count))),rows=Math.ceil(count/columns),length=Math.max(...configs.map(c=>c.length)),width=Math.max(...configs.map(c=>c.width)),height=Math.max(...configs.map(packagingHeight));
-  return {id:"pallet-inspection",name:"托盘编组区",category:"other",loadingAccess:"open",length:columns*length+(columns-1)*200,width:rows*width+(rows-1)*200,height,doorWidth:rows*width+(rows-1)*200,doorHeight:height,maxWeight:configs.reduce((n,c)=>n+c.maxLoad+c.weight,0)};
+  const count=configs.length,columns=Math.min(5,Math.ceil(Math.sqrt(count))),rows=Math.ceil(count/columns);
+  const height=Math.max(...configs.map(packagingHeight));
+  let length=columns*Math.max(...configs.map(c=>c.length))+(columns-1)*200;
+  let width=rows*Math.max(...configs.map(c=>c.width))+(rows-1)*200;
+  if(retained){
+    // A released unit leaves a hole in the inspection grid. Keep the remaining origins, including locked units.
+    length=Math.max(length,...retained.pallets.map(p=>p.x+p.dx));
+    width=Math.max(width,...retained.pallets.map(p=>p.y+p.dy));
+    const maxCell=Math.max(...retained.specifications.flatMap(c=>[c.length,c.width]))+200;
+    if(!Number.isFinite(length)||!Number.isFinite(width)||length>5*maxCell-200||width>40*maxCell-200)throw Error("托盘超出编组展示范围 / Pallet is outside the inspection grid");
+  }
+  return {id:"pallet-inspection",name:"托盘编组区",category:"other",loadingAccess:"open",length,width,height,doorWidth:width,doorHeight:height,maxWeight:configs.reduce((n,c)=>n+c.maxLoad+c.weight,0)};
 }

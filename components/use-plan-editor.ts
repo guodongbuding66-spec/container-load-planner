@@ -34,7 +34,8 @@ export function usePlanEditor(source:PackingResult|null,products:ProductInput[],
     move:(delta:Delta,rotate=false)=>state.plan&&attempt(()=>editPlan(state.plan!,products,state.ids,state.group,delta,state.grid,state.tolerance,rotate)),
     palletEdit:(id:string,action:PalletEdit)=>state.plan&&attempt(()=>editPalletContents(state.plan!,products,id,action),
       action.type==="copy-layout"?`${tr("批量摆放已校验并套用到编辑草稿","Batch layout validated and copied to the draft")} · ${action.targetIds.length} ${tr("托","pallets")}`:
-      action.type==="refill"?`${tr("补货已校验并写入草稿","Refill validated and added to the draft")} · +${action.additions.length} ${tr("箱","cartons")}`:undefined),
+      action.type==="refill"?`${tr("补货已校验并写入草稿","Refill validated and added to the draft")} · +${action.additions.length} ${tr("箱","cartons")}`:
+      action.type==="consolidate"?`${tr("联合重排已写入草稿，已释放","Consolidation added to the draft, released")} ${action.releaseId}`:undefined),
     lock:()=>state.plan&&attempt(()=>revisePackingResult(state.plan!,state.plan!.placements.map(b=>selected.some(s=>s.id===b.id)?{...b,locked:!selected.every(s=>s.locked)}:b),products)),
     undoEdit:()=>replay(false),
     redoEdit:()=>replay(true),

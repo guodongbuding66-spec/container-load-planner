@@ -50,7 +50,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.86.0";
+export const ENGINE_VERSION = "0.87.0";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -2681,7 +2681,9 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
   }else if(palletization&&request.palletBuild&&(request.palletBuild.primaryRule||request.palletBuild.additionalSpecs?.length))throw new Error("Multiple packaging definitions are missing");
   if (palletization?.only) {
     if (!(raw.pallets as unknown[]).length) throw new Error("Invalid pallet-only envelope");
-    request = {...request, container:mixedInspectionContainer((raw.pallets as PlacedPallet[]).map(p=>specificationForPallet(palletization,p).config)), clearance:0};
+    const inspectionUnits=raw.pallets as PlacedPallet[];
+    const retained=palletization.editRevision?{pallets:inspectionUnits,specifications:palletization.specifications?.map(s=>s.config)??[palletization.config]}:undefined;
+    request = {...request, container:mixedInspectionContainer(inspectionUnits.map(p=>specificationForPallet(palletization,p).config),retained), clearance:0};
   }
   const pallets=palletization?raw.pallets as PlacedPallet[]:request.floorPallets?arrangeFloorPallets(request.container,request.clearance,request.floorPallets):[];
   if (!palletization && pallets.length) {

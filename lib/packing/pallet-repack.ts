@@ -2,7 +2,7 @@ import {cargoShapeOf} from "./cargo-shape";
 import {DEFAULT_LOADING_RULES} from "./loading-rules";
 import {rebuildPlacementLayers,restorePackingSnapshot,searchPalletContents} from "./engine";
 import {betterPalletContent,editPalletContents,palletContentMeasures,palletContentsSourceKey,palletLocalBox,palletRepackFixedIds,palletWorldBox,type PalletRepackMeasures} from "./pallet-edit";
-import {palletSearchFrame} from "./pallet-search-frame";
+import {matchPalletCargo,palletSearchFrame} from "./pallet-search-frame";
 import {specificationForPallet} from "./pallet-specifications";
 import {auditPackingResult} from "./result-audit";
 import type {PackingResult,PlacedBox,PlacedPallet,ProductInput} from "./types";
@@ -14,21 +14,11 @@ export {palletRepackFixedIds} from "./pallet-edit";
 const pose=(b:PlacedBox)=>JSON.stringify([b.x,b.y,b.z,b.dx,b.dy,b.dz,b.orientation,b.orientationSigns]);
 /** Match geometry to existing physical identities, keeping sparse kit numbers and item identities. */
 function identify(candidate:PlacedBox[],old:PlacedBox[],fixed:Set<string>,p:PlacedPallet){
-  const originals=new Map(old.map(b=>[b.id,b])),free=old.filter(b=>!fixed.has(b.id)),used=new Set<string>(),kitMap=new Map<string,number>();
-  const oldKits=new Map<string,number[]>();
-  for(const b of free)if(b.setCode){const numbers=oldKits.get(b.setCode)??[];if(!numbers.includes(b.setNumber!))numbers.push(b.setNumber!);oldKits.set(b.setCode,numbers);}
-  for(const list of oldKits.values())list.sort((a,b)=>a-b);
-  const mapped=candidate.map(b=>{
-    if(fixed.has(b.id)){const original=originals.get(b.id)!;used.add(original.id);return original;}
-    let kit:number|undefined;
-    if(b.setCode){const key=`${b.setCode}/${b.setNumber}`;if(!kitMap.has(key)){const n=oldKits.get(b.setCode)?.shift();if(n===undefined)throw Error("Incomplete local kit mapping");kitMap.set(key,n);}kit=kitMap.get(key);}
-    const original=free.find(a=>!used.has(a.id)&&a.productId===b.productId&&a.setCode===b.setCode&&(!b.setCode||a.setNumber===kit));
-    if(!original)throw Error("Incomplete local carton mapping");used.add(original.id);
-    const world=palletWorldBox({...b,z:b.z-p.dz},p);
-    return {...original,x:world.x,y:world.y,z:world.z,dx:world.dx,dy:world.dy,dz:world.dz,orientation:world.orientation,orientationSigns:world.orientationSigns};
-  });
-  if(used.size!==old.length||mapped.length!==old.length)throw Error("Local repacking lost cargo");
-  return mapped;
+  const pinned=old.filter(b=>fixed.has(b.id));
+  const positions=candidate.filter(b=>!fixed.has(b.id)).map(b=>({...b,z:b.z-p.dz}));
+  const free=matchPalletCargo(positions,old.filter(b=>!fixed.has(b.id)));
+  if(pinned.length+free.length!==old.length)throw Error("Local repacking lost cargo");
+  return [...pinned,...free.map(box=>palletWorldBox(box,p))];
 }
 
 /** Search in a worker; returns a preview only. Applying must run the shared contents transaction again. */

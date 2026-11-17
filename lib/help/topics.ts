@@ -359,6 +359,18 @@ export const guideTopics: readonly GuideTopic[] = [
     tip: ["散箱预留保留。搜索会核对承托、载重、限高及其他托盘，已锁定或录入实测包络的托盘暂停自动补货。", "Loose reservations are preserved. The search checks support, loads, height and neighbouring pallets. Locked pallets and units with measured envelopes pause automatic refill."],
   },
   {
+    id: "consolidate-pallets", category: "optimize", target: "pallet-preview",
+    title: ["跨托联合重排与尾托合并", "Consolidate selected pallets and combine partial loads"],
+    path: ["装载配置 → 3D 托内编辑；或装箱方案 → 整托清单 → 托盘编号", "Loading setup → Edit pallet in 3D, or Loading plan → Pallet manifest → Pallet ID"],
+    keywords: "跨托联合重排 跨托重排 尾托合并 减少托盘 释放一托 合并余托 重新分配托内货物 multi pallet consolidation combine partial pallets reduce pallet count",
+    steps: [
+      ["打开「跨托联合重排」，勾选 1–5 张要与当前托一起试排的托盘。可以按托号、SKU 或包装名称搜索。", "Open Consolidate selected pallets. Select one to five pallets to trial alongside the current unit. Search by pallet ID, SKU or packaging name."],
+      ["点「预览联合重排」，核对拟释放的托盘、各托前后箱数和减少的包装自重。展开「查看调整箱位」检查转移和移动的箱号与坐标。", "Preview consolidation. Review the pallet to be released, before and after quantities and tare savings. Open View changed positions to check moved cartons and coordinates."],
+      ["将通过校验的候选写入草稿，确认后应用托内布置或采用托内调整。一次撤销可恢复托盘及其原箱位。", "Use a validated candidate in the draft, then apply the pallet layout or pallet edits. One undo restores the released pallet and original carton positions."],
+    ],
+    tip: ["每次最多 6 托、240 箱，尝试释放一托。货量、箱号、整套和锁定箱位会保留；装柜后也会复核上层托盘的承托。", "Each trial considers up to six pallets and 240 cartons and tries to release one pallet. Quantities, carton IDs, complete kits and locked positions are preserved. Loaded tiers are checked for support."],
+  },
+  {
     id: "layers", category: "optimize", target: "pallets",
     title: ["层型模板、批量叠层和单托局部重排", "Layer templates, batch layers and local pallet repacking"],
     path: ["整托查看与托内编辑 → 层型模板与批量叠层 / 单托局部自动重排", "Pallet contents editor → Layer templates and batch stacking / Local pallet repacking"],

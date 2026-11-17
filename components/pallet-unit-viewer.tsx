@@ -5,6 +5,7 @@ import {PalletBaseDetails} from "./pallet-base-details";
 import {PalletLayoutCopy} from "./pallet-layout-copy";
 import {PalletRepackControls} from "./pallet-repack-controls";
 import {PalletRefillControls} from "./pallet-refill-controls";
+import {PalletConsolidationControls} from "./pallet-consolidation-controls";
 import {LongSupportPanel} from "./long-support-panel";
 import type {PalletLayerTemplate} from "../lib/packing/pallet-layer";
 import { useEffect, useMemo, useState } from "react";
@@ -43,7 +44,7 @@ export function PalletUnitPreviewScene({result,id}:{result:PackingResult;id:stri
   const plan=useMemo(()=>isolatePalletPlan(result,id),[result,id]);
   return <div className="pallet-preview-scene"><PalletUnitScene plan={plan}/></div>;
 }
-export function PalletEditorControls({editor,products,id,onPendingChange,layerTemplates,onLayerTemplatesChange,preparation=false}:{preparation?:boolean;layerTemplates?:PalletLayerTemplate[];onLayerTemplatesChange?:(templates:PalletLayerTemplate[])=>void;editor:PlanEditor;products:ProductInput[];id:string;onPendingChange?:(pending:boolean)=>void}){
+export function PalletEditorControls({editor,products,id,onPendingChange,onViewPallet,layerTemplates,onLayerTemplatesChange,preparation=false}:{preparation?:boolean;layerTemplates?:PalletLayerTemplate[];onLayerTemplatesChange?:(templates:PalletLayerTemplate[])=>void;editor:PlanEditor;products:ProductInput[];id:string;onPendingChange?:(pending:boolean)=>void;onViewPallet?:(id:string)=>void}){
   useLanguage();
   const plan=editor.plan!,p=plan.pallets!.find(p=>p.id===id)!;
   const config=specificationForPallet(plan.palletization!,p).config,inside=packagingInterior(config);
@@ -54,6 +55,7 @@ export function PalletEditorControls({editor,products,id,onPendingChange,layerTe
   const filtered=cargo.filter(b=>`${b.sku} ${b.id}`.toLowerCase().includes(query.toLowerCase())),current=Math.min(page,Math.max(0,Math.ceil(filtered.length/40)-1));
   const [layerPending,setLayerPending]=useState(false),[repackPending,setRepackPending]=useState(false);
   const [refillPending,setRefillPending]=useState(false);
+  const [consolidationPending,setConsolidationPending]=useState(false);
   const blocked=editor.disabled||!editor.enabled||!!p.locked;
   const invalidOffset=Object.entries(invalid).some(([key,value])=>key.startsWith("offset-")&&value);
   const invalidPosition=Object.entries(invalid).some(([key,value])=>key.startsWith("position-")&&value);
@@ -61,7 +63,7 @@ export function PalletEditorControls({editor,products,id,onPendingChange,layerTe
   const activeLayer=layers.find(l=>l.bottom===bottom)??layers[0];
   const fromPool=pool.find(row=>row.productId===sku);
   const targetPallet=plan.pallets!.find(q=>q.id===target&&!q.locked);
-  useEffect(()=>onPendingChange?.(bad||layerPending||repackPending||refillPending),[bad,layerPending,repackPending,refillPending,onPendingChange]);
+  useEffect(()=>onPendingChange?.(bad||layerPending||repackPending||refillPending||consolidationPending),[bad,layerPending,repackPending,refillPending,consolidationPending,onPendingChange]);
   const checked=(key:string)=>(valid:boolean)=>setInvalid(s=>({...s,[key]:!valid}));
   return <section className="pallet-editor" aria-label={tr("托内编辑","Pallet contents editor")}>
     <div className="upgrade-actions"><label><input type="checkbox" checked={editor.enabled} disabled={editor.disabled} onChange={e=>editor.update({enabled:e.target.checked,rectangle:false})}/>{tr("启用托内编辑","Enable pallet editing")}</label><button className="button" disabled={editor.disabled} onClick={()=>editor.palletEdit(id,{type:"lock",locked:!p.locked})}>{p.locked?tr("解除本托锁定","Unlock this pallet"):tr("锁定本托","Lock this pallet")}</button><button className="button" disabled={editor.disabled} onClick={()=>editor.palletEdit(id,{type:"lock-others",locked:true})}>{tr("锁定其他托盘","Lock other pallets")}</button><button className="button" disabled={!editor.undo.length||editor.disabled} onClick={editor.undoEdit}>{tr("撤销","Undo")}</button><button className="button" disabled={!editor.redo.length||editor.disabled} onClick={editor.redoEdit}>{tr("重做","Redo")}</button><button className="button" disabled={!editor.changed} onClick={editor.discard}>{tr("放弃调整","Discard edits")}</button></div>
@@ -69,7 +71,7 @@ export function PalletEditorControls({editor,products,id,onPendingChange,layerTe
     {editor.disabled&&<p role="status">{tr("当前输入或方案未就绪，请先完成录入并重新计算。", "Inputs or the plan are not ready. Complete input and recalculate first.")}</p>}
     <p>{tr("本托","This pallet")} {cargo.length} {tr("箱，已选","cartons; selected")} {selected.length} · {tr("编辑版本","Edit revision")} {plan.palletization?.editRevision??0}{p.locked&&` · ${tr("整托已锁定","Pallet locked")}`}</p>
     <div className="upgrade-actions"><button className="button" disabled={blocked} onClick={()=>editor.selectMany(cargo.map(b=>b.id))}>{tr("选择本托全部","Select all pallet cargo")}</button><button className="button" onClick={()=>editor.selectMany([])}>{tr("清除选择","Clear selection")}</button></div>
-    <PalletRefillControls editor={editor} products={products} id={id} blocked={blocked||bad||layerPending||repackPending} onPendingChange={setRefillPending}/>
+    <PalletRefillControls editor={editor} products={products} id={id} blocked={blocked||bad||layerPending||repackPending||consolidationPending} onPendingChange={setRefillPending}/>
     <div className="pallet-editor-operations">
       <fieldset disabled={blocked}><legend>{tr("调整所选货物","Adjust selected cargo")}</legend>
         <div className="tool-form-grid">{(["x","y","z"] as const).map(axis=><label key={axis}>{axis.toUpperCase()} {tr("偏移 mm","offset mm")}<NumericInput ariaLabel={`${tr("托内偏移","Pallet offset")} ${axis.toUpperCase()}`} value={offset[axis]} min={-100000} max={100000} onValueChange={v=>setOffset(s=>({...s,[axis]:v}))} onValidityChange={checked(`offset-${axis}`)}/></label>)}</div>
@@ -98,7 +100,8 @@ export function PalletEditorControls({editor,products,id,onPendingChange,layerTe
         <p>{tr("坐标以接收货物的托盘为基准。添加时使用订单余量，套装按整套添加。","Use the receiving pallet's local coordinates. Add cargo from the unassigned pool, keeping kits complete.")}</p>
       </fieldset>
     </div>
-    <PalletLayoutCopy plan={plan} id={id} disabled={editor.disabled||!editor.enabled||bad||layerPending||repackPending||refillPending} onCopy={targetIds=>editor.palletEdit(id,{type:"copy-layout",targetIds})}/>
+    <PalletConsolidationControls editor={editor} products={products} id={id} disabled={blocked||bad||layerPending||repackPending||refillPending} onPendingChange={setConsolidationPending} onViewPallet={onViewPallet}/>
+    <PalletLayoutCopy plan={plan} id={id} disabled={editor.disabled||!editor.enabled||bad||layerPending||repackPending||refillPending||consolidationPending} onCopy={targetIds=>editor.palletEdit(id,{type:"copy-layout",targetIds})}/>
     <p role="status">{palletMessage(editor.message)}</p>
     <p className="helper-text">{preparation?tr("应用时只保留有货的托盘，货物余量保留在订单。","Applying keeps loaded pallets and retains unassigned quantities in the order."):tr("清空某托仍保留托盘及自重。","Empty pallets and their tare remain.")}</p>
     <details><summary>{tr("托内箱号与坐标","Carton identifiers and coordinates")} · {cargo.length} {tr("箱","cartons")}</summary>
@@ -107,8 +110,8 @@ export function PalletEditorControls({editor,products,id,onPendingChange,layerTe
       {filtered.length>40&&<div className="upgrade-actions"><button className="button" disabled={!current} onClick={()=>setPage(current-1)}>{tr("上一页","Previous")}</button><span>{current+1} / {Math.ceil(filtered.length/40)}</span><button className="button" disabled={(current+1)*40>=filtered.length} onClick={()=>setPage(current+1)}>{tr("下一页","Next")}</button></div>}
     </details>
     <details><summary>{tr("完整订单与待分配余量","Complete order and unassigned pool")}</summary><div className="coordinate-wrap"><table className="coordinate-table"><thead><tr><th>SKU</th><th>{tr("订单","Order")}</th><th>{tr("已分配","Assigned")}</th><th>{tr("待分配","Unassigned")}</th></tr></thead><tbody>{pool.map(row=><tr key={row.productId}><td>{row.sku}</td><td>{row.requested}</td><td>{row.loaded}</td><td>{row.remaining}</td></tr>)}</tbody></table></div></details>
-    <PalletRepackControls editor={editor} products={products} id={id} blocked={blocked||bad||layerPending||refillPending} onPendingChange={setRepackPending}/>
-    <PalletLayerTemplates editor={editor} products={products} id={id} templates={layerTemplates} onChange={onLayerTemplatesChange} blocked={blocked||bad||repackPending||refillPending} onPendingChange={setLayerPending}/>
+    <PalletRepackControls editor={editor} products={products} id={id} blocked={blocked||bad||layerPending||refillPending||consolidationPending} onPendingChange={setRepackPending}/>
+    <PalletLayerTemplates editor={editor} products={products} id={id} templates={layerTemplates} onChange={onLayerTemplatesChange} blocked={blocked||bad||repackPending||refillPending||consolidationPending} onPendingChange={setLayerPending}/>
   </section>;
 }
 export function PalletUnitViewer({result,id:initialId,onClose,products=[],disabled=false,onAdopt,layerTemplates,onLayerTemplatesChange,preparation=false}:{preparation?:boolean;layerTemplates?:PalletLayerTemplate[];onLayerTemplatesChange?:(templates:PalletLayerTemplate[])=>void;result:PackingResult;id:string;onClose:()=>void;products?:ProductInput[];disabled?:boolean;onAdopt?:(plan:PackingResult)=>void}) {
@@ -116,9 +119,11 @@ export function PalletUnitViewer({result,id:initialId,onClose,products=[],disabl
   const canEdit=!!onAdopt&&!!products.length&&!!result.palletization;
   const editor=usePlanEditor(result,products,disabled||!canEdit,onAdopt??(()=>{}),preparation);
   const [pending,setPending]=useState(false),[formVersion,setFormVersion]=useState(0);
-  const [id,setId]=useState(initialId);
+  const [viewedId,setViewedId]=useState(initialId);
   const discard=()=>{editor.discard();setPending(false);setFormVersion(v=>v+1);};
   const draft=editor.plan??result;
+  const id=draft.pallets!.some(p=>p.id===viewedId)?viewedId:draft.pallets![0].id;
+  const viewPallet=(targetId:string)=>{editor.selectMany([]);setViewedId(targetId);};
   const plan=useMemo(()=>isolatePalletPlan(draft,id),[draft,id]);
   const p=draft.pallets!.find(p=>p.id===id)!;
   const selected=editor.selected.filter(b=>b.palletIds?.includes(id)).map(b=>({...b,x:b.x-p.x,y:b.y-p.y,z:b.z-p.z}));
@@ -133,13 +138,13 @@ export function PalletUnitViewer({result,id:initialId,onClose,products=[],disabl
   </>}>
     <div className="pallet-unit-summary"><strong>{plan.placements.length} {tr("箱","cartons")} · {plan.metrics.grossWeight.toFixed(1)} kg</strong><span>{plan.container.length} × {plan.container.width} × {plan.container.height} mm</span>
       {canEdit&&draft.pallets!.length>1&&<label className="pallet-review-picker">{tr("查看托盘","View pallet")}
-        <select value={id} disabled={pending} onChange={e=>{editor.selectMany([]);setId(e.currentTarget.value);}}>
+        <select value={id} disabled={pending} onChange={e=>viewPallet(e.currentTarget.value)}>
           {draft.pallets!.map(q=><option key={q.id} value={q.id}>{q.id} · {q.name}</option>)}
         </select>
       </label>}
     </div>
     <div className="pallet-unit-scene"><PalletUnitScene key={id} plan={plan} products={products} editor={canEdit?scoped:undefined}/></div>
-    {canEdit&&<PalletEditorControls preparation={preparation} layerTemplates={layerTemplates} onLayerTemplatesChange={onLayerTemplatesChange} key={`${id}/${formVersion}`} editor={{...editor,discard}} products={products} id={id} onPendingChange={setPending}/>}
+    {canEdit&&<PalletEditorControls preparation={preparation} layerTemplates={layerTemplates} onLayerTemplatesChange={onLayerTemplatesChange} key={`${id}/${formVersion}`} editor={{...editor,discard}} products={products} id={id} onPendingChange={setPending} onViewPallet={viewPallet}/>}
     <div className="pallet-unit-contents">{plan.summaries.map(s=><span key={s.productId}><i style={{background:s.color}}/>{s.sku} × {s.loaded} · {s.loadedWeight.toFixed(1)} kg</span>)}</div>
     <PalletBaseDetails result={plan} pallet={plan.pallets![0]}/>
     <LongSupportPanel plan={draft} products={products}/>

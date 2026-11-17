@@ -6,6 +6,7 @@ import {afterEach,expect,it,vi} from "vitest";
 import {usePlanEditor,type PlanEditor} from "./use-plan-editor";
 import {PalletRepackControls,usePalletRepackPreview} from "./pallet-repack-controls";
 import {PalletRefillControls} from "./pallet-refill-controls";
+import {PalletConsolidationControls} from "./pallet-consolidation-controls";
 import {usePalletSearch} from "./use-pallet-search";
 import {packLoadingWorkflow} from "../lib/packing/pack-loading";
 import {DEFAULT_PALLET_BUILD} from "../lib/packing/loading-workflow";
@@ -13,6 +14,7 @@ import {DEFAULT_PACKAGING} from "../lib/packing/packaging";
 import {editPalletContents} from "../lib/packing/pallet-edit";
 import {repackPalletContents} from "../lib/packing/pallet-repack";
 import {refillPalletContents} from "../lib/packing/pallet-refill";
+import {consolidatePalletContents} from "../lib/packing/pallet-consolidation";
 import {setAppLanguage} from "./language";
 import type {ProductInput} from "../lib/packing/types";
 
@@ -109,4 +111,47 @@ it.each(["zh","en"] as const)("renders the refill search entry in %s",language=>
   const html=renderToStaticMarkup(<PalletRefillControls editor={editor} products={products} id={plan.pallets![0].id} blocked={false} onPendingChange={vi.fn()}/>);
   expect(html).toContain('role="status"');
   expect(html).toContain(language==="zh"?"预览本托自动补货":"Preview automatic pallet refill");
+});
+
+it("invalidates a consolidation preview when the selection changes and makes pallet release one undo step",async()=>{
+  const source=make(),ids=source.pallets!.map(p=>p.id),id=ids[0],onAdopt=vi.fn();
+  let editor!:PlanEditor,preview!:ReturnType<typeof usePalletSearch<"consolidate">>,selection=ids;
+  function Hook(){
+    editor=usePlanEditor(source,products,false,onAdopt,true);
+    preview=usePalletSearch("consolidate",editor.plan!,products,id,selection.length<2,undefined,selection);
+    return <group/>;
+  }
+  const root=await mount(Hook);
+  try{
+    await act(async()=>preview.run());
+    const stale=FakeWorker.instances.at(-1)!;
+    expect(stale.postMessage).toHaveBeenCalledWith({plan:source,products,id,operation:"consolidate",palletIds:ids});
+    const result=consolidatePalletContents(source,products,id,ids);
+    expect(result.candidate).toBeTruthy();
+    selection=[id];await root.render();
+    expect(stale.terminate).toHaveBeenCalled();
+    await act(async()=>stale.deliver({ok:true,result}));expect(preview.result).toBeNull();
+    selection=ids;await root.render();expect(preview.result).toBeNull();
+    await act(async()=>preview.run());
+    await act(async()=>FakeWorker.instances.at(-1)!.deliver({ok:true,result}));
+    expect(editor.plan).toBe(source);
+    await act(async()=>editor.palletEdit(id,result.candidate!.edit));
+    const draft=editor.plan!;
+    expect(draft.pallets).toHaveLength(1);
+    expect(draft.metrics.loadedCount).toBe(source.metrics.loadedCount);
+    expect(editor.undo).toEqual([source]);
+    await act(async()=>editor.undoEdit());expect(editor.plan).toBe(source);
+    await act(async()=>editor.redoEdit());expect(editor.plan).toBe(draft);
+    await act(async()=>editor.apply());expect(onAdopt).toHaveBeenCalledWith(draft);
+  }finally{await root.close();}
+});
+
+it.each(["zh","en"] as const)("renders a compact and searchable consolidation disclosure in %s",language=>{
+  vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage(language);
+  const plan=make(),editor={plan} as PlanEditor;
+  const html=renderToStaticMarkup(<PalletConsolidationControls editor={editor} products={products} id={plan.pallets![0].id} disabled={false} onPendingChange={vi.fn()}/>);
+  expect(html).toContain(language==="zh"?"搜索参与托盘":"Search participating pallets");
+  expect(html).toContain(language==="zh"?"预览联合重排":"Preview consolidation");
+  expect(html).toContain('class="pallet-layout-copy pallet-consolidation"');
+  if(language==="en")expect(html).not.toMatch(/[\u3400-\u9fff]/u);
 });
