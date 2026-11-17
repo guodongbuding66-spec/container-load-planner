@@ -5,11 +5,14 @@ import {renderToStaticMarkup} from "react-dom/server";
 import {afterEach,expect,it,vi} from "vitest";
 import {usePlanEditor,type PlanEditor} from "./use-plan-editor";
 import {PalletRepackControls,usePalletRepackPreview} from "./pallet-repack-controls";
+import {PalletRefillControls} from "./pallet-refill-controls";
+import {usePalletSearch} from "./use-pallet-search";
 import {packLoadingWorkflow} from "../lib/packing/pack-loading";
 import {DEFAULT_PALLET_BUILD} from "../lib/packing/loading-workflow";
 import {DEFAULT_PACKAGING} from "../lib/packing/packaging";
 import {editPalletContents} from "../lib/packing/pallet-edit";
 import {repackPalletContents} from "../lib/packing/pallet-repack";
+import {refillPalletContents} from "../lib/packing/pallet-refill";
 import {setAppLanguage} from "./language";
 import type {ProductInput} from "../lib/packing/types";
 
@@ -71,4 +74,39 @@ it.each(["zh","en"] as const)("renders bounded, accessible local-repacking contr
   const html=renderToStaticMarkup(<PalletRepackControls editor={editor} products={products} id={plan.pallets![0].id} blocked/>);
   expect(html).toContain('disabled=""');expect(html).toContain('aria-live="polite"');expect(html).toContain("160");
   if(language==="en"){expect(html).toContain("Local pallet repacking");expect(html).toContain("four cancellable search passes");expect(html).not.toMatch(/[\u3400-\u9fff]/u);}else expect(html).toContain("其他整托不移动");
+});
+
+it("previews a refill without editing, then adds it in one undoable transaction",async()=>{
+  const source=make(),id=source.pallets![0].id,onAdopt=vi.fn(),pending=vi.fn();
+  let editor!:PlanEditor,preview!:ReturnType<typeof usePalletSearch<"refill">>;
+  function Hook(){editor=usePlanEditor(source,products,false,onAdopt,true);preview=usePalletSearch("refill",editor.plan!,products,id,false,pending);return <group/>;}
+  const root=await mount(Hook);
+  try{
+    await act(async()=>preview.run());
+    const worker=FakeWorker.instances.at(-1)!;
+    expect(worker.postMessage).toHaveBeenCalledWith({plan:source,products,id,operation:"refill"});
+    expect(pending).toHaveBeenLastCalledWith(true);
+    const result=refillPalletContents(source,products,id);
+    expect(result.additions.length).toBeGreaterThan(0);
+    await act(async()=>worker.deliver({ok:true,result}));
+    expect(editor.plan).toBe(source);
+    expect(preview.result).toBe(result);
+    expect(pending).toHaveBeenLastCalledWith(false);
+    await act(async()=>editor.palletEdit(id,{type:"refill",sourceKey:result.sourceKey,additions:result.additions}));
+    const draft=editor.plan!;
+    expect(draft.metrics.loadedCount).toBe(source.metrics.loadedCount+result.additions.length);
+    expect(editor.undo).toEqual([source]);
+    expect(preview.result).toBeNull();
+    await act(async()=>editor.undoEdit());expect(editor.plan).toBe(source);expect(preview.result).toBeNull();
+    await act(async()=>editor.redoEdit());expect(editor.plan).toBe(draft);
+    await act(async()=>editor.apply());expect(onAdopt).toHaveBeenCalledWith(draft);
+  }finally{await root.close();}
+});
+
+it.each(["zh","en"] as const)("renders the refill search entry in %s",language=>{
+  vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage(language);
+  const plan=make(),editor={plan} as PlanEditor;
+  const html=renderToStaticMarkup(<PalletRefillControls editor={editor} products={products} id={plan.pallets![0].id} blocked={false} onPendingChange={vi.fn()}/>);
+  expect(html).toContain('role="status"');
+  expect(html).toContain(language==="zh"?"预览本托自动补货":"Preview automatic pallet refill");
 });

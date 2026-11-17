@@ -20,6 +20,7 @@ export type PalletEdit =
   | {type:"apply-layer";template:PalletLayerTemplate;position:Delta;turns:number;repeat:number;alternate180:boolean}
   | {type:"copy-layout";targetIds:string[]}
   | {type:"repack";positions:PlacedBox[];sourceKey:string}
+  | {type:"refill";additions:PlacedBox[];sourceKey:string}
   | {type:"lock"|"lock-others";locked:boolean}
   | {type:"lock-cargo";ids:string[];locked:boolean};
 const EPS=.0001;
@@ -45,7 +46,7 @@ export function palletContentMeasures(p:PlacedPallet,cargo:PlacedBox[]):PalletRe
   return {cargoTopMm:top,unitHeightMm:Math.max(p.enclosureHeight??p.dz,p.dz+top),lengthMm:length,widthMm:width,footprintMm2:length*width};
 }
 export function betterPalletContent(a:PalletRepackMeasures,b:PalletRepackMeasures){return a.cargoTopMm<b.cargoTopMm-EPS||Math.abs(a.cargoTopMm-b.cargoTopMm)<EPS&&a.footprintMm2<b.footprintMm2-EPS;}
-export const palletRepackSource=(plan:PackingResult,products:ProductInput[],id:string)=>JSON.stringify([id,plan.id,plan.createdAt,plan.workflow,plan.strategy,plan.palletization,plan.palletBuild,plan.container,plan.clearance,plan.loadingRules,plan.pallets,plan.placements,products]);
+export const palletContentsSourceKey=(plan:PackingResult,products:ProductInput[],id:string)=>JSON.stringify([id,plan.id,plan.createdAt,plan.workflow,plan.strategy,plan.palletization,plan.palletBuild,plan.container,plan.clearance,plan.loadingRules,plan.pallets,plan.placements,products]);
 /** Retain complete kits and recursively all actual cargo supporters of locked cargo. */
 export function palletRepackFixedIds(cargo:PlacedBox[],products:ProductInput[]){
   const rules=new Map(products.map(p=>[p.id,p])),fixed=new Set(cargo.filter(b=>b.locked).map(b=>b.id));
@@ -193,8 +194,13 @@ export function editPalletContents(plan:PackingResult,products:ProductInput[],id
     placements=placements.map(b=>selectedIds.has(b.id)?{...b,locked:action.locked}:b);
   }else if(action.type==="copy-layout"){
     placements=replicatePalletLayout(plan,id,action.targetIds);
+  }else if(action.type==="refill"){
+    if(action.sourceKey!==palletContentsSourceKey(plan,products,id))throw Error("自动补货预览已失效，请重新搜索 / The refill preview is stale; search again");
+    if(p.measuredEnvelope)throw Error("本托已录入实测包络，暂不可自动补货 / Automatic refill is paused for this pallet’s measured envelope");
+    if(!action.additions.length||action.additions.some(b=>b.supportOnly))throw Error("请选择有效的补货预览 / Choose a valid refill preview");
+    placements.push(...cloneCargo(action.additions).map(b=>palletWorldBox(b,p)));
   }else if(action.type==="repack"){
-    if(action.sourceKey!==palletRepackSource(plan,products,id))throw Error("局部重排预览已失效，请重新搜索 / Local repack preview is stale; search again");
+    if(action.sourceKey!==palletContentsSourceKey(plan,products,id))throw Error("局部重排预览已失效，请重新搜索 / Local repack preview is stale; search again");
     const next=new Map(action.positions.map(b=>[b.id,b]));
     if(next.size!==onPallet.length||next.size!==action.positions.length||onPallet.some(b=>!next.has(b.id)))throw Error("局部重排必须保留当前托内全部箱体 / Local repacking must retain every current carton");
     const immutable=(b:PlacedBox)=>JSON.stringify([b.id,b.productId,b.sku,b.name,b.color,b.weight,b.setCode,b.setNumber,b.setItemNumber,b.palletIds,b.locked]);
@@ -255,6 +261,13 @@ export function editPalletContents(plan:PackingResult,products:ProductInput[],id
   if(action.type==="repack"){
     const resultById=new Map(result.placements.map(b=>[b.id,b])),state=(b:PlacedBox|undefined)=>b&&JSON.stringify(Object.entries(b).sort(([a],[c])=>a.localeCompare(c)));
     for(const old of plan.placements)if(!old.palletIds?.includes(id)&&state(old)!==state(resultById.get(old.id)))throw Error("局部重排不能改变其他整托 / Local repacking cannot change other pallets");
+  }
+  if(action.type==="refill"){
+    const resultById=new Map(result.placements.map(b=>[b.id,b]));
+    for(const old of plan.placements){
+      const current=resultById.get(old.id);
+      if(!current||identity(old)!==identity(current))throw Error("补货必须保留所有原箱位 / Refilling must preserve every original carton position");
+    }
   }
   result.id=`pallet-revision-${Date.now()}-${++serial}`;
   result.warnings=["托内编辑已按完整订单重新校验；采用后请重新导出现场指导，旧版现场进度不能用于此方案。 / Pallet contents were revalidated against the complete order; re-export field instructions after applying. Previous progress belongs to the old plan."];

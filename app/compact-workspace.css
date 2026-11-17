@@ -688,6 +688,10 @@
 .pallet-layout-copy .record-search { display: flex; }
 .pallet-layout-copy .record-search input { border: 0; padding-inline: 0; }
 .pallet-layout-copy > .upgrade-actions { margin-top: 8px; }
+.pallet-refill { display: grid; gap: 6px; min-width: 0; }
+.pallet-refill .coordinate-wrap { max-height: min(38dvh,260px); overflow: auto; }
+.pallet-refill .coordinate-table { min-width: 390px; }
+.pallet-refill [role=status]:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; }
 .pallet-layout-targets .coordinate-table { min-width: 0; }
 .pallet-layout-targets .coordinate-table :is(th,td) { white-space: normal; overflow-wrap: anywhere; }
 @media (max-width: 760px) {

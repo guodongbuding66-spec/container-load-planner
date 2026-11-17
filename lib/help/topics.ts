@@ -347,6 +347,18 @@ export const guideTopics: readonly GuideTopic[] = [
     tip: ["每托原有箱号、套号和货量保留。已锁定或已录入实测包络的目标会标示原因。", "Targets keep their carton and kit IDs and quantities. Locked targets and those with measured envelopes show their status."],
   },
   {
+    id: "refill-pallet", category: "optimize", target: "pallet-preview",
+    title: ["单托自动补货与新增箱位预览", "Automatic pallet refill and placement preview"],
+    path: ["装载配置 → 打托预览与编辑 → 3D 托内编辑；或装箱方案 → 整托清单 → 托盘编号", "Loading setup → Pallet preview & edits → Edit pallet in 3D, or Loading plan → Pallet manifest → Pallet ID"],
+    keywords: "单托自动补货 托内自动补货 订单余量补箱 自动找箱位 余货 自动补一套 托盘空位 pallet refill top up unassigned stock complete kit",
+    steps: [
+      ["选择要补货的托盘，启用托内编辑，点「预览本托自动补货」。系统按包装规格和剩余箱数搜索订单余量，套装按整套补入。", "Select the pallet, enable editing and choose Preview automatic pallet refill. The search respects packaging and carton allowances and only adds complete kits."],
+      ["查看可补箱数、整托高度和毛重，展开「查看新增箱位」核对托内 X/Y/Z。已有箱位与锁定状态会保留。", "Review the carton count, unit height and gross weight. Open View new carton positions to check local X/Y/Z. Existing positions and locks are preserved."],
+      ["点「将补货结果写入草稿」，可用撤销／重做核对。装柜前点「应用托内布置」再计算，装柜后点「采用托内调整」更新方案。", "Use the refill in the draft. Undo and redo are available. Apply pallet layout before calculating, or Apply pallet edits to update an existing result."],
+    ],
+    tip: ["散箱预留保留。搜索会核对承托、载重、限高及其他托盘，已锁定或录入实测包络的托盘暂停自动补货。", "Loose reservations are preserved. The search checks support, loads, height and neighbouring pallets. Locked pallets and units with measured envelopes pause automatic refill."],
+  },
+  {
     id: "layers", category: "optimize", target: "pallets",
     title: ["层型模板、批量叠层和单托局部重排", "Layer templates, batch layers and local pallet repacking"],
     path: ["整托查看与托内编辑 → 层型模板与批量叠层 / 单托局部自动重排", "Pallet contents editor → Layer templates and batch stacking / Local pallet repacking"],

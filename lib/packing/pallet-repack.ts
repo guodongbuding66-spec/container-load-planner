@@ -1,26 +1,17 @@
 import {cargoShapeOf} from "./cargo-shape";
 import {DEFAULT_LOADING_RULES} from "./loading-rules";
-import {palletQuarterTurns} from "./deck-support";
-import {getOrientations,rebuildPlacementLayers,restorePackingSnapshot,searchPalletContents} from "./engine";
-import {betterPalletContent,editPalletContents,palletContentMeasures,palletLocalBox,palletRepackFixedIds,palletRepackSource,palletWorldBox,type PalletRepackMeasures} from "./pallet-edit";
-import {packagingInterior} from "./packaging";
+import {rebuildPlacementLayers,restorePackingSnapshot,searchPalletContents} from "./engine";
+import {betterPalletContent,editPalletContents,palletContentMeasures,palletContentsSourceKey,palletLocalBox,palletRepackFixedIds,palletWorldBox,type PalletRepackMeasures} from "./pallet-edit";
+import {palletSearchFrame} from "./pallet-search-frame";
 import {specificationForPallet} from "./pallet-specifications";
 import {auditPackingResult} from "./result-audit";
-import type {SiteExclusion} from "./site-exclusions";
-import type {OrientationCode,PackingResult,PlacedBox,PlacedPallet,ProductInput} from "./types";
+import type {PackingResult,PlacedBox,PlacedPallet,ProductInput} from "./types";
 
 export const MAX_LOCAL_REPACK_CARTONS=160;
 export const LOCAL_REPACK_PASSES=4;
 export type PalletRepackResult={sourceKey:string;positions:PlacedBox[];improved:boolean;palletId:string;attempts:number;feasible:number;rejected:number;issues:string[];fixedCount:number;movedCount:number;before:PalletRepackMeasures;after:PalletRepackMeasures;elapsedMs:number};
 export {palletRepackFixedIds} from "./pallet-edit";
 const pose=(b:PlacedBox)=>JSON.stringify([b.x,b.y,b.z,b.dx,b.dy,b.dz,b.orientation,b.orientationSigns]);
-function interiorWalls(length:number,width:number,height:number,baseHeight:number,inset:number):SiteExclusion[]{
-  if(!inset)return [];
-  return [
-    {x:0,y:0,dx:inset,dy:width},{x:length-inset,y:0,dx:inset,dy:width},
-    {x:inset,y:0,dx:length-2*inset,dy:inset},{x:inset,y:width-inset,dx:length-2*inset,dy:inset},
-  ].map((r,i)=>({...r,id:`repack-wall-${i}`,name:"Packaging interior",kind:"obstacle",z:baseHeight,dz:height-baseHeight}));
-}
 /** Match geometry to existing physical identities, keeping sparse kit numbers and item identities. */
 function identify(candidate:PlacedBox[],old:PlacedBox[],fixed:Set<string>,p:PlacedPallet){
   const originals=new Map(old.map(b=>[b.id,b])),free=old.filter(b=>!fixed.has(b.id)),used=new Set<string>(),kitMap=new Map<string,number>();
@@ -55,18 +46,14 @@ export function repackPalletContents(plan:PackingResult,products:ProductInput[],
   const checked=restorePackingSnapshot({workflow:plan.workflow,mode:plan.mode,strategy:plan.strategy,palletBuild:plan.palletBuild,container:plan.container,clearance:plan.clearance,loadingRules:plan.loadingRules,products},plan);
   if(checked.placements.length!==plan.placements.length)throw Error("方案与当前订单不一致 / Plan and order data disagree");
   const fixed=palletRepackFixedIds(cargo,products),before=palletContentMeasures(p,cargo);
-  const report:PalletRepackResult={sourceKey:palletRepackSource(plan,products,id),positions:cargo,improved:false,palletId:id,attempts:0,feasible:0,rejected:0,issues:[],fixedCount:fixed.size,movedCount:0,before,after:before,elapsedMs:0};
+  const report:PalletRepackResult={sourceKey:palletContentsSourceKey(plan,products,id),positions:cargo,improved:false,palletId:id,attempts:0,feasible:0,rejected:0,issues:[],fixedCount:fixed.size,movedCount:0,before,after:before,elapsedMs:0};
   const reject=(message:string)=>{report.rejected++;if(report.issues.length<3&&!report.issues.includes(message))report.issues.push(message);};
   if(fixed.size===cargo.length){report.elapsedMs=performance.now()-started;return report;}
-  const c=specificationForPallet(plan.palletization,p).config,inside=packagingInterior(c),turns=palletQuarterTurns(p);
-  const base:PlacedPallet={...p,x:0,y:0,z:0,dx:c.length,dy:c.width,orientation:"LWH",quarterTurns:0};
+  const c=specificationForPallet(plan.palletization,p).config;
   const counts=new Map<string,number>();cargo.forEach(b=>counts.set(b.productId,(counts.get(b.productId)??0)+1));
-  const localProducts=products.filter(q=>productIds.has(q.id)).map(q=>{
-    const allowed=q.allowedOrientations?getOrientations(q,false):getOrientations(plan.strategy==="practical"&&q.rotationPolicy==="any"?{...q,rotationPolicy:"upright"}:q,false);
-    return {...q,quantity:counts.get(q.id)!,allowedOrientations:allowed.map(o=>(turns%2?`${o.label[1]}${o.label[0]}${o.label[2]}`:o.label) as OrientationCode)};
-  });
+  const quantities=products.filter(q=>productIds.has(q.id)).map(q=>({...q,quantity:counts.get(q.id)!}));
   const height=p.dz+before.cargoTopMm;
-  const container={id:"local-pallet-repack",name:c.name,category:"pallet" as const,loadingAccess:"open" as const,length:c.length,width:c.width,height,doorWidth:c.width,doorHeight:height,maxWeight:c.weight+c.maxLoad,exclusions:interiorWalls(c.length,c.width,height,p.dz,inside.inset)};
+  const {base,container,products:localProducts}=palletSearchFrame(p,c,quantities,plan.strategy,height,c.weight+c.maxLoad);
   const fixedCargo=rebuildPlacementLayers(cargo.map(b=>{const local=palletLocalBox(b,p);return {...local,z:local.z+p.dz,palletIds:[base.id]};}),[base],localProducts,plan.loadingRules,container).filter(b=>fixed.has(b.id));
   for(let pass=0;pass<LOCAL_REPACK_PASSES;pass++){
     if(pass>0&&performance.now()-started>4000)break;
