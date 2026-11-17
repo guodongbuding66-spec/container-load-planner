@@ -16,8 +16,8 @@ export function PlacementManifest({result,actions,printing=false}:{result:Packin
   const kitSizes=useMemo(()=>new Map(result.setSummaries.map(set=>[set.setCode,set.cartonsPerSet])),[result.setSummaries]);
   const page=useRecordPage(records,15);
   const rows=printing?records.slice(0,80):page.rows;
-  return <article id="coordinates" className="panel coordinate-panel record-panel">
-    <div className="panel-head"><div><h2>{tr("三维坐标与装载清单")}</h2><p>{number(records.length)} {tr("条箱位 · 导出包含完整方案","carton positions · exports include the full plan")}</p></div>{actions}</div>
+  return <article id="coordinates" className="panel coordinate-panel record-panel" tabIndex={-1} aria-labelledby="coordinates-heading">
+    <div className="panel-head"><div><h2 id="coordinates-heading">{tr("三维坐标与装载清单")}</h2><p>{number(records.length)} {tr("条箱位 · 导出包含完整方案","carton positions · exports include the full plan")}</p></div>{actions}</div>
     <details className="record-disclosure" open={printing||undefined}>
       <summary>{tr("查看箱位明细","View carton positions")}</summary>
       <RecordPageControls page={page} label={tr("搜索箱位","Search carton positions")} placeholder={tr("序号、SKU、托号、套装或批次","Row, SKU, pallet, kit or batch")}/>

@@ -139,6 +139,7 @@ import type { LoadingWorkflow, PalletBuildOptions } from "../lib/packing/types";
 import { PrebuiltPalletPanel } from "./prebuilt-pallet-panel";
 import {parsePalletLayerTemplates,type PalletLayerTemplate} from "../lib/packing/pallet-layer";
 import { PalletManifest } from "./pallet-manifest";
+import { PalletOrderConsolidationButton } from "./pallet-order-consolidation";
 import { PlacementManifest } from "./placement-manifest";
 import { LongSupportPanel } from "./long-support-panel";
 import { PlanReviewPanel, ResultAuditPanel } from "./result-audit-panel";
@@ -719,9 +720,13 @@ export function PackingApp() {
 
   const switchStrategy = (nextStrategy: PackingStrategy) => {
     if (strategy === nextStrategy) return;
+    const cachedPlan = !dirty ? resultBundle?.strategyPlans?.[nextStrategy] : undefined;
+    if (!cachedPlan && result && status !== "working") {
+      setMessage(tr("请先重新计算方案，再比较两种算法。", "Recalculate the plan to compare both strategies."));
+      return;
+    }
     strategyRef.current = nextStrategy;
     setStrategy(nextStrategy);
-    const cachedPlan = !dirty ? resultBundle?.strategyPlans?.[nextStrategy] : undefined;
     if (!cachedPlan) {
       setMessage(status === "working" ? tr("算法视图已切换；新快照完成后会自动显示对应方案") : tr("正在等待当前参数的双算法快照"));
       return;
@@ -786,6 +791,11 @@ export function PackingApp() {
   );
   const cachedPracticalPlan = !dirty ? resultBundle?.strategyPlans?.practical : undefined;
   const cachedMaximumPlan = !dirty ? resultBundle?.strategyPlans?.maximum : undefined;
+  const strategyLabel = (target: PackingStrategy, cached?: PackingResult) => {
+    const plan = cached ?? (result?.strategy === target ? result : null);
+    if (plan) return strategyDisplayLabel(plan);
+    return result && status !== "working" ? tr("需重新计算", "Recalculate") : tr("等待计算");
+  };
   const practicalPredictionDisplay = cachedPracticalPlan
     ? cachedPracticalPlan.mode === "single" && cachedPracticalPlan.setSummaries.length
       ? cachedPracticalPlan.setSummaries[0].loadedSets
@@ -1604,8 +1614,34 @@ export function PackingApp() {
     const disclosure=target?.querySelector<HTMLDetailsElement>(":scope > details.record-disclosure");
     if(disclosure)disclosure.open=true;
     if(target instanceof HTMLDetailsElement)target.open=true;
+    if(id==="coordinates")target?.focus({preventScroll:true});
     target?.scrollIntoView({behavior:"smooth",block:"start"});
   };
+  useEffect(() => {
+    const selector = 'details:is([name="workspace-menus"],[name="order-menus"],.plan-calculation-menu)[open]';
+    const dismissOutside = (event: Event) => {
+      if (!(event.target instanceof Node)) return;
+      for (const menu of document.querySelectorAll<HTMLDetailsElement>(selector)) {
+        if (!menu.contains(event.target)) menu.open = false;
+      }
+    };
+    const dismissOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented || !(event.target instanceof Element)) return;
+      const menu = event.target.closest<HTMLDetailsElement>(selector);
+      if (!menu) return;
+      event.preventDefault();
+      menu.open = false;
+      menu.querySelector("summary")?.focus({preventScroll:true});
+    };
+    document.addEventListener("pointerdown",dismissOutside);
+    document.addEventListener("focusin",dismissOutside);
+    document.addEventListener("keydown",dismissOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown",dismissOutside);
+      document.removeEventListener("focusin",dismissOutside);
+      document.removeEventListener("keydown",dismissOnEscape);
+    };
+  }, []);
   const stopCalculation = () => {
     const plans = { ...workerResultsRef.current };
     const selected = plans[strategyRef.current] ?? plans.practical ?? plans.maximum;
@@ -1791,10 +1827,10 @@ export function PackingApp() {
         </div>
         <button className="sidebar-toggle" aria-label={tr(navCollapsed ? "展开导航" : "收起导航", navCollapsed ? "Expand navigation" : "Collapse navigation")} aria-expanded={!navCollapsed} onClick={()=>setNavCollapsed(v=>!v)}>{navCollapsed ? <PanelLeftOpen size={18}/> : <PanelLeftClose size={18}/>}</button>
         <nav className="step-nav" aria-label={tr("页面导航")}>
-          <button title={tr("测算工作台")} aria-label={tr("测算工作台")} className={workflowStep===2?"active":""} onClick={() => goToStep(2)}><Gauge size={18} /><span>{tr("测算工作台")}</span><b>01</b></button>
-          <button title={tr("产品与订单")} aria-label={tr("产品与订单")} className={workflowStep===1?"active":""} onClick={() => goToStep(1)}><Boxes size={18} /><span>{tr("产品与订单")}</span><b>02</b></button>
-          <button title={tr("三维方案")} aria-label={tr("三维方案")} className={workflowStep===3?"active":""} onClick={() => goToStep(3)}><Layers3 size={18} /><span>{tr("三维方案")}</span><b>03</b></button>
-          <button title={tr("坐标与导出")} aria-label={tr("坐标与导出")} onClick={() => goToStep(3,"coordinates")}><FileSpreadsheet size={18} /><span>{tr("坐标与导出")}</span><b>04</b></button>
+          <button title={tr("产品与订单")} aria-label={tr("产品与订单")} aria-current={workflowStep===1?"step":undefined} className={workflowStep===1?"active":""} onClick={() => goToStep(1)}><Boxes size={18} /><span>{tr("产品与订单")}</span><span className="nav-short-label" aria-hidden="true">{tr("订单","Order")}</span></button>
+          <button title={tr("测算工作台")} aria-label={tr("测算工作台")} aria-current={workflowStep===2?"step":undefined} className={workflowStep===2?"active":""} onClick={() => goToStep(2)}><Gauge size={18} /><span>{tr("测算工作台")}</span><span className="nav-short-label" aria-hidden="true">{tr("配置","Setup")}</span></button>
+          <button title={tr("三维方案")} aria-label={tr("三维方案")} aria-current={workflowStep===3?"step":undefined} className={workflowStep===3?"active":""} onClick={() => goToStep(3)}><Layers3 size={18} /><span>{tr("三维方案")}</span><span className="nav-short-label" aria-hidden="true">{tr("方案","Plan")}</span></button>
+          <button title={tr("坐标与导出")} aria-label={tr("坐标与导出")} onClick={() => goToStep(3,"coordinates")}><FileSpreadsheet size={18} /><span>{tr("坐标与导出")}</span><span className="nav-short-label" aria-hidden="true">{tr("导出","Export")}</span></button>
         </nav>
         <div className="sidebar-note">
           <ShieldCheck size={18} />
@@ -1811,9 +1847,13 @@ export function PackingApp() {
           </div>
           <div className="top-actions">
             <span className={`save-state ${dirty || hasPendingDimensionChanges ? "is-dirty" : ""} ${storageState === "error" ? "is-error" : ""}`}><Save size={15} />{storageState === "error" ? tr("草稿未能保存") : hasPendingDimensionChanges ? tr("尺寸录入中 · 尚未提交") : dirty ? tr("草稿自动保存 · 待重算") : tr("本机草稿已保存")}</span>
-            <details className="workspace-file-menu" ref={fileMenu}>
+            <details className="workspace-file-menu" name="workspace-menus" ref={fileMenu}>
               <summary className="button ghost"><FileJson size={16} />{tr("文件与备份")}</summary>
-              <div className="workspace-file-panel">
+              <div className="workspace-file-panel" onClick={event => {
+                if (!(event.target instanceof Element) || !event.target.closest("button") || !fileMenu.current) return;
+                fileMenu.current.open = false;
+                fileMenu.current.querySelector("summary")?.focus({preventScroll:true});
+              }}>
             <button className="button ghost" onClick={loadSample}><Sparkles size={16} />{tr("载入示例")}</button>
             <button className="button ghost" onClick={printPlan} disabled={!canExport}><Printer size={16} />{tr("现场指导书")}</button>
 
@@ -1874,7 +1914,20 @@ export function PackingApp() {
             <div><span className="section-kicker">PRODUCTS</span><h2>{mode === "single" ? isSingleProductSet ? tr("单品多箱包装参数") : tr("单品包装参数") : tr("产品与拼柜订单")}</h2></div>
             <div className="panel-actions">
               <input ref={fileInputRef} hidden type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importCsv(file); event.currentTarget.value = ""; }} />
-              <details className="product-examples-menu"><summary className="button small"><Sparkles size={14}/>{tr("示例与真实记录")}</summary><div className="product-examples-panel">
+              <div className="order-import-actions">
+                <select aria-label={tr("订单行导入方式","Order-row import action")} value={orderImportMode} onChange={e=>{setOrderImportMode(e.target.value as typeof orderImportMode);orderImportRevisionRef.current+=1;}}><option value="replace">{tr("替换订单","Replace order")}</option><option value="append">{tr("追加为新行","Append as new rows")}</option><option value="quantity">{tr("按 ID 只更新数量","Update quantities by ID")}</option></select>
+                <button className="button small" disabled={hasPendingDimensionChanges||invalidNumericFields.size>0} onClick={() => fileInputRef.current?.click()}><Upload size={15} />{tr("导入 CSV / Excel")}</button>
+              </div>
+              {mode === "mixed" && <button className="button primary small" onClick={addProduct}><Plus size={15} />{tr("添加 SKU")}</button>}
+              <details className="product-files-menu" name="order-menus">
+                <summary className="button small"><FileSpreadsheet size={15}/>{tr("表格文件","Spreadsheet files")}</summary>
+                <div className="product-files-panel">
+                  <button className="button ghost small" disabled={!hydrated} onClick={() => void downloadExcelTemplate()}><FileSpreadsheet size={15}/>{tr("下载 Excel 模板")}</button>
+                  <button className="button ghost small" onClick={downloadTemplate}><Download size={15} />{tr("下载模板")}</button>
+                  <button className="button ghost small" disabled={hasPendingDimensionChanges||invalidNumericFields.size>0} onClick={()=>downloadFile("order-rows.csv","\uFEFF"+buildOrderRowsCsv(inheritOrderDelivery(products,result?.delivery)),"text/csv;charset=utf-8")}>{tr("导出订单行 CSV","Export order-row CSV")}</button>
+                </div>
+              </details>
+              <details className="product-examples-menu" name="order-menus"><summary className="button small"><Sparkles size={14}/>{tr("示例与真实记录")}</summary><div className="product-examples-panel">
               <select className="real-record-select" aria-label={tr("载入用户提供的真实装柜记录")} value="" onChange={(event) => loadSuppliedRealRecord(event.target.value)}>
                 <option value="" disabled>{tr("载入真实记录…")}</option>
                 {HISTORICAL_LOADING_RECORDS.filter((record) => record.models[0].startsWith("实装记录·")).map((record) => (
@@ -1887,12 +1940,6 @@ export function PackingApp() {
               <button className="button ghost small" onClick={loadMultiCartonSetTest}><Boxes size={15} />{tr("载入 1 套 5 箱")}</button>
               </div></details>
               <button className="button small" aria-pressed={showProductRules} onClick={()=>setShowProductRules(v=>!v)}>{showProductRules?tr("收起详细规则"):tr("显示详细规则")}</button>
-              <button className="button ghost small" disabled={!hydrated} onClick={() => void downloadExcelTemplate()}><FileSpreadsheet size={15}/>{tr("下载 Excel 模板")}</button>
-              <button className="button ghost small" onClick={downloadTemplate}><Download size={15} />{tr("下载模板")}</button>
-              <label>{tr("导入方式","Import action")}<select aria-label={tr("订单行导入方式","Order-row import action")} value={orderImportMode} onChange={e=>{setOrderImportMode(e.target.value as typeof orderImportMode);orderImportRevisionRef.current+=1;}}><option value="replace">{tr("替换订单","Replace order")}</option><option value="append">{tr("追加为新行","Append as new rows")}</option><option value="quantity">{tr("按 ID 只更新数量","Update quantities by ID")}</option></select></label>
-              <button className="button ghost small" disabled={hasPendingDimensionChanges||invalidNumericFields.size>0} onClick={()=>downloadFile("order-rows.csv","\uFEFF"+buildOrderRowsCsv(inheritOrderDelivery(products,result?.delivery)),"text/csv;charset=utf-8")}>{tr("导出订单行 CSV","Export order-row CSV")}</button>
-              <button className="button ghost small" disabled={hasPendingDimensionChanges||invalidNumericFields.size>0} onClick={() => fileInputRef.current?.click()}><Upload size={15} />{tr("导入 CSV / Excel")}</button>
-              {mode === "mixed" ? <button className="button primary small" onClick={addProduct}><Plus size={15} />{tr("添加 SKU")}</button> : null}
             </div>
           </div>
           <div className="unit-toolbar" role="group" aria-label={tr("箱规录入单位")}>
@@ -1980,7 +2027,7 @@ export function PackingApp() {
               </div>
             </nav>
           ) : null}
-          <div className="product-table-wrap">
+          <div className="product-table-wrap" role="region" aria-label={tr("货物清单表格","Cargo manifest table")} tabIndex={0}>
             <table className={`product-table ${showProductRules?"expanded":"compact-cargo-table"}`}>
               <thead><tr><th>{tr("标识")}</th><th className="cargo-sku-heading">SKU</th><th className="cargo-settings-heading">{tr("货物设置", "Cargo settings")}</th><th>{tr("外箱长")}</th><th>{tr("外箱宽")}</th><th>{tr("外箱高")}</th><th>{tr("CBM 自动")}</th><th>{tr("毛重")}</th>{mode === "mixed" ? <th>{tr("需求箱数")}</th> : null}{mode === "mixed" || isSingleProductSet ? <><th>{tr("套装编码")}</th><th>{tr("套内数量")}</th></> : null}{mode === "mixed" && showProductRules ? <><th>{tr("装载优先级")}</th><th>{tr("必装")}</th></> : null}{showProductRules && <><th>{tr("方向规则")}</th><th>{tr("可承托")}</th><th>{tr("必须底置")}</th><th>{tr("层数上限")}</th></>}<th aria-label={tr("操作")} /></tr></thead>
               <tbody>
@@ -2178,10 +2225,10 @@ export function PackingApp() {
         {workflowStep===3 && <section className="wizard-page" aria-label={tr("第三步：装箱方案")}>
           <div className="wizard-page-heading"><div><h2>{tr(workflow === "pallet-only" ? "打托方案" : "装箱方案", workflow === "pallet-only" ? "Pallet plan" : "Loading plan")}</h2><p>{tr(result?.container.name ?? container.name)} · {result?.workflow === "pallet-only" ? tr("仅打托，未执行装柜", "Pallets only; no vehicle loading") : result?.palletization?tr("先打托，再装柜","Palletize first, then load"):floorPallets?tt`使用托盘 ${floorPallets.length} × ${floorPallets.width} × ${floorPallets.height} mm`:tr("直接装柜，无底层托盘")}</p></div><button className="button" onClick={()=>goToStep(2)}><ChevronLeft size={16}/>{tr("修改装载配置")}</button></div>
           <div className="plan-command-bar">
-          <div className="result-strategy-switch" role="group" aria-label={tr("方案算法切换")}><button className={strategy==="practical"?"selected":""} aria-pressed={strategy==="practical"} onClick={()=>switchStrategy("practical")}><ShieldCheck size={18}/><span><strong>{tr("现场易执行")}</strong><small>{cachedPracticalPlan?strategyDisplayLabel(cachedPracticalPlan):tr("等待计算")}</small></span></button><button className={strategy==="maximum"?"selected":""} aria-pressed={strategy==="maximum"} onClick={()=>switchStrategy("maximum")}><Gauge size={18}/><span><strong>{tr("高密度参考")}</strong><small>{cachedMaximumPlan?strategyDisplayLabel(cachedMaximumPlan):tr("等待计算")}</small></span></button></div>
+          <div className="result-strategy-switch" role="group" aria-label={tr("方案算法切换")}><button className={strategy==="practical"?"selected":""} aria-pressed={strategy==="practical"} onClick={()=>switchStrategy("practical")}><ShieldCheck size={18}/><span><strong>{tr("现场易执行")}</strong><small>{strategyLabel("practical", cachedPracticalPlan)}</small></span></button><button className={strategy==="maximum"?"selected":""} aria-pressed={strategy==="maximum"} onClick={()=>switchStrategy("maximum")}><Gauge size={18}/><span><strong>{tr("高密度参考")}</strong><small>{strategyLabel("maximum", cachedMaximumPlan)}</small></span></button></div>
           <div className="plan-command-actions"><details className="plan-calculation-menu"><summary className="button"><Settings2 size={15}/>{tr("计算设置", "Calculation settings")}</summary><div className="plan-calculation-panel">          <section className="calculation-controls" aria-label={tr("计算控制")}><label><input type="checkbox" checked={autoCalculate} onChange={e=>setAutoCalculate(e.target.checked)}/>{tr("方案阶段自动更新")}</label><label>{tr("计算时限")}<select aria-label={tr("计算时限")} value={calculationBudget} onChange={e=>setCalculationBudget(Number(e.target.value))}><option value={0}>{tr("按设备自动")}</option><option value={15}>{tr("15 秒")}</option><option value={35}>{tr("35 秒")}</option><option value={60}>{tr("60 秒")}</option><option value={120}>{tr("120 秒")}</option></select></label></section></div></details><button className="button primary" disabled={status==="working"||hasPendingDimensionChanges||invalidNumericFields.size>0} onClick={recalculatePlan}>{tr("重新计算方案")}</button>{status==="working"&&<button className="button" onClick={stopCalculation}>{tr("停止并保留已完成方案")}</button>}</div>
 
-          <div className="feature-action-bar"><button className="button" disabled={!canExport} onClick={()=>setShowViewer(true)}><Layers3 size={16}/>{tr("三维方案查看器")}</button><button className="button" disabled={!canExport||exportingPdf} onClick={()=>void downloadPdf()}><Download size={16}/>{tr("下载 PDF")}</button></div>
+          <div className="feature-action-bar">{result&&<PalletOrderConsolidationButton plan={result} products={activeProducts} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors} onAdopt={adoptManualPlan}/>}<button className="button" disabled={!canExport} onClick={()=>setShowViewer(true)}><Layers3 size={16}/>{tr("三维方案查看器")}</button><button className="button" disabled={!canExport||exportingPdf} onClick={()=>void downloadPdf()}><Download size={16}/>{tr("下载 PDF")}</button></div>
           </div>
           {result&&<nav className="workspace-section-links" aria-label={tr("结果区块","Result sections")}>
             <button type="button" className="button ghost small" onClick={()=>scrollTo("result")}>{tr("三维复核","3D review")}</button>

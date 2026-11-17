@@ -11,6 +11,7 @@ import { FeatureDialog } from "./feature-dialog";
 import { PalletLoadViews } from "./pallet-load-views";
 import { PalletManifest } from "./pallet-manifest";
 import {PalletUnitPreviewScene,PalletUnitViewer} from "./pallet-unit-viewer";
+import {PalletOrderConsolidationButton} from "./pallet-order-consolidation";
 import { tr, trText, useLanguage } from "./language";
 
 type Props = {request:PackingRequest;value:PalletBuildOptions;specId:string;disabled:boolean;
@@ -89,6 +90,7 @@ export function PalletBuildPreview({request,value,specId,disabled,preparedLayout
       <button type="button" className={plan?"button":"button primary"} disabled={disabled||running||!!issue} onClick={()=>run()}>{preparedLayout?tr("查看已采用布置","Preview applied layout"):tr("生成整体打托预览","Preview complete pallet loads")}</button>
       {running&&<button type="button" className="button" onClick={stop}>{tr("停止","Stop")}</button>}
       {plan&&<button type="button" className="button" onClick={()=>setShowManifest(true)}>{tr("查看打托清单","View pallet manifest")}</button>}
+      {plan&&inspection&&onPreparedLayoutChange&&<PalletOrderConsolidationButton plan={plan} products={inspection.products} disabled={disabled} preparation onAdopt={adopt}/>}
       {preparedLayout&&onPreparedLayoutChange&&<button type="button" className="button" onClick={()=>{stop();setPreview(null);setError("");onPreparedLayoutChange(undefined);}}>{tr("恢复自动打托","Return to automatic palletizing")}</button>}
     </div>
     <p className="pallet-build-preview-status" role={error?"alert":"status"}>{error?trText(error):running?tr("正在生成完整托盘…","Building complete pallet loads…"):issue}</p>

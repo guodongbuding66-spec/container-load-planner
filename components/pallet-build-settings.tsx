@@ -60,26 +60,49 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
     <div className="panel-head"><div><h2>{tr("包装规格与堆叠规则","Packaging specifications and stacking rules")}</h2></div></div>
     <div className="packaging-specifications">
       <div className="packaging-specification-tabs" role="group" aria-label={tr("包装规格优先顺序","Packaging specification priority")}>{specifications.map((s,i)=><button type="button" key={s.id} className={current.id===s.id?"selected":""} aria-pressed={current.id===s.id} disabled={draftInvalid} onClick={()=>setSelected(s.id)}><strong>{i+1}. {s.config.name||s.id}</strong><small>{s.config.length} × {s.config.width} · {s.maxPallets} {tr("个可用","available")}</small></button>)}<button type="button" className="button small" disabled={draftInvalid||specifications.length>=MAX_PACKAGING_SPECIFICATIONS} onClick={add}>{tr("新增包装规格","Add packaging specification")}</button></div>
-      <label className="packaging-selection-mode">{tr("包装选择方式","Packaging selection mode")}<select aria-label={tr("包装选择方式","Packaging selection mode")} disabled={invalid||draftInvalid} value={value.selection??"ordered"} onChange={e=>onChange({...value,selection:e.target.value as "ordered"|"compact"})}><option value="ordered">{tr("按列表顺序","Use list order")}</option><option value="compact">{tr("自动比选：同货量优先小包装","Compare candidates: compact at equal load")}</option></select></label>
-      <p className="helper-text">{value.selection==="compact"?tr("每托分别试算当前可用规格，先比较必装与高优先级货量；货量相同再比较外包络、占地与自重。尾数可选更小规格；这是局部启发式，不保证最少托数或费用。","For each unit, trial available specifications and compare required / high-priority loads first, then envelope, footprint and tare. Tails may use smaller packaging. This local heuristic does not guarantee minimum units or cost."):tr("按列表顺序尝试适用规格，当前规格数量用尽或不适装时尝试下一种；整套货物不拆分到不同包装。","Try eligible specifications in list order. When one is exhausted or does not fit, try the next. Whole kits stay in one packaging unit.")}</p>
       {draftInvalid&&<p role="status">{tr("请先修正当前无效数字，再切换或增删规格。","Correct the current invalid number before switching, adding or removing specifications.")}</p>}
       {error&&<p role="alert">{error}</p>}
       <div className="packaging-specification-rule">
-        <label>{tr("包装规格名称","Packaging specification name")}<input aria-label={tr("包装规格名称","Packaging specification name")} value={current.config.name} maxLength={120} onChange={e=>update({config:{...current.config,name:e.target.value}})}/></label>
-        <label>{tr("此规格可用数量","Available units of this specification")}<NumericInput key={`stock-${current.id}`} resetToken={resetToken} ariaLabel={tr("此规格可用数量","Available units of this specification")} value={current.maxPallets} integer min={0} max={200} onValueChange={maxPallets=>update({maxPallets})} onValidityChange={valid=>fieldValidity("pallet-build:stock",valid)}/></label>
+        <label className="packaging-specification-name">{tr("包装规格名称","Packaging specification name")}<input aria-label={tr("包装规格名称","Packaging specification name")} value={current.config.name} maxLength={120} onChange={e=>update({config:{...current.config,name:e.target.value}})}/></label>
+        <label className="packaging-specification-stock">{tr("此规格可用数量","Available units")}<NumericInput key={`stock-${current.id}`} resetToken={resetToken} ariaLabel={tr("此规格可用数量","Available units of this specification")} value={current.maxPallets} integer min={0} max={200} onValueChange={maxPallets=>update({maxPallets})} onValidityChange={valid=>fieldValidity("pallet-build:stock",valid)}/></label>
+        <label className="packaging-selection-mode">{tr("包装选择方式","Packaging selection mode")}<select aria-label={tr("包装选择方式","Packaging selection mode")} disabled={invalid||draftInvalid} value={value.selection??"ordered"} onChange={e=>onChange({...value,selection:e.target.value as "ordered"|"compact"})}><option value="ordered">{tr("按列表顺序","Use list order")}</option><option value="compact">{tr("自动比选：同货量优先小包装","Compare candidates: compact at equal load")}</option></select></label>
         {current.id!=="primary"&&<div className="packaging-specification-actions"><button type="button" className="button small" disabled={draftInvalid||value.additionalSpecs?.[0]?.id===current.id} onClick={()=>reorder(-1)}>{tr("上移优先级","Move earlier")}</button><button type="button" className="button small" disabled={draftInvalid||value.additionalSpecs?.at(-1)?.id===current.id} onClick={()=>reorder(1)}>{tr("下移优先级","Move later")}</button><button type="button" className="button small" disabled={draftInvalid} onClick={remove}>{tr("删除此规格","Remove specification")}</button></div>}
       </div>
-      {products.length>0&&<details className="packaging-product-selection"><summary>{tr("适用货物","Eligible products")} · {current.productIds?`${current.productIds.length} SKU`:tr("全部 SKU","All SKUs")}</summary><label><input type="checkbox" checked={current.productIds===undefined} onChange={e=>update({productIds:e.target.checked?undefined:[products[0].id]})}/>{tr("允许全部货物","Allow all products")}</label><div>{products.map(p=><label key={p.id}><input type="checkbox" disabled={current.productIds===undefined} checked={current.productIds===undefined||current.productIds.includes(p.id)} onChange={e=>update({productIds:e.target.checked?[...current.productIds??[],p.id]:current.productIds?.filter(id=>id!==p.id)})}/><span>{p.sku}{p.setCode&&<small> · {p.setCode}</small>}</span></label>)}</div><small>{tr("套装必须同时选择全部组成 SKU；至少保留一个适用 SKU。","For kits, select every component SKU together. Select at least one eligible SKU.")}</small></details>}
+      <details className="packaging-selection-help">
+        <summary>{tr("比选规则","Selection rules")}</summary>
+        <p className="helper-text">{value.selection==="compact"?tr("每托先比较必装与高优先级货量。同货量依次比较外包络、占地、自重，尾托可选更小规格。比选只针对当前这一托。","Compare required and high-priority loads first, then envelope, footprint and tare at equal load. Tail loads may use smaller packaging. The per-unit comparison does not guarantee minimum units or cost."):tr("按列表顺序使用适用规格，库存用尽或不适装时尝试下一种。套装整套打托。","Try eligible specifications in list order. When one is exhausted or does not fit, try the next. Whole kits stay in one packaging unit.")}</p>
+      </details>
+      <div className="packaging-policy-grid">
+        {products.length>0&&<details className="packaging-policy packaging-product-selection">
+          <summary>{tr("适用货物","Eligible products")} <small>{current.productIds?`${current.productIds.length} SKU`:tr("全部 SKU","All SKUs")}</small></summary>
+          <div className="packaging-policy-body">
+            <label><input type="checkbox" checked={current.productIds===undefined} onChange={e=>update({productIds:e.target.checked?undefined:[products[0].id]})}/>{tr("允许全部货物","Allow all products")}</label>
+            <div className="packaging-eligible-list">{products.map(p=><label key={p.id}><input type="checkbox" disabled={current.productIds===undefined} checked={current.productIds===undefined||current.productIds.includes(p.id)} onChange={e=>update({productIds:e.target.checked?[...current.productIds??[],p.id]:current.productIds?.filter(id=>id!==p.id)})}/><span>{p.sku}{p.setCode&&<small> · {p.setCode}</small>}</span></label>)}</div>
+            <small>{tr("套装须同时选择全部组成 SKU，至少保留一个适用 SKU。","For kits, select every component SKU together. Select at least one eligible SKU.")}</small>
+          </div>
+        </details>}
+        {products.length>0&&<details className="packaging-policy loose-reservations">
+          <summary>{tr("整托与散箱混装","Complete units and loose cartons")} <small>{Object.values(value.looseQuantities??{}).reduce((n,v)=>n+v,0)} {tr("箱预留散装","cartons reserved loose")}</small></summary>
+          <div className="packaging-policy-body">
+            {only?<p>{tr("只打托模式不生成散装货物。请清除预留，或切换至先打托后装柜。","Pallet-only mode cannot include loose cargo. Clear reservations or switch to palletize, then load.")}</p>:<>
+              <div className="loose-reservation-list">{products.map(p=><label key={p.id}>
+                <span><strong>{p.sku}</strong>{p.setCode&&` · ${p.setCode} (${p.unitsPerSet??1} ${tr("箱/套","cartons/set")})`}</span>
+                <NumericInput resetToken={resetToken} ariaLabel={`${tr("预留散装箱数","Reserved loose cartons")} ${p.sku}`} value={value.looseQuantities?.[p.id]??0} integer min={0} max={p.quantity} onValueChange={n=>onChange({...value,looseQuantities:{...value.looseQuantities,[p.id]:n}})} onValidityChange={valid=>fieldValidity(`pallet-build:loose:${p.id}`,valid)}/>
+                <small>{tr("订单箱数","Ordered cartons")} {p.quantity}</small>
+              </label>)}</div>
+              <small>{tr("套装各 SKU 预留相同完整套数。散箱只与散箱堆叠，不会自动拆托。","Reserve equal whole-set quantities for each kit component. Loose cartons stack with other loose cartons. Packaged units stay intact.")}</small>
+            </>}
+            <button type="button" className="button small" onClick={()=>{onChange({...value,looseQuantities:undefined});for(const p of products)fieldValidity(`pallet-build:loose:${p.id}`,true);}}>{tr("清除散装预留","Clear loose reservations")}</button>
+          </div>
+        </details>}
+        {!only&&<details className="packaging-policy saved-stacking-rules">
+          <summary>{tr("已采用规格的整托堆叠","Stacking for the saved specification")} <small>{current.config.unitStacking?.enabled||(!current.config.unitStacking&&current.stackLayers>1)?tr("已启用","Enabled"):tr("未启用","Off")}</small></summary>
+          <div className="packaging-policy-body">
+            <UnitStackingSettings key={`${current.id}-${resetToken}`} value={current.config.unitStacking} onChange={unitStacking=>update({config:{...current.config,unitStacking}})} onValidityChange={valid=>fieldValidity("pallet-build:unit-stacking",valid)}/>
+          </div>
+        </details>}
+      </div>
     </div>
-    {products.length>0&&<details className="packaging-product-selection loose-reservations"><summary>{tr("整托与散箱混装","Complete units and loose cartons")} · {Object.values(value.looseQuantities??{}).reduce((n,v)=>n+v,0)} {tr("箱预留散装","cartons reserved loose")}</summary>
-      <p className="helper-text">{tr("逐 SKU 填写预留散装的箱数，其余货物继续打托。套装各组成 SKU 须预留相同完整套数；不会自动拆托。散箱只与散箱堆叠，不能占用整托内部空位或与整托互相承托。","Reserve loose carton quantities per SKU; remaining cartons are palletized. All kit components must reserve equal whole-set quantities. Units are never dismantled automatically. Loose cargo stacks only with loose cargo and cannot use unit voids or cross-support units.")}</p>
-      {only?<p>{tr("只打托模式不生成散装货物；清除预留或切换先打托后装柜。","Pallet-only mode cannot include loose cargo. Clear reservations or switch to palletize, then load.")}</p>:<div className="pallet-build-grid">{products.map(p=><label key={p.id}>{p.sku}{p.setCode&&` · ${p.setCode} (${p.unitsPerSet??1} ${tr("箱/套","cartons/set")})`}<NumericInput resetToken={resetToken} ariaLabel={`${tr("预留散装箱数","Reserved loose cartons")} ${p.sku}`} value={value.looseQuantities?.[p.id]??0} integer min={0} max={p.quantity} onValueChange={n=>onChange({...value,looseQuantities:{...value.looseQuantities,[p.id]:n}})} onValidityChange={valid=>fieldValidity(`pallet-build:loose:${p.id}`,valid)}/><small>{tr("订单箱数","Ordered cartons")}: {p.quantity}</small></label>)}</div>}
-      <button type="button" className="button small" onClick={()=>{onChange({...value,looseQuantities:undefined});for(const p of products)fieldValidity(`pallet-build:loose:${p.id}`,true);}}>{tr("清除散装预留","Clear loose reservations")}</button>
-    </details>}
-    {!only&&<details className="packaging-product-selection saved-stacking-rules">
-      <summary>{tr("已采用规格的整托堆叠","Stacking for the saved specification")} · {current.config.unitStacking?.enabled||(!current.config.unitStacking&&current.stackLayers>1)?tr("已启用","Enabled"):tr("未启用","Off")}</summary>
-      <UnitStackingSettings key={`${current.id}-${resetToken}`} value={current.config.unitStacking} onChange={unitStacking=>update({config:{...current.config,unitStacking}})} onValidityChange={valid=>fieldValidity("pallet-build:unit-stacking",valid)}/>
-    </details>}
     <PackagingEditor key={current.id} value={current.config} onChange={config=>update({config})} onValidityChange={fieldValidity} resetToken={resetToken} onReset={reset} invalid={invalid}
       preview={request&&<PalletBuildPreview key={JSON.stringify([request,resetToken])} request={request} value={value} specId={current.id} disabled={invalid||draftInvalid||recipePending}
         preparedLayout={preparedLayout} onPreparedLayoutChange={onPreparedLayoutChange} layerTemplates={layerTemplates} onLayerTemplatesChange={onLayerTemplatesChange}/>}>

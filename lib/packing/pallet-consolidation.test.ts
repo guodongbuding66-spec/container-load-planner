@@ -1,8 +1,8 @@
 import {describe,expect,it} from "vitest";
 import {packLoadingWorkflow} from "./pack-loading";
 import {DEFAULT_PALLET_BUILD} from "./loading-workflow";
-import {consolidatePalletContents} from "./pallet-consolidation";
-import {editPalletContents,palletContentsSourceKey,palletLocalBox,palletOrderPool,type PalletConsolidationEdit} from "./pallet-edit";
+import {consolidatePalletContents,consolidatePalletOrder} from "./pallet-consolidation";
+import {editPalletContents,editPalletOrder,palletContentsSourceKey,palletLocalBox,palletOrderPool,type PalletConsolidationEdit} from "./pallet-edit";
 import {capturePreparedPalletLayout,palletPreparationRequest,type PreparedPalletLayout} from "./prepared-pallet-layout";
 import {auditPackingResult} from "./result-audit";
 import {unitContentsKey} from "./unit-envelope";
@@ -136,5 +136,95 @@ describe("consolidating selected pallets",()=>{
     const measured={...plan,pallets:plan.pallets!.map(p=>p.id===b.id?{...p,measuredEnvelope:{version:1 as const,length:p.dx,width:p.dy,height:150,noseProtrusion:0,leftProtrusion:0,source:"fixture",date:"2026-11-17",contentsKey:unitContentsKey(p,cargo(plan,p.id))}}:p)};
     expect(()=>consolidatePalletContents(measured,products,a.id,ids)).toThrow(/实测包络/);
     expect(plan.metrics.loadedCount).toBe(12);
+  });
+});
+
+describe("order-wide pallet reductions",()=>{
+  it("releases a loaded upper pallet without changing cargo counts or the lower pallet position",()=>{
+    const p={...carton,width:400,quantity:3};
+    const products=[p];
+    const palletBuild={...build,config:{...config,width:400,maxCargoHeight:400,layout:"long" as const},stackLayers:3,maxTopLoadKg:1000};
+    const request={...base,products,palletBuild,container:{...vehicle,length:800,width:400,doorWidth:400},
+      preparedPalletLayout:{version:1 as const,units:[unit([place(p),place(p,400)]),unit([place(p)])]}};
+    const plan=packLoadingWorkflow(request);
+    const [lower,upper]=[...plan.pallets!].sort((a,b)=>a.z-b.z);
+
+    const candidate=consolidatePalletOrder(plan,products).candidate;
+    expect(candidate).toMatchObject({beforePallets:2,afterPallets:1,cartons:3,tareSavedKg:25});
+    expect(candidate?.edit.steps.map(step=>step.releaseId)).toEqual([upper.id]);
+    const adjusted=editPalletOrder(plan,products,candidate!.edit);
+    expect(adjusted.pallets).toEqual([lower]);
+    expect(adjusted.placements.map(box=>box.id).sort()).toEqual(plan.placements.map(box=>box.id).sort());
+    expect(auditPackingResult(adjusted,products).hasErrors).toBe(false);
+
+    const locked=editPalletContents(plan,products,upper.id,{type:"lock-cargo",ids:cargo(plan,upper.id).map(box=>box.id),locked:true});
+    expect(consolidatePalletOrder(locked,products).candidate).toBeNull();
+  });
+
+  it("finds two reductions across prepared units and carries the complete kits into both loading strategies",()=>{
+    const {input,products}=kits();
+    const a=products[0],b=products[1];
+    const kit=(n:number)=>[a,b,b].map((p,i)=>({...place(p,0,i*200),setCode:"SET",setNumber:n,setItemNumber:i+1}));
+    let plan=prep(input,[1,2,3,4,5].map(n=>unit(kit(n))));
+    const protectedId=plan.pallets![0].id;
+    plan=editPalletContents(plan,products,protectedId,{type:"lock",locked:true});
+    const report=consolidatePalletOrder(plan,products);
+    expect(report.protectedPallets).toBe(1);
+    expect(report.candidate).toMatchObject({beforePallets:5,afterPallets:3,cartons:15,tareSavedKg:50});
+    const edit=report.candidate!.edit;
+    expect(edit.steps).toHaveLength(2);
+    expect(edit.steps.flatMap(step=>step.palletIds)).not.toContain(protectedId);
+    const original=JSON.stringify(plan);
+    const reduced=editPalletOrder(plan,products,edit);
+    expect(cargo(reduced,protectedId)).toEqual(cargo(plan,protectedId));
+    expect(reduced.metrics.grossWeight).toBe(plan.metrics.grossWeight-50);
+    expect(reduced.palletization?.preparedBySpecification).toEqual({primary:3});
+    expect(reduced.placements.map(b=>[b.id,b.setCode,b.setNumber,b.setItemNumber]).sort()).toEqual(
+      plan.placements.map(b=>[b.id,b.setCode,b.setNumber,b.setItemNumber]).sort(),
+    );
+    expect(palletOrderPool(reduced,products)).toEqual(palletOrderPool(plan,products));
+    const preparedPalletLayout=capturePreparedPalletLayout(reduced);
+    for(const strategy of ["practical","maximum"] as const){
+      const full=packLoadingWorkflow({...input,strategy,preparedPalletLayout});
+      expect(full.pallets).toHaveLength(3);
+      expect(full.metrics.loadedCount).toBe(15);
+      expect(full.setSummaries[0].loadedSets).toBe(5);
+      expect(auditPackingResult(full,products).hasErrors).toBe(false);
+    }
+    expect(JSON.stringify(plan)).toBe(original);
+    expect(consolidatePalletOrder(reduced,products).candidate).toBeNull();
+  });
+
+  it("finds a tail that must split across different eligible packaging specifications",()=>{
+    const a={...carton,quantity:2},b={...a,id:"b",sku:"B"};
+    const products=[a,b];
+    const rule=(id:string,productId:string)=>({id,config,maxPallets:1,productIds:[productId],cartonLimit:2,stackLayers:1,maxTopLoadKg:0});
+    const palletBuild={...build,mix:"mixed" as const,additionalSpecs:[rule("a-only",a.id),rule("b-only",b.id)]};
+    const plan=prep({...base,products,palletBuild},[unit([place(a),place(b,400)]),unit([place(a)],"a-only"),unit([place(b)],"b-only")]);
+    const [tail,first,second]=plan.pallets!;
+    let locked=editPalletContents(plan,products,first.id,{type:"lock-cargo",ids:cargo(plan,first.id).map(b=>b.id),locked:true});
+    locked=editPalletContents(locked,products,second.id,{type:"lock-cargo",ids:cargo(locked,second.id).map(b=>b.id),locked:true});
+    const candidate=consolidatePalletOrder(locked,products).candidate;
+    expect(candidate?.edit.steps.map(step=>step.releaseId)).toEqual([tail.id]);
+    const reduced=editPalletOrder(locked,products,candidate!.edit);
+    expect(cargo(reduced,first.id).map(b=>b.sku)).toEqual(["A","A"]);
+    expect(cargo(reduced,second.id).map(b=>b.sku)).toEqual(["B","B"]);
+  });
+
+  it("rejects stale or malformed batches and leaves both source and prior reductions intact",()=>{
+    const products=[{...carton,quantity:4}];
+    const palletBuild={...build,primaryRule:{...build.primaryRule,cartonLimit:2}};
+    const plan=prep({...base,products,palletBuild},Array.from({length:4},()=>unit([place(products[0])])));
+    const candidate=consolidatePalletOrder(plan,products).candidate!;
+    expect(candidate.edit.steps).toHaveLength(2);
+    const locked=editPalletContents(plan,products,plan.pallets![0].id,{type:"lock",locked:true});
+    expect(()=>editPalletOrder(locked,products,candidate.edit)).toThrow(/预览已失效/);
+    const [first,second]=candidate.edit.steps;
+    const original=JSON.stringify(plan);
+    expect(()=>editPalletOrder(plan,products,{...candidate.edit,steps:[first,{...second,moves:[]}]})).toThrow(/移完/);
+    expect(JSON.stringify(plan)).toBe(original);
+    const applied=editPalletOrder(plan,products,candidate.edit);
+    expect(applied.pallets).toHaveLength(2);
+    expect(applied.metrics.loadedCount).toBe(4);
   });
 });

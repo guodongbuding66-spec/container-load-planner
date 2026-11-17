@@ -12,9 +12,12 @@ import type { PackingResult, PlacedBox, PlacedPallet, ProductInput } from "./typ
 
 export const MAX_CONSOLIDATION_PALLETS=6;
 export const MAX_CONSOLIDATION_CARTONS=240;
+export const MAX_ORDER_RELEASES=6;
 type PalletCartonPose=Pick<PlacedBox,"x"|"y"|"z"|"dx"|"dy"|"dz"|"orientation"|"orientationSigns">;
 export type PalletConsolidationMove={cartonId:string;targetId:string;pose:PalletCartonPose};
-export type PalletConsolidationEdit={type:"consolidate";palletIds:string[];releaseId:string;moves:PalletConsolidationMove[];sourceKey:string};
+export type PalletConsolidationStep={palletIds:string[];releaseId:string;moves:PalletConsolidationMove[]};
+export type PalletConsolidationEdit=PalletConsolidationStep&{type:"consolidate";sourceKey:string};
+export type PalletOrderConsolidationEdit={sourceKey:string;steps:PalletConsolidationStep[]};
 
 export type PalletEdit =
   | {type:"move";ids:string[];delta:Delta}
@@ -53,7 +56,7 @@ export function palletContentMeasures(p:PlacedPallet,cargo:PlacedBox[]):PalletRe
   return {cargoTopMm:top,unitHeightMm:Math.max(p.enclosureHeight??p.dz,p.dz+top),lengthMm:length,widthMm:width,footprintMm2:length*width};
 }
 export function betterPalletContent(a:PalletRepackMeasures,b:PalletRepackMeasures){return a.cargoTopMm<b.cargoTopMm-EPS||Math.abs(a.cargoTopMm-b.cargoTopMm)<EPS&&a.footprintMm2<b.footprintMm2-EPS;}
-export const palletContentsSourceKey=(plan:PackingResult,products:ProductInput[],id:string)=>JSON.stringify([id,plan.id,plan.createdAt,plan.workflow,plan.strategy,plan.palletization,plan.palletBuild,plan.container,plan.clearance,plan.loadingRules,plan.pallets,plan.placements,products]);
+export const palletContentsSourceKey=(plan:PackingResult,products:ProductInput[],id:string|null)=>JSON.stringify([id,plan.id,plan.createdAt,plan.workflow,plan.strategy,plan.palletization,plan.palletBuild,plan.container,plan.clearance,plan.loadingRules,plan.pallets,plan.placements,plan.deliveryIdentity,products]);
 export function palletCartonPose({x,y,z,dx,dy,dz,orientation,orientationSigns}:PalletCartonPose):PalletCartonPose {
   return {x,y,z,dx,dy,dz,orientation,orientationSigns};
 }
@@ -328,4 +331,18 @@ export function editPalletContents(plan:PackingResult,products:ProductInput[],id
   const unknown=bearingStatus(result.placements,products).unknownIds.length;
   if(unknown)result.warnings.push(`承重未核验：${unknown} 个受压箱体缺少当前朝向的额定资料。 / Bearing unverified: ${unknown} loaded cartons lack orientation-specific ratings.`);
   return result;
+}
+
+/** Replay on private snapshots so a failed step cannot partially edit the visible plan. */
+export function editPalletOrder(plan:PackingResult,products:ProductInput[],edit:PalletOrderConsolidationEdit):PackingResult {
+  if(edit.sourceKey!==palletContentsSourceKey(plan,products,null)){
+    throw Error("全单减托预览已失效，请重新试排 / The order consolidation preview is stale; search again");
+  }
+  if(!edit.steps.length||edit.steps.length>MAX_ORDER_RELEASES)throw Error("请选择有效的全单减托预览 / Choose a valid order consolidation preview");
+  let next=plan;
+  for(const step of edit.steps){
+    const id=step.releaseId;
+    next=editPalletContents(next,products,id,{...step,type:"consolidate",sourceKey:palletContentsSourceKey(next,products,id)});
+  }
+  return next;
 }

@@ -1,12 +1,12 @@
 "use client";
 import {useCallback,useEffect,useRef,useState} from "react";
-import type {PalletConsolidationResult} from "../lib/packing/pallet-consolidation";
+import type {PalletConsolidationResult,PalletOrderConsolidationResult} from "../lib/packing/pallet-consolidation";
 import type {PalletRefillResult} from "../lib/packing/pallet-refill";
 import type {PalletRepackResult} from "../lib/packing/pallet-repack";
 import type {PackingResult,ProductInput} from "../lib/packing/types";
 import {tr,trText} from "./language";
 
-type SearchResult={repack:PalletRepackResult;refill:PalletRefillResult;consolidate:PalletConsolidationResult};
+type SearchResult={repack:PalletRepackResult;refill:PalletRefillResult;consolidate:PalletConsolidationResult;"order-consolidate":PalletOrderConsolidationResult};
 type TaskState<Result>={source:PackingResult;products:ProductInput[];id:string;selection:string;blocked:boolean;running:boolean;result:Result|null;message:string};
 const messages:Record<keyof SearchResult,Record<"cancel"|"timeout"|"error",[string,string]>>={
   repack:{
@@ -23,6 +23,11 @@ const messages:Record<keyof SearchResult,Record<"cancel"|"timeout"|"error",[stri
     cancel:["已取消联合重排试算。","Consolidation search canceled."],
     timeout:["试排达到 10 秒，请缩小所选范围后重试。","The trial reached 10 seconds. Select fewer pallets and try again."],
     error:["联合重排试算未完成。","The consolidation search did not finish."],
+  },
+  "order-consolidate":{
+    cancel:["已取消全单减托试算。","Order consolidation canceled."],
+    timeout:["全单试算超时。可选少量尾托进行联合重排。","The order search timed out. Try consolidating a few selected tail pallets."],
+    error:["全单减托试算未完成。","Order consolidation did not finish."],
   },
 };
 
@@ -60,7 +65,7 @@ export function usePalletSearch<Operation extends keyof SearchResult>(operation:
         if(worker.current?.instance!==instance)return;
         stop();setStored({...initial(),...update});
       };
-      const timer=setTimeout(()=>finish({message:tr(...messages[operation].timeout)}),10000);
+      const timer=setTimeout(()=>finish({message:tr(...messages[operation].timeout)}),operation==="order-consolidate"?22000:10000);
       worker.current={instance,timer};
       instance.onmessage=e=>finish(e.data.ok?{result:e.data.result}:{message:e.data.error});
       instance.onerror=()=>finish({message:tr(...messages[operation].error)});

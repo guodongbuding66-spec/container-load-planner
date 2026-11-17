@@ -34,7 +34,7 @@ export function CloudAccount({buttonRef,backup,disabled,onRestore}:Props & {butt
     }
   }
   return <>
-    <button ref={buttonRef} type="button" className="button ghost" onClick={() => setOpened(true)}><Cloud size={16} aria-hidden="true"/>{tr("账号与云项目", "Account and cloud projects")}</button>
+    <button ref={buttonRef} type="button" className="button ghost" aria-label={tr("账号与云项目", "Account and cloud projects")} onClick={() => setOpened(true)}><Cloud size={16} aria-hidden="true"/>{tr("账号与云项目", "Cloud account")}</button>
     {(opened || !!link && link !== dismissed) && <FeatureDialog wide title={tr("账号与云项目", "Account and cloud projects")}
       subtitle={tr("用独立账号管理私有项目、版本与组织成员。", "Manage private projects, revisions and organization members with a CargoFit account.")} onClose={close}>
       <CloudDialogBody backup={backup} disabled={disabled} link={link} onRestore={payload => { onRestore(payload); close(); }} />

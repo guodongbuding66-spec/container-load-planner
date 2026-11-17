@@ -41,11 +41,11 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "import", category: "cargo", target: "products",
     title: ["录入 SKU、导入 Excel 或 CSV", "Add SKUs and import Excel or CSV"],
-    path: ["货物清单 → 下载 Excel 模板 / 导入 CSV / Excel", "Cargo manifest → Download Excel template / Import CSV / Excel"],
+    path: ["货物清单 → 表格文件 / 导入 CSV / Excel", "Cargo manifest → Spreadsheet files / Import CSV / Excel"],
     keywords: "导入产品 批量导入 箱规 导入模板 xlsx csv spreadsheet 毛重 尺寸单位 CBM 数量",
     steps: [
-      ["少量箱规可直接填写清单。批量导入先点「下载 Excel 模板」，按表头填写外箱尺寸、单箱毛重和需求数量。", "Enter a few carton types directly. For bulk entry, download the Excel template and fill in outer dimensions, gross weight per carton and quantity."],
-      ["核对源文件的长度和重量单位，再点「导入 CSV / Excel」。导入后检查行数、套装比例和总重量。", "Check the source length and weight units, then use Import CSV / Excel. Review row count, kit ratios and total weight after importing."],
+      ["少量箱规可直接填写清单。批量录入时在「表格文件」下载 Excel 模板，填写外箱尺寸、单箱毛重和需求数量。", "Enter a few carton types directly. For bulk entry, download the Excel template under Spreadsheet files and enter dimensions, unit gross weights and quantities."],
+      ["核对尺寸和重量单位。选择替换、追加或按 ID 更新数量，再点「导入 CSV / Excel」。导入后检查行数、套装比例和总重量。", "Check length and weight units. Choose replace, append or update quantities by ID, then use Import CSV / Excel. Review row count, kit ratios and total weight."],
       ["修改一组长宽高时可连续录入，离开尺寸输入区后提交。准备好再进下一步配置。", "Enter related dimensions together. They commit when you leave the dimension fields. Continue to setup when ready."],
     ],
   },
@@ -201,7 +201,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "loose", category: "setup", target: "packaging",
     title: ["整托与散箱混装、预留整套尾数", "Mix complete pallet loads and reserved loose cartons"],
-    path: ["装载配置 → 整托与散箱混装", "Loading setup → Complete units and loose cartons"],
+    path: ["装载配置 → 包装规格与堆叠规则 → 整托与散箱混装", "Loading setup → Packaging specifications and stacking rules → Complete units and loose cartons"],
     keywords: "散装预留 散货 零散箱 拆托 尾数 尾箱 混装 loose cartons reservation",
     steps: [
       ["选「先打托后装箱」并展开「整托与散箱混装」。按 SKU 填写计划留作散装的箱数。", "Choose Palletize then load and expand Complete units and loose cartons. Enter the loose reservation per SKU."],
@@ -213,11 +213,12 @@ export const guideTopics: readonly GuideTopic[] = [
     id: "obstacles", category: "setup", target: "setup",
     title: ["柜内障碍、禁占区与固定附件", "Vehicle obstacles, keep-clear zones and securing accessories"],
     path: ["装载配置 → 柜内障碍与禁占区 / 整柜附件与固定预留", "Loading setup → Obstacles and keep-clear regions / Container accessories and securing reservations"],
-    keywords: "轮包 冷机 台阶 障碍 禁占区 绑扎 气袋 干燥剂 挡木 垫料 防潮 obstacle securing dunnage desiccant",
+    keywords: "轮包 冷机 台阶 障碍 禁占区 绑扎 气袋 干燥剂 挡木 垫料 防潮 实心支承 静载上限 安装依赖 obstacle securing dunnage desiccant floor support",
     steps: [
       ["按柜头、左壁、地板为原点，录入轮包或其他柜内障碍及必须留空区域的尺寸与坐标。", "Record obstacle and keep-clear dimensions from the container nose, left wall and floor."],
-      ["装柜时要安装挡木、支承或防潮附件时，在「整柜附件与固定预留」填写其尺寸、重量、位置和作业要求。", "Add dimensions, weight, placement and installation requirements for blocking, supports or moisture accessories under securing reservations."],
-      ["重新计算，按结果的附件清单核对空间与重量，并在现场作业核对中登记实际安装。", "Recalculate and check the accessory manifest for space and weight. Record actual installation in the field operation checks."],
+      ["展开「整柜附件与固定预留」，点「新增实体附件」或「新增安装预留」。在同一张卡填写计划重量、位置、长宽高及安装阶段。", "Open Container accessories and securing reservations. Add a physical accessory or installation reservation. Enter planned mass, position, dimensions and installation phase."],
+      ["需要承托时勾选实心平顶支承并填写已知静载。展开「资料、货物关联与安装依赖」，录入资料来源、版本、关联货物或依赖。", "For a solid floor support, enable the declaration and enter the known static load. Open Source, associated cargo and dependencies for the source, revision and installation links."],
+      ["重新计算，在结果的附件清单核对空间与重量，随后在现场作业核对中登记实际安装。", "Recalculate and review space and mass in the accessory manifest. Record actual installation in the field operation checks."],
     ],
   },
   {
@@ -357,6 +358,18 @@ export const guideTopics: readonly GuideTopic[] = [
       ["点「将补货结果写入草稿」，可用撤销／重做核对。装柜前点「应用托内布置」再计算，装柜后点「采用托内调整」更新方案。", "Use the refill in the draft. Undo and redo are available. Apply pallet layout before calculating, or Apply pallet edits to update an existing result."],
     ],
     tip: ["散箱预留保留。搜索会核对承托、载重、限高及其他托盘，已锁定或录入实测包络的托盘暂停自动补货。", "Loose reservations are preserved. The search checks support, loads, height and neighbouring pallets. Locked pallets and units with measured envelopes pause automatic refill."],
+  },
+  {
+    id: "order-pallet-reduction", category: "optimize", target: "pallet-preview",
+    title: ["全单自动减托与已入柜减托", "Consolidate order pallets or loaded pallets"],
+    path: ["装载配置 → 整体打托预览 → 全单自动减托；或装箱方案 → 已入柜减托", "Loading setup → Complete pallet preview → Consolidate order pallets, or Loading plan → Consolidate loaded pallets"],
+    keywords: "全单自动减托 整单减托 自动合并尾托 托盘减重 已入柜减托 释放多托 pallet reduction order consolidation fewer pallets",
+    steps: [
+      ["生成整体打托预览后，点「全单自动减托」。已经装柜时，从结果工具栏点「已入柜减托」，试排当前方案中的托盘。", "Generate the complete pallet preview and choose Consolidate order pallets. After loading, choose Consolidate loaded pallets in the results toolbar to search the current plan."],
+      ["点「预览减托建议」，核对前后托数、保留箱数与减少的包装自重。展开「查看受影响托盘」，查看被释放的托号以及留用托盘的新毛重和高度。", "Preview pallet reduction and review the unit count, retained cartons and tare saved. Open Review affected pallets to see released IDs and remaining units' new weights and heights."],
+      ["写入草稿后，可一次撤销整批试排。确认后应用托内布置再计算，或采用托内调整更新已入柜清单和导出。", "Use the reduction in the draft. One undo restores the batch. Apply pallet layout before calculating, or apply pallet edits to update the loaded manifest and exports."],
+    ],
+    tip: ["每轮最多释放 6 托。完整套装、锁定箱位和实测包络受保护。若还有候选，可再次试排。", "Each run releases up to six units. Complete kits, locked cargo and measured envelopes are protected. Run another search to check for further reductions."],
   },
   {
     id: "consolidate-pallets", category: "optimize", target: "pallet-preview",

@@ -26,10 +26,10 @@ export function LearningHub({ onCase, onStep, integration, guide, onGuideChange 
   };
   return <><div className="workspace-utilities">
     <button type="button" className="button ghost tutorial-entry" onClick={()=>onGuideChange("")}><BookOpen size={16} aria-hidden="true"/>{tr("使用教程","Tutorials")}</button>
-    <details className="workspace-help-menu" ref={menuRef}>
-    <summary className="button ghost"><HelpCircle size={16}/>{tr("帮助与联系", "Help & contact")}</summary>
+    <details className="workspace-help-menu" name="workspace-menus" ref={menuRef}>
+    <summary className="button ghost" aria-label={tr("帮助与联系", "Help & contact")}><HelpCircle size={16}/>{tr("帮助与联系", "Help")}</summary>
     <div className="workspace-help-panel"><nav className="learning-nav" aria-label={tr("帮助与服务", "Help and services")}><button onClick={() => openSection("cases")}><Boxes size={16}/>{tr("行业案例")}</button><button onClick={() => openSection("services")}><BriefcaseBusiness size={16}/>{tr("服务方案")}</button><button onClick={() => openSection("enterprise")}><Code2 size={16}/>{tr("企业集成")}</button><a href="mailto:1906761042@qq.com"><Mail size={16}/>{tr("联系我们")}</a></nav><SupportAndSites/></div>
-  </details><div className="language-switch" role="group" aria-label="Language"><button aria-pressed={language === "zh"} className={language === "zh" ? "active" : ""} onClick={() => setAppLanguage("zh")}>{tr("中文")}</button><button aria-pressed={language === "en"} className={language === "en" ? "active" : ""} onClick={() => setAppLanguage("en")}>English</button></div></div>
+  </details><div className="language-switch" role="group" aria-label="Language"><button aria-label={tr("中文", "Chinese")} aria-pressed={language === "zh"} className={language === "zh" ? "active" : ""} onClick={() => setAppLanguage("zh")}>中文</button><button aria-pressed={language === "en"} className={language === "en" ? "active" : ""} onClick={() => setAppLanguage("en")}>English</button></div></div>
     {guide!==null&&<FeatureDialog title={tr("使用教程","Tutorials")} wide onClose={()=>onGuideChange(null)}>
       <TutorialGuide key={guide} initialTopic={guide} onNavigate={target=>{
         const blocked=onStep(target);
