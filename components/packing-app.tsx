@@ -2343,15 +2343,7 @@ export function PackingApp() {
                 <div className="validation-chip">{hasPendingDimensionChanges ? <LoaderCircle size={16} /> : result?.metrics.loadedCount === 0 ? <AlertTriangle size={16} /> : result?.validation.valid ? <CheckCircle2 size={16} /> : status === "working" ? <LoaderCircle className="spin" size={16} /> : <ShieldCheck size={16} />}{hasPendingDimensionChanges ? tr("尺寸录入中 · 已暂停计算") : result ? result.metrics.loadedCount === 0 ? tr("未装入货物，请查看原因", "No cargo loaded; review the causes") : result.validation.valid ? tr("布局校验通过") : tr("发现异常") : status === "working" ? tr("待重新计算") : tr("等待计算")}</div>
               </div>
             </div>
-            <details className="viewer-input-details"><summary>{tr("输入快照", "Input snapshot")} · {activeProducts.length} SKU · {inputVolume.toFixed(2)} m³ · {formatNumber(inputWeight,1)} kg</summary><section className="viewer-input-strip" aria-label={tr("当前统一输入快照")}>
-              <article><span>{isSingleProductSet ? tr("包装箱型") : tr("SKU 数量")}</span><strong>{activeProducts.length}</strong><small>{mode === "single" ? tr("单品完整套装") : tr("按订单比例拼柜")}</small></article>
-              <article><span>{mode === "single" ? isSingleProductSet ? tr("每套 CBM") : tr("单件 CBM") : tr("需求 CBM")}</span><strong>{inputVolume.toFixed(2)}</strong><small>{tr("由外箱尺寸自动计算")}</small></article>
-              <article><span>{mode === "single" ? isSingleProductSet ? tr("每套毛重") : tr("单件毛重") : tr("需求毛重")}</span><strong>{formatNumber(inputWeight, 1)} kg</strong><small>{tr("柜型上限 ")}{formatNumber(result?.container.maxWeight ?? container.maxWeight)} kg</small></article>
-              <article><span>{tr("当前约束")}</span><strong>{clearance} mm</strong><small>{tr("安全间隙 · 目标 ")}{targetVolumePercent}% / {targetWeightPercent}%</small></article>
-            </section>
-            </details>
             {result?.metrics.loadedCount === 0 && <ZeroLoadNotice result={result} products={activeProducts} unit={lengthUnit} onEdit={id=>{goToStep(3);if(id)setActiveCargo(id);}}/>}
-            {result ? <RemainingCapacity result={result} visibleCount={packingProgress} pending={hasPendingDimensionChanges} /> : null}
             {result ? (
               <PlanViews result={result} visibleProducts={visibleProducts} visibleCount={packingProgress}
                 primaryCountLabel={progressSummary?.isSetMode ? tt`${formatNumber(progressSummary.completedSets)} 套` : tt`${formatNumber(packingProgress)} 箱`}
@@ -2423,6 +2415,7 @@ export function PackingApp() {
                     </button>
                   ))}
                 </div>
+                <RemainingCapacity result={result} visibleCount={packingProgress} pending={hasPendingDimensionChanges} />
                 <details className="stage-options solver-comparison"><summary>{tr("两种算法对比","Compare solver results")}</summary>
                 <section className="viewer-decision-grid" aria-label={tr("现场与极限方案统一对比")}>
                   <article className="current"><span>{tr("当前可视方案")}</span><strong>{formatNumber(resultLoadedDisplay)} {resultDisplayUnit === "set" ? tr("套") : tr("箱")}</strong><small>{formatNumber(result.metrics.loadedCount)}{tr(" 箱 · 体积 ")}{formatPercent(result.metrics.volumeUtilization)}</small></article>
@@ -2436,6 +2429,15 @@ export function PackingApp() {
               <summary>{tr("装载诊断与补货试算", "Loading diagnosis and replenishment trials")}{result&&<small>{formatNumber(result.metrics.loadedCount)} / {formatNumber(result.metrics.requestedCount)} {tr("箱", "cartons")}</small>}</summary>
               {capacityTrial}
             </details>}
+            <details className="viewer-input-details">
+              <summary>{tr("输入快照", "Input snapshot")} · {activeProducts.length} SKU · {inputVolume.toFixed(2)} m³ · {formatNumber(inputWeight,1)} kg</summary>
+              <section className="viewer-input-strip" aria-label={tr("当前统一输入快照")}>
+                <article><span>{isSingleProductSet ? tr("包装箱型") : tr("SKU 数量")}</span><strong>{activeProducts.length}</strong><small>{mode === "single" ? tr("单品完整套装") : tr("按订单比例拼柜")}</small></article>
+                <article><span>{mode === "single" ? isSingleProductSet ? tr("每套 CBM") : tr("单件 CBM") : tr("需求 CBM")}</span><strong>{inputVolume.toFixed(2)}</strong><small>{tr("由外箱尺寸自动计算")}</small></article>
+                <article><span>{mode === "single" ? isSingleProductSet ? tr("每套毛重") : tr("单件毛重") : tr("需求毛重")}</span><strong>{formatNumber(inputWeight, 1)} kg</strong><small>{tr("柜型上限 ")}{formatNumber(result?.container.maxWeight ?? container.maxWeight)} kg</small></article>
+                <article><span>{tr("当前约束")}</span><strong>{clearance} mm</strong><small>{tr("安全间隙 · 目标 ")}{targetVolumePercent}% / {targetWeightPercent}%</small></article>
+              </section>
+            </details>
           </section>
 
           </div>

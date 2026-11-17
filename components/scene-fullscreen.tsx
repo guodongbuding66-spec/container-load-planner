@@ -6,7 +6,12 @@ import { Expand, Minimize } from "lucide-react";
 import { tr, useLanguage } from "./language";
 
 /** A top-layer viewport dialog remains usable when native fullscreen is denied. */
-export function SceneFullscreen({ children, toolbar, fullscreenFooter, onEscape }: { children: ReactNode; toolbar?: ReactNode; fullscreenFooter?: ReactNode; onEscape?: () => boolean }) {
+export function SceneFullscreen({ children, toolbar, fullscreenFooter, onEscape }: {
+  children: ReactNode;
+  toolbar: (fullscreenToggle: ReactNode) => ReactNode;
+  fullscreenFooter?: ReactNode;
+  onEscape?: () => boolean;
+}) {
   useLanguage();
   const [expanded, setExpanded] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -50,13 +55,17 @@ export function SceneFullscreen({ children, toolbar, fullscreenFooter, onEscape 
       void dialog.requestFullscreen().catch(() => {});
     }
   };
+  const fullscreenToggle = <button ref={buttonRef} type="button" className="scene-fullscreen-toggle" aria-expanded={expanded} onClick={toggle}>
+    {expanded ? <Minimize size={15}/> : <Expand size={15}/>}
+    {expanded ? tr("退出全屏", "Exit fullscreen") : tr("全屏", "Fullscreen")}
+  </button>;
   const content = <div className={`scene-workspace ${expanded ? "scene-workspace-expanded" : ""}`} onKeyDown={e=>{
     if(e.key==="Escape"&&!(e.target as HTMLElement).closest("input,select,textarea")&&onEscape?.()){
       e.preventDefault();
       e.stopPropagation();
     }
   }}>
-    <div className="scene-workspace-heading"><div className="scene-heading-title"><span className="section-kicker">3D WORKSPACE</span><strong>{tr("三维装载视图", "3D loading view")}</strong></div>{toolbar}<button ref={buttonRef} type="button" className="button small scene-fullscreen-toggle" aria-expanded={expanded} onClick={toggle}>{expanded ? <Minimize size={16}/> : <Expand size={16}/>}<span>{tr(expanded ? "退出全屏" : "全屏")}</span>{expanded && <kbd>Esc</kbd>}</button></div>
+    {toolbar(fullscreenToggle)}
     {children}
     {expanded && fullscreenFooter}
   </div>;

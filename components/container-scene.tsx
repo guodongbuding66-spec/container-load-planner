@@ -6,28 +6,26 @@ import {siteExclusionBoxes} from "../lib/packing/site-exclusions";
 import { cargoShapeOf } from "../lib/packing/cargo-shape";
 import { cargoShapeGeometry } from "../lib/packing/cargo-shape-geometry";
 import { Canvas, useThree } from "@react-three/fiber";
-import { Box, DoorOpen, Eye, ScanLine, ImageDown, RotateCcw, Ruler, Settings2, Tag } from "lucide-react";
 import { useEffect, useLayoutEffect, useImperativeHandle, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import * as THREE from "three";
 import type { RefObject } from "react";
 import { boxFaceTexture, CargoSurfaceLabels, MetricLabel, PalletStructures, SelectionOutline, useShippingMarkCanvas } from "./scene-details";
 import { SceneDimensions } from "./scene-dimensions";
-import { DimensionControls } from "./dimension-controls";
 import { LoadingSceneFallback } from "./loading-scene-fallback";
 import { sceneMeasurement } from "../lib/packing/scene-dimensions";
 import { palletParts, palletAnchors } from "../lib/packing/floor-pallets";
 import { SceneFullscreen } from "./scene-fullscreen";
+import { SceneViewToolbar } from "./scene-view-toolbar";
 import {tr, useLanguage} from "./language";
 import {
   type CameraProjection,
-  type CameraPresetView,
   type CameraView,
   type SceneSize,
 } from "../lib/packing/camera-fit";
 import { SceneCameraController } from "../lib/packing/scene-camera";
 import { SceneCameraRig } from "./scene-camera-rig";
 import { TransportModel } from "./transport-model";
-import { TransportModelControls, useTransportAppearance } from "./transport-appearance";
+import { useTransportAppearance } from "./transport-appearance";
 import { transportSceneBounds, type TransportDisplayMode } from "../lib/packing/transport-model";
 import { detectRuntimePolicy } from "../lib/packing/runtime-policy";
 import { supportsWebGL } from "../lib/packing/webgl-support";
@@ -220,16 +218,6 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
   );
 }
 
-const CAMERA_VIEWS: Array<{ id: CameraPresetView; label: string; icon: React.ReactNode }> = [
-  { id: "perspective", label: "等轴测", icon: <Box size={13} /> },
-  { id: "top", label: "俯视", icon: <ScanLine size={13} /> },
-  { id: "side", label: "侧视", icon: <Eye size={13} /> },
-  { id: "door", label: "箱门", icon: <DoorOpen size={13} /> },
-  { id: "bottom", label: "底视", icon: <ScanLine size={13}/> },
-  { id: "rear", label: "后视", icon: <DoorOpen size={13}/> },
-  { id: "left", label: "左视", icon: <Eye size={13}/> },
-];
-
 export function ContainerScene({
   result:source,
   editor,products=[],onAdopt,
@@ -254,7 +242,7 @@ export function ContainerScene({
   const cameraController = useMemo(() => new SceneCameraController(), []);
   const captureRef=useRef<(() => Promise<Blob>) | null>(null);
   const registerCapture=useMemo(()=> (capture: () => Promise<Blob>) => { captureRef.current=capture; },[]);
-  const {labels,setLabels}=appearance;
+  const {labels}=appearance;
   const inspection=useSceneInspection(result,visibleProducts,visibleCount);
   const [selection, setSelection] = useState<{planId: string; box: PlacedBox} | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
@@ -345,33 +333,23 @@ export function ContainerScene({
   const containerSize = useMemo<SceneSize>(() => (result ? normalizedSceneSize(result) : [5.6, 1.25, 1.1]), [result]);
   const sceneBounds = useMemo(() => result ? transportSceneBounds(result.container,5.6/Math.max(result.container.length-result.clearance*2,result.container.width-result.clearance*2,result.container.height-result.clearance+(result.container.baseHeight??0)),appearance.mode) : undefined,[result,appearance.mode]);
   return (
-    <SceneFullscreen onEscape={()=>{if(isolated){restoreView();return true;}if(selected){clearSelection();return true;}return false;}} toolbar={<details className="scene-header-controls scene-controls-disclosure">
-      <summary className="button small"><Settings2 size={15}/>{tr("视图设置","View settings")}</summary>
-      <div className="scene-control-body">
-      {webglSupported!==false&&<div className="scene-quick-controls"><div className="scene-camera-controls">
-            <div className="scene-projection-controls" role="toolbar" aria-label={tr("三维投影方式")}>
-              <button type="button" disabled={webglSupported===null} className={projectionMode === "perspective" ? "active" : ""} aria-pressed={projectionMode === "perspective"} onClick={() => { setFocusId(null); onProjectionModeChange("perspective"); }}>{tr("透视投影")}</button>
-              <button type="button" disabled={webglSupported===null} className={projectionMode === "orthographic" ? "active" : ""} aria-pressed={projectionMode === "orthographic"} onClick={() => { setFocusId(null); onProjectionModeChange("orthographic"); }}>{tr("正交投影")}</button>
-            </div>
-            <div className="scene-view-controls" role="toolbar" aria-label={tr("三维相机视角")}>
-              {CAMERA_VIEWS.map((view) => (
-                <button
-                  type="button"
-                  key={view.id}
-                  disabled={webglSupported===null}
-                  className={cameraView === view.id ? "active" : ""}
-                  aria-pressed={cameraView === view.id}
-                  onClick={() => { setFocusId(null); onCameraViewChange(view.id); }}
-                >
-                  {view.icon}
-                  {view.id==="door"&&result?.workflow==="pallet-only"?tr("正视","Front"):tr(view.label)}
-                </button>
-              ))}
-            </div>
-          </div></div>}<div className="scene-tools" aria-label={tr("三维工具", "3D tools")}><button type="button" disabled={!result} aria-pressed={labels} title={tr("箱标贴附在货物表面，随货物旋转和缩放。","Labels are attached to cargo surfaces and follow their orientation and scale.")} onClick={()=>setLabels(!labels)}><Tag size={14}/>{tr("箱标","Labels")}</button><button type="button" disabled={!result} aria-pressed={appearance.skuSummaries} onClick={()=>appearance.setSkuSummaries(!appearance.skuSummaries)} title={tr("在货物上方显示每个 SKU 的汇总标签。","Show one summary label above each SKU.")}><Tag size={14}/>{tr("SKU 汇总","SKU summaries")}</button><button type="button" disabled={!result||!Object.values(result.cargoDetails??{}).some(p=>p.solidModel)} aria-pressed={appearance.collisionProxy} onClick={()=>appearance.updatePreferences({collisionProxy:!appearance.collisionProxy})}>{tr("碰撞体","Collision bodies")}</button><button type="button" aria-pressed={appearance.dimensions} onClick={()=>appearance.setDimensions(!appearance.dimensions)}><Ruler size={14}/>{tr("尺寸","Dimensions")}</button><button type="button" onClick={()=>{restoreView();onCameraViewChange("perspective");onProjectionModeChange("perspective");}}><RotateCcw size={14}/>{tr("重置视图")}</button><button type="button" disabled={!webglSupported} onClick={()=>void saveImage()}><ImageDown size={14}/>{tr("保存图片")}</button></div>
-
-      <div className="scene-appearance-fields"><DimensionControls settingsOnly/>{webglSupported!==false&&result?.workflow!=="pallet-only"&&<TransportModelControls/>}</div>
-      </div></details>} fullscreenFooter={result&&onVisibleCountChange&&<footer className="scene-progress"><span>{tr("装载进度")}</span><input type="range" min={0} max={result.placements.length} value={visibleCount} aria-label={tr("三维装载进度", "3D loading progress")} onChange={e=>onVisibleCountChange(Number(e.target.value))}/><output>{visibleCount} / {result.placements.length} {tr("箱")}</output></footer>}>
+    <SceneFullscreen onEscape={() => {
+      if (isolated) { restoreView(); return true; }
+      if (selected) { clearSelection(); return true; }
+      return false;
+    }} toolbar={fullscreenToggle => <SceneViewToolbar
+      cameraView={cameraView}
+      projectionMode={projectionMode}
+      webglSupported={webglSupported}
+      palletOnly={result?.workflow === "pallet-only"}
+      hasCargo={Boolean(result?.placements.length)}
+      hasCollisionBody={Object.values(result?.cargoDetails ?? {}).some(product => product.solidModel)}
+      fullscreenToggle={fullscreenToggle}
+      onViewChange={view => { setFocusId(null); onCameraViewChange(view); }}
+      onProjectionChange={projection => { setFocusId(null); onProjectionModeChange(projection); }}
+      onReset={() => { restoreView(); onCameraViewChange("perspective"); onProjectionModeChange("perspective"); }}
+      onSave={() => void saveImage()}
+    />} fullscreenFooter={result&&onVisibleCountChange&&<footer className="scene-progress"><span>{tr("装载进度")}</span><input type="range" min={0} max={result.placements.length} value={visibleCount} aria-label={tr("三维装载进度", "3D loading progress")} onChange={e=>onVisibleCountChange(Number(e.target.value))}/><output>{visibleCount} / {result.placements.length} {tr("箱")}</output></footer>}>
 {editor?.changed&&<p className="scene-draft-notice" role="status">{tr("正在预览编辑草稿；采用后更新指标与导出。","Previewing edit draft. Apply to update totals and exports.")}</p>}
 <SceneWorkbench editor={editor} result={result} boxes={palletMode?palletRows:inspection.displayBoxes} palletMode={palletMode} selectionTools={selectionTools} onClearSelection={clearSelection} selected={selected} onSelect={selectBox} inspector={result&&<><nav className="scene-inspector-tabs" aria-label={tr("三维工作台工具","Scene workbench tools")}>{[["inspect","属性与测量","Inspect & measure"],["edit","编辑","Edit"],["space","空隙","Gaps"],["load","承重","Loads"],["access","装卸","Access"]].map(([id,zh,en])=><button title={tr(zh,en)} key={id} disabled={id!=="inspect"&&(!products.length||result.metrics.loadedCount!==result.placements.length)||id==="edit"&&!editor||id==="space"&&result.workflow==="pallet-only"} aria-pressed={tool===id} onClick={()=>{setTool(id);if(id!=="edit"&&editor?.enabled)editor.update({enabled:false,rectangle:false});}}>{id==="inspect"?tr("属性","Info"):tr(zh,en)}</button>)}</nav>{tool==="edit"&&editor&&<SceneEditPanel editor={editor}/>} {tool==="space"&&<SceneSpacePanel plan={result} products={products} report={spaces} selected={gapId} onSelect={setGapId} onOpen={setSpaceOpen}/>} {tool==="load"&&<SceneLoadPanel report={loads} mode={heat} onMode={setHeat} selected={selected}/>} {tool==="access"&&<SceneAccessPanel key={result.id} plan={result} products={products} onAdopt={onAdopt} onHighlight={setHighlight} disabled={!!editor?.disabled||!!editor?.changed}/>} {tool==="inspect"&&<SceneInspector result={result} selected={selected} inspection={inspection} onClearSelection={clearSelection} onFocus={webglSupported!==false&&selected?()=>{setFocusId(selected.id);onCameraViewChange("perspective");onProjectionModeChange("perspective");}:undefined}/>}</>}><div className="scene-shell" role="region" tabIndex={0} onPointerDown={event=>{if((event.target as Element).closest("canvas,svg")&&!event.currentTarget.contains(document.activeElement))event.currentTarget.focus({preventScroll:true});}} aria-label={tr("可交互三维装柜视图")}>
       {!result ? (

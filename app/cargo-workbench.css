@@ -302,7 +302,6 @@ body:has(.cargo-workbench) {
 }
 .preview-opacity input { width: 100%; min-width: 54px; accent-color: var(--teal); }
 .preview-opacity output { min-width: 34px; font-variant-numeric: tabular-nums; text-align: right; color: var(--ink); }
-.cargo-workbench .pallet-preview-scene .scene-header-controls,
 .cargo-workbench .pallet-preview-scene .scene-dock-toolbar { display: flex; }
 .cargo-workbench .pallet-preview-scene :is(.scene-cargo-dock,.scene-inspector-dock,.dock-resize) { display: block; }
 .cargo-workbench .pallet-preview-scene .scene-workbench { display: grid; height: clamp(255px,36dvh,386px); }
@@ -330,36 +329,11 @@ body:has(.cargo-workbench) {
 .live-pallet-preview .plan-view-diagrams .projection-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 .live-pallet-preview .plan-view-diagrams .projection-card:first-child { grid-column: 1 / -1; }
 .live-pallet-preview .plan-view-diagrams .projection-canvas { height: clamp(145px,23dvh,205px); }
-.scene-workspace-heading .scene-controls-disclosure {
-  display: flex;
-  justify-content: end;
-  min-width: 0;
-  position: static;
-}
-.scene-controls-disclosure > summary { list-style: none; cursor: pointer; }
-.scene-controls-disclosure > summary::-webkit-details-marker { display: none; }
-.scene-control-body {
-  position: absolute;
-  z-index: 12;
-  top: 42px;
-  right: 8px;
-  display: grid;
-  width: min(540px,calc(100% - 16px));
-  max-height: min(60dvh,420px);
-  overflow: auto;
-  gap: 9px;
-  padding: 10px;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  box-shadow: 0 12px 32px #243a4526;
-}
-.scene-control-body .scene-appearance-fields { display: grid; gap: 6px; }
-.scene-controls-disclosure:not([open])>.scene-control-body { display: none; }
-
 .cargo-workbench .plan-command-bar { margin: 0; gap: 8px; background: transparent; }
 .cargo-workbench .result-overview { gap: 8px; margin: 0; }
 .cargo-workbench .result-overview .metric-card { border: 1px solid var(--line); }
+.cargo-workbench .result-view-pane:not([hidden]) { display: grid; gap: 10px; }
+.cargo-workbench .result-view-pane .viewer-column > * { order: 0; }
 .cargo-workbench .result-review-pane { display: grid; gap: 12px; }
 .cargo-workbench .result-review-pane[hidden] { display: none; }
 .cargo-workbench .result-export-pane { display: grid; gap: 12px; }
