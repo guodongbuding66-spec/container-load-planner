@@ -68,3 +68,21 @@ it("round-trips the same total, bases, coordinates and gross weight through the 
   expect(packagingHeight(parsed.palletBuild!.config)).toBe(1200);
   expect(restored.pallets).toEqual(plan.pallets); expect(restored.placements).toEqual(plan.placements); expect(restored.metrics.grossWeight).toBe(90);
 });
+
+it("uses independent lid thickness in the preview, door check and saved bearing identity", () => {
+  const crate = { ...config, maxCargoHeight: 1000,
+    packaging: { ...config.packaging!, lidThickness: 18, railCount: 3, railHeight: 64 } };
+  const parsed = parseFloorPalletConfig(crate);
+  expect(crateHeightBreakdown(parsed)).toEqual({ base: 144, interior: 1000, lid: 18, exterior: 1162 });
+  expect(packagingParts(parsed.length, parsed.width, parsed.height, parsed.packaging, 1000).find(p => p.kind === "lid")?.dz).toBe(18);
+  expect(crateEvidenceKey(parsed)).not.toBe(crateEvidenceKey(config));
+  const r = request(parsed);
+  expect(() => packLoadingWorkflow({ ...r, container: { ...r.container, doorHeight: 1161 } })).toThrow(/Crate exterior/);
+  expect(packLoadingWorkflow({ ...r, container: { ...r.container, doorHeight: 1162 } }).placements).toHaveLength(4);
+});
+
+it("rejects custom rail heights whose total exceeds the enclosure", () => {
+  const crate = { ...config, maxCargoHeight: 180, packaging: { ...config.packaging!, railCount: 4, railHeight: 46 } };
+  expect(() => parseFloorPalletConfig(crate)).toThrow(/Rails exceed/);
+  expect(parseFloorPalletConfig({ ...crate, maxCargoHeight: 184 }).packaging?.railHeight).toBe(46);
+});

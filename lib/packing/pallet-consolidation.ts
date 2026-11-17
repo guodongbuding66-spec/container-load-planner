@@ -18,11 +18,12 @@ type SelectedUnit=ReturnType<typeof selectedConsolidationUnits>[number];
 type UnitChange={id:string;before:number;after:number;grossKg:number;heightMm:number};
 type ConsolidationCandidate={edit:PalletConsolidationEdit;units:UnitChange[];tareSavedKg:number;kitsMoved:number};
 export type PalletConsolidationResult={candidate:ConsolidationCandidate|null;issues:string[];reason?:"locked-cargo"|"no-fit";budgetReached:boolean};
+type OrderDiagnostic = "compatibility"|"count"|"payload"|"space"|"layout";
 type OrderCandidate={
   edit:PalletOrderConsolidationEdit;units:UnitChange[];beforePallets:number;afterPallets:number;
   cartons:number;changedCartons:number;tareSavedKg:number;
 };
-export type PalletOrderConsolidationResult={candidate:OrderCandidate|null;protectedPallets:number;trials:number;budgetReached:boolean};
+export type PalletOrderConsolidationResult={candidate:OrderCandidate|null;protectedPallets:number;trials:number;budgetReached:boolean;diagnostics?: Partial<Record<OrderDiagnostic,number>>};
 
 function findMoves(plan:PackingResult,products:ProductInput[],donor:SelectedUnit,receivers:SelectedUnit[],pinned:ReadonlySet<string>,keepReceivers:boolean,pass:number,expired:()=>boolean){
   const productMap=new Map(products.map(p=>[p.id,p]));
@@ -116,8 +117,8 @@ function measureOrderUnits(plan:PackingResult,products:ProductInput[]){
   return palletConsolidationUnits(plan).filter(({pallet})=>!pallet.locked&&!pallet.measuredEnvelope).map(unit=>{
     const {pallet,cargo}=unit;
     const spec=specificationForPallet(plan.palletization!,pallet);
-    const {length,width}=packagingInterior(spec.config);
-    const height=Math.min((spec.config.maxCargoHeight||Infinity),door-pallet.dz,plan.container.height-plan.clearance-pallet.z-pallet.dz);
+    const {length,width,lid}=packagingInterior(spec.config);
+    const height=Math.min((spec.config.maxCargoHeight||Infinity),door-pallet.dz-lid,plan.container.height-plan.clearance-pallet.z-pallet.dz-lid);
     const kg=cargo.reduce((sum,box)=>sum+box.weight,0);
     const volume=cargo.reduce((sum,box)=>sum+byProduct.get(box.productId)!.volume,0);
     const productIds=new Set(cargo.map(box=>box.productId));
@@ -140,6 +141,28 @@ function canFitGroup(donor:OrderUnit,receivers:OrderUnit[]){
   return donor.cargo.length<=totals.cartons&&donor.kg<=totals.kg+EPS&&
     donor.volume<=totals.volume+Math.max(1,donor.volume*1e-8)&&
     [...donor.productIds].every(productId=>receivers.some(unit=>unit.canReceive(productId)));
+}
+
+/** Relaxed aggregate bounds show which donors are ruled out before exact layout trials. */
+function orderDiagnostics(units:OrderUnit[]) {
+  const diagnostics: Partial<Record<OrderDiagnostic,number>>={};
+  for(const donor of units){
+    if(donor.cargo.length>MAX_CONSOLIDATION_CARTONS||donor.cargo.some(b=>b.locked))continue;
+    const compatible=units.filter(receiver=>receiver!==donor&&(donor.cargo.length===0||[...donor.productIds].some(receiver.canReceive)));
+    const receivers=compatible.filter(r=>r.freeCartons>0);
+    const capacity=receivers.reduce((sum,r)=>({
+      count:sum.count+r.freeCartons,
+      kg:sum.kg+Math.max(0,r.freeKg),
+      volume:sum.volume+Math.max(0,r.freeVolume),
+    }),{count:0,kg:0,volume:0});
+    let reason:OrderDiagnostic="layout";
+    if(!compatible.length||[...donor.productIds].some(id=>!compatible.some(r=>r.canReceive(id))))reason="compatibility";
+    else if(capacity.count<donor.cargo.length)reason="count";
+    else if(capacity.kg+EPS<donor.kg)reason="payload";
+    else if(capacity.volume+Math.max(1,donor.volume*1e-8)<donor.volume)reason="space";
+    diagnostics[reason]=(diagnostics[reason]??0)+1;
+  }
+  return diagnostics;
 }
 
 function* orderGroups(donor:OrderUnit,units:OrderUnit[],expired:()=>boolean){
@@ -210,7 +233,7 @@ export function consolidatePalletOrder(plan:PackingResult,products:ProductInput[
     if(current===before)break;
   }
   const summary={protectedPallets,trials,budgetReached:atLimit()};
-  if(!steps.length)return {...summary,candidate:null};
+  if(!steps.length)return {...summary,candidate:null,diagnostics:orderDiagnostics(measureOrderUnits(plan,products))};
   const affected=new Set(steps.flatMap(step=>step.palletIds));
   const remaining=new Map(palletConsolidationUnits(current).map(unit=>[unit.pallet.id,unit]));
   const units=initial.filter(({pallet})=>affected.has(pallet.id)).map(({pallet,cargo})=>{

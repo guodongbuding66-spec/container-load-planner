@@ -5,6 +5,8 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { cargoSurfaceLabelGeometry, createCargoLabelMaterial } from "../lib/packing/cargo-surface-labels";
 import { placedPackagingParts, DEFAULT_PACKAGING, type PackagingPart } from "../lib/packing/packaging";
+import { createPackagingFinish, createPackagingGeometry } from "../lib/packing/packaging-materials";
+import type { SceneSize } from "../lib/packing/camera-fit";
 import type { PlacedPallet } from "../lib/packing/types";
 import { createSceneLabelMaterial, LABEL_RENDER_ORDER, layoutSceneLabel, sceneLabelFrame, sceneLabelPose } from "../lib/packing/scene-labels";
 import { MARK_ASPECT, markLines, type ShippingMark } from "../lib/packing/shipping-mark";
@@ -86,19 +88,74 @@ export function boxFaceTexture(sku: string, color: string, width: number, height
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;return texture;
 }
 
-type StructurePart=PackagingPart&{pallet:PlacedPallet};
-function PackagingInstances({parts,scale,offset,onSelect}:{parts:StructurePart[];scale:number;offset:THREE.Vector3;onSelect?:(p:PlacedPallet)=>void}) {
-  const ref=useRef<THREE.InstancedMesh>(null),spec=parts[0].pallet.packaging??DEFAULT_PACKAGING;
-  const grain=useMemo(()=>{if(spec.material!=="wood"&&spec.material!=="plywood")return null;const data=new Uint8Array(128*32*4);for(let y=0;y<32;y++)for(let x=0;x<128;x++){const c=220+Math.round(20*Math.sin(y*2.8+Math.sin(x*.13)*.3)+12*Math.sin(x*12.9+y*7.7));const i=(y*128+x)*4;data[i]=data[i+1]=data[i+2]=c;data[i+3]=255;}const t=new THREE.DataTexture(data,128,32);t.colorSpace=THREE.SRGBColorSpace;t.needsUpdate=true;return t;},[spec.material]);
-  useEffect(()=>()=>grain?.dispose(),[grain]);
-  useLayoutEffect(()=>{if(!ref.current)return;const dummy=new THREE.Object3D();parts.forEach((p,i)=>{dummy.position.set((p.x+p.dx/2)*scale+offset.x,(p.z+p.dz/2)*scale+offset.y,(p.y+p.dy/2)*scale+offset.z);dummy.scale.set(p.dx*scale,p.dz*scale,p.dy*scale);dummy.updateMatrix();ref.current!.setMatrixAt(i,dummy.matrix);const color=new THREE.Color(p.pallet.packaging?.color??(p.pallet.dz<50?"#98a4ae":p.kind==="block"?"#ac8151":"#d4af7b"));if(p.kind==="block")color.multiplyScalar(.88);ref.current!.setColorAt(i,color);});ref.current.instanceMatrix.needsUpdate=true;if(ref.current.instanceColor)ref.current.instanceColor.needsUpdate=true;ref.current.computeBoundingSphere();},[parts,scale,offset]);
-  // Historic decks remain opaque; custom shells use the explicitly saved opacity.
-  const opacity=parts[0].pallet.packaging?spec.opacity:1;
-  return <instancedMesh name="packaging-structure" ref={ref} args={[undefined,undefined,parts.length]} raycast={onSelect?THREE.InstancedMesh.prototype.raycast:()=>{}} onClick={e=>{if(e.delta>3)return;if(onSelect&&e.instanceId!==undefined){e.stopPropagation();onSelect(parts[e.instanceId].pallet);}}}><boxGeometry/><meshStandardMaterial map={grain} roughness={spec.material==="steel"?.4:spec.material==="plastic"?.65:.92} metalness={spec.material==="steel"?.75:0} transparent={opacity<1} opacity={opacity} depthWrite={opacity===1}/></instancedMesh>;
+type StructurePart = PackagingPart & { pallet: PlacedPallet };
+type FinishProps = {
+  parts: StructurePart[]; scale: number; offset: THREE.Vector3;
+  onSelect?: (p: PlacedPallet) => void;
+};
+function PackagingInstances({ parts, scale, offset, onSelect, geometry, materials }: FinishProps & {
+  geometry: THREE.BufferGeometry; materials: THREE.MeshStandardMaterial[];
+}) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const dummy = new THREE.Object3D();
+    dummy.scale.setScalar(scale);
+    parts.forEach((part, i) => {
+      dummy.position.set((part.x + part.dx / 2) * scale + offset.x, (part.z + part.dz / 2) * scale + offset.y, (part.y + part.dy / 2) * scale + offset.z);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+      const spec = part.pallet.packaging;
+      const color = new THREE.Color(spec?.color ?? (part.pallet.dz < 50 ? "#a1aab0" : DEFAULT_PACKAGING.color));
+      const variation = .94 + .13 * (Math.sin(part.x * .142 + part.y * .213 + part.z * .311 + part.dx * .007) * .5 + .5);
+      color.multiplyScalar(variation * (part.kind === "block" ? .84 : 1));
+      mesh.setColorAt(i, color);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, [parts, scale, offset]);
+  return <instancedMesh name="packaging-structure" ref={ref} args={[geometry, materials, parts.length]} castShadow={materials[0].opacity===1} receiveShadow dispose={null}
+    raycast={onSelect ? THREE.InstancedMesh.prototype.raycast : () => {}}
+    onClick={e => { if (e.delta <= 3 && onSelect && e.instanceId !== undefined) { e.stopPropagation(); onSelect(parts[e.instanceId].pallet); } }}/>;
 }
-export function PalletStructures({pallets,scale,offset,onSelect}:{pallets:PlacedPallet[];scale:number;offset:THREE.Vector3;onSelect?:(p:PlacedPallet)=>void}) {
-  const groups=useMemo(()=>{const map=new Map<string,StructurePart[]>();for(const p of pallets){const spec=p.packaging,key=spec?JSON.stringify([spec.material,spec.opacity]):"legacy";const parts=map.get(key)??[];parts.push(...placedPackagingParts(p).map(part=>({...part,pallet:p})));map.set(key,parts);}return [...map.entries()];},[pallets]);
-  return <>{groups.map(([key,parts])=><PackagingInstances key={key} parts={parts} scale={scale} offset={offset} onSelect={onSelect}/>)}</>;
+
+function PackagingFinishGroup({ parts, ...props }: FinishProps) {
+  const material = parts[0].pallet.packaging?.material ?? DEFAULT_PACKAGING.material;
+  const opacity = parts[0].pallet.packaging?.opacity ?? 1;
+  const finish = useMemo(() => createPackagingFinish(material, opacity), [material, opacity]);
+  useEffect(() => () => finish.dispose(), [finish]);
+  const batches = useMemo(() => {
+    const groups = new Map<string, { size: SceneSize; parts: StructurePart[] }>();
+    for (const p of parts) {
+      const size: SceneSize = [p.dx, p.dz, p.dy];
+      if (size.some(n => n <= 0)) continue;
+      const key = size.join(":");
+      const entry = groups.get(key);
+      if (entry) entry.parts.push(p);
+      else groups.set(key, { size, parts: [p] });
+    }
+    return [...groups].map(([key, group]) => ({ key, parts: group.parts, geometry: createPackagingGeometry(group.size, material) }));
+  }, [parts, material]);
+  useEffect(() => () => { batches.forEach(b => b.geometry.dispose()); }, [batches]);
+  return <>{batches.map(batch => <PackagingInstances key={batch.key} geometry={batch.geometry}
+    parts={batch.parts} materials={finish.materials} {...props}/>)}</>;
+}
+
+export function PalletStructures({ pallets, ...props }: Omit<FinishProps, "parts"> & { pallets: PlacedPallet[] }) {
+  const groups = useMemo(() => {
+    const map = new Map<string, StructurePart[]>();
+    for (const pallet of pallets) {
+      const spec = pallet.packaging;
+      const key = JSON.stringify([spec?.material ?? DEFAULT_PACKAGING.material, spec?.opacity ?? 1]);
+      const parts = map.get(key) ?? [];
+      for (const part of placedPackagingParts(pallet)) parts.push({ ...part, pallet });
+      map.set(key, parts);
+    }
+    return [...map];
+  }, [pallets]);
+  return <>{groups.map(([key, parts]) => <PackagingFinishGroup key={key} parts={parts} {...props}/>)}</>;
 }
 
 export function MetricLabel({text,position,size=.09,color="#376272",screenOffset=[0,0]}:{text:string;position:[number,number,number];size?:number;color?:string;screenOffset?:[number,number]}){

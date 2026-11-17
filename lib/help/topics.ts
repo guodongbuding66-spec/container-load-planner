@@ -30,11 +30,11 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "start", category: "cargo", target: "products",
     title: ["第一次做装柜方案", "Create your first load plan"],
-    path: ["货物清单 → 装载配置 → 装箱方案", "Cargo manifest → Loading setup → Loading plan"],
+    path: ["装载空间 → 打托包装 → 货物与托内布置", "Load space → Packaging → Cargo & layout"],
     keywords: "入门 快速开始 新手 新建 计算流程 使用流程 quick start getting started",
     steps: [
-      ["在「货物清单」选择装载方式，填写每种外箱的 SKU、长宽高、单箱毛重及订单数量。", "Choose the loading workflow on Cargo manifest. Enter the SKU, outer dimensions, gross weight per carton and quantity."],
-      ["点「下一步」，核对柜内尺寸、柜门与载重。需要先打托时，确认包装和堆叠配置，再点「开始计算」。", "Click Next and check the vehicle interior, doorway and payload. If palletizing first, confirm packaging and stacking before you click Calculate."],
+      ["在「装载空间」选柜型或车辆，核对柜内尺寸、柜门和净载重。只做打托可跳过选柜。", "Choose a container or vehicle under Load space, then check interior dimensions, doorway and net payload. Skip vehicle selection for pallet-only work."],
+      ["在「打托包装」选开放托盘、封板箱或框架等规格。在「货物与托内布置」填外箱、重量、数量及包装尺寸，预览托内摆放后计算。", "Under Packaging, choose a pallet, closed crate or frame. Under Cargo & layout, enter cartons, mass, quantities and packaging dimensions, then preview positions before calculating."],
       ["在「装箱方案」确认已装箱数、余货和校验结果。用 3D 和三视图复核后，下载 PDF 或导出坐标。", "On Loading plan, check loaded cartons, remainder and validation. Review the 3D and orthographic views, then download the PDF or export coordinates."],
     ],
   },
@@ -98,7 +98,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "space", category: "setup", target: "setup",
     title: ["选柜型、核对门洞和自定义装载空间", "Choose a vehicle, check the door and save a custom space"],
-    path: ["装载配置 → 集装箱 / 车辆 → 装载空间库", "Loading setup → Container / vehicle → Space library"],
+    path: ["装载空间 → 集装箱 / 车辆 → 装载空间库", "Load space → Container / vehicle → Space library"],
     keywords: "40HQ 40GP 20GP 货车 柜门 门宽 门高 安全间隙 净高 内尺寸 浏览装载空间库 container dimensions clearance door",
     steps: [
       ["选常用预设，或打开「装载空间库」选择货车、集装箱及已有自定义空间。", "Choose a common preset or open Space library to select a truck, container or saved custom space."],
@@ -107,9 +107,9 @@ export const guideTopics: readonly GuideTopic[] = [
     ],
   },
   {
-    id: "workflow", category: "setup", target: "products",
+    id: "workflow", category: "setup", target: "setup",
     title: ["选择直接装箱、只打托或先打托后装箱", "Choose direct loading, pallet-only or palletize then load"],
-    path: ["货物清单 → 计算模式", "Cargo manifest → Calculation mode"],
+    path: ["装载空间 → 计算模式", "Load space → Calculation mode"],
     keywords: "装载方式 装载模式 底层铺托 落地托盘 只打托不装箱 先打托后装箱 单品最大装柜 direct load floor pallet",
     steps: [
       ["只需散箱入柜时选「直接装箱」。需要固定的底层托盘时，在第二步配置这些底座。", "Choose Direct load for loose cartons. Configure floor pallets in step two if the load needs fixed bases."],
@@ -120,10 +120,10 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "auto-pallet", category: "setup", target: "recipe",
     title: ["几箱一托、自动尺寸与微调预览", "Size a pallet by carton count and fine-tune the preview"],
-    path: ["装载配置 → 按箱数自动打托", "Loading setup → Pallet sizing by carton count"],
+    path: ["货物与托内布置 → 按箱数自动打托", "Cargo & layout → Pallet sizing by carton count"],
     keywords: "自动打托 几箱一托 多少箱一托 每托箱数 每托装几箱 自动生成打托尺寸 推荐尺寸 重新建议尺寸 打托预览 微调 cartons per pallet recipe pallet sizing",
     steps: [
-      ["先在货物清单选「先打托后装箱」或「只打托不装箱」。进入装载配置，选适用规格和需要预览的 SKU 或整套货物。", "Choose Palletize then load or Palletize only. In setup, choose the packaging specification and the SKU or kit to preview."],
+      ["在「装载空间」选「先打托后装柜」或「只打托」。选好打托包装后，在「货物与托内布置」选择要预览的 SKU 或整套货物。", "Choose Palletize then load or Palletize only under Load space. Pick the packaging, then choose the SKU or kit to preview under Cargo & layout."],
       ["填「每托箱数」，查看自动生成的整托外尺寸、箱数、层数和毛重，再比对底层俯视与堆码侧视。", "Enter Cartons per pallet. Review the suggested loaded dimensions, carton count, layers, gross weight, bottom plan and elevation."],
       ["实际规格不同就点「微调打托尺寸」，输入长宽、底座高和托内净高。达到目标箱数后点「采用打托方案」，再开始计算。", "Use Fine-tune pallet dimensions to enter measured length, width, deck and cargo height. When the target fits, apply the design and calculate."],
     ],
@@ -132,7 +132,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "whole-preview", category: "setup", target: "pallet-preview",
     title: ["整体打托预览与装柜前 3D 托内编辑", "Preview all pallets and edit them in 3D before loading"],
-    path: ["装载配置 → 打托预览与编辑", "Loading setup → Pallet preview & edits"],
+    path: ["货物与托内布置 → 打托预览与编辑", "Cargo & layout → Pallet preview & edits"],
     keywords: "生成整体打托预览 木箱对比 空木箱 整托预览 实装预览 托盘清单 尾托 3D托内编辑 装柜前移动 拖拽 人工摆放 应用托内布置 prepared manifest preview drag move cartons complete pallet loads manual layout",
     steps: [
       ["先采用自动打托方案，或填好实际包装尺寸、承重及库存。对照右侧模型的外尺寸和可用内部尺寸。", "Apply the pallet design or enter actual packaging dimensions, payload and stock. Check exterior and interior dimensions beside the empty model."],
@@ -145,7 +145,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "stack-pallets", category: "setup", target: "packaging",
     title: ["整托上下堆叠与只装一层排查", "Stack complete pallets and diagnose a single tier"],
-    path: ["装载配置 → 已采用规格的整托堆叠 / 装箱方案 → 装载诊断与补货试算", "Loading setup → Stacking for the saved specification / Loading plan → Loading diagnosis and replenishment trials"],
+    path: ["货物与托内布置 → 已采用规格的整托堆叠 / 装箱方案 → 装载诊断与补货试算", "Cargo & layout → Stacking for the saved specification / Loading plan → Loading diagnosis and replenishment trials"],
     keywords: "只装底下一层 货只在底下一层 只装一层 装一层 装柜只有一层 柜里明明有空间却放不进第二层 怎么叠托 堆叠不上 托不能上下叠 整托上下堆叠 托内限高 18箱 16箱 上压 pallet stacking tiers one layer",
     steps: [
       ["区分托内纸箱层数和柜内整托层数。先在打托侧视确认每托箱数与托内净高，再展开「已采用规格的整托堆叠」。", "Separate carton layers inside a pallet from whole-pallet tiers in the vehicle. Check the pallet elevation and cargo ceiling, then open the saved stacking settings."],
@@ -157,7 +157,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "multiple-specs", category: "setup", target: "packaging",
     title: ["多规格包装、库存和尾托选择", "Multiple packaging specs, inventory and tail units"],
-    path: ["装载配置 → 包装规格与堆叠规则", "Loading setup → Packaging specifications and stacking rules"],
+    path: ["打托包装 → 选择包装规格", "Packaging → Choose packaging specifications"],
     keywords: "新增包装规格 包装比选 包装库存 生成托盘上限 适用货物 SKU priority stock compact packaging mixed pallet",
     steps: [
       ["新增规格后命名，填每种可用数量，展开「适用货物」核对可用 SKU。0 个可用表示保留规格供查看。", "Name each new spec and enter its stock. Check Eligible products. A spec with zero availability remains visible for reference."],
@@ -168,10 +168,10 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "crate", category: "setup", target: "packaging",
     title: ["木箱、箱盖、外尺寸与包装模板", "Configure a crate, lid, exterior dimensions and templates"],
-    path: ["装载配置 → 包装规格与堆叠规则 → 包装结构", "Loading setup → Packaging specifications and stacking rules → Packaging structure"],
+    path: ["货物与托内布置 → 包装规格与堆叠规则 → 包装结构", "Cargo & layout → Packaging specifications and stacking rules → Packaging structure"],
     keywords: "定制木箱 框架木箱 条板 封板 围板 箱盖 内部净高 外部总高 木箱模板 pallet crate lid frame",
     steps: [
-      ["在「围护结构」选择实物类型，填写外长、外宽、围板或框架厚度、底座高，勾选是否有箱盖。", "Choose the actual enclosure. Enter exterior length and width, wall/frame thickness and deck height, and set the lid option."],
+      ["选底座和围护预设。按实物填写外长、外宽、围板或横档高度、底座高度以及独立盖板厚度。", "Choose base and enclosure presets. Enter actual exterior dimensions, collar or rail height, base height and independent lid thickness."],
       ["录入「木箱内部净高」或实际外部总高。对照右侧模型及可用内部尺寸，核对底座、货物和箱盖总高。", "Enter interior clear height or measured total exterior height. Check the model and usable interior, including deck, cargo and lid."],
       ["按实物填写包装总自重和每托承重。常用结构可填写模板名并「保存模板」。", "Enter actual packaging tare and payload. Name and save a template for frequently reused structures."],
     ],
@@ -179,7 +179,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "feet", category: "setup", target: "packaging",
     title: ["托脚、无底板、进叉净空与托内支承件", "Pallet feet, open undersides, fork clearance and supports"],
-    path: ["装载配置 → 包装规格 → 底座实测与托盘载荷资料 / 托内实心支承件", "Loading setup → Packaging specs → Measured base and pallet load data / Solid supports inside packaging"],
+    path: ["货物与托内布置 → 包装规格 → 底座实测与托盘载荷资料 / 托内实心支承件", "Cargo & layout → Packaging specs → Measured base and pallet load data / Solid supports inside packaging"],
     keywords: "托脚 托盘脚 四角脚 四角承压脚 叉车 进叉 叉孔 叉槽 底梁 无底板 单面托 垫木 支撑条 长条箱 bearing fork interface feet deck supports",
     steps: [
       ["选择符合实物的墩式、纵梁、实心底板或四角承压脚。按实物设置托盘底板结构和面板、底梁数量。", "Choose the actual block, stringer, solid base or four-foot design. Set the underside and board/runner counts to match the real pallet."],
@@ -190,7 +190,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "crate-bearing", category: "setup", target: "packaging",
     title: ["木箱额定资料、四角承压与叠放预检", "Crate ratings, corner contact and stacking preflight"],
-    path: ["装载配置 → 木箱额定资料与支承区 / 方案工具 → 装载优化 → 木箱叠放预检", "Loading setup → Crate ratings and bearing zones / Plan tools → Load optimization → Crate stack preflight"],
+    path: ["货物与托内布置 → 木箱额定资料与支承区 / 方案工具 → 装载优化 → 木箱叠放预检", "Cargo & layout → Crate ratings and bearing zones / Plan tools → Load optimization → Crate stack preflight"],
     keywords: "木箱叠放 角脚 四角路径 联合承托 上压承重 额定来源 木箱额定 匹配支承面 crate stack bearing preflight",
     steps: [
       ["在包装规格展开「木箱额定资料与支承区」。以实测资料填写承重区域、额定上压和来源，并核对允许的叠放规则。", "Open Crate ratings and bearing zones for the specification. Enter actual bearing areas, rated load and its source, and review permitted stacking."],
@@ -201,7 +201,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "loose", category: "setup", target: "packaging",
     title: ["整托与散箱混装、预留整套尾数", "Mix complete pallet loads and reserved loose cartons"],
-    path: ["装载配置 → 包装规格与堆叠规则 → 整托与散箱混装", "Loading setup → Packaging specifications and stacking rules → Complete units and loose cartons"],
+    path: ["货物与托内布置 → 包装规格与堆叠规则 → 整托与散箱混装", "Cargo & layout → Packaging specifications and stacking rules → Complete units and loose cartons"],
     keywords: "散装预留 散货 零散箱 拆托 尾数 尾箱 混装 loose cartons reservation",
     steps: [
       ["选「先打托后装箱」并展开「整托与散箱混装」。按 SKU 填写计划留作散装的箱数。", "Choose Palletize then load and expand Complete units and loose cartons. Enter the loose reservation per SKU."],
@@ -212,7 +212,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "obstacles", category: "setup", target: "setup",
     title: ["柜内障碍、禁占区与固定附件", "Vehicle obstacles, keep-clear zones and securing accessories"],
-    path: ["装载配置 → 柜内障碍与禁占区 / 整柜附件与固定预留", "Loading setup → Obstacles and keep-clear regions / Container accessories and securing reservations"],
+    path: ["装载空间 → 柜内障碍与禁占区 / 整柜附件与固定预留", "Load space → Obstacles and keep-clear regions / Container accessories and securing reservations"],
     keywords: "轮包 冷机 台阶 障碍 禁占区 绑扎 气袋 干燥剂 挡木 垫料 防潮 实心支承 静载上限 安装依赖 obstacle securing dunnage desiccant floor support",
     steps: [
       ["按柜头、左壁、地板为原点，录入轮包或其他柜内障碍及必须留空区域的尺寸与坐标。", "Record obstacle and keep-clear dimensions from the container nose, left wall and floor."],
@@ -224,7 +224,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "rules", category: "setup", target: "rules",
     title: ["填充布局、搜索深度与底部承托比例", "Filling layout, search depth and bottom support"],
-    path: ["装载配置 → 装载规则", "Loading setup → Loading rules"],
+    path: ["货物与托内布置 → 装载规则", "Cargo & layout → Loading rules"],
     keywords: "承托面积 承托比例 深度搜索 纵深优先 逐层填充 大件优先 小件优先 现场易执行 高密度参考 support ratio search depth",
     steps: [
       ["通常先用自动布局和智能搜索。需要对比纵向或逐层装载时，选择相应布局后分别计算。", "Begin with automatic layout and smart search. To compare longitudinal or layer filling, select the layout and calculate each option."],
@@ -246,7 +246,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "targets", category: "setup", target: "setup",
     title: ["按体积和载重目标倒推数量", "Estimate order quantities from volume and payload targets"],
-    path: ["装载配置 → 计算偏好与计划目标", "Loading setup → Solver preferences and planning targets"],
+    path: ["货物与托内布置 → 计算偏好与计划目标", "Cargo & layout → Solver preferences and planning targets"],
     keywords: "目标利用率 体积倒推 载重倒推 计划量 经验装载率 单品最大量 统一建议 算术数量 target utilization arithmetic plan",
     steps: [
       ["展开「计算偏好与计划目标」，录入目标体积利用率和目标载重利用率，比较两个倒推值。", "Expand Solver preferences and planning targets. Enter target volume and payload utilization and compare the estimates."],
@@ -337,7 +337,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "copy-pallet-layout", category: "optimize", target: "pallet-preview",
     title: ["批量套用托内摆放", "Copy pallet layout in bulk"],
-    path: ["装载配置 → 打托预览与编辑 → 3D 托内编辑", "Loading setup → Pallet preview & edits → Edit pallet in 3D"],
+    path: ["货物与托内布置 → 打托预览与编辑 → 3D 托内编辑", "Cargo & layout → Pallet preview & edits → Edit pallet in 3D"],
     keywords: "批量套用托内摆放 批量复制托内布局 整托复制 同规格套用 多托同步 一托复制多托 copy pallet layout duplicate pallet positions bulk pallet",
     steps: [
       ["打开一托，移动或旋转箱体并验证。展开「批量套用托内摆放」。", "Open a pallet, move or rotate its cartons and validate the edits. Expand Copy pallet layout in bulk."],
@@ -350,7 +350,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "refill-pallet", category: "optimize", target: "pallet-preview",
     title: ["单托自动补货与新增箱位预览", "Automatic pallet refill and placement preview"],
-    path: ["装载配置 → 打托预览与编辑 → 3D 托内编辑；或装箱方案 → 整托清单 → 托盘编号", "Loading setup → Pallet preview & edits → Edit pallet in 3D, or Loading plan → Pallet manifest → Pallet ID"],
+    path: ["货物与托内布置 → 打托预览与编辑 → 3D 托内编辑；或装箱方案 → 整托清单 → 托盘编号", "Cargo & layout → Pallet preview & edits → Edit pallet in 3D, or Loading plan → Pallet manifest → Pallet ID"],
     keywords: "单托自动补货 托内自动补货 订单余量补箱 自动找箱位 余货 自动补一套 托盘空位 pallet refill top up unassigned stock complete kit",
     steps: [
       ["选择要补货的托盘，启用托内编辑，点「预览本托自动补货」。系统按包装规格和剩余箱数搜索订单余量，套装按整套补入。", "Select the pallet, enable editing and choose Preview automatic pallet refill. The search respects packaging and carton allowances and only adds complete kits."],
@@ -362,7 +362,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "order-pallet-reduction", category: "optimize", target: "pallet-preview",
     title: ["全单自动减托与已入柜减托", "Consolidate order pallets or loaded pallets"],
-    path: ["装载配置 → 整体打托预览 → 全单自动减托；或装箱方案 → 已入柜减托", "Loading setup → Complete pallet preview → Consolidate order pallets, or Loading plan → Consolidate loaded pallets"],
+    path: ["货物与托内布置 → 整体打托预览 → 全单自动减托；或装箱方案 → 已入柜减托", "Cargo & layout → Complete pallet preview → Consolidate order pallets, or Loading plan → Consolidate loaded pallets"],
     keywords: "全单自动减托 整单减托 自动合并尾托 托盘减重 已入柜减托 释放多托 pallet reduction order consolidation fewer pallets",
     steps: [
       ["生成整体打托预览后，点「全单自动减托」。已经装柜时，从结果工具栏点「已入柜减托」，试排当前方案中的托盘。", "Generate the complete pallet preview and choose Consolidate order pallets. After loading, choose Consolidate loaded pallets in the results toolbar to search the current plan."],
@@ -374,7 +374,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "consolidate-pallets", category: "optimize", target: "pallet-preview",
     title: ["跨托联合重排与尾托合并", "Consolidate selected pallets and combine partial loads"],
-    path: ["装载配置 → 3D 托内编辑；或装箱方案 → 整托清单 → 托盘编号", "Loading setup → Edit pallet in 3D, or Loading plan → Pallet manifest → Pallet ID"],
+    path: ["货物与托内布置 → 3D 托内编辑；或装箱方案 → 整托清单 → 托盘编号", "Cargo & layout → Edit pallet in 3D, or Loading plan → Pallet manifest → Pallet ID"],
     keywords: "跨托联合重排 跨托重排 尾托合并 减少托盘 释放一托 合并余托 重新分配托内货物 multi pallet consolidation combine partial pallets reduce pallet count",
     steps: [
       ["打开「跨托联合重排」，勾选 1–5 张要与当前托一起试排的托盘。可以按托号、SKU 或包装名称搜索。", "Open Consolidate selected pallets. Select one to five pallets to trial alongside the current unit. Search by pallet ID, SKU or packaging name."],
@@ -508,7 +508,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "engineering", category: "delivery", target: "delivery",
     title: ["地板载荷、配重、静态轴荷和整托实测", "Floor load, balance, static axle loads and measured units"],
-    path: ["装载配置 → 地板载荷与配重约束 / 方案工具 → 交付与现场 → 整托实测与静态轴荷复核", "Loading setup → Floor load and balance limits / Plan tools → Delivery & field work → Measured units and static axle review"],
+    path: ["货物与托内布置 → 地板载荷与配重约束 / 方案工具 → 交付与现场 → 整托实测与静态轴荷复核", "Cargo & layout → Floor load and balance limits / Plan tools → Delivery & field work → Measured units and static axle review"],
     keywords: "轴荷 铰接 车辆轴组 分轴载荷 地板承重 偏载 重心 配重 实测整托 外包络 static axle floor load",
     steps: [
       ["按实测或车辆额定资料录入地板载荷与配重限制，生成方案后核对异常区域。", "Enter floor load and balance limits from measured or rated vehicle data, then check affected zones after calculation."],

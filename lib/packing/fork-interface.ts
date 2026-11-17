@@ -1,4 +1,4 @@
-import {DEFAULT_PACKAGING,packagingParts,parsePackaging,validateBaseMeasurements,type PackagingPart} from "./packaging";
+import {DEFAULT_PACKAGING,packagingGeometryOptions,packagingParts,parsePackaging,validateBaseMeasurements,type PackagingPart} from "./packaging";
 import {siteExclusionBoxes} from "./site-exclusions";
 import {bodiesOverlap} from "./cargo-body";
 import type {FloorPalletConfig,PackingResult,PlacedBox,PlacedPallet} from "./types";
@@ -29,7 +29,7 @@ export function parseForkInterface(value:unknown):ForkInterface{
 /** This is a review bookmark, not a signed attestation or a strength certificate. */
 export function forkEvidenceKey(c:FloorPalletConfig,p=c.forkInterface??emptyForkInterface(c)){
  const spec=c.packaging??DEFAULT_PACKAGING;
- return JSON.stringify({model:FORK_MODEL_VERSION,dimensions:[c.length,c.width,c.height,c.maxCargoHeight??0,c.weight,c.maxLoad],structure:{base:spec.base,...(spec.bottomDeck==="none"?{bottomDeck:"none"}:{}),enclosure:spec.enclosure,material:spec.material,deckBoards:spec.deckBoards,runners:spec.runners,wallThickness:spec.wallThickness,lid:spec.lid,measurements:spec.measurements?{...spec.measurements,source:spec.measurements.source.trim(),revision:spec.measurements.revision.trim()}:null},probe:{...parseForkInterface(p),reviewedFor:undefined}});
+ return JSON.stringify({model:FORK_MODEL_VERSION,dimensions:[c.length,c.width,c.height,c.maxCargoHeight??0,c.weight,c.maxLoad],structure:{base:spec.base,...(spec.bottomDeck&&spec.bottomDeck!=="runners"?{bottomDeck:spec.bottomDeck}:{}),enclosure:spec.enclosure,material:spec.material,deckBoards:spec.deckBoards,runners:spec.runners,wallThickness:spec.wallThickness,lid:spec.lid,...packagingGeometryOptions(spec),measurements:spec.measurements?{...spec.measurements,source:spec.measurements.source.trim(),revision:spec.measurements.revision.trim()}:null},probe:{...parseForkInterface(p),reviewedFor:undefined}});
 }
 export function forkEvidenceReady(c:FloorPalletConfig,p=c.forkInterface){try{validateBaseMeasurements(c.length,c.width,c.height,c.packaging);return !!(p&&c.packaging?.measurements?.source.trim()&&c.packaging.measurements.revision.trim()&&p.source.trim()&&p.revision.trim()&&p.reviewedFor===forkEvidenceKey(c,p));}catch{return false;}}
 export type ForkWindow={lateral:number;z:number;width:number;height:number};

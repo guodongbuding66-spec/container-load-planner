@@ -15,6 +15,14 @@ type Props={
 
 const displayNumber=(value:number)=>value.toLocaleString(undefined,{maximumFractionDigits:1});
 
+const DIAGNOSTICS = {
+  compatibility:["规格适用 SKU 或混托规则不匹配","SKU eligibility or mix rules exclude receivers"],
+  count:["接收托的剩余箱数上限不足","Too few carton slots on receiving pallets"],
+  payload:["接收托的剩余额定载荷不足","Insufficient remaining pallet payload"],
+  space:["按净长、宽、高和门洞估算的接收空间不足","Insufficient estimated interior space after height and door limits"],
+  layout:["仍需通过摆放、承托和整单校验","Layout, support or full-plan verification still needed"],
+} as const;
+
 export function PalletOrderConsolidationButton(props:Props){
   useLanguage();
   const [open,setOpen]=useState(false);
@@ -87,6 +95,13 @@ function PalletOrderConsolidationDialog({plan,products,disabled,preparation,onAd
         </details>
         <div className="upgrade-actions"><button type="button" className="button primary" disabled={blocked||preview.running} onClick={useDraft}>{tr("将减托结果写入草稿","Use pallet reduction in draft")}</button></div>
       </>}
+      {!candidate&&preview.result?.diagnostics&&<section className="order-consolidation-diagnostics">
+        <h3>{tr("本轮候选托排查","Checks on candidate pallets")}</h3>
+        {Object.keys(preview.result.diagnostics).length>0?<ul>{(Object.keys(DIAGNOSTICS) as (keyof typeof DIAGNOSTICS)[]).flatMap(key=>{
+          const count=preview.result?.diagnostics?.[key];
+          return count?[<li key={key}>{tr(DIAGNOSTICS[key][0],DIAGNOSTICS[key][1])} · {count} {tr("托","pallets")}</li>]:[];
+        })}</ul>:<p>{tr("本轮没有可释放的托盘。请检查锁定箱位及受保护的整托。","No pallets were eligible for release. Check locked cartons and protected pallets.")}</p>}
+      </section>}
       {preview.result?.budgetReached&&<p className="helper-text">{candidate
         ?tr(`已达到本轮搜索上限（每轮最多释放 ${MAX_ORDER_RELEASES} 托）。写入草稿后可继续试排。`,`This run reached its search limit (up to ${MAX_ORDER_RELEASES} pallets). Use this result in the draft to search again.`)
         :tr("已达到本轮搜索上限。可在托内编辑中选几张尾托联合重排。","This run reached its search limit. Try consolidating a few selected tail pallets in the pallet editor.")}</p>}

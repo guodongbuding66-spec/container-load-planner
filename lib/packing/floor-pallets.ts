@@ -6,7 +6,7 @@ import {availablePackingVolume,siteExclusionBoxes,SITE_EXCLUSION_PREFIX} from ".
 import { parseCrateBearing } from "./crate-bearing";
 import type { ContainerSpec, FloorPalletConfig, PlacedBox, PlacedPallet, ProductInput } from "./types";
 
-import { parsePackaging, packagingInterior, packagingReservedVolume, validateBaseMeasurements,validateDeckSupports } from "./packaging";
+import { parsePackaging, packagingInterior, packagingRailCount, packagingReservedVolume, validateBaseMeasurements,validateDeckSupports } from "./packaging";
 import { bodyContactArea, bodyTopLevels } from "./cargo-body";
 
 export const PALLET_PRODUCT_ID = "__floor-pallet__";
@@ -22,7 +22,11 @@ export function parseFloorPalletConfig(value: unknown): FloorPalletConfig {
   if (v.maxCargoHeight !== undefined && (typeof v.maxCargoHeight !== "number" || !Number.isFinite(v.maxCargoHeight) || v.maxCargoHeight < 0 || v.maxCargoHeight > 100000)) throw new Error("托盘货物限高必须为 0–100000 mm；0 表示按柜高及门洞自动限制。");
   const packaging=v.packaging===undefined?undefined:parsePackaging(v.packaging);
   validateBaseMeasurements(Number(v.length),Number(v.width),Number(v.height),packaging);
-  if(packaging){const inner=packagingInterior({...v,packaging} as FloorPalletConfig);if(inner.length<1||inner.width<1||inner.crate&&!Number(v.maxCargoHeight))throw new Error("木箱壁厚或内高无效 / Invalid crate wall thickness or inner height");}
+  if(packaging){
+    const inner=packagingInterior({...v,packaging} as FloorPalletConfig);
+    if(inner.length<1||inner.width<1||inner.crate&&!Number(v.maxCargoHeight))throw new Error("木箱壁厚或内高无效 / Invalid crate wall thickness or inner height");
+    if((packaging.enclosure==="slatted"||packaging.enclosure==="frame")&&packaging.railHeight&&packaging.railHeight*packagingRailCount(packaging)>Number(v.maxCargoHeight))throw Error("横档总高度超过围护净高 / Rails exceed the available enclosure height");
+  }
   const parsed:FloorPalletConfig={ ...(v.forkInterface===undefined?{}:{forkInterface:parseForkInterface(v.forkInterface)}), ...(v.crateBearing===undefined?{}:{crateBearing:parseCrateBearing(v.crateBearing)}), ...(packaging?{packaging}:{}), presetId: v.presetId as string, name: v.name as string, length: v.length as number, width: v.width as number, height: v.height as number, weight: v.weight as number, maxLoad: v.maxLoad as number, count: v.count as number, gap: v.gap as number, layout: v.layout as FloorPalletConfig["layout"], allowFloorCargo: v.allowFloorCargo, ...(v.maxCargoHeight === undefined ? {} : {maxCargoHeight:v.maxCargoHeight as number}) };
   if(v.unitStacking!==undefined)parsed.unitStacking=parseUnitStacking(v.unitStacking);
   validateDeckSupports(parsed);return parsed;

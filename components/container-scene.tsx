@@ -7,8 +7,9 @@ import { cargoShapeOf } from "../lib/packing/cargo-shape";
 import { cargoShapeGeometry } from "../lib/packing/cargo-shape-geometry";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Box, DoorOpen, Eye, ScanLine, ImageDown, RotateCcw, Ruler, Settings2, Tag } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useImperativeHandle, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import * as THREE from "three";
+import type { RefObject } from "react";
 import { boxFaceTexture, CargoSurfaceLabels, MetricLabel, PalletStructures, SelectionOutline, useShippingMarkCanvas } from "./scene-details";
 import { SceneDimensions } from "./scene-dimensions";
 import { DimensionControls } from "./dimension-controls";
@@ -49,6 +50,7 @@ import { SceneMeasurement } from "./scene-measurement";
 import { SectionGeometry } from "./section-geometry";
 
 type Props = {
+  locateRef?: RefObject<((id:string)=>void)|null>;
   editor?:PlanEditor;
   products?:ProductInput[];
   onAdopt?:(plan:PackingResult)=>void;
@@ -235,6 +237,7 @@ export function ContainerScene({
   visibleProducts,
   visibleCount,
   onVisibleCountChange,
+  locateRef,
   cameraView,
   projectionMode,
   onCameraViewChange,
@@ -297,6 +300,19 @@ export function ContainerScene({
     clearSelection();
     inspection.update({ section: { ...EMPTY_SECTION, isolation, target } });
   };
+  useImperativeHandle(locateRef,()=>id=>{
+    if(!result||editor?.enabled)return;
+    const pallet=result.pallets?.find(item=>item.id===id);
+    const target=pallet?palletAnchors([pallet])[0]:result.placements.find(item=>item.id===id);
+    if(!target)return;
+    inspection.update({ section:EMPTY_SECTION });
+    setSelectPallets(!!pallet);
+    setSelection({planId:result.id,box:target});
+    setTool("inspect");
+    setFocusId(id);
+    onCameraViewChange("perspective");
+    onProjectionModeChange("perspective");
+  },[result,editor,inspection,onCameraViewChange,onProjectionModeChange]);
   const focus = useMemo(() => {
     if (!result) return;
     const bounds = isolated ? isolatedBounds(result, section, inspection.displayBoxes, inspection.displayPallets)

@@ -17,7 +17,7 @@ export function useRecordPage<T extends {search:string}>(records:T[],size=12) {
   const current=Math.min(page,pageCount-1);
   const start=current*size;
   return {query,changeQuery:(value:string)=>{setQuery(value);setPage(0);},page:current,setPage,pageCount,
-    count:matches.length,total:records.length,start,end:Math.min(start+size,matches.length),rows:matches.slice(start,start+size)};
+    count:matches.length,total:records.length,matches,start,end:Math.min(start+size,matches.length),rows:matches.slice(start,start+size)};
 }
 
 export function RecordPageControls({page,label,placeholder}:{page:ReturnType<typeof useRecordPage>;label:string;placeholder:string}) {

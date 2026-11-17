@@ -33,6 +33,7 @@ const diagnosticPatterns = Object.entries(ENGLISH)
 
 /** Solver messages stay language-neutral in saved plans; localize on display. */
 export function translateDiagnostic(value: string, language: UiLanguage, depth = 0): string {
+  if (language === "zh" && value === "Cargo exceeds its loose or palletized allocation / 箱数超过散装或打托分配") return "箱数超过散装或打托分配";
   const exact = translateUi(value, language);
   if (language !== "en" || exact !== value || !/[\u3400-\u9fff]/.test(value) || depth > 3) return exact;
   for (const { pattern, english, indices } of diagnosticPatterns) {

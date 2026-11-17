@@ -9,7 +9,8 @@ export const CONTAINER_PRESETS: ContainerSpec[] = [
     height: 2395,
     doorWidth: 2340,
     doorHeight: 2292,
-    maxWeight: 30130,
+    // Hapag-Lloyd 20' Standard fleet example, matching the dimensions above.
+    maxWeight: 28130,
   },
   {
     id: "40gp",

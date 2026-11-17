@@ -8,8 +8,11 @@ export type BaseMeasurements = {
 
 export type PackagingSpec = {
   base: "block" | "stringer" | "solid" | "corner-feet";
+  /** Explicitly specified built-up base, including low-profile constructions. */
+  assembledBase?: true;
   /** Omitted means the legacy runner boards. No-bottom bases keep the full reserved envelope. */
-  bottomDeck?: "runners" | "none";
+  bottomDeck?: "runners" | "grid" | "none";
+  topDeck?: "solid";
   enclosure: "none" | "slatted" | "panel" | "frame";
   material: "wood" | "plywood" | "plastic" | "steel";
   color: string;
@@ -18,6 +21,10 @@ export type PackagingSpec = {
   runners: number;
   wallThickness: number;
   lid: boolean;
+  lidThickness?: number;
+  railCount?: number;
+  railHeight?: number;
+  panelSegments?: number;
   measurements?: BaseMeasurements;
   deckSupports?: import("./deck-support").DeckSupport[];
 };
@@ -40,38 +47,60 @@ export function validateBaseMeasurements(length:number,width:number,height:numbe
   if(spec.base==="solid"||t.deckThickness>=height||t.supportLength>length||t.supportWidth>width)throw Error("实测底座部件超出底座外包络");
   if(spec.base==="corner-feet"){
     if(2*t.supportLength>length||2*t.supportWidth>width)throw Error("实测角脚互相重叠");
-  }else if(spec.deckBoards*t.deckBoardWidth>width||spec.runners*t.supportWidth>width||t.deckThickness+t.bottomThickness+(spec.base==="block"?t.bearerThickness:0)>=height||spec.base==="block"&&3*t.supportLength>length)throw Error("实测面板、底梁或支承块重叠，或没有有效叉孔高度");
+  }else if(spec.topDeck!=="solid"&&spec.deckBoards*t.deckBoardWidth>width||spec.runners*t.supportWidth>width||t.deckThickness+t.bottomThickness+(spec.base==="block"?t.bearerThickness:0)>=height||spec.base==="block"&&3*t.supportLength>length)throw Error("实测面板、底梁或支承块重叠，或没有有效叉孔高度");
 }
-export const DEFAULT_PACKAGING: PackagingSpec = { base:"block", enclosure:"none", material:"wood", color:"#d4af7b", opacity:.65, deckBoards:5, runners:3, wallThickness:30, lid:true };
+export const DEFAULT_PACKAGING: PackagingSpec = { base:"block", enclosure:"none", material:"wood", color:"#d4af7b", opacity:1, deckBoards:5, runners:3, wallThickness:30, lid:true };
 export function parsePackaging(value: unknown): PackagingSpec {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid packaging structure");
   const p=value as PackagingSpec;
-  if(p.bottomDeck!==undefined&&!["runners","none"].includes(p.bottomDeck)||p.bottomDeck==="none"&&!["block","stringer"].includes(p.base))throw Error("底板结构无效 / Invalid bottom construction");
+  if(p.bottomDeck!==undefined&&!["runners","grid","none"].includes(p.bottomDeck)||p.bottomDeck&&p.bottomDeck!=="runners"&&!["block","stringer"].includes(p.base))throw Error("底板结构无效 / Invalid bottom construction");
   if (!["block","stringer","solid","corner-feet"].includes(p.base)||!["none","slatted","panel","frame"].includes(p.enclosure)||!["wood","plywood","plastic","steel"].includes(p.material)||!/^#[0-9a-f]{6}$/i.test(p.color)||typeof p.lid!=="boolean") throw new Error("Invalid packaging appearance");
   if (!Number.isFinite(p.opacity)||p.opacity<.05||p.opacity>1||!Number.isInteger(p.deckBoards)||p.deckBoards<2||p.deckBoards>12||!Number.isInteger(p.runners)||p.runners<2||p.runners>5||!Number.isFinite(p.wallThickness)||p.wallThickness<1||p.wallThickness>200) throw new Error("Invalid packaging dimensions");
-  return {base:p.base,...(p.bottomDeck==="none"?{bottomDeck:"none" as const}:{}),enclosure:p.enclosure,material:p.material,color:p.color.toLowerCase(),opacity:p.opacity,deckBoards:p.deckBoards,runners:p.runners,wallThickness:p.wallThickness,lid:p.lid,...(p.measurements===undefined?{}:{measurements:parseBaseMeasurements(p.measurements)}),...(p.deckSupports===undefined?{}:{deckSupports:parseDeckSupports(p.deckSupports)})};
+  if (p.topDeck!==undefined&&p.topDeck!=="solid") throw Error("顶板结构无效 / Invalid top deck construction");
+  if (p.panelSegments!==undefined&&(!Number.isInteger(p.panelSegments)||p.panelSegments<1||p.panelSegments>6)) throw Error("围板层数须为 1–6 / Collar count must be 1–6");
+  if (p.assembledBase !== undefined && p.assembledBase !== true) throw Error("底座结构不正确 / Invalid base construction");
+  if (p.railCount !== undefined && (!Number.isInteger(p.railCount) || p.railCount < 2 || p.railCount > 12)) throw Error("围护横档数量须为 2–12 / Enclosure rail count must be 2–12");
+  for (const field of ["lidThickness", "railHeight"] as const) {
+    const size=p[field];
+    if (size !== undefined && (!Number.isFinite(size) || size < 1 || size > 200)) throw Error("盖板厚度与横档高度须为 1–200 mm / Lid thickness and rail height must be 1–200 mm");
+  }
+  return {base:p.base,...(p.assembledBase?{assembledBase:true as const}:{}),...(p.bottomDeck&&p.bottomDeck!=="runners"?{bottomDeck:p.bottomDeck}:{}),...(p.topDeck?{topDeck:p.topDeck}:{}),enclosure:p.enclosure,material:p.material,color:p.color.toLowerCase(),opacity:p.opacity,deckBoards:p.deckBoards,runners:p.runners,wallThickness:p.wallThickness,lid:p.lid,...(p.lidThickness===undefined?{}:{lidThickness:p.lidThickness}),...(p.railCount===undefined?{}:{railCount:p.railCount}),...(p.railHeight===undefined?{}:{railHeight:p.railHeight}),...(p.panelSegments===undefined?{}:{panelSegments:p.panelSegments}),...(p.measurements===undefined?{}:{measurements:parseBaseMeasurements(p.measurements)}),...(p.deckSupports===undefined?{}:{deckSupports:parseDeckSupports(p.deckSupports)})};
+}
+function solidBase(spec:PackagingSpec,height:number) {
+  return spec.base==="solid"||height<50&&!spec.measurements&&!spec.assembledBase&&spec.base!=="corner-feet"&&(spec.bottomDeck??"runners")==="runners";
 }
 export function bottomDeckText(spec:PackagingSpec=DEFAULT_PACKAGING,height=144):[string,string]{
-  if(spec.base==="solid"||height<50&&!spec.measurements&&spec.base!=="corner-feet"&&spec.bottomDeck!=="none")return ["实心底座","Solid base"];
+  if(solidBase(spec,height))return ["实心底座","Solid base"];
   if(spec.base==="corner-feet")return ["四角承压脚","Four corner feet"];
+  if(spec.bottomDeck==="grid")return ["网格底板","Grid bottom boards"];
   return spec.bottomDeck==="none"?["无底板（单面型）","No bottom boards (single-deck)"]:["底部纵板","Bottom runner boards"];
 }
 /** No inferred tare or strength. Switching measured construction requires fresh provenance. */
-export function withBottomDeck(config:FloorPalletConfig,choice:"runners"|"none"):FloorPalletConfig{
+export function withBottomDeck(config:FloorPalletConfig,choice:NonNullable<PackagingSpec["bottomDeck"]>):FloorPalletConfig{
   const spec=config.packaging??{...DEFAULT_PACKAGING,opacity:1};
   if(!["block","stringer"].includes(spec.base))throw Error("底座不适用底板选项 / This base does not support a bottom-board option");
   if((spec.bottomDeck??"runners")===choice)return config;
   const next= parsePackaging({...spec,bottomDeck:choice,...(spec.measurements?{measurements:{...spec.measurements,bottomThickness:choice==="none"?0:config.height*22/144,source:"",revision:""}}:{})});
   return {...config,packaging:next};
 }
+export const packagingLidThickness = (spec?:PackagingSpec) => spec?.lid&&spec.enclosure!=="none" ? spec.lidThickness??spec.wallThickness : 0;
+export const packagingRailCount = (spec:PackagingSpec) => spec.railCount??(spec.enclosure==="frame"?2:5);
+export const packagingGeometryOptions = (spec?:PackagingSpec) => ({
+  ...(spec?.topDeck?{topDeck:spec.topDeck}:{}),
+  ...(spec?.panelSegments!==undefined?{panelSegments:spec.panelSegments}:{}),
+  ...(spec?.assembledBase?{assembledBase:true}:{}),
+  ...(spec?.lidThickness!==undefined?{lidThickness:spec.lidThickness}:{}),
+  ...(spec?.railCount!==undefined?{railCount:spec.railCount}:{}),
+  ...(spec?.railHeight!==undefined?{railHeight:spec.railHeight}:{}),
+});
 export function packagingInterior(c: FloorPalletConfig) {
-  const crate=!!c.packaging && c.packaging.enclosure!=="none", inset=crate?c.packaging!.wallThickness:0, lid=crate&&c.packaging!.lid?inset:0;
+  const crate=!!c.packaging && c.packaging.enclosure!=="none", inset=crate?c.packaging!.wallThickness:0, lid=packagingLidThickness(c.packaging);
   return {crate,inset,lid,length:c.length-2*inset,width:c.width-2*inset};
 }
 export function packagingHeight(c: FloorPalletConfig) { return c.height+(c.maxCargoHeight??0)+packagingInterior(c).lid; }
 export function packagingReservedVolume(p: PlacedPallet) {
   const t=p.packaging?.enclosure!=="none"&&p.enclosureHeight?p.packaging?.wallThickness??0:0;
-  const innerHeight=p.enclosureHeight? p.enclosureHeight-p.dz-(p.packaging?.lid?t:0):0;
+  const innerHeight=p.enclosureHeight ? p.enclosureHeight-p.dz-packagingLidThickness(p.packaging) : 0;
   const added=p.packaging?.deckSupports?.reduce((n,s)=>n+s.dx*s.dy*s.dz,0)??0;
   return added+p.dx*p.dy*p.dz+(t? p.dx*p.dy*(p.enclosureHeight!-p.dz)-(p.dx-2*t)*(p.dy-2*t)*innerHeight:0);
 }
@@ -80,6 +109,19 @@ export type PackagingPart={x:number;y:number;z:number;dx:number;dy:number;dz:num
 export function packagingParts(length:number,width:number,height:number,spec:PackagingSpec=DEFAULT_PACKAGING,cargoHeight=0):PackagingPart[] {
   const parts:PackagingPart[]=[], add=(x:number,y:number,z:number,dx:number,dy:number,dz:number,kind:PackagingPart["kind"]="board",tag:Pick<PackagingPart,"bearingRole"|"corner">={})=>parts.push({x,y,z,dx,dy,dz,kind,...tag});
   const t=height*22/144, n=spec.runners, rw=width*.42/n;
+  const addBottomCrosspieces=(thickness:number,runnerWidth:number)=>{
+    if(spec.bottomDeck!=="grid"||thickness<=0)return;
+    const gap=(width-n*runnerWidth)/(n-1);
+    const crossWidth=Math.min(length/3,spec.measurements?.supportLength??length*.12);
+    if(gap<=0)return;
+    for(const x of [0,(length-crossWidth)/2,length-crossWidth]){
+      for(let j=0;j<n-1;j++)add(x,j*(runnerWidth+gap)+runnerWidth,0,crossWidth,gap,thickness);
+    }
+  };
+  const addTopDeck=(thickness:number,boardWidth:number)=>{
+    if(spec.topDeck==="solid"){add(0,0,height-thickness,length,width,thickness);return;}
+    for(let i=0;i<spec.deckBoards;i++)add(0,i*(width-boardWidth)/(spec.deckBoards-1),height-thickness,length,boardWidth,thickness);
+  };
   if(spec.measurements){
     const m=spec.measurements;
     if(spec.base==="corner-feet"){
@@ -91,14 +133,14 @@ export function packagingParts(length:number,width:number,height:number,spec:Pac
         else for(let i=0;i<3;i++)add(i*(length-m.supportLength)/2,y,m.bottomThickness,m.supportLength,m.supportWidth,height-m.deckThickness-m.bearerThickness-m.bottomThickness,"block");
       }
       if(spec.base==="block")for(let i=0;i<3;i++)add(i*(length-m.supportLength)/2,0,height-m.deckThickness-m.bearerThickness,m.supportLength,width,m.bearerThickness);
-      const bw=m.deckBoardWidth;
-      for(let i=0;i<spec.deckBoards;i++)add(0,i*(width-bw)/(spec.deckBoards-1),height-m.deckThickness,length,bw,m.deckThickness);
+      addBottomCrosspieces(m.bottomThickness,m.supportWidth);
+      addTopDeck(m.deckThickness,m.deckBoardWidth);
     }
   }else if(spec.base==="corner-feet"){
     const foot=Math.min(spec.wallThickness,length/2,width/2),deck=Math.min(t,height/3);
     for(const [i,x] of [0,length-foot].entries())for(const [j,y] of [0,width-foot].entries())add(x,y,0,foot,foot,height-deck,"block",{bearingRole:"foot",corner:`L${i}W${j}` as PackagingPart["corner"]});
     add(0,0,height-deck,length,width,deck,"board",{bearingRole:"deck"});
-  }else if(spec.base==="solid"||height<50&&spec.bottomDeck!=="none")add(0,0,0,length,width,height);
+  }else if(solidBase(spec,height))add(0,0,0,length,width,height);
   else {
     const bottom=spec.bottomDeck==="none"?0:t;
     for(let j=0;j<n;j++){const y=j*(width-rw)/(n-1);if(bottom>0)add(0,y,0,length,rw,bottom);
@@ -106,38 +148,42 @@ export function packagingParts(length:number,width:number,height:number,spec:Pac
       else for(let i=0;i<3;i++)add(i*(length-length*.12)/2,y,bottom,length*.12,rw,height-2*t-bottom,"block");
     }
     if(spec.base==="block")for(let i=0;i<3;i++)add(i*(length-length*.12)/2,0,height-2*t,length*.12,width,t);
-    const bw=width*.84/spec.deckBoards;
-    for(let i=0;i<spec.deckBoards;i++)add(0,i*(width-bw)/(spec.deckBoards-1),height-t,length,bw,t);
+    addBottomCrosspieces(bottom,rw);
+    addTopDeck(t,width*.84/spec.deckBoards);
   }
   for(const s of spec.deckSupports??[])add(s.x,s.y,height,s.dx,s.dy,s.dz,"support");
   if(spec.enclosure!=="none"&&cargoHeight>0){
     const w=spec.wallThickness,h=cargoHeight;
     // Opposing side walls and inset end walls never enter the usable interior.
     if(spec.enclosure==="panel"){
-      for(const y of [0,width-w])add(0,y,height,length,w,h,"wall");
-      for(const x of [0,length-w])add(x,w,height,w,width-2*w,h,"wall");
+      const count=spec.panelSegments??1, panelHeight=h/count;
+      for(let level=0;level<count;level++){
+        const z=height+level*panelHeight;
+        for(const y of [0,width-w])add(0,y,z,length,w,panelHeight,"wall");
+        for(const x of [0,length-w])add(x,w,z,w,width-2*w,panelHeight,"wall");
+      }
     }else{
       for(const [i,x] of [0,length-w].entries())for(const [j,y] of [0,width-w].entries())add(x,y,height,w,w,h,"wall",{bearingRole:"post",corner:`L${i}W${j}` as PackagingPart["corner"]});
-      const count=spec.enclosure==="frame"?2:5, bh=Math.min(w,h/count*.65);
+      const count=packagingRailCount(spec), bh=spec.railHeight??Math.min(w,h/count*.65);
       for(let i=0;i<count;i++){const z=height+i*(h-bh)/(count-1);
         for(const y of [0,width-w])add(w,y,z,length-2*w,w,bh,"wall");
         for(const x of [0,length-w])add(x,w,z,w,width-2*w,bh,"wall");
       }
     }
-    if(spec.lid)add(0,0,height+h,length,width,w,"lid",{bearingRole:"cap"});
+    if(spec.lid)add(0,0,height+h,length,width,packagingLidThickness(spec),"lid",{bearingRole:"cap"});
   }
   return parts;
 }
 export function placedPackagingParts(p:PlacedPallet) {
   const cross=p.orientation==="WLH", l=cross?p.dy:p.dx,w=cross?p.dx:p.dy;
-  const spec=p.packaging??DEFAULT_PACKAGING, h=Math.max(0,(p.enclosureHeight??p.dz)-p.dz-(spec.enclosure!=="none"&&spec.lid?spec.wallThickness:0));
+  const spec=p.packaging??DEFAULT_PACKAGING, h=Math.max(0,(p.enclosureHeight??p.dz)-p.dz-packagingLidThickness(spec));
   return packagingParts(l,w,p.dz,spec,h).map(b=>{const r=rotateDeckRect(b,l,w,palletQuarterTurns(p));return {...r,x:p.x+r.x,y:p.y+r.y,z:p.z+b.z};});
 }
 /** Conservative reserved walls, including gaps in slatted and frame constructions. */
 export function packagingReservations(p:PlacedPallet) {
   const cross=p.orientation==="WLH", l=cross?p.dy:p.dx,w=cross?p.dx:p.dy,spec=p.packaging??DEFAULT_PACKAGING;
-  const h=Math.max(0,(p.enclosureHeight??p.dz)-p.dz-(spec.enclosure!=="none"&&spec.lid?spec.wallThickness:0));
-  return packagingParts(l,w,p.dz,{...spec,base:"solid",enclosure:spec.enclosure==="none"?"none":"panel"},h).map(b=>{const r=rotateDeckRect(b,l,w,palletQuarterTurns(p));return {...r,x:p.x+r.x,y:p.y+r.y,z:p.z+b.z};});
+  const h=Math.max(0,(p.enclosureHeight??p.dz)-p.dz-packagingLidThickness(spec));
+  return packagingParts(l,w,p.dz,{...spec,base:"solid",measurements:undefined,enclosure:spec.enclosure==="none"?"none":"panel",panelSegments:undefined},h).map(b=>{const r=rotateDeckRect(b,l,w,palletQuarterTurns(p));return {...r,x:p.x+r.x,y:p.y+r.y,z:p.z+b.z};});
 }
 /** A uniform-material estimate from the physical recipe; total tare is never duplicated. */
 export function packagingMassCenter(p:PlacedPallet):[number,number,number] {

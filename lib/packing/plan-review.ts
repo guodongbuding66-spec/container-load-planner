@@ -2,7 +2,7 @@ import {inspectDeckSupports} from "./deck-support";
 import {inspectAccessorySupports,hasAccessorySupports} from "./accessory-support";
 import {accessoryInstallationPlan} from "./container-accessories";
 import {inspectLongSupport,SUPPORT_ISSUES} from "./long-support";
-import { auditAccess } from "./access";
+import { auditAccess, type PathIssue } from "./access";
 import { bearingErrors, bearingStatus } from "./bearing";
 import { auditPackingResult, type ResultAudit } from "./result-audit";
 import type { PackingResult, ProductInput } from "./types";
@@ -14,6 +14,7 @@ export type ReviewCheck = {
   scope: [string, string];
   model: string;
   items: string[];
+  pathIssues?: PathIssue[];
 };
 export const REVIEW_TITLES: Record<ReviewCheck["id"], [string, string]> = {
   data: ["数据一致性", "Data consistency"], geometry: ["几何与放置约束", "Geometry and placement rules"],
@@ -57,7 +58,7 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
         : access.model === "open-access"
           ? ["检查开放装载面及卸货支撑顺序；具体装卸操作由现场安排。", "Checks open loading access and unloading support order; on-site teams arrange actual loading operations."]
           : ["检查货物最终位置直线通过后门及卸货支撑顺序；具体装卸操作由现场安排。", "Checks straight rear-door cargo travel at the final position and unloading support order; on-site teams arrange actual loading operations."],
-      model: access.model, items: access.issues.map(i => `${i.phase}/${i.id}: ${i.reason}${i.obstacles.length ? " (" + i.obstacles.join(", ") + ")" : ""}`) });
+      model: access.model, pathIssues: access.issues, items: access.issues.map(i => `${i.phase}/${i.id}: ${i.reason}${i.obstacles.length ? " (" + i.obstacles.join(", ") + ")" : ""}`) });
   }
   add({ id: "securing", state: empty ? "not-applicable" : "unverified", scope: ["尚未建立绑扎、挡木、气袋和制动工况模型，需现场确认固定方案。", "Lashings, blocking, airbags and braking conditions are not modeled; confirm a securing plan on site."], model: "not-modeled", items: [] });
   if(plan.pallets?.some(p=>p.packaging&&p.packaging.enclosure!=="none")){

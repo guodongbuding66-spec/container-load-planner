@@ -70,7 +70,7 @@ test("only auto-recalculates in the result step and hides stale visual data", as
   const calculationState = await readFile(new URL("../lib/packing/calculation-state.ts", import.meta.url), "utf8");
 
   assert.match(source, /AUTO_CALCULATE_DELAY_MS = 280/);
-  assert.match(source, /workflowStep !== 3/);
+  assert.match(source, /workflowStep !== 4/);
   assert.match(source, /const \[autoCalculate, setAutoCalculate\] = useState\(false\)/);
   assert.match(source, /window\.setTimeout\(calculate, AUTO_CALCULATE_DELAY_MS\)/);
   assert.match(source, /\(\) => dirty \? null : selectStrategyResult\(resultBundle, strategy\)/);
@@ -102,10 +102,10 @@ test("batches all dimension fields into one committed recalculation", async () =
   assert.match(source, /stageProductDimension\(product\.id, "width"/);
   assert.match(source, /stageProductDimension\(product\.id, "height"/);
   assert.match(source, /onFocusChange=\{handleDimensionFocusChange\}/);
-  assert.match(source, /workflowStep !== 3 \|\| manualRun \|\| status === "working" \|\| !autoCalculate \|\| !hydrated \|\| isEditingDimensions \|\| hasPendingDimensionChanges/);
+  assert.match(source, /workflowStep !== 4 \|\| manualRun \|\| status === "working" \|\| !autoCalculate \|\| !hydrated \|\| isEditingDimensions \|\| hasPendingDimensionChanges/);
   assert.match(source, /if \(!dirty && resultBundle\) return/);
   assert.match(source, /完成所有长、宽、高并离开尺寸输入区后，统一提交完整箱规/);
-  assert.match(source, /离开输入区后统一提交；第二步配置完成后再计算/);
+  assert.match(source, /离开尺寸字段后统一提交长、宽、高，再确认托内布置和计算/);
 });
 
 test("debounces draft persistence and recognizes a one-code multi-carton CSV as one product", async () => {
@@ -332,6 +332,7 @@ test("auto-calculates CBM and displays complete sets before carton details", asy
 
   assert.match(source, /<th>\{tr\("CBM 自动"\)\}<\/th>/);
   assert.match(source, /className="cbm-auto-value"/);
+  assert.match(source, /volumePending\?"—":roundedCbm/);
   assert.match(source, /精确值 "\)\}\{calculatedCbm\.toFixed\(4\)\}/);
   assert.doesNotMatch(source, /aria-label=\{`\$\{product\.sku\} 标称 CBM`\}/);
   assert.match(source, /reversePlan\.volumeLimitedDisplay/);

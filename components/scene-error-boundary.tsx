@@ -6,6 +6,7 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 type Props = {
   children: ReactNode;
   resetKey: string;
+  fallback?: ReactNode;
 };
 
 type State = {
@@ -31,6 +32,7 @@ export class SceneErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.failed) {
+      if (this.props.fallback) return this.props.fallback;
       return (
         <div className="scene-shell" role="region" aria-label={tr("三维装柜视图")}>
           <div className="scene-fallback" role="alert">

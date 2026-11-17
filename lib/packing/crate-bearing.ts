@@ -1,3 +1,4 @@
+import { packagingHeight, packagingGeometryOptions } from "./packaging";
 import type { FloorPalletConfig, PackingResult, PlacedPallet } from "./types";
 
 import { CRATE_CORNERS, crateStructure, type CrateCorner, type CrateRegion, type CrateStructure } from "./crate-structure";
@@ -32,7 +33,7 @@ export function parseCrateBearing(value:unknown):CrateBearingProfile {
   return {...(v.automaticStacking===undefined?{}:{automaticStacking:v.automaticStacking}),...(v.bridgeStacking?{bridgeStacking:true}:{}),policy:v.policy,revision:text(v.revision,120),source:text(v.source,500),conditions:text(v.conditions,2000),validUntil,allowedOrientations:[...v.allowedOrientations],maxTopLoadKg:number(v.maxTopLoadKg),maxLayers:v.maxLayers,columnCapacityKg:Object.fromEntries(CRATE_CORNERS.map(id=>[id,number(v.columnCapacityKg[id])])) as Record<CrateCorner,number>,reviewed:v.reviewed,reviewedFor:text(v.reviewedFor,32768)};
 }
 /** Exact geometry/version binding, not a security signature. Appearance and display name do not change it. */
-export function crateStructureKey(c:FloorPalletConfig){const s=c.packaging;return JSON.stringify({length:c.length,width:c.width,height:c.height,weight:c.weight,maxLoad:c.maxLoad,maxCargoHeight:c.maxCargoHeight??0,base:s?.base,...(s?.bottomDeck==="none"?{bottomDeck:"none"}:{}),enclosure:s?.enclosure,material:s?.material,deckBoards:s?.deckBoards,runners:s?.runners,wallThickness:s?.wallThickness,lid:s?.lid,...(s?.measurements?{measurements:{...s.measurements,source:s.measurements.source.trim(),revision:s.measurements.revision.trim()}}:{})});}
+export function crateStructureKey(c:FloorPalletConfig){const s=c.packaging;return JSON.stringify({length:c.length,width:c.width,height:c.height,weight:c.weight,maxLoad:c.maxLoad,maxCargoHeight:c.maxCargoHeight??0,base:s?.base,...(s?.bottomDeck&&s.bottomDeck!=="runners"?{bottomDeck:s.bottomDeck}:{}),enclosure:s?.enclosure,material:s?.material,deckBoards:s?.deckBoards,runners:s?.runners,wallThickness:s?.wallThickness,lid:s?.lid,...packagingGeometryOptions(s),...(s?.measurements?{measurements:{...s.measurements,source:s.measurements.source.trim(),revision:s.measurements.revision.trim()}}:{})});}
 export function crateEvidenceKey(c:FloorPalletConfig,p=c.crateBearing??emptyCrateBearing()) {return JSON.stringify({model:"four-corner-paths-v1",...(p.automaticStacking?{automaticStacking:true}:{}),...(p.bridgeStacking?{bridgeStacking:true}:{}),structure:crateStructureKey(c),policy:p.policy,revision:p.revision.trim(),source:p.source.trim(),conditions:p.conditions.trim(),validUntil:p.validUntil,allowedOrientations:[...p.allowedOrientations].sort(),maxTopLoadKg:p.maxTopLoadKg,maxLayers:p.maxLayers,columnCapacityKg:CRATE_CORNERS.map(id=>p.columnCapacityKg[id])});}
 export type CrateEvidenceState="unverified"|"prohibited"|"ready";
 export type CrateReason="selection"|"missing"|"prohibited"|"unsupported"|"source"|"expired"|"stale"|"ratings"|"orientation"|"contact"|"top-load"|"column-load"|"layers"|"payload"|"geometry";
@@ -74,7 +75,7 @@ export function reviewCrateStack(units:readonly CrateReviewUnit[],today=new Date
   for(let i=units.length-1;i>=0;i--){
     const {pallet:p,config:c,cargoKg}=units[i],e=crateEvidence(c,today),profile=c.crateBearing??emptyCrateBearing(),gross=p.weight+cargoKg;
     for(const code of e.reasons)issues.push({unitId:p.id,code});
-    const height=c.height+(c.maxCargoHeight??0)+(c.packaging?.lid?c.packaging.wallThickness:0),expected=p.orientation==="WLH"?[c.width,c.length]:[c.length,c.width];
+    const height=packagingHeight(c),expected=p.orientation==="WLH"?[c.width,c.length]:[c.length,c.width];
     if(![p.x,p.y,p.z,p.dx,p.dy,p.dz,p.weight,cargoKg].every(Number.isFinite)||cargoKg<0||p.weight<0||p.dx!==expected[0]||p.dy!==expected[1]||p.dz!==c.height||p.weight!==c.weight||p.maxLoad!==c.maxLoad||JSON.stringify(p.packaging)!==JSON.stringify(c.packaging)||p.enclosureHeight!==height||!["LWH","WLH"].includes(p.orientation)||i===0&&Math.abs(p.z)>EPS)issues.push({unitId:p.id,code:"geometry"});
     if(cargoKg>c.maxLoad+EPS)issues.push({unitId:p.id,code:"payload"});
     if(e.state==="ready"&&!profile.allowedOrientations.includes(p.orientation))issues.push({unitId:p.id,code:"orientation"});
