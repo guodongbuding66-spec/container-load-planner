@@ -434,7 +434,8 @@ export function PackingApp() {
   const [calculationBudget, setCalculationBudget] = useState(0);
   const [resultBundle, setResultBundle] = useState<PackingResult | null>(null);
   const [status, setStatus] = useState<CalcStatus>("idle");
-  const [message, setMessage] = useState(tr("参数已就绪"));
+  const [notice, setNotice] = useState<{text: string; status?: "done" | "error"}>(() => ({text: tr("参数已就绪")}));
+  const setMessage = useCallback((text: string, status?: "done" | "error") => setNotice({text, status}), []);
   const [workspaceConfirmation, setWorkspaceConfirmation] = useState<{
     kind: "sample" | "restore"; description: string; fileName?: string; apply: () => void;
   } | null>(null);
@@ -623,7 +624,7 @@ export function PackingApp() {
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [setMessage]);
 
   const lastSavedDraftRef = useRef<Partial<WorkspaceInputs>>({});
   const persistDraft = useCallback((patch: Partial<WorkspaceInputs> = {}) => {
@@ -1413,7 +1414,7 @@ export function PackingApp() {
     armCalculationTimeout();
     startStrategyWorker("practical");
     if (runtimePolicy.schedule === "parallel") startStrategyWorker("maximum");
-  }, [acceptResult, calculationBudget, clearActiveCalculation, discardObsoleteCalculation, presentPlan]);
+  }, [acceptResult, calculationBudget, clearActiveCalculation, discardObsoleteCalculation, presentPlan, setMessage]);
 
   const calculate = useCallback(() => {
     if (isEditingDimensions || hasPendingDimensionChanges) {
@@ -1518,7 +1519,7 @@ export function PackingApp() {
 
   const backupWorkspace = () => {
     if (hasPendingDimensionChanges || invalidNumericFields.size) {
-      setMessage(tr("请先完成数字和尺寸录入，再备份工作区。"));
+      setMessage(tr("请先完成数字和尺寸录入，再备份工作区。"), "error");
       return;
     }
     const contents = serializeWorkspaceBackup(
@@ -1526,7 +1527,7 @@ export function PackingApp() {
         targetVolumePercent, targetWeightPercent, lengthUnit, weightUnit }, ENGINE_VERSION, dirty?null:result, resultBundle?.strategyPlans,
     );
     downloadFile(tt`装柜工作区_${new Date().toISOString().slice(0, 10)}.json`, contents, "application/json");
-    setMessage(tr("工作区已导出，可跨设备恢复；已完成方案的箱位会在恢复时重新校验。"));
+    setMessage(tr("工作区已导出，可跨设备恢复；已完成方案的箱位会在恢复时重新校验。"), "done");
   };
 
   const restoreWorkspace = async (file: File) => {
@@ -1544,7 +1545,7 @@ export function PackingApp() {
       }
       const description=tt`恢复包含 ${restored.products.length} 个箱型的工作区？当前输入将被替换。${restoredPlan ? tr("已保存箱位通过当前规则校验，将一并恢复。") : tr("恢复输入后，请核对配置并重新计算。","After restoring the inputs, review the configuration and calculate again.")}`;
       const apply=()=>{
-      if(revision!==inputRevisionRef.current||pendingDimensionChangesRef.current.size>0){setMessage(tr("当前输入已变化，请重新选择需要恢复的工作区。"));return;}
+      if(revision!==inputRevisionRef.current||pendingDimensionChangesRef.current.size>0){setMessage(tr("当前输入已变化，请重新选择需要恢复的工作区。"), "error");return;}
       clearActiveCalculation();
       clearNumericDraftErrors();
       palletDraftRef.current = null;
@@ -1593,7 +1594,7 @@ export function PackingApp() {
       } else {
         setAutoCalculate(false);
         setWorkflowStep(1);
-        setMessage(tr("已恢复工作区输入，请确认货物与装载配置后计算。"));
+        setMessage(tr("已恢复工作区输入，请确认货物与装载配置后计算。"), "done");
         scrollTo("workspace", true);
       }
       };
@@ -1602,7 +1603,7 @@ export function PackingApp() {
       if (attempt !== restoreAttempt.current) return;
       setMessage(error instanceof SyntaxError
         ? tr("文件无法解析。请选择有效的工作区备份 JSON。","The file could not be read. Choose a valid workspace backup JSON.")
-        : error instanceof Error ? error.message : tr("工作区恢复失败，当前输入未修改。"));
+        : error instanceof Error ? error.message : tr("工作区恢复失败，当前输入未修改。"), "error");
     }
   };
 
@@ -1635,8 +1636,7 @@ export function PackingApp() {
 
   const importCsv = async (file: File) => {
     if (file.size > MAX_CSV_BYTES) {
-      setStatus("error");
-      setMessage(tt`CSV / Excel 文件不能超过 ${Math.round(MAX_CSV_BYTES / 1024 / 1024)} MB。`);
+      setMessage(tt`CSV / Excel 文件不能超过 ${Math.round(MAX_CSV_BYTES / 1024 / 1024)} MB。`, "error");
       return;
     }
     try {
@@ -1658,10 +1658,9 @@ export function PackingApp() {
       setStatus("idle");
       setMessage(orderImportMode==="quantity"?tr("已按稳定 ID 更新数量，箱规、客户、批次和包装规则保留。","Quantities updated by stable ID; dimensions, customer, batch and packaging rules are preserved."):orderImportMode==="append"?tr("已追加新订单行并生成新 ID，请核对数量和套装编码。","New order rows appended with new IDs; review quantities and kit codes."):importedMode === "single"
         ? tt`已识别同一套装编码，按单品多箱模式导入 ${next.length} 个箱型；将直接计算完整套数`
-        : tt`已导入 ${next.length} 个 SKU，请检查后计算`);
+        : tt`已导入 ${next.length} 个 SKU，请检查后计算`, "done");
     } catch (error) {
-      setStatus("error");
-      setMessage(error instanceof Error ? error.message : tr("CSV 读取失败，请检查文件后重试。"));
+      setMessage(error instanceof Error ? error.message : tr("CSV 读取失败，请检查文件后重试。"), "error");
     }
   };
 
@@ -1786,8 +1785,8 @@ export function PackingApp() {
   const planEditor=usePlanEditor(result,activeProducts,upgradesDisabled||!result?.validation.valid||result.metrics.loadedCount!==result.placements.length,adoptManualPlan);
   const fleetRequest: PackingRequest = {delivery:orderDelivery(activeProducts,Object.fromEntries(Object.entries(result?.delivery??{}).filter(([id])=>activeProducts.some(p=>p.id===id&&!p.orderLine)))),accessConfig:result?.accessConfig, floorPallets, loadingRules, mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
 
-  const downloadExcelTemplate = async () => { setMessage(tr("正在生成 Excel 模板…")); try { const { createSpreadsheetTemplate } = await import("../lib/packing/spreadsheet"); const bytes=await createSpreadsheetTemplate(); const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));const a=document.createElement("a");a.href=url;a.download="CargoFit_products_template.xlsx";document.body.appendChild(a);a.click();a.remove();setMessage(tr("Excel 模板已生成。"));setTimeout(()=>URL.revokeObjectURL(url),10000); } catch(e) {setMessage(e instanceof Error?e.message:"Excel export failed");} };
-  const downloadPdf = async () => { if(!result?.validation.valid||resultAudit?.hasErrors||dirty||hasPendingDimensionChanges)return;setExportingPdf(true);try{const {downloadPdfGuide}=await import("../lib/packing/pdf-guide");await downloadPdfGuide(result,getAppLanguage(),activeProducts);}catch(e){setMessage(e instanceof Error?e.message:"PDF export failed");}finally{setExportingPdf(false);} };
+  const downloadExcelTemplate = async () => { setMessage(tr("正在生成 Excel 模板…")); try { const { createSpreadsheetTemplate } = await import("../lib/packing/spreadsheet"); const bytes=await createSpreadsheetTemplate(); const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));const a=document.createElement("a");a.href=url;a.download="CargoFit_products_template.xlsx";document.body.appendChild(a);a.click();a.remove();setMessage(tr("Excel 模板已生成。"), "done");setTimeout(()=>URL.revokeObjectURL(url),10000); } catch(e) {setMessage(e instanceof Error?e.message:tr("Excel 模板导出失败。","The Excel template could not be exported."), "error");} };
+  const downloadPdf = async () => { if(!result?.validation.valid||resultAudit?.hasErrors||dirty||hasPendingDimensionChanges)return;setExportingPdf(true);try{const {downloadPdfGuide}=await import("../lib/packing/pdf-guide");await downloadPdfGuide(result,getAppLanguage(),activeProducts);}catch(e){setMessage(e instanceof Error?e.message:tr("PDF 导出失败。","The PDF could not be exported."), "error");}finally{setExportingPdf(false);} };
   const loadIndustryCase = (example: IndustryCase) => {setToolsOpen(false);setPreparedPalletLayout(undefined);setWorkflowStep(1);modePackagingDrafts.current={};setPalletSetupSpec("primary");palletDraftRef.current=null;rulesDraftRef.current=null;clearNumericDraftErrors();setMode("mixed");setLoadingWorkflow("direct");setContainer({...example.container});setProducts(example.products.map(p=>({...p})));setFloorPallets(undefined);setLoadingRules({...DEFAULT_LOADING_RULES});setClearance(10);setProductPage(0);setAutoCalculate(false);setPracticalTargetPercent(recommendedPracticalTarget(example.container)*100);markDirty();scrollTo("workspace");};
 
   const receivePalletDraft=useCallback((value:FloorPalletConfig|undefined,invalid:boolean)=>{
@@ -1909,10 +1908,11 @@ export function PackingApp() {
     : !result ? tr("先计算装柜方案，即可打印或导出。", "Calculate a load plan to print or export it.")
     : dirty || hasPendingDimensionChanges ? tr("输入已修改，重新计算后可导出。", "Recalculate after editing to export the plan.")
     : tr("方案通过校验且有装入货物后可导出。", "Export is available for a validated plan with loaded cargo.");
-  const workStatus = <section className="status-strip" data-status={status} aria-live="polite">
-    <div className={`status-dot status-${status}`} />
-    <span>{trText(message)}</span>
-    {status === "working" ? <LoaderCircle size={16} className="spin" /> : status === "done" ? <CheckCircle2 size={16} /> : status === "error" ? <CircleAlert size={16} /> : null}
+  const noticeStatus = notice.status ?? status;
+  const workStatus = <section className="status-strip" data-status={noticeStatus} aria-live="polite">
+    <div className={`status-dot status-${noticeStatus}`} />
+    <span>{trText(notice.text)}</span>
+    {noticeStatus === "working" ? <LoaderCircle size={16} className="spin" /> : noticeStatus === "done" ? <CheckCircle2 size={16} /> : noticeStatus === "error" ? <CircleAlert size={16} /> : null}
   </section>;
   const needsPalletRecipe = mode==="mixed"&&workflow==="palletized"&&!preparedPalletLayout&&!dirty&&!result?.deliveryIdentity&&!result?.pallets?.some(p=>p.measuredEnvelope)&&
     oneLayerPalletCeilings(capacityRequest,result).some(s=>palletSpecifications(palletBuild).some(spec=>spec.id===s.id));
