@@ -66,13 +66,13 @@ export function packPalletCargo(request: PackingRequest, config: FloorPalletConf
 /** Keep a complete small kit and test lower heights on the same deck. */
 export function packSingleKit(request:PackingRequest,config:FloorPalletConfig,cargoHeight:number,products:ProductInput[]) {
   const cartons=products.reduce((sum,p)=>sum+p.quantity,0);
-  if(cartons>16)return packPalletCargo(request,config,cargoHeight,products,cartons);
+  if(cartons>16)return packPalletCargo(request,config,cargoHeight,products);
   const rules=request.loadingRules??DEFAULT_LOADING_RULES;
   const searchRequest={...request,loadingRules:{...rules,search:"deep" as const,layout:rules.layout==="auto"?"layers" as const:rules.layout}};
-  const trial=(height:number)=>packPalletCargo(searchRequest,config,height,products,cartons);
+  const trial=(height:number)=>packPalletCargo(searchRequest,config,height,products);
   let best=trial(cargoHeight);
   if(best.violation||best.plan.placements.length!==cartons){
-    best=packPalletCargo(request,config,cargoHeight,products,cartons);
+    best=packPalletCargo(request,config,cargoHeight,products);
     if(best.violation||best.plan.placements.length!==cartons)return best;
   }
   const top=(plan:PackingResult)=>Math.max(...plan.placements.map(b=>b.z+b.dz));

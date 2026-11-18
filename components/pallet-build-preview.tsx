@@ -128,7 +128,7 @@ export function PalletBuildPreview({request,value,specId,disabled,active=true,ap
       {active && !editingId && !showManifest && <PalletUnitPreviewScene result={plan} id={sample.id} actions={appearance} products={stagedProducts}/>}
       <div className="packaging-preview-actions">
         <button type="button" className="button ghost small" disabled={!fresh} onClick={()=>setShowManifest(true)}><Rows3 size={14}/>{tr("查看打托清单","View pallet manifest")}</button>
-        {onPreparedLayoutChange && !plan.palletization?.oneKitPerPallet && <PalletOrderConsolidationButton plan={plan} products={stagedProducts} disabled={!fresh} preparation onAdopt={adopt}/>}
+        {onPreparedLayoutChange && (!plan.palletization?.oneKitPerPallet||plan.placements.some(box=>!box.setCode)) && <PalletOrderConsolidationButton plan={plan} products={stagedProducts} disabled={!fresh} preparation onAdopt={adopt}/>}
       </div>
     </> : active ? <>{appearance}{empty}</> : null}
     {preparedLayout && onPreparedLayoutChange && <button type="button" className="button ghost small" onClick={()=>onPreparedLayoutChange(undefined)}>{tr("恢复自动打托","Return to automatic palletizing")}</button>}
