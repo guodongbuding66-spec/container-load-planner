@@ -278,6 +278,10 @@ test("protects mobile calculations and enforces a readable typography floor", as
   assert.match(styles, /\.set-summary-grid > article:only-child \{ grid-column: 1 \/ -1; \}/);
   assert.match(compactStyles, /@media\(min-width:761px\) \{\s*\.compact-workspace \.wizard-page \.compact-cargo-table \{ min-width: 880px; \}/);
   assert.equal(compactStyles.match(/\.wizard-page \.compact-cargo-table \{ min-width: 880px; \}/g)?.length, 1);
+  const mobileCargoRules = compactStyles.split("@media(max-width:760px) {")[1]?.split("@media print")[0] ?? "";
+  assert.match(mobileCargoRules, /\.product-table tr td \{[^}]*height:auto/);
+  assert.match(mobileCargoRules, /\.cbm-cell\) \{[^}]*min-width:0/);
+  assert.match(mobileCargoRules, /input\.set-code-input \{[^}]*width:100%/);
 });
 
 test("separates utilization planning from the selected strategy capacity ceiling", async () => {
