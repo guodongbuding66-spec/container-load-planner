@@ -15,6 +15,7 @@ import { PlanViewer } from "./plan-viewer";
 import { NumericInput } from "./numeric-input";
 import { ToolSummary } from "./workflow-tools";
 import { tr, trText, useLanguage } from "./language";
+import { useWebGLSupport } from "./use-webgl-support";
 
 const axisLabels={length:["长","L"],width:["宽","W"],height:["高","H"]} as const;
 function saveFile(name:string,text:string,type="application/json"){
@@ -41,6 +42,7 @@ export function DimensionAllowanceFields({value,onChange,unit,invalid,onValidity
 
 export function DimensionComparisonResults({comparison,disabled=false}:{comparison:DimensionComparison;disabled?:boolean}){
   useLanguage();const [view,setView]=useState<CameraView>("perspective");const [kind,setKind]=useState<"nominal"|"conservative">("conservative"),[viewer,setViewer]=useState(false);
+  const webglSupported = useWebGLSupport();
   const selected=comparison[kind],plan=selected.plan,rows=dimensionComparisonRows(comparison),margins=scenarioMargins(plan);
   const label=(k:typeof kind)=>k==="nominal"?tr("标称方案","Nominal plan"):tr("保守方案","Conservative plan");
   return <div className="dimension-comparison-results">
@@ -55,8 +57,9 @@ export function DimensionComparisonResults({comparison,disabled=false}:{comparis
     {margins&&plan.workflow!=="pallet-only"&&<p>{tr("远端余量（长／宽／高）","Far-wall margins (L/W/H)")}: {DIMENSION_AXES.map(a=>margins.farWall[a].toFixed(1)).join(" / ")} mm · {tr("门洞尺寸余量（宽／高）","Door size margins (W/H)")}: {margins.door?`${margins.door.width.toFixed(1)} / ${margins.door.height.toFixed(1)} mm`:tr("不适用","Not applicable")}<br/><small>{tr("余量仅比较尺寸，不代表转向、抬升或搬运设备可以通过。","Size margins do not verify turning, lifting or handling-equipment passage.")}</small></p>}
     <PlanReviewPanel report={reviewPlan(plan,selected.request.products)}/>
     <ResultAuditPanel report={auditPackingResult(plan,selected.request.products)}/>
-    <OrthographicViews key={plan.id} result={plan} visibleProducts={new Set(plan.summaries.map(s=>s.productId))} visibleCount={plan.placements.length} primaryCountLabel={`${plan.placements.length}`} activeView={view} onViewSelect={next=>{setView(next);setViewer(true);}} renderPrintSvg/>
-    <div className="upgrade-actions"><button className="button" disabled={disabled} onClick={()=>{setView("perspective");setViewer(true);}}>{tr("查看当前方案三维","View selected plan in 3D")}</button><button className="button" disabled={disabled} onClick={()=>saveFile(`${plan.dimensionScenario!.id}.csv`,buildPlacementCsv(plan),"text/csv;charset=utf-8")}>{tr("导出当前方案坐标 CSV","Export selected coordinates CSV")}</button><button className="button" disabled={disabled} onClick={()=>saveFile("dimension-comparison.json",JSON.stringify(comparison,null,2))}>{tr("导出双方案与来源 JSON","Export both plans and sources JSON")}</button></div>
+    <OrthographicViews key={plan.id} result={plan} visibleProducts={new Set(plan.summaries.map(s=>s.productId))} visibleCount={plan.placements.length} primaryCountLabel={`${plan.placements.length}`} activeView={view}
+      onViewSelect={webglSupported ? next=>{setView(next);setViewer(true);} : undefined} renderPrintSvg/>
+    <div className="upgrade-actions"><button className="button" disabled={disabled} onClick={()=>{setView("perspective");setViewer(true);}}>{tr("查看当前方案预览","Preview selected plan")}</button><button className="button" disabled={disabled} onClick={()=>saveFile(`${plan.dimensionScenario!.id}.csv`,buildPlacementCsv(plan),"text/csv;charset=utf-8")}>{tr("导出当前方案坐标 CSV","Export selected coordinates CSV")}</button><button className="button" disabled={disabled} onClick={()=>saveFile("dimension-comparison.json",JSON.stringify(comparison,null,2))}>{tr("导出双方案与来源 JSON","Export both plans and sources JSON")}</button></div>
     {viewer&&<PlanViewer plans={[plan]} initialView={view} exportsBlocked={disabled||!!plan.dimensionScenario?.proxyProductIds.length} onClose={()=>setViewer(false)}/>}
   </div>;
 }

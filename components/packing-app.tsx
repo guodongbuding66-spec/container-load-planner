@@ -2660,7 +2660,9 @@ export function PackingApp() {
                 {planReview && <PlanReviewPanel report={planReview} plan={result} onLocate={planEditor.enabled?undefined:id=>{
                   setIsPlaying(false);setPackingProgress(result.placements.length);
                   setVisibleProducts(new Set(result.placements.map(box=>box.productId)));
-                  locateFromReviewRef.current?.(id);setViewRevision(v=>v+1);scrollTo("result");
+                  locateFromReviewRef.current?.(id);
+                  setViewRevision(v=>v+1);
+                  scrollTo("result", true);
                 }}/>}
                 <LongSupportPanel plan={result} products={activeProducts}/>
                 {resultAudit && <ResultAuditPanel report={resultAudit}/>}
@@ -2669,7 +2671,7 @@ export function PackingApp() {
 
             </div>
             <div className="workbench-pane result-export-pane" hidden={resultPane!=="exports"}>
-            <div className="feature-action-bar">{result&&<PalletOrderConsolidationButton plan={result} products={activeProducts} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors} onAdopt={adoptManualPlan}/>}<button className="button" disabled={!canExport} onClick={()=>setShowViewer(true)}><Layers3 size={16}/>{tr("三维方案查看器")}</button><button className="button" disabled={!canExport||exportingPdf} onClick={()=>void downloadPdf()}><Download size={16}/>{tr("下载 PDF")}</button></div>
+            <div className="feature-action-bar">{result&&<PalletOrderConsolidationButton plan={result} products={activeProducts} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors} onAdopt={adoptManualPlan}/>}<button className="button" disabled={!canExport} onClick={()=>setShowViewer(true)}><Layers3 size={16}/>{tr("方案查看器","Plan viewer")}</button><button className="button" disabled={!canExport||exportingPdf} onClick={()=>void downloadPdf()}><Download size={16}/>{tr("下载 PDF")}</button></div>
             <ContainerAccessoryManifest result={result} products={activeProducts} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors}/>
             <PalletManifest anchor="loaded-pallets" printing={renderPrintViews} layerTemplates={palletLayerTemplates} onLayerTemplatesChange={setPalletLayerTemplates} result={result} products={activeProducts} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors} onAdopt={adoptManualPlan}/>
             <PlacementManifest result={result} printing={renderPrintViews} actions={<div className="panel-actions">

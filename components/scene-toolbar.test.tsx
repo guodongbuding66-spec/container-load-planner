@@ -34,23 +34,36 @@ it("exposes camera, display and ruler controls above the viewer without opening 
   expect(html).not.toContain('class="scene-progress"');
 });
 
-it("labels the pallet front view and disables GPU-only controls in the top-view fallback", () => {
-  const html = renderToStaticMarkup(<TransportAppearanceProvider><SceneViewToolbar
+const palletToolbar = (webglSupported: boolean) => (
+  <TransportAppearanceProvider><SceneViewToolbar
     cameraView="perspective"
     projectionMode="perspective"
     hasCargo
     hasCollisionBody
     palletOnly
-    webglSupported={false}
+    webglSupported={webglSupported}
     fullscreenToggle={null}
     onViewChange={() => {}}
     onProjectionChange={() => {}}
     onReset={() => {}}
     onSave={() => {}}
-  /></TransportAppearanceProvider>);
-  expect(html).toContain('disabled="" aria-pressed="true">正交投影');
+  /></TransportAppearanceProvider>
+);
+
+it("keeps the pallet front-view preset when 3D is available", () => {
+  const html = renderToStaticMarkup(palletToolbar(true));
   expect(html).toContain(">正视</button>");
   expect(html).not.toContain(">箱门</button>");
   expect(html).not.toContain("实物模型");
+});
+
+it("keeps only working controls in the top-view fallback", () => {
+  const html = renderToStaticMarkup(palletToolbar(false));
+  expect(html).toContain('aria-label="俯视图工具栏"');
+  expect(html).toContain("正交俯视");
+  for (const label of ["透视投影", "正交投影", "正视", "保存图片", "碰撞体"]) {
+    expect(html).not.toContain(label);
+  }
+  expect(html).toContain("重置视图");
   expect(html).toContain('aria-pressed="true" title="箱标随货物旋转和缩放"');
 });

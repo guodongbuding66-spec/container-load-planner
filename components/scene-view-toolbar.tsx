@@ -37,27 +37,28 @@ export function SceneViewToolbar({
 }: Props) {
   useLanguage();
   const appearance = useTransportAppearance();
-  const activeView = webglSupported === false ? "top" : cameraView;
-  const activeProjection = webglSupported === false ? "orthographic" : projectionMode;
+  const topViewOnly = webglSupported === false;
 
-  return <section className="scene-view-toolbar" aria-label={tr("三维视图工具栏", "3D view controls")}>
+  return <section className="scene-view-toolbar" aria-label={topViewOnly ? tr("俯视图工具栏","Top view controls") : tr("三维视图工具栏", "3D view controls")}>
     <div className="scene-toolbar-row" role="group" aria-label={tr("视角", "Camera")}>
       <span className="scene-toolbar-label" aria-hidden="true">{tr("视角", "Camera")}</span>
       <div className="scene-toolbar-content">
-        <div className="scene-toolbar-segment" role="group" aria-label={tr("投影方式", "Projection")}>
-          <button type="button" disabled={!webglSupported} aria-pressed={activeProjection === "perspective"} onClick={() => onProjectionChange("perspective")}>{tr("透视投影", "Perspective")}</button>
-          <button type="button" disabled={!webglSupported} aria-pressed={activeProjection === "orthographic"} onClick={() => onProjectionChange("orthographic")}>{tr("正交投影", "Orthographic")}</button>
-        </div>
-        <div className="scene-toolbar-buttons scene-toolbar-presets" role="group" aria-label={tr("预设方向", "Camera presets")}>
-          {cameraPresets.map(({ id, label, english, Icon }) => (
-            <button key={id} type="button" disabled={!webglSupported} aria-pressed={activeView === id} onClick={() => onViewChange(id)}>
-              <Icon size={15}/>{id === "door" && palletOnly ? tr("正视", "Front") : tr(label, english)}
-            </button>
-          ))}
-        </div>
+        {topViewOnly ? <span className="scene-toolbar-static-view"><ScanLine size={15}/>{tr("正交俯视","Orthographic top view")}</span> : <>
+          <div className="scene-toolbar-segment" role="group" aria-label={tr("投影方式", "Projection")}>
+            <button type="button" disabled={!webglSupported} aria-pressed={projectionMode === "perspective"} onClick={() => onProjectionChange("perspective")}>{tr("透视投影", "Perspective")}</button>
+            <button type="button" disabled={!webglSupported} aria-pressed={projectionMode === "orthographic"} onClick={() => onProjectionChange("orthographic")}>{tr("正交投影", "Orthographic")}</button>
+          </div>
+          <div className="scene-toolbar-buttons scene-toolbar-presets" role="group" aria-label={tr("预设方向", "Camera presets")}>
+            {cameraPresets.map(({ id, label, english, Icon }) => (
+              <button key={id} type="button" disabled={!webglSupported} aria-pressed={cameraView === id} onClick={() => onViewChange(id)}>
+                <Icon size={15}/>{id === "door" && palletOnly ? tr("正视", "Front") : tr(label, english)}
+              </button>
+            ))}
+          </div>
+        </>}
         <div className="scene-toolbar-buttons scene-toolbar-actions">
           <button type="button" onClick={onReset}><RotateCcw size={15}/>{tr("重置视图", "Reset view")}</button>
-          <button type="button" disabled={!webglSupported} onClick={onSave}><ImageDown size={15}/>{tr("保存图片", "Save image")}</button>
+          {!topViewOnly && <button type="button" disabled={!webglSupported} onClick={onSave}><ImageDown size={15}/>{tr("保存图片", "Save image")}</button>}
           {fullscreenToggle}
         </div>
       </div>
@@ -68,7 +69,7 @@ export function SceneViewToolbar({
         <div className="scene-toolbar-buttons">
           <button type="button" disabled={!hasCargo} aria-pressed={appearance.labels} title={tr("箱标随货物旋转和缩放", "Carton labels follow the cargo")} onClick={() => appearance.setLabels(!appearance.labels)}><Tag size={15}/>{tr("箱标", "Carton labels")}</button>
           <button type="button" disabled={!hasCargo} aria-pressed={appearance.skuSummaries} title={tr("在货物上方显示每个 SKU 的汇总标签", "Show one summary label above each SKU")} onClick={() => appearance.setSkuSummaries(!appearance.skuSummaries)}>{tr("SKU 汇总", "SKU summaries")}</button>
-          <button type="button" disabled={!webglSupported || !hasCollisionBody} aria-pressed={appearance.collisionProxy} onClick={() => appearance.updatePreferences({ collisionProxy: !appearance.collisionProxy })}>{tr("碰撞体", "Collision bodies")}</button>
+          {!topViewOnly && <button type="button" disabled={!webglSupported || !hasCollisionBody} aria-pressed={appearance.collisionProxy} onClick={() => appearance.updatePreferences({ collisionProxy: !appearance.collisionProxy })}>{tr("碰撞体", "Collision bodies")}</button>}
         </div>
         {!palletOnly && <TransportModelControls/>}
       </div>

@@ -28,6 +28,7 @@
   gap: 4px;
 }
 .scene-toolbar-content { gap: 6px 12px; }
+.scene-toolbar-static-view { display: inline-flex; align-items: center; gap: 5px; min-height: 34px; color: var(--muted); }
 .scene-toolbar-segment { padding-inline-end: 8px; border-inline-end: 1px solid var(--line); }
 .scene-toolbar-actions { margin-inline-start: auto; }
 .scene-view-toolbar button {

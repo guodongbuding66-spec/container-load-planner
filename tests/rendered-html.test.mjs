@@ -253,7 +253,7 @@ test("runs two independent solvers and exposes actionable strategy guidance", as
   assert.match(engine, /const strategyPlans/);
   assert.match(engine, /practical: practicalPlan/);
   assert.match(engine, /maximum: maximumPlan/);
-  assert.match(views, /<button[\s\S]*?className=\{`projection-card/);
+  assert.match(views, /const Card = onViewSelect \? "button" : "article"/);
   assert.doesNotMatch(views, /role="button"/);
 });
 

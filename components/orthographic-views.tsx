@@ -20,7 +20,7 @@ type Props = {
   secondaryCountLabel?: string;
   renderPrintSvg?: boolean;
   activeView: CameraView;
-  onViewSelect: (view: ViewKind) => void;
+  onViewSelect?: (view: ViewKind) => void;
 };
 
 const VIEW_COPY: Record<ViewKind, { title: string; axes: string; description: string }> = {
@@ -35,14 +35,15 @@ function ProjectionPrintSvg({
   horizontalSize,
   verticalSize,
   details,
+  doorLabel,
 }: {
   kind: ViewKind;
   boxes: ProjectionBox[];
   horizontalSize: number;
   verticalSize: number;
   details:PackingResult['cargoDetails'];
+  doorLabel?: string;
 }) {
-  useLanguage();
   const width = 1000;
   const height = 560;
   const left = 70;
@@ -121,7 +122,7 @@ function ProjectionPrintSvg({
       >
         {Math.round(verticalSize).toLocaleString()} mm
       </text>
-      <text
+      {doorLabel && <text
         x={plotX + plotWidth}
         y={plotY - 18}
         fill="#9a7932"
@@ -130,14 +131,16 @@ function ProjectionPrintSvg({
         fontWeight="700"
         textAnchor="end"
       >
-        {kind === "door" ? tr("正对箱门") : tr("箱门 →")}
-      </text>
+        {doorLabel}
+      </text>}
     </svg>
   );
 }
 
 function ProjectionCanvas({
   kind,
+  title,
+  doorLabel,
   boxes,
   horizontalSize,
   verticalSize,
@@ -145,6 +148,8 @@ function ProjectionCanvas({
   details,
 }: {
   kind: ViewKind;
+  title: string;
+  doorLabel?: string;
   boxes: ProjectionBox[];
   horizontalSize: number;
   verticalSize: number;
@@ -152,7 +157,6 @@ function ProjectionCanvas({
   details:PackingResult['cargoDetails'];
 }) {
   useLanguage();
-  const language = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const palletCount = new Set(boxes.filter(box=>box.supportOnly&&!box.id.startsWith(SITE_EXCLUSION_PREFIX)).map(box=>box.palletIds?.[0]??box.id)).size;
   const cargoCount = boxes.filter(box=>!box.supportOnly).length;
@@ -234,14 +238,11 @@ function ProjectionCanvas({
       context.fillText(`${Math.round(verticalSize).toLocaleString()} mm`, 0, 0);
       context.restore();
 
-      context.font = "700 10px system-ui, sans-serif";
-      context.fillStyle = "#9a7932";
-      if (kind === "door") {
+      if (doorLabel) {
+        context.font = "700 10px system-ui, sans-serif";
+        context.fillStyle = "#9a7932";
         context.textAlign = "right";
-        context.fillText(tr("正对箱门"), plotX + plotWidth, plotY - 8);
-      } else {
-        context.textAlign = "right";
-        context.fillText(tr("箱门 →"), plotX + plotWidth, plotY - 8);
+        context.fillText(doorLabel, plotX + plotWidth, plotY - 8);
       }
     };
 
@@ -256,13 +257,13 @@ function ProjectionCanvas({
       observer.disconnect();
       window.cancelAnimationFrame(frame);
     };
-  }, [boxes, details, horizontalSize, kind, verticalSize, language]);
+  }, [boxes, details, doorLabel, horizontalSize, kind, verticalSize]);
 
   return (
     <>
-      <canvas ref={canvasRef} className="projection-canvas" role="img" aria-label={tt`${tr(VIEW_COPY[kind].title)}，当前显示 ${cargoCount} 箱${palletCount ? tt`，${palletCount} 个托盘` : ""}`} />
+      <canvas ref={canvasRef} className="projection-canvas" role="img" aria-label={tt`${title}，当前显示 ${cargoCount} 箱${palletCount ? tt`，${palletCount} 个托盘` : ""}`} />
       {renderPrintSvg
-        ? <ProjectionPrintSvg kind={kind} boxes={boxes} details={details} horizontalSize={horizontalSize} verticalSize={verticalSize} />
+        ? <ProjectionPrintSvg kind={kind} boxes={boxes} details={details} doorLabel={doorLabel} horizontalSize={horizontalSize} verticalSize={verticalSize} />
         : null}
     </>
   );
@@ -307,32 +308,40 @@ export function OrthographicViews({
     { kind: "side", horizontalSize: effective.length, verticalSize: effective.height },
     { kind: "door", horizontalSize: effective.width, verticalSize: effective.height },
   ];
+  const Card = onViewSelect ? "button" : "article";
+  const palletOnly = result.workflow === "pallet-only";
 
   return (
     <div className="projection-grid">
       {views.map((view) => {
         const copy = VIEW_COPY[view.kind];
-        const title = view.kind==="door"&&result.workflow==="pallet-only"?tr("正视图","Front view"):tr(copy.title);
+        const title = view.kind === "door" && palletOnly ? tr("正视图","Front view") : tr(copy.title);
+        const doorLabel = palletOnly ? undefined : tr(view.kind === "door" ? "正对箱门" : "箱门 →");
         const occupied = occupiedExtent(boxes.filter(b=>!b.id.startsWith(SITE_EXCLUSION_PREFIX)), view.kind);
+        const active = Boolean(onViewSelect && activeView === view.kind);
         return (
-          <button
-            type="button"
-            className={`projection-card projection-card-action ${activeView === view.kind ? "active" : ""}`}
+          <Card
             key={view.kind}
-            aria-pressed={activeView === view.kind}
-            aria-label={tt`${title}，点击让三维视角旋转到${title}`}
-            onClick={() => onViewSelect(view.kind)}
+            className={`projection-card${onViewSelect ? " projection-card-action" : ""}${active ? " active" : ""}`}
+            {...(onViewSelect ? {
+              type: "button" as const,
+              "aria-pressed": active,
+              "aria-label": tt`${title}，点击让三维视角旋转到${title}`,
+              onClick: () => onViewSelect(view.kind),
+            } : { "aria-label": title })}
           >
             <header>
               <div><strong>{title}</strong><span>{tr(copy.axes)}</span></div>
               <div className="projection-card-meta">
                 <b>{primaryCountLabel}</b>
                 {secondaryCountLabel ? <small>{secondaryCountLabel}</small> : null}
-                <span>{activeView === view.kind ? <Check size={11} /> : <Rotate3D size={11} />}{activeView === view.kind ? tr("3D 已同步") : tr("联动 3D")}</span>
+                {onViewSelect && <span>{active ? <Check size={11} /> : <Rotate3D size={11} />}{active ? tr("已设为三维视角","3D camera set") : tr("联动 3D")}</span>}
               </div>
             </header>
             <ProjectionCanvas
               kind={view.kind}
+              title={title}
+              doorLabel={doorLabel}
               boxes={boxes}
               horizontalSize={view.horizontalSize}
               verticalSize={view.verticalSize}
@@ -343,7 +352,7 @@ export function OrthographicViews({
               <span>{tr("横向占用 ")}{Math.round(occupied.horizontal).toLocaleString()} mm</span>
               <span>{tr("纵向占用 ")}{Math.round(occupied.vertical).toLocaleString()} mm</span>
             </footer>
-          </button>
+          </Card>
         );
       })}
     </div>

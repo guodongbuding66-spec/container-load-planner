@@ -6,7 +6,7 @@ import {siteExclusionBoxes} from "../lib/packing/site-exclusions";
 import { cargoShapeOf } from "../lib/packing/cargo-shape";
 import { cargoShapeGeometry } from "../lib/packing/cargo-shape-geometry";
 import { Canvas, useThree } from "@react-three/fiber";
-import { useEffect, useLayoutEffect, useImperativeHandle, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { RefObject } from "react";
 import { boxFaceTexture, CargoSurfaceLabels, MetricLabel, PalletStructures, SelectionOutline, useShippingMarkCanvas } from "./scene-details";
@@ -28,7 +28,7 @@ import { TransportModel } from "./transport-model";
 import { useTransportAppearance } from "./transport-appearance";
 import { transportSceneBounds, type TransportDisplayMode } from "../lib/packing/transport-model";
 import { detectRuntimePolicy } from "../lib/packing/runtime-policy";
-import { supportsWebGL } from "../lib/packing/webgl-support";
+import { useWebGLSupport } from "./use-webgl-support";
 import { analyzeEmptySpaces } from "../lib/packing/free-space";
 import { analyzeLoads, type HeatMode } from "../lib/packing/load-analysis";
 import { SceneSpacePanel } from "./scene-space-panel";
@@ -83,10 +83,6 @@ type InstanceGroup = {
   sources: PlacedBox[];
   shippingMark?: ProductInput["shippingMark"];
 };
-
-const subscribeToClientReady = () => () => undefined;
-const getClientReady = () => true;
-const getServerNotReady = () => false;
 
 function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSelect,collisionProxy=false }: { collisionProxy?:boolean;group: InstanceGroup; scale: number; offset: THREE.Vector3; reducedRendering: boolean; labels:boolean; onSelect:(box:PlacedBox,point?:Point3,add?:boolean)=>void }) {
   useLanguage();
@@ -327,9 +323,8 @@ export function ContainerScene({
   </>;
   const [captureError,setCaptureError] = useState("");
   const saveImage=async()=>{ try { const blob=await captureRef.current?.();if(!blob)throw new Error(tr("图形尚未准备完成。", "Scene is not ready."));const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download="CargoFit_3D.png";link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);setCaptureError(""); } catch(e) {setCaptureError(e instanceof Error?e.message:"Image export failed");}};
-  const clientReady = useSyncExternalStore(subscribeToClientReady, getClientReady, getServerNotReady);
-  const webglSupported = clientReady ? supportsWebGL() : null;
-  const reducedRendering = clientReady ? detectRuntimePolicy().reducedRendering : false;
+  const webglSupported = useWebGLSupport();
+  const reducedRendering = webglSupported === true && detectRuntimePolicy().reducedRendering;
   const containerSize = useMemo<SceneSize>(() => (result ? normalizedSceneSize(result) : [5.6, 1.25, 1.1]), [result]);
   const sceneBounds = useMemo(() => result ? transportSceneBounds(result.container,5.6/Math.max(result.container.length-result.clearance*2,result.container.width-result.clearance*2,result.container.height-result.clearance+(result.container.baseHeight??0)),appearance.mode) : undefined,[result,appearance.mode]);
   return (
@@ -351,7 +346,9 @@ export function ContainerScene({
       onSave={() => void saveImage()}
     />} fullscreenFooter={result&&onVisibleCountChange&&<footer className="scene-progress"><span>{tr("装载进度")}</span><input type="range" min={0} max={result.placements.length} value={visibleCount} aria-label={tr("三维装载进度", "3D loading progress")} onChange={e=>onVisibleCountChange(Number(e.target.value))}/><output>{visibleCount} / {result.placements.length} {tr("箱")}</output></footer>}>
 {editor?.changed&&<p className="scene-draft-notice" role="status">{tr("正在预览编辑草稿；采用后更新指标与导出。","Previewing edit draft. Apply to update totals and exports.")}</p>}
-<SceneWorkbench editor={editor} result={result} boxes={palletMode?palletRows:inspection.displayBoxes} palletMode={palletMode} selectionTools={selectionTools} onClearSelection={clearSelection} selected={selected} onSelect={selectBox} inspector={result&&<><nav className="scene-inspector-tabs" aria-label={tr("三维工作台工具","Scene workbench tools")}>{[["inspect","属性与测量","Inspect & measure"],["edit","编辑","Edit"],["space","空隙","Gaps"],["load","承重","Loads"],["access","装卸","Access"]].map(([id,zh,en])=><button title={tr(zh,en)} key={id} disabled={id!=="inspect"&&(!products.length||result.metrics.loadedCount!==result.placements.length)||id==="edit"&&!editor||id==="space"&&result.workflow==="pallet-only"} aria-pressed={tool===id} onClick={()=>{setTool(id);if(id!=="edit"&&editor?.enabled)editor.update({enabled:false,rectangle:false});}}>{id==="inspect"?tr("属性","Info"):tr(zh,en)}</button>)}</nav>{tool==="edit"&&editor&&<SceneEditPanel editor={editor}/>} {tool==="space"&&<SceneSpacePanel plan={result} products={products} report={spaces} selected={gapId} onSelect={setGapId} onOpen={setSpaceOpen}/>} {tool==="load"&&<SceneLoadPanel report={loads} mode={heat} onMode={setHeat} selected={selected}/>} {tool==="access"&&<SceneAccessPanel key={result.id} plan={result} products={products} onAdopt={onAdopt} onHighlight={setHighlight} disabled={!!editor?.disabled||!!editor?.changed}/>} {tool==="inspect"&&<SceneInspector result={result} selected={selected} inspection={inspection} onClearSelection={clearSelection} onFocus={webglSupported!==false&&selected?()=>{setFocusId(selected.id);onCameraViewChange("perspective");onProjectionModeChange("perspective");}:undefined}/>}</>}><div className="scene-shell" role="region" tabIndex={0} onPointerDown={event=>{if((event.target as Element).closest("canvas,svg")&&!event.currentTarget.contains(document.activeElement))event.currentTarget.focus({preventScroll:true});}} aria-label={tr("可交互三维装柜视图")}>
+<SceneWorkbench editor={editor} result={result} boxes={palletMode?palletRows:inspection.displayBoxes} palletMode={palletMode} selectionTools={selectionTools} onClearSelection={clearSelection} selected={selected} onSelect={selectBox} inspector={result&&<><nav className="scene-inspector-tabs" aria-label={tr("装载视图工具","Loading view tools")}>{[["inspect","属性与测量","Inspect & measure"],["edit","编辑","Edit"],["space","空隙","Gaps"],["load","承重","Loads"],["access","装卸","Access"]].map(([id,zh,en])=><button title={tr(zh,en)} key={id} disabled={id!=="inspect"&&(!products.length||result.metrics.loadedCount!==result.placements.length)||id==="edit"&&!editor||id==="space"&&result.workflow==="pallet-only"} aria-pressed={tool===id} onClick={()=>{setTool(id);if(id!=="edit"&&editor?.enabled)editor.update({enabled:false,rectangle:false});}}>{id==="inspect"?tr("属性","Info"):tr(zh,en)}</button>)}</nav>{tool==="edit"&&editor&&<SceneEditPanel editor={editor}/>} {tool==="space"&&<SceneSpacePanel plan={result} products={products} report={spaces} selected={gapId} onSelect={setGapId} onOpen={setSpaceOpen}/>} {tool==="load"&&<SceneLoadPanel report={loads} mode={heat} onMode={setHeat} selected={selected}/>} {tool==="access"&&<SceneAccessPanel key={result.id} plan={result} products={products} onAdopt={onAdopt} onHighlight={setHighlight} disabled={!!editor?.disabled||!!editor?.changed}/>} {tool==="inspect"&&<SceneInspector result={result} selected={selected} inspection={inspection} onClearSelection={clearSelection} onFocus={webglSupported!==false&&selected?()=>{setFocusId(selected.id);onCameraViewChange("perspective");onProjectionModeChange("perspective");}:undefined}/>}</>}>
+    <div className="scene-shell" role="region" tabIndex={0} onPointerDown={event=>{if((event.target as Element).closest("canvas,svg")&&!event.currentTarget.contains(document.activeElement))event.currentTarget.focus({preventScroll:true});}}
+      aria-label={webglSupported === false ? tr("交互俯视图","Interactive top view") : tr("可交互三维装柜视图")}>
       {!result ? (
         <div className="scene-empty">
           <div className="scene-empty-cube" aria-hidden="true" />
@@ -397,7 +394,7 @@ export function ContainerScene({
             <span>{tr("滚轮缩放")}</span>
             <span>{tr("右键平移")}</span>
           </div>}
-          {!isolated&&<div className="door-marker">{tr("箱门方向")}</div>}
+          {!isolated&&result.workflow!=="pallet-only"&&<div className="door-marker">{tr("箱门方向")}</div>}
         </>
       )}
     </div></SceneWorkbench></SceneFullscreen>
