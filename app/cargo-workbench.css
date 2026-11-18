@@ -61,14 +61,57 @@ body:has(.cargo-workbench) {
   color: var(--ink);
   letter-spacing: -.025em;
 }
-.cargo-workbench .top-actions { gap: 6px; }
-.cargo-workbench .top-actions :is(button, summary).button {
+.cargo-workbench .top-actions { min-width: 0; max-width: none; gap: 6px; }
+.cargo-workbench .topbar:has(.workspace-file-menu[open],.workspace-help-menu[open]) { z-index: 30; }
+.cargo-workbench .top-actions > button.button,
+.cargo-workbench .workspace-utilities > button.button,
+.cargo-workbench .topbar :is(.workspace-file-menu,.workspace-help-menu) > summary.button {
   min-height: 36px;
   font-size: 13px;
   background: transparent;
   border-color: transparent;
+  box-shadow: none;
 }
-.cargo-workbench .top-actions :is(button, summary).button:hover { background: #e6edef; }
+.cargo-workbench .top-actions > button.button:hover,
+.cargo-workbench .workspace-utilities > button.button:hover,
+.cargo-workbench .topbar :is(.workspace-file-menu,.workspace-help-menu) > summary.button:hover { background: #e6edef; }
+.cargo-workbench .topbar :is(.workspace-file-menu,.workspace-help-menu)[open] > summary.button {
+  background: var(--teal-soft);
+  border-color: var(--line);
+  color: var(--teal-dark);
+}
+.cargo-workbench .topbar .workspace-file-panel {
+  padding: 6px 10px;
+  border-color: var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.workspace-file-group { display: grid; gap: 2px; padding-block: 5px; }
+.workspace-file-group + .workspace-file-group { border-top: 1px solid var(--line); }
+.workspace-file-group > strong { padding: 3px 8px; color: var(--muted); font-size: 12px; }
+.workspace-file-panel .workspace-file-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 5px;
+  color: var(--ink);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  text-align: start;
+}
+.workspace-file-action svg { flex: none; }
+.workspace-file-action:disabled { color: var(--muted); opacity: .7; cursor: default; }
+.workspace-file-action:not(:disabled):hover { background: var(--teal-soft); color: var(--teal-dark); }
+.workspace-file-group p { margin: 4px 8px; color: var(--muted); font-size: 12px; }
+@media (min-width: 1101px) {
+  .cargo-workbench .topbar .workspace-file-menu { position: relative; }
+  .cargo-workbench .topbar .workspace-file-panel { inset-inline: 0 auto; top: calc(100% + 6px); max-width: none; }
+}
 .cargo-workbench .workspace-toolbox > .wizard-page-heading { margin: 24px 0 12px; }
 .cargo-workbench .planning-upgrades { margin-top: 0; }
 .workspace-footer-links { margin-left: auto; }
@@ -135,8 +178,13 @@ body:has(.cargo-workbench) {
 .cargo-workbench .button { min-height: 40px; text-wrap: balance; }
 .cargo-workbench .button.primary { color: white; background: var(--teal); border-color: var(--teal); }
 .cargo-workbench .button.primary:not(:disabled):hover { background: var(--teal-dark); border-color: var(--teal-dark); }
-.cargo-workbench :is(button,input,select,summary):focus-visible,
-.scene-controls-disclosure summary:focus-visible { outline: 2px solid #287f74; outline-offset: 2px; }
+.cargo-workbench :is(button,input,select,summary):focus-visible { outline: 2px solid #287f74; outline-offset: 2px; }
+.cargo-workbench .tutorial-search-field:focus-within { outline: 2px solid var(--teal); outline-offset: 1px; }
+.cargo-workbench .tutorial-search-field input:focus-visible { outline: none; }
+.cargo-workbench .tutorial-article .button.primary { box-shadow: none; }
+[data-workspace-destination]:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+.workspace-confirm-file { margin: 0 0 8px; font-weight: 650; overflow-wrap: anywhere; }
+.workspace-confirm-description { margin: 0; }
 
 .stage-action-bar {
   position: sticky;
@@ -358,6 +406,7 @@ body:has(.cargo-workbench) {
   .cargo-workbench .app-main { padding-inline: 10px; }
   .cargo-workbench .topbar { align-items: flex-start; }
   .cargo-workbench .top-actions { gap: 3px; }
+  .workspace-file-panel .workspace-file-action { min-height: 44px; }
   .cargo-workbench .workspace-brand h1 { font-size: 17px; }
   .cargo-workbench .wizard-steps button { flex-direction: column; justify-content: center; text-align: center; gap: 4px; padding: 5px 2px; font-size: 11px; }
   .cargo-workbench .wizard-step-number { flex-basis: auto; width: 22px; height: 22px; }

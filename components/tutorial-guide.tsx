@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { ArrowRight, Search } from "lucide-react";
-import { guideCategories, type GuideCategory, type GuideTarget } from "../lib/help/topics";
+import { guideCategories, guideTargetLabels, type GuideCategory, type GuideTarget } from "../lib/help/topics";
 import { searchGuide } from "../lib/help/search";
 import { tr, useLanguage } from "./language";
 
@@ -24,6 +24,7 @@ export function TutorialGuide({initialTopic="",onNavigate}:{initialTopic?:string
   const articleHeading = useRef<HTMLHeadingElement>(null);
   const matches = searchGuide(query,category);
   const article = matches.find(topic=>topic.id===selected)??matches[0];
+  const destination = article && guideTargetLabels[article.target];
   const updateQuery = (value:string) => {
     setQuery(value);
     setCategory("all");
@@ -54,8 +55,10 @@ export function TutorialGuide({initialTopic="",onNavigate}:{initialTopic?:string
             <button type="button" aria-current={topic.id===article.id?"true":undefined} onClick={()=>{
               setSelected(topic.id);
               setNotice("");
-              articleHeading.current?.focus({preventScroll:true});
-              articleHeading.current?.scrollIntoView({block:"nearest"});
+              window.requestAnimationFrame(()=>{
+                articleHeading.current?.focus({preventScroll:true});
+                articleHeading.current?.scrollIntoView({block:"nearest"});
+              });
             }}>
               <span>{tr(...topic.title)}</span><ArrowRight size={14} aria-hidden="true"/>
             </button>
@@ -67,7 +70,7 @@ export function TutorialGuide({initialTopic="",onNavigate}:{initialTopic?:string
           <ol>{article.steps.map(step=><li key={step[0]}>{tr(...step)}</li>)}</ol>
           {article.tip&&<p className="tutorial-tip">{tr(...article.tip)}</p>}
           <button type="button" className="button primary" onClick={()=>setNotice(onNavigate(article.target)??"")}>
-            {tr("前往功能入口","Go to feature")}<ArrowRight size={16} aria-hidden="true"/>
+            {destination && tr(`前往${destination[0]}`, `Go to ${destination[1]}`)}<ArrowRight size={16} aria-hidden="true"/>
           </button>
           {notice&&<p className="tutorial-notice" role="status">{notice}</p>}
         </article>

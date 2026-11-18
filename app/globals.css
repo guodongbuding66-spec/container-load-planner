@@ -1268,8 +1268,6 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 .workspace-file-menu > summary::-webkit-details-marker { display: none; }
 .workspace-file-menu > summary:focus-visible { outline: 2px solid #226c77; outline-offset: 3px; }
 .workspace-file-panel { position: absolute; right: 0; top: calc(100% + 8px); width: min(330px, calc(100vw - 48px)); padding: 12px; border: 1px solid #d6e6e8; border-radius: 12px; background: white; box-shadow: 0 12px 36px #17384024; }
-.workspace-file-panel .button { width: 100%; min-height: 44px; justify-content: flex-start; margin-bottom: 6px; }
-.workspace-file-panel p { margin: 8px 2px 2px; color: #55727a; font-size: 13px; line-height: 1.6; }
 
 
 .calculation-controls { display:flex; flex-wrap:wrap; align-items:center; gap:12px 18px; padding:14px 18px; margin:12px 0; background:#f5fafb; border:1px solid #d4e5e8; border-radius:14px; font-size:14px; }
@@ -1392,7 +1390,6 @@ input:focus, select:focus { border-color: rgba(52, 137, 148, 0.68) !important; b
 @media(max-width:380px) { .planning-upgrades { padding:12px; } .tool-summary-text small { display:none; } .upgrade-rule-grid > fieldset { grid-template-columns:1fr; } }
 @media print { .planning-upgrades,.calculation-controls { display:none!important; } }
 
-.restore-confirm { position:fixed; z-index:500; top:16px; left:50%; transform:translateX(-50%); width:min(600px,calc(100vw - 32px)); padding:24px; border:2px solid #2f7f89; border-radius:16px; background:#fff; color:#173e49; box-shadow:0 16px 64px #0d313b44; }
 
 /* Packaging editor shares dimensions and geometry with complete unit loads. */
 .packaging-editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,.7fr);gap:16px;margin-bottom:14px;align-items:start}

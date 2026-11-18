@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { searchGuide } from "./search";
-import { guideCategories, guideTopics } from "./topics";
+import { guideCategories, guideTargetLabels, guideTopics } from "./topics";
 
 describe("tutorial search", () => {
   it.each([
@@ -57,6 +57,12 @@ describe("tutorial search", () => {
       expect(topic.path.every(Boolean)).toBe(true);
       expect(topic.steps.length).toBeGreaterThanOrEqual(3);
       expect(topic.steps.every(step=>step.every(Boolean))).toBe(true);
+      expect(guideTargetLabels[topic.target].every(Boolean)).toBe(true);
     }
+  });
+
+  it("takes new users to container selection and opens the dedicated planning controls from search", () => {
+    expect(searchGuide("快速开始")[0]).toMatchObject({id:"start", target:"setup"});
+    expect(searchGuide("计划量")[0]).toMatchObject({id:"targets", target:"planning-targets"});
   });
 });

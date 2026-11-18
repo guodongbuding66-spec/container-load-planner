@@ -11,9 +11,28 @@ export const guideCategories = {
 
 export type GuideCategory = keyof typeof guideCategories;
 export type GuideTarget =
-  | "products" | "setup" | "recipe" | "packaging" | "pallet-preview" | "rules"
+  | "products" | "setup" | "recipe" | "packaging" | "pallet-preview" | "rules" | "planning-targets"
   | "review" | "checks" | "pallets" | "coordinates"
   | "projects" | "loading" | "delivery" | "files" | "account";
+
+export const guideTargetLabels: Record<GuideTarget, Localized> = {
+  setup: ["选柜型", "Container selection"],
+  products: ["货物清单", "Cargo list"],
+  recipe: ["按箱数打托", "Pallet sizing"],
+  packaging: ["选包装", "Packaging selection"],
+  "pallet-preview": ["托内预览", "Pallet preview"],
+  rules: ["高级规则", "Advanced rules"],
+  "planning-targets": ["计划目标", "Planning targets"],
+  review: ["装柜预览", "Load preview"],
+  checks: ["方案复核", "Plan review"],
+  pallets: ["整托清单", "Pallet manifest"],
+  coordinates: ["清单与导出", "Manifests & exports"],
+  projects: ["项目与资料", "Projects & data"],
+  loading: ["装载优化", "Load optimization"],
+  delivery: ["交付与现场", "Delivery & field work"],
+  files: ["文件与备份", "Files & backups"],
+  account: ["账号与云项目", "Account & cloud projects"],
+};
 
 export type GuideTopic = {
   id: string;
@@ -28,14 +47,14 @@ export type GuideTopic = {
 
 export const guideTopics: readonly GuideTopic[] = [
   {
-    id: "start", category: "cargo", target: "products",
+    id: "start", category: "cargo", target: "setup",
     title: ["第一次做装柜方案", "Create your first load plan"],
     path: ["选柜型 → 选包装 → 货物与布置 → 查看方案", "Container → Packaging → Cargo & layout → Results"],
     keywords: "入门 快速开始 新手 新建 计算流程 使用流程 quick start getting started",
     steps: [
       ["在「选柜型」选择集装箱或车辆，核对柜内尺寸、柜门和净载重。只做打托可跳过选柜。", "Choose a container or vehicle under Container, then check interior dimensions, doorway and net payload. Skip vehicle selection for pallet-only work."],
       ["在「选包装」选择托盘、封板木箱或框架。随后在「货物与布置」录入箱规、毛重和数量，按需打开「包装与托内预览」。", "Choose a pallet, closed crate or frame under Packaging. Enter carton sizes, weights and quantities under Cargo & layout, then open Packaging & pallet preview if needed."],
-      ["在「装箱方案」确认已装箱数、余货和校验结果。用 3D 和三视图复核后，下载 PDF 或导出坐标。", "On Loading plan, check loaded cartons, remainder and validation. Review the 3D and orthographic views, then download the PDF or export coordinates."],
+      ["点「计算装柜」。在「查看方案」核对已装箱数、余货和校验结果。用三维模型与三视图复核后，在「清单与导出」下载 PDF 或导出坐标。", "Choose Calculate load. Review carton counts and checks under Results, inspect the 3D and orthographic views, then open Manifests & exports for PDF or coordinates."],
     ],
   },
   {
@@ -244,9 +263,9 @@ export const guideTopics: readonly GuideTopic[] = [
     ],
   },
   {
-    id: "targets", category: "setup", target: "setup",
+    id: "targets", category: "setup", target: "planning-targets",
     title: ["按体积和载重目标倒推数量", "Estimate order quantities from volume and payload targets"],
-    path: ["货物与托内布置 → 计算偏好与计划目标", "Cargo & layout → Solver preferences and planning targets"],
+    path: ["货物与布置 → 高级规则 → 计算偏好与计划目标", "Cargo & layout → Advanced rules → Solver preferences and planning targets"],
     keywords: "目标利用率 体积倒推 载重倒推 计划量 经验装载率 单品最大量 统一建议 算术数量 target utilization arithmetic plan",
     steps: [
       ["展开「计算偏好与计划目标」，录入目标体积利用率和目标载重利用率，比较两个倒推值。", "Expand Solver preferences and planning targets. Enter target volume and payload utilization and compare the estimates."],
@@ -257,12 +276,12 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "scene", category: "review", target: "review",
     title: ["3D 视角、三视图与逐箱播放", "3D cameras, orthographic views and sequence playback"],
-    path: ["装箱方案 → 三维装载视图 / 三视图同步复核", "Loading plan → 3D loading view / Synchronized orthographic views"],
+    path: ["查看方案 → 装柜预览 → 三维模型 / 三视图", "Results → Load preview → 3D model / Orthographic views"],
     keywords: "三维看图 3d 2d 正视 侧视 箱门视图 正交 透视 等轴测 全屏 播放 显示全部 保存图片 camera playback screenshot",
     steps: [
-      ["用「透视投影」「正交投影」和视角快捷键查看柜内摆放。点下方俯视、侧视或箱门图可切换对应正交方向。", "Use perspective, orthographic projection and camera shortcuts. Click a top, side or door diagram to align the 3D camera."],
+      ["在「三维模型」的「视角」行选择投影或方向。切换到「三视图」，可分别查看俯视、侧视和箱门图。", "Choose a projection or preset in the Camera row of the 3D model. Switch to Orthographic views for the top, side and door diagrams."],
       ["用播放条逐箱查看当前箱号和坐标，或点「显示全部」检查各层和完整布局。", "Use playback to inspect current carton IDs and positions, or Show all to check the complete layout."],
-      ["用「显示设置」调整模型与标注，在工具条可「保存图片」或进入「全屏」。", "Adjust model and annotation settings under Display settings, then use Save image or Fullscreen."],
+      ["在画布上方用「显示」调整模型、箱标和透明度，用「标尺」调整尺寸标注。视角行可「保存图片」或进入「全屏」。", "Use Display for the model, labels and transparency. Use Annotations for dimensions. In the Camera row, choose Save image or Fullscreen."],
     ],
   },
   {
@@ -280,10 +299,10 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "measure", category: "review", target: "review",
     title: ["显示尺寸、量净距、剖切与保存测量", "Show dimensions, measure clearance and section the view"],
-    path: ["装箱方案 → 三维装载视图 → 尺寸 / 属性与测量", "Loading plan → 3D loading view → Dimensions / Inspect & measure"],
+    path: ["查看方案 → 装柜预览 → 标尺 / 属性与测量", "Results → Load preview → Annotations / Inspect & measure"],
     keywords: "尺寸标注 尺寸线 标尺 mm 单位 线色 量尺 测量备份 最短距离 两点 实体净距 剖切 截面 measurement clearance ruler section",
     steps: [
-      ["开「尺寸」显示柜体尺寸。选择货物后也会显示对象尺寸。工具栏可调整单位、字号、颜色和模型外观，窄窗口从「显示设置」展开。", "Turn on Dimensions for container dimensions. Selecting cargo adds its dimensions. Adjust units, text size, colors and appearance in the toolbar or open Display settings in a narrow window."],
+      ["在画布上方的「标尺」行打开「尺寸」，可调整单位、字号和颜色。选择货物后也会显示当前对象的尺寸。", "Turn on Dimensions in the Annotations row above the canvas. Set units, text size and colors there. Selecting cargo also shows its dimensions."],
       ["在「属性与测量」选测量方式，再按提示点模型上的点或对象。需要观察内部时在「剖切与隔离」设置方向和位置。", "Select a measurement mode in Inspect & measure, then pick points or objects as instructed. To inspect the interior, choose a section direction and position."],
       ["需要保留时命名并「保存当前测量」。用测量 JSON 备份或 PDF 交接已保存的测量。", "Name and save measurements you need to retain. Share saved measurements with their JSON backup or PDF."],
     ],
@@ -291,7 +310,7 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "checks", category: "review", target: "checks",
     title: ["复核数量、重心、承重和装卸路径", "Review counts, center of gravity, bearing and access"],
-    path: ["装箱方案 → SKU 装载明细 / 校验与提示 / 方案复核", "Loading plan → SKU breakdown / Checks & alerts / Plan review"],
+    path: ["查看方案 → 装载明细与复核 → 方案复核", "Results → Breakdown & review → Plan review"],
     keywords: "校验不通过 未核验 数据一致性 重心偏移 运输固定 静态上压 装卸路径 复核数量 套数 仓库 validation center of gravity checks",
     steps: [
       ["先核对 SKU 已装、订单量和未装量，成套货物再核对「完整套数校验」。在「校验与提示」检查重心。", "Check loaded, ordered and remaining cartons per SKU, then review complete kits. Check center of gravity under Checks & alerts."],
@@ -474,11 +493,11 @@ export const guideTopics: readonly GuideTopic[] = [
   {
     id: "export", category: "delivery", target: "coordinates",
     title: ["导出 PDF、装载坐标 CSV 或方案 JSON", "Export a PDF, placement CSV or plan JSON"],
-    path: ["装箱方案 → 下载 PDF / 三维坐标与装载清单", "Loading plan → Download PDF / 3D coordinates and load manifest"],
+    path: ["查看方案 → 清单与导出 → 三维坐标与装载清单", "Results → Manifests & exports → 3D positions and load manifest"],
     keywords: "下载 下载方案 打印指导书 输出坐标 excel PDF CSV JSON 导出灰色 折叠坐标清单 搜索箱位 查箱号 坐标分页 print export coordinates search carton positions",
     steps: [
       ["先选需要交付的算法结果，并确认计算完成、当前输入与已校验方案一致。", "Select the result you intend to share. Make sure calculation is complete and the inputs match the checked plan."],
-      ["点「坐标与导出」展开箱位明细。输入 # 加序号可查某行，也可按 SKU、托号、套装或批次搜索。", "Open Coordinates & exports to view carton positions. Search by # and row number, SKU, pallet, kit or batch."],
+      ["在「清单与导出」展开「三维坐标与装载清单」。输入 # 加序号可查某行，也可按 SKU、托号、套装或批次搜索。", "Expand the load manifest under Manifests & exports to view positions. Search by # and row number, SKU, pallet, kit or batch."],
       ["可在清单收起时下载完整坐标 CSV 和方案 JSON，也可下载 PDF 或打印指导书。", "Download the full CSV or plan JSON with the list collapsed. PDF and the print guide are also available."],
       ["要跨设备继续编辑，用顶部「文件与备份 → 备份工作区」。现场交接还可在「交付与现场」生成对应版本和指导书。", "Use Files & backups → Back up workspace to continue editing on another device. For field handover, generate the corresponding revision and guide under Delivery & field work."],
     ],
