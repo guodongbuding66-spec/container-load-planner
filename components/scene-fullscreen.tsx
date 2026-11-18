@@ -69,5 +69,5 @@ export function SceneFullscreen({ children, toolbar, fullscreenFooter, onEscape 
     {children}
     {expanded && fullscreenFooter}
   </div>;
-  return expanded ? createPortal(<dialog ref={dialogRef} className="scene-fullscreen-dialog" aria-label={tr("全屏三维查看器", "Fullscreen 3D viewer")} onCancel={e => { e.preventDefault(); e.stopPropagation(); close(); }}>{content}</dialog>, document.body) : content;
+  return expanded ? createPortal(<dialog ref={dialogRef} className="scene-fullscreen-dialog" aria-label={tr("全屏查看器", "Fullscreen viewer")} onCancel={e => { e.preventDefault(); e.stopPropagation(); close(); }}>{content}</dialog>, document.body) : content;
 }

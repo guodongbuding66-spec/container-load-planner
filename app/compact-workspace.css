@@ -241,7 +241,6 @@
 .compact-workspace .product-table td:nth-child(2) { min-width: 140px; }
 .compact-workspace .product-table td { padding: 8px; }
 .compact-workspace .product-table th { font-size: 12px; }
-.compact-workspace .wizard-page .compact-cargo-table { min-width: 880px; }
 .compact-workspace .unit-input-strip { padding: 8px 12px; gap: 8px; }
 .compact-workspace .set-builder { padding: 12px; }
 .product-table-wrap:focus-visible,.compact-workspace .product-table td input:focus-visible { outline:2px solid var(--teal);outline-offset:-2px; }
@@ -821,17 +820,19 @@
 .coordinate-print-options select { border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:5px 8px; }
 .record-print-only { display:none; }
 @media(min-width:761px) {
+  .compact-workspace .wizard-page .compact-cargo-table { min-width: 880px; }
   .product-table .cargo-row-actions,.product-table thead th:last-child { position:sticky;right:0;background:#f7fafb;box-shadow:-1px 0 0 var(--line); }
   .product-table .cargo-row-actions { z-index:1; }
   .product-table thead th:last-child { z-index:3; }
 }
 @media(max-width:760px) {
-  .compact-workspace .product-table-wrap { overflow:visible;border:0; }
+  .compact-workspace .product-table-wrap { position:relative;overflow:visible;border:0; }
   .compact-workspace .product-table { display:block;min-width:0;width:100%; }
   .compact-workspace .product-table thead { position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%); }
   .compact-workspace .product-table tbody { display:grid;gap:10px; }
   .compact-workspace .product-table tbody tr { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface); }
   .compact-workspace .product-table tr td { min-width:0;width:auto;padding:2px;border:0;text-align:start; }
+  .compact-workspace .product-table td:is(.numeric-cell,.cargo-sku-cell,.cargo-settings-cell) { min-width:0;width:auto; }
   .compact-workspace .product-table td[data-label]::before { display:block;content:attr(data-label);font-size:11px;color:var(--muted);margin-bottom:3px; }
   .compact-workspace .product-table td input:not([type=checkbox]):not([type=color]) { min-width:0;font-size:16px; }
   .compact-workspace .product-table .cargo-color-cell { grid-column:1;grid-row:1; }

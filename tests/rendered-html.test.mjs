@@ -261,6 +261,7 @@ test("protects mobile calculations and enforces a readable typography floor", as
   const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
   const scene = await readFile(new URL("../components/container-scene.tsx", import.meta.url), "utf8");
   const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  const compactStyles = await readFile(new URL("../app/compact-workspace.css", import.meta.url), "utf8");
   const runtimePolicy = await readFile(new URL("../lib/packing/runtime-policy.ts", import.meta.url), "utf8");
 
   assert.match(runtimePolicy, /schedule: "practical-first"/);
@@ -275,6 +276,8 @@ test("protects mobile calculations and enforces a readable typography floor", as
   assert.match(styles, /Readability floor/);
   assert.match(styles, /@media \(max-width: 680px\)[\s\S]*?font-size: 16px/s);
   assert.match(styles, /\.set-summary-grid > article:only-child \{ grid-column: 1 \/ -1; \}/);
+  assert.match(compactStyles, /@media\(min-width:761px\) \{\s*\.compact-workspace \.wizard-page \.compact-cargo-table \{ min-width: 880px; \}/);
+  assert.equal(compactStyles.match(/\.wizard-page \.compact-cargo-table \{ min-width: 880px; \}/g)?.length, 1);
 });
 
 test("separates utilization planning from the selected strategy capacity ceiling", async () => {
