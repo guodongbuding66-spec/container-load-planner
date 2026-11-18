@@ -21,8 +21,8 @@ const NO_PRODUCTS:readonly ProductInput[]=[];
 type Props={value:PalletBuildOptions;only:boolean;products?:readonly ProductInput[];request?:PackingRequest;
   preparedLayout?:PreparedPalletLayout;onPreparedLayoutChange?:(layout:PreparedPalletLayout|undefined)=>void;
   layerTemplates?:PalletLayerTemplate[];onLayerTemplatesChange?:(templates:PalletLayerTemplate[])=>void;
-  initialSpecId?:string;onSelectSpec?:(id:string)=>void;chooseOnly?:boolean;previewActive?:boolean;onRecipePending?:(pending:boolean)=>void;onChange:(value:PalletBuildOptions)=>void;onValidityChange:(key:string,valid:boolean)=>void;resetToken?:number;onReset?:()=>void;invalid?:boolean};
-export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,preparedLayout,onPreparedLayoutChange,layerTemplates,onLayerTemplatesChange,initialSpecId="primary",onSelectSpec,chooseOnly=false,previewActive=true,onRecipePending,onChange,onValidityChange,resetToken=0,onReset,invalid=false}:Props){
+  initialSpecId?:string;onSelectSpec?:(id:string)=>void;chooseOnly?:boolean;previewActive?:boolean;onRecipePending?:(pending:boolean)=>void;onPreviewReady?:(ready:boolean)=>void;onChange:(value:PalletBuildOptions)=>void;onValidityChange:(key:string,valid:boolean)=>void;resetToken?:number;onReset?:()=>void;invalid?:boolean};
+export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,preparedLayout,onPreparedLayoutChange,layerTemplates,onLayerTemplatesChange,initialSpecId="primary",onSelectSpec,chooseOnly=false,previewActive=true,onRecipePending,onPreviewReady,onChange,onValidityChange,resetToken=0,onReset,invalid=false}:Props){
   useLanguage();
   const [recipePending,setRecipePending]=useState(false);
   const recipeValidity=useCallback((pending:boolean)=>{setRecipePending(pending);onRecipePending?.(pending);},[onRecipePending]);
@@ -74,6 +74,10 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
           {specifications.map(s=><option key={s.id} value={s.id}>{s.config.name} · {s.maxPallets} {tr("个可用","available")}</option>)}
         </select></label>}
       </div>
+      <label className="kit-pallet-rule">
+        <input type="checkbox" checked={!!value.oneKitPerPallet} disabled={invalid||draftInvalid} onChange={event=>onChange({...value,oneKitPerPallet:event.target.checked})}/>
+        <span><strong>{tr("一套一托","One kit per pallet")}</strong><small>{tr("同一套装编码的箱型按套内数量配齐，每托放一整套。","Each pallet holds one complete kit in its specified carton ratio.")}</small></span>
+      </label>
       {chooseOnly&&<section className="packaging-picker"><div className="packaging-picker-options">
         <div className="packaging-picker-heading">
           <h3>{tr("围护预设","Enclosure presets")}</h3>
@@ -146,7 +150,7 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
     {!chooseOnly&&<>
     <PackagingEditor key={current.id} value={current.config} onChange={config=>update({config})} onValidityChange={fieldValidity} resetToken={resetToken} onReset={reset} invalid={invalid}
       preview={request?(appearance,empty)=><PalletBuildPreview request={request} value={value} specId={current.id} active={previewActive} appearance={appearance} empty={empty} disabled={invalid||draftInvalid||recipePending}
-        preparedLayout={preparedLayout} onPreparedLayoutChange={onPreparedLayoutChange} layerTemplates={layerTemplates} onLayerTemplatesChange={onLayerTemplatesChange}/>:undefined}>
+        preparedLayout={preparedLayout} onPreparedLayoutChange={onPreparedLayoutChange} layerTemplates={layerTemplates} onLayerTemplatesChange={onLayerTemplatesChange} onReadyChange={onPreviewReady}/>:undefined}>
     <div className="pallet-build-grid packaging-dimensions" key={`dimensions-${current.id}`}>{fields.map(([key,label,unit,min])=><label key={key}>{label}<div className="pallet-build-number"><NumericInput showError resetToken={resetToken} ariaLabel={label} value={current.config[key]??0} min={min} max={key==="gap"||key==="weight"?10000:100000} precision={1} onValueChange={v=>update({config:{...current.config,[key]:v}})} onValidityChange={valid=>fieldValidity(`pallet-build:${key}`,valid)}/><span>{unit}</span></div>
       {key==="maxCargoHeight"&&!only&&!crate&&<small>{tr("0 = 按柜内和柜门净高自动","0 = use vehicle and door clearance")}</small>}</label>)}
       {!only&&<label>{tr("托盘方向","Loaded pallet orientation")}<select aria-label={tr("托盘方向","Loaded pallet orientation")} value={current.config.layout} onChange={e=>update({config:{...current.config,layout:e.target.value as PalletBuildOptions["config"]["layout"]}})}><option value="auto">{tr("自动水平旋转","Auto horizontal rotation")}</option><option value="long">{tr("长边沿柜长","Length along vehicle")}</option><option value="cross">{tr("宽边沿柜长","Width along vehicle")}</option></select></label>}
@@ -156,7 +160,7 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
       <button type="button" className="button small" onClick={()=>{fieldValidity("pallet-build:maxCargoHeight",true);update({config:{...current.config,maxCargoHeight:0}});}}>{tr("按柜门净高自动加层","Use door clearance for carton layers")}</button>
       <small>{tr("托内纸箱可以多层堆码，整托堆叠层数单独设置。","Cartons can stack within a pallet. Pallet-on-pallet stacking has its own setting.")}</small>
     </div>}
-    {recipe&&<details className="package-options" open={recipePending||undefined}><summary>{tr("按每托箱数自动配尺寸","Size by cartons per pallet")}</summary>{recipe}</details>}
+    {recipe&&<details className="package-options" open={recipePending||undefined}><summary>{value.oneKitPerPallet?tr("推荐一套一托的包装尺寸","Suggest packaging for one kit"):tr("按每托箱数自动配尺寸","Size by cartons per pallet")}</summary>{recipe}</details>}
     <details className="package-options"><summary>{tr("打托数量与混托规则","Pallet limits and mixing")}</summary>
     <div className="pallet-build-grid packaging-order-rules"><label>{tr("单品托 / 混托","Pallet mix")}<select aria-label={tr("单品托 / 混托","Pallet mix")} value={value.mix} onChange={e=>onChange({...value,mix:e.target.value as "single"|"mixed"})}><option value="single">{tr("单 SKU / 完整套装","One SKU / whole kits")}</option><option value="mixed">{tr("允许多 SKU 混托","Allow mixed SKUs")}</option></select></label><label>{tr("生成托盘上限","Prepared pallet limit")}<NumericInput resetToken={resetToken} ariaLabel={tr("生成托盘上限","Prepared pallet limit")} value={value.maxPallets} integer min={1} max={200} onValueChange={maxPallets=>onChange({...value,maxPallets})} onValidityChange={valid=>fieldValidity("pallet-build:limit",valid)}/><small>{tr("所有规格合计上限","Total across all specifications")}</small></label></div>
     </details>

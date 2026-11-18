@@ -13,7 +13,8 @@ describe("generic exterior transport geometry", () => {
     for (const space of TRANSPORT_PRESETS) {
       const original = JSON.stringify(space), parts = createTransportParts(space);
       expect(parts.length).toBeGreaterThan(0);
-      expect(parts.length).toBeLessThan(130);
+      expect(parts.length).toBeLessThan(220);
+      expect(createTransportParts(space,true).length).toBeLessThanOrEqual(parts.length);
       const cargoMin = [-space.length / 2, 0, -space.width / 2], cargoMax = [space.length / 2, space.height, space.width / 2];
       for (const p of parts) {
         expect(p.size.every(n => Number.isFinite(n) && n > 0), `${space.id}/${p.name}`).toBe(true);
@@ -27,6 +28,8 @@ describe("generic exterior transport geometry", () => {
   it("distinguishes closed boxes, open-top, flat racks, flatbed trucks and reefers", () => {
     const names = (id:string) => createTransportParts(TRANSPORT_PRESETS.find(s=>s.id===id)!).map(p=>p.name);
     expect(names("20gp")).toEqual(expect.arrayContaining(["roof","rear-door","door-lock-rod","wall-rib"]));
+    expect(names("20gp")).toEqual(expect.arrayContaining(["roof-rib","floor-crossmember","door-hinge"]));
+    expect(createTransportParts(TRANSPORT_PRESETS.find(s=>s.id==="20gp")!,true).map(p=>p.name)).not.toContain("door-hinge");
     expect(names("20ot")).not.toContain("roof");
     expect(names("20fr")).toContain("rear-frame");
     expect(names("20fr")).not.toContain("side-wall");

@@ -25,7 +25,7 @@ function Menu() {
   return (
     <details className="workspace-other-menu relative z-50" name="workspace-menus">
       <summary className="button ghost list-none select-none [&::-webkit-details-marker]:hidden">
-        <Box size={16} />{tr("其他工具")}</summary>
+        <Box size={16} />{tr("其他工具","Other tools")}</summary>
       <div className="workspace-other-panel absolute right-0 top-[46px] z-[90] w-[min(390px,calc(100vw-28px))] rounded-2xl border border-[#dce5e7] bg-white p-2.5 shadow-[0_20px_60px_rgba(21,52,67,.16)]">
         <div className="px-2 pb-2 pt-1 text-[10px] font-extrabold tracking-[.12em] text-[#71868c]">{tr("GALAXY 工具生态")}</div>
         <div className="grid gap-1">
@@ -61,9 +61,9 @@ export function GalaxyEcosystemMenu() {
   const [target, setTarget] = useState<Element | null>(null);
 
   useEffect(() => {
-    const resolveTarget = () => setTarget(document.querySelector(".workspace-footer-links"));
+    const resolveTarget = () => setTarget(document.querySelector(".workspace-other-entry"));
     resolveTarget();
-    if (document.querySelector(".workspace-footer-links")) return;
+    if (document.querySelector(".workspace-other-entry")) return;
     const observer = new MutationObserver(resolveTarget);
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();

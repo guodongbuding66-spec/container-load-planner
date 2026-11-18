@@ -18,11 +18,12 @@ type Props = {
   appearance?: ReactNode; empty?: ReactNode;
   preparedLayout?: PreparedPalletLayout; onPreparedLayoutChange?: (layout: PreparedPalletLayout | undefined) => void;
   layerTemplates?: PalletLayerTemplate[]; onLayerTemplatesChange?: (templates: PalletLayerTemplate[]) => void;
+  onReadyChange?: (ready:boolean) => void;
 };
 
 type Preview = { key: string; attempt: number; plan?: PackingResult; error?: string };
 
-export function PalletBuildPreview({request,value,specId,disabled,active=true,appearance,empty,preparedLayout,onPreparedLayoutChange,layerTemplates,onLayerTemplatesChange}:Props) {
+export function PalletBuildPreview({request,value,specId,disabled,active=true,appearance,empty,preparedLayout,onPreparedLayoutChange,layerTemplates,onLayerTemplatesChange,onReadyChange}:Props) {
   useLanguage();
   const [preview,setPreview] = useState<Preview>();
   const [lastPlan,setLastPlan] = useState<PackingResult>();
@@ -75,9 +76,15 @@ export function PalletBuildPreview({request,value,specId,disabled,active=true,ap
   const plan = useMemo(() => source && withPalletPreviewAppearance(source,value), [source,value]);
   // The same immutable placement snapshot feeds inspection, projections and all edit actions.
   const fresh = !!current && !disabled;
+  const ready = fresh&&current.validation.valid || !disabled&&issue==="cargo"&&request.workflow==="palletized"&&request.products.some(p=>p.quantity>0);
+  useEffect(()=>{onReadyChange?.(ready);return ()=>onReadyChange?.(false);},[ready,onReadyChange]);
   const loadedUnits = useMemo(() => new Set(plan?.placements.flatMap(b => b.palletIds ?? [])),[plan]);
   const units = plan?.pallets?.filter(p => (p.specificationId ?? "primary") === specId && loadedUnits.has(p.id)) ?? [];
   const sample = units.find(p => p.id === sampleId) ?? units[0];
+  const sampleCartons=new Map<string,number>();
+  if(sample&&plan)for(const carton of plan.placements){
+    if(carton.palletIds?.[0]===sample.id)sampleCartons.set(carton.sku,(sampleCartons.get(carton.sku)??0)+1);
+  }
   const stagedProducts = useMemo(() => input ? (JSON.parse(input) as PackingRequest).products : [], [input]);
   const error = matches ? preview.error : "";
   const status = disabled ? tr("完成当前输入后自动更新预览。","Complete the current input to refresh the preview.")
@@ -115,10 +122,13 @@ export function PalletBuildPreview({request,value,specId,disabled,active=true,ap
         </label>
         {onPreparedLayoutChange && <button className="button small" disabled={!fresh} type="button" onClick={()=>setEditingId(sample.id)}><Pencil size={14}/>{tr("编辑托内摆放","Edit pallet layout")}</button>}
       </div>
+      {sampleCartons.size>0&&<ul className="pallet-preview-contents" aria-label={tr("当前托内箱型","Cartons on selected pallet")}>
+        {[...sampleCartons].map(([sku,count])=><li key={sku}>{sku} <b>× {count}</b></li>)}
+      </ul>}
       {active && !editingId && !showManifest && <PalletUnitPreviewScene result={plan} id={sample.id} actions={appearance} products={stagedProducts}/>}
       <div className="packaging-preview-actions">
         <button type="button" className="button ghost small" disabled={!fresh} onClick={()=>setShowManifest(true)}><Rows3 size={14}/>{tr("查看打托清单","View pallet manifest")}</button>
-        {onPreparedLayoutChange && <PalletOrderConsolidationButton plan={plan} products={stagedProducts} disabled={!fresh} preparation onAdopt={adopt}/>}
+        {onPreparedLayoutChange && !plan.palletization?.oneKitPerPallet && <PalletOrderConsolidationButton plan={plan} products={stagedProducts} disabled={!fresh} preparation onAdopt={adopt}/>}
       </div>
     </> : active ? <>{appearance}{empty}</> : null}
     {preparedLayout && onPreparedLayoutChange && <button type="button" className="button ghost small" onClick={()=>onPreparedLayoutChange(undefined)}>{tr("恢复自动打托","Return to automatic palletizing")}</button>}

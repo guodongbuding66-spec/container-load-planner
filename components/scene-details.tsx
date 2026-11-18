@@ -54,15 +54,34 @@ export function useShippingMarkCanvas(mark: ShippingMark | undefined, sku: strin
 }
 
 /** Each face gets a canvas matching its physical aspect, so text never stretches. */
-export function boxFaceTexture(sku: string, color: string, width: number, height: number, up?: string, mark?: HTMLCanvasElement) {
-  const ratio = width / height, longest = 1024;
+export function boxFaceTexture(sku: string, color: string, width: number, height: number, options:{up?:string;mark?:HTMLCanvasElement;reduced?:boolean;label?:boolean;seam?:boolean}={}) {
+  const {up,mark,reduced=false,label=true,seam=false}=options;
+  const ratio = width / height, longest = reduced?256:1024;
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(8, Math.round(ratio >= 1 ? longest : longest * ratio));
   canvas.height = Math.max(8, Math.round(ratio >= 1 ? longest / ratio : longest));
   const ctx = canvas.getContext("2d")!;
   const w = canvas.width, h = canvas.height;
   ctx.fillStyle = color; ctx.fillRect(0,0,w,h);
+  if(!reduced){
+    for(let i=0;i<390;i++){
+      const x=(i*83%397)*w/397,y=(i*271%401)*h/401;
+      ctx.fillStyle=i%3?"rgba(16,32,29,.065)":"rgba(255,247,226,.12)";
+      ctx.fillRect(x,y,1+(i%5),1);
+    }
+    if(seam){
+      ctx.fillStyle="rgba(221,208,171,.23)";
+      ctx.fillRect(0,h*.46,w,h*.08);
+      ctx.fillStyle="rgba(23,38,30,.19)";
+      ctx.fillRect(0,h*.5,w,Math.max(1,h*.004));
+    }
+  }
   ctx.strokeStyle = "rgba(13,43,50,.28)"; ctx.lineWidth = Math.max(1,Math.min(w,h)*.022); ctx.strokeRect(0,0,w,h);
+  if(!label){
+    const texture=new THREE.CanvasTexture(canvas);
+    texture.colorSpace=THREE.SRGBColorSpace;
+    return texture;
+  }
   if (mark) {
     const scale = Math.min(w * .9 / mark.width, h * .82 / mark.height);
     const dw = mark.width * scale, dh = mark.height * scale;
@@ -91,9 +110,10 @@ export function boxFaceTexture(sku: string, color: string, width: number, height
 type StructurePart = PackagingPart & { pallet: PlacedPallet };
 type FinishProps = {
   parts: StructurePart[]; scale: number; offset: THREE.Vector3;
+  reduced?: boolean;
   onSelect?: (p: PlacedPallet) => void;
 };
-function PackagingInstances({ parts, scale, offset, onSelect, geometry, materials }: FinishProps & {
+function PackagingInstances({ parts, scale, offset, onSelect, geometry, materials, reduced=false }: FinishProps & {
   geometry: THREE.BufferGeometry; materials: THREE.MeshStandardMaterial[];
 }) {
   const ref = useRef<THREE.InstancedMesh>(null);
@@ -101,8 +121,9 @@ function PackagingInstances({ parts, scale, offset, onSelect, geometry, material
     const mesh = ref.current;
     if (!mesh) return;
     const dummy = new THREE.Object3D();
-    dummy.scale.setScalar(scale);
     parts.forEach((part, i) => {
+      if(reduced)dummy.scale.set(part.dx*scale,part.dz*scale,part.dy*scale);
+      else dummy.scale.setScalar(scale);
       dummy.position.set((part.x + part.dx / 2) * scale + offset.x, (part.z + part.dz / 2) * scale + offset.y, (part.y + part.dy / 2) * scale + offset.z);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
@@ -115,18 +136,23 @@ function PackagingInstances({ parts, scale, offset, onSelect, geometry, material
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
-  }, [parts, scale, offset]);
-  return <instancedMesh name="packaging-structure" ref={ref} args={[geometry, materials, parts.length]} castShadow={materials[0].opacity===1} receiveShadow dispose={null}
+  }, [parts, scale, offset,reduced]);
+  return <instancedMesh name="packaging-structure" ref={ref} args={[geometry, reduced?materials[0]:materials, parts.length]} castShadow={!reduced&&materials[0].opacity===1} receiveShadow={!reduced} dispose={null}
     raycast={onSelect ? THREE.InstancedMesh.prototype.raycast : () => {}}
     onClick={e => { if (e.delta <= 3 && onSelect && e.instanceId !== undefined) { e.stopPropagation(); onSelect(parts[e.instanceId].pallet); } }}/>;
 }
 
-function PackagingFinishGroup({ parts, ...props }: FinishProps) {
+function PackagingFinishGroup({ parts, reduced=false, ...props }: FinishProps) {
   const material = parts[0].pallet.packaging?.material ?? DEFAULT_PACKAGING.material;
   const opacity = parts[0].pallet.packaging?.opacity ?? 1;
-  const finish = useMemo(() => createPackagingFinish(material, opacity), [material, opacity]);
+  const finish = useMemo(() => {
+    if(!reduced)return createPackagingFinish(material,opacity);
+    const simple=new THREE.MeshStandardMaterial({roughness:.85,opacity,transparent:opacity<1,depthWrite:opacity===1});
+    return {materials:[simple],dispose:()=>simple.dispose()};
+  }, [material, opacity,reduced]);
   useEffect(() => () => finish.dispose(), [finish]);
   const batches = useMemo(() => {
+    if(reduced)return [{key:"box",parts,geometry:new THREE.BoxGeometry()}];
     const groups = new Map<string, { size: SceneSize; parts: StructurePart[] }>();
     for (const p of parts) {
       const size: SceneSize = [p.dx, p.dz, p.dy];
@@ -137,10 +163,10 @@ function PackagingFinishGroup({ parts, ...props }: FinishProps) {
       else groups.set(key, { size, parts: [p] });
     }
     return [...groups].map(([key, group]) => ({ key, parts: group.parts, geometry: createPackagingGeometry(group.size, material) }));
-  }, [parts, material]);
+  }, [parts, material,reduced]);
   useEffect(() => () => { batches.forEach(b => b.geometry.dispose()); }, [batches]);
   return <>{batches.map(batch => <PackagingInstances key={batch.key} geometry={batch.geometry}
-    parts={batch.parts} materials={finish.materials} {...props}/>)}</>;
+    parts={batch.parts} materials={finish.materials} reduced={reduced} {...props}/>)}</>;
 }
 
 export function PalletStructures({ pallets, ...props }: Omit<FinishProps, "parts"> & { pallets: PlacedPallet[] }) {

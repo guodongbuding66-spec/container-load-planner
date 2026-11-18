@@ -50,7 +50,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.92.5";
+export const ENGINE_VERSION = "0.93.0";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -2670,7 +2670,7 @@ export function restorePackingSnapshot(request: PackingRequest, snapshot: unknow
     const expected=parsePalletBuild(request.palletBuild).config;
     if(JSON.stringify(expected)!==JSON.stringify(palletization.config))throw Error("Deck support specification does not match workspace inputs / 托内支承件规格与当前工作区输入不一致");
   }
-  if(palletization){for(const source of [request.palletBuild,raw.palletBuild])if(source!==undefined){const expected=parsePalletBuild(source);if((expected.selection??"ordered")!==(palletization.selection??"ordered"))throw new Error("Packaging selection mode does not match workspace inputs");if(JSON.stringify(parseLooseQuantities(expected.looseQuantities))!==JSON.stringify(palletization.looseQuantities))throw Error("Loose reservations do not match workspace inputs / 散装预留与当前输入不一致");}}
+  if(palletization){for(const source of [request.palletBuild,raw.palletBuild])if(source!==undefined){const expected=parsePalletBuild(source);if(Boolean(expected.oneKitPerPallet)!==Boolean(palletization.oneKitPerPallet))throw Error("一套一托规则与工作区输入不一致 / One-kit pallet rule does not match workspace inputs");if((expected.selection??"ordered")!==(palletization.selection??"ordered"))throw new Error("Packaging selection mode does not match workspace inputs");if(JSON.stringify(parseLooseQuantities(expected.looseQuantities))!==JSON.stringify(palletization.looseQuantities))throw Error("Loose reservations do not match workspace inputs / 散装预留与当前输入不一致");}}
   if(palletization&&!Array.isArray(raw.pallets))throw new Error("Prebuilt pallet coordinates are missing");
   if(palletization&&((raw.pallets as unknown[]).length>200||(raw.pallets as unknown[]).some(p=>!p||typeof p!=="object")))throw new Error("Invalid prebuilt pallet coordinates");
   if(palletization?.specifications){

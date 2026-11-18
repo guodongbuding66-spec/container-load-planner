@@ -821,6 +821,10 @@
 .record-print-only { display:none; }
 @media(min-width:761px) {
   .compact-workspace .wizard-page .compact-cargo-table { min-width: 880px; }
+  .compact-workspace .product-table tbody td { vertical-align: top; }
+  .compact-workspace .product-table .cargo-color-cell > input { margin-block: 7px 0; }
+  .compact-workspace .product-table .cbm-auto-value { height: 36px; font-variant-numeric: tabular-nums; }
+  .compact-workspace .product-table .cargo-row-actions .icon-button { min-width: 30px; width: 30px; height: 36px; }
   .product-table .cargo-row-actions,.product-table thead th:last-child { position:sticky;right:0;background:#f7fafb;box-shadow:-1px 0 0 var(--line); }
   .product-table .cargo-row-actions { z-index:1; }
   .product-table thead th:last-child { z-index:3; }

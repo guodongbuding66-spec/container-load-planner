@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, DoorOpen, Eye, ImageDown, RotateCcw, ScanLine, Tag } from "lucide-react";
+import { Box, DoorOpen, Eye, ImageDown, RotateCcw, Ruler, ScanLine, Tag } from "lucide-react";
 import type { ReactNode } from "react";
 import type { CameraPresetView, CameraProjection, CameraView } from "../lib/packing/camera-fit";
 import { DimensionControls } from "./dimension-controls";
@@ -21,6 +21,7 @@ type Props = {
   cameraView: CameraView;
   projectionMode: CameraProjection;
   webglSupported: boolean | null;
+  compact?: boolean;
   palletOnly: boolean;
   hasCargo: boolean;
   hasCollisionBody: boolean;
@@ -32,7 +33,7 @@ type Props = {
 };
 
 export function SceneViewToolbar({
-  cameraView, projectionMode, webglSupported, palletOnly, hasCargo, hasCollisionBody,
+  cameraView, projectionMode, webglSupported, palletOnly, hasCargo, hasCollisionBody, compact=false,
   fullscreenToggle, onViewChange, onProjectionChange, onReset, onSave,
 }: Props) {
   useLanguage();
@@ -44,12 +45,12 @@ export function SceneViewToolbar({
       <span className="scene-toolbar-label" aria-hidden="true">{tr("视角", "Camera")}</span>
       <div className="scene-toolbar-content">
         {topViewOnly ? <span className="scene-toolbar-static-view"><ScanLine size={15}/>{tr("正交俯视","Orthographic top view")}</span> : <>
-          <div className="scene-toolbar-segment" role="group" aria-label={tr("投影方式", "Projection")}>
+          {!compact&&<div className="scene-toolbar-segment" role="group" aria-label={tr("投影方式", "Projection")}>
             <button type="button" disabled={!webglSupported} aria-pressed={projectionMode === "perspective"} onClick={() => onProjectionChange("perspective")}>{tr("透视投影", "Perspective")}</button>
             <button type="button" disabled={!webglSupported} aria-pressed={projectionMode === "orthographic"} onClick={() => onProjectionChange("orthographic")}>{tr("正交投影", "Orthographic")}</button>
-          </div>
+          </div>}
           <div className="scene-toolbar-buttons scene-toolbar-presets" role="group" aria-label={tr("预设方向", "Camera presets")}>
-            {cameraPresets.map(({ id, label, english, Icon }) => (
+            {(compact?cameraPresets.slice(0,4):cameraPresets).map(({ id, label, english, Icon }) => (
               <button key={id} type="button" disabled={!webglSupported} aria-pressed={cameraView === id} onClick={() => onViewChange(id)}>
                 <Icon size={15}/>{id === "door" && palletOnly ? tr("正视", "Front") : tr(label, english)}
               </button>
@@ -59,11 +60,12 @@ export function SceneViewToolbar({
         <div className="scene-toolbar-buttons scene-toolbar-actions">
           <button type="button" onClick={onReset}><RotateCcw size={15}/>{tr("重置视图", "Reset view")}</button>
           {!topViewOnly && <button type="button" disabled={!webglSupported} onClick={onSave}><ImageDown size={15}/>{tr("保存图片", "Save image")}</button>}
+          {compact&&<button type="button" aria-pressed={appearance.dimensions} onClick={()=>appearance.setDimensions(!appearance.dimensions)}><Ruler size={15}/>{tr("尺寸","Dimensions")}</button>}
           {fullscreenToggle}
         </div>
       </div>
     </div>
-    <div className="scene-toolbar-row" role="group" aria-label={tr("显示", "Display")}>
+    {!compact&&<><div className="scene-toolbar-row" role="group" aria-label={tr("显示", "Display")}>
       <span className="scene-toolbar-label" aria-hidden="true">{tr("显示", "Display")}</span>
       <div className="scene-toolbar-content">
         <div className="scene-toolbar-buttons">
@@ -77,6 +79,6 @@ export function SceneViewToolbar({
     <div className="scene-toolbar-row" role="group" aria-label={tr("标尺", "Annotations")}>
       <span className="scene-toolbar-label" aria-hidden="true">{tr("标尺", "Annotations")}</span>
       <div className="scene-toolbar-content"><DimensionControls/></div>
-    </div>
+    </div></>}
   </section>;
 }

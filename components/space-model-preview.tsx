@@ -12,6 +12,7 @@ import type { ContainerSpec, FloorPalletConfig, PlacedPallet } from "../lib/pack
 import type { CameraView, SceneSize } from "../lib/packing/camera-fit";
 import { transportSceneBounds } from "../lib/packing/transport-model";
 import { supportsWebGL } from "../lib/packing/webgl-support";
+import { detectRuntimePolicy } from "../lib/packing/runtime-policy";
 import { SceneCameraController } from "../lib/packing/scene-camera";
 import { PalletStructures } from "./scene-details";
 import { SceneDimensions } from "./scene-dimensions";
@@ -23,29 +24,30 @@ import { TransportModel } from "./transport-model";
 import { TransportModelControls, useTransportAppearance } from "./transport-appearance";
 import { ModelPreviewFallback } from "./model-preview-fallback";
 
-function PackagingLighting({ reflective }: { reflective: boolean }) {
+function PackagingLighting({ reflective, reduced }: { reflective: boolean; reduced: boolean }) {
   return <>
-    {reflective&&<Environment resolution={128} frames={1}>
+    {reflective&&!reduced&&<Environment resolution={128} frames={1}>
       <Lightformer form="rect" intensity={2} color="#ecf4ff" position={[2,3,1]} rotation={[Math.PI/2,0,.5]} scale={[6,2,1]}/>
       <Lightformer form="rect" intensity={1.2} color="#fff3dc" position={[0,2,-3]} scale={[7,3,1]}/>
       <Lightformer form="rect" intensity={.9} color="#cbdce9" position={[-3,0,1]} rotation={[0,Math.PI/2,0]} scale={[6,2,1]}/>
     </Environment>}
     <hemisphereLight color="#f7fbff" groundColor="#bdb4a4" intensity={1.45}/>
-    <directionalLight position={[3,5,4]} color="#fff4e3" intensity={2.6} castShadow shadow-mapSize={1024}
+    <directionalLight position={[3,5,4]} color="#fff4e3" intensity={2.6} castShadow={!reduced} shadow-mapSize={1024}
       shadow-camera-left={-3} shadow-camera-right={3} shadow-camera-top={3} shadow-camera-bottom={-3}
       shadow-normalBias={.004} shadow-bias={-.0002}/>
     <directionalLight position={[-3,2,-2]} color="#d9e9ff" intensity={.85}/>
-    <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.003,0]} receiveShadow>
+    {!reduced&&<mesh rotation={[-Math.PI/2,0,0]} position={[0,-.003,0]} receiveShadow>
       <planeGeometry args={[30,30]}/><shadowMaterial transparent opacity={.22}/>
-    </mesh>
+    </mesh>}
   </>;
 }
 
 const subscribe = () => () => {};
-export function SpaceModelPreview({ pallet, space, appearanceOnly = false }: { pallet?: FloorPalletConfig; space?: ContainerSpec; appearanceOnly?: boolean }) {
+export function SpaceModelPreview({ pallet, space, appearanceOnly = false, compactDimensions = false }: { pallet?: FloorPalletConfig; space?: ContainerSpec; appearanceOnly?: boolean; compactDimensions?: boolean }) {
   useLanguage();
   const appearance = useTransportAppearance();
   const ready = useSyncExternalStore(subscribe, () => true, () => false);
+  const reduced = ready && detectRuntimePolicy().reducedRendering;
   const [view, setView] = useState<CameraView>("perspective");
   const [inspection, setInspection] = useState<"model"|"base"|"interior">("model");
   const [touchActive, setTouchActive] = useState(false);
@@ -69,23 +71,23 @@ export function SpaceModelPreview({ pallet, space, appearanceOnly = false }: { p
   if (![length,width,height].every(v=>Number.isFinite(v)&&v>0)) return <div className="space-model-preview model-invalid"><p>{tr("填写有效的长、宽、高后显示尺寸模型。")}</p></div>;
   const fallback = <ModelPreviewFallback space={space} pallet={model} mode={appearance.mode} transparency={appearance.transparency} showDimensions={showDimensions}/>;
   return <section className="space-model-section" aria-label={tt`${model ? tr("托盘") : tr("装载空间")}三维模型，${length} × ${width} × ${height} mm`}>
-    {!model&&<TransportModelControls/>}
-    <div className="model-preview-controls">
+    {!model&&<TransportModelControls showDimensions={compactDimensions}/>}
+    {(crate||!appearanceOnly&&!compactDimensions)&&<div className="model-preview-controls">
       {crate&&<div className="model-inspection" role="group" aria-label={tr("查看包装部位","Inspect packaging")}>
         <button type="button" className="button small" aria-pressed={!isBase&&!isInside} onClick={()=>setInspection("model")}><Box size={14}/>{tr("外观","Exterior")}</button>
         {pallet.packaging?.lid&&<button type="button" className="button small" aria-pressed={isInside} onClick={()=>setInspection("interior")}><PackageOpen size={14}/>{tr("开盖","Lid off")}</button>}
         <button type="button" className="button small" aria-pressed={isBase} onClick={()=>setInspection("base")}><Layers3 size={14}/>{tr("底座","Base")}</button>
       </div>}
-      {!appearanceOnly&&<DimensionControls/>}
-    </div>
+      {!appearanceOnly&&!compactDimensions&&<DimensionControls/>}
+    </div>}
     <div className={`space-model-preview${touchActive?" touch-active":""}`}>
       {!ready?<div className="model-invalid">{tr("正在检测三维图形能力…")}</div>:!supportsWebGL()?fallback:<SceneErrorBoundary resetKey={`${length}-${width}-${height}`} fallback={fallback}>
-        <Canvas dpr={[1,1.5]} gl={{antialias:true}} shadows={!!model}>
+        <Canvas dpr={reduced?1:[1,1.5]} gl={{antialias:!reduced,powerPreference:reduced?"low-power":"high-performance"}} shadows={!!model&&!reduced}>
           <color attach="background" args={["#f2f5f6"]}/>
-          {model?<><PackagingLighting reflective={model.packaging?.material==="steel"}/><PalletStructures pallets={base} scale={scale} offset={offset}/></>:
-            space&&<><ambientLight intensity={1.5}/><directionalLight position={[2,5,4]} intensity={2}/><TransportModel space={space} scale={scale} mode={appearance.mode} transparency={appearance.transparency}/></>}
+          {model?<><PackagingLighting reduced={reduced} reflective={model.packaging?.material==="steel"}/><PalletStructures pallets={base} scale={scale} offset={offset} reduced={reduced}/></>:
+            space&&<><hemisphereLight color="#edf5fa" groundColor="#8e8272" intensity={1.6}/><directionalLight position={[2,5,4]} intensity={2}/><TransportModel space={space} scale={scale} mode={appearance.mode} transparency={appearance.transparency} reduced={reduced}/></>}
           {showDimensions&&<SceneDimensions bounds={dimensionBounds} values={{L:length,W:width,H:height}} unit={appearance.dimensionUnit} fontSize={appearance.dimensionFontSize} style={appearance.dimensionStyle} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}
-          <SceneCameraRig controller={controller} containerSize={containerSize} sceneBounds={sceneBounds} view={view} projection="perspective" onInteraction={()=>setView("free")} enablePan={false}/>
+          <SceneCameraRig controller={controller} containerSize={containerSize} sceneBounds={sceneBounds} view={view} projection={space?"orthographic":"perspective"} onInteraction={()=>setView("free")} enablePan={false}/>
         </Canvas>
       </SceneErrorBoundary>}
     </div>

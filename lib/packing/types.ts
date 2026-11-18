@@ -13,6 +13,8 @@ export type PalletBuildSpecification = {
   maxTopLoadKg: number;
 };
 export type PalletBuildOptions = {
+  /** Products with a kit code use exactly one complete kit per pallet. */
+  oneKitPerPallet?: boolean;
   /** Explicit cartons reserved outside packaging; kits require equal complete-set counts. */
   looseQuantities?: import("./loose-cargo").LooseQuantities;
   selection?: import("./packaging-choice").PackagingSelection;

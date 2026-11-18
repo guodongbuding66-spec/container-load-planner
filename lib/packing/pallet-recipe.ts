@@ -5,7 +5,7 @@ import { palletCargoCeiling } from "./floor-pallets";
 import { packagingHeight, packagingInterior } from "./packaging";
 import { packagingGroupKey, packagingPriorityGroups } from "./packaging-choice";
 import { MAX_CARTONS_PER_PALLET, MAX_PACKAGING_SPECIFICATIONS, palletSpecifications, parsePalletCartonLimit } from "./pallet-specifications";
-import { loadedPalletDirections, loadedPalletFits, packPalletCargo } from "./palletize";
+import { loadedPalletDirections, loadedPalletFits, packPalletCargo, packSingleKit } from "./palletize";
 import { normalizedSetCode, normalizedUnitsPerSet } from "./set-utils";
 import type { FloorPalletConfig, PackingRequest, PalletBuildOptions, PalletBuildSpecification, PlacedBox, ProductInput } from "./types";
 
@@ -58,11 +58,12 @@ export function palletRecipeGroups(products: readonly ProductInput[], eligible?:
 
 /** A starting quantity for a preview, never a certified packing capacity. */
 export function initialPalletRecipeCartons(request: PackingRequest, spec: PalletBuildSpecification): number | undefined {
-  if (spec.cartonLimit) return spec.cartonLimit;
   const group = palletRecipeGroups(request.products, spec.productIds, request.palletBuild?.looseQuantities)[0];
-  if (!group) return undefined;
+  if (!group) return spec.cartonLimit;
   const units = group.map(p => normalizedSetCode(p) ? normalizedUnitsPerSet(p) : 1);
   const perSet = units.reduce((n,v) => n+v, 0);
+  if(request.palletBuild?.oneKitPerPallet&&normalizedSetCode(group[0]))return perSet;
+  if(spec.cartonLimit)return spec.cartonLimit;
   const weight = group.reduce((n,p,i) => n+p.weight*units[i], 0);
   const available = Math.min(...group.map((p,i) => Math.floor((p.quantity-(request.palletBuild?.looseQuantities?.[p.id]??0))/units[i])));
   const sets = Math.min(available, Math.floor(MAX_CARTONS_PER_PALLET/perSet),
@@ -96,6 +97,14 @@ export function withPalletRecipe(build: PalletBuildOptions, id: string, patch: P
 
 type Size = { length: number; width: number; cargoHeight: number };
 const roundedUp = (n: number) => Math.ceil((n - EPS) * 10) / 10;
+
+function floorPalletSlots(request:PackingRequest,length:number,width:number,gap:number,directions:readonly ("LWH"|"WLH")[]){
+  if(request.workflow==="pallet-only")return 0;
+  const {container,clearance}=request;
+  const l=container.length-2*clearance,w=container.width-2*clearance;
+  const slots=(dx:number,dy:number)=>Math.floor((l+gap+EPS)/(dx+gap))*Math.floor((w+gap+EPS)/(dy+gap));
+  return Math.max(0,...directions.map(code=>code==="LWH"?slots(length,width):slots(width,length)));
+}
 
 function candidateSizes(input: PalletRecipeInput, group: ProductInput[], heightLimit: number): Size[] {
   const {request, spec: {config}, cartons} = input;
@@ -132,18 +141,21 @@ function candidateSizes(input: PalletRecipeInput, group: ProductInput[], heightL
     const largestWidth = Math.max(...group.map(p => p.width));
     const rowLength = group.reduce((n,p) => n + normalizedUnitsPerSet(p) * (p.length + (p.protectionGap ?? 0)), 0);
     const rowWidth = group.reduce((n,p) => n + normalizedUnitsPerSet(p) * (p.width + (p.protectionGap ?? 0)), 0);
-    for (const length of [largestLength, rowLength, config.length - 2*inset, usableLength / 4 - 2*inset]) {
-      for (const width of [largestWidth, rowWidth, config.width - 2*inset, usableWidth / 2 - 2*inset]) add(length, width, heightLimit);
+    const lengths=[largestLength,rowLength,config.length-2*inset,usableLength/4-2*inset];
+    const widths=[largestWidth,rowWidth,config.width-2*inset,(usableWidth-config.gap)/2-2*inset];
+    if(request.palletBuild?.oneKitPerPallet){
+      const lanes=(vehicle.width-margin-config.gap)/2-2*inset;
+      widths.push(lanes);
+      const longest=group.reduce((a,b)=>a.length>=b.length?a:b);
+      const sameHeight=group.filter(p=>p!==longest&&p.height===longest.height);
+      for(const p of sameHeight)widths.push(longest.width+p.width+(longest.protectionGap??0));
     }
+    for(const length of lengths)for(const width of widths)add(length,width,heightLimit);
   }
-  const floorSlots = ({length,width}: Size) => {
-    if (only) return 0;
-    const slots = (dx: number, dy: number) => Math.floor((usableLength + config.gap + EPS) / (dx + config.gap)) *
-      Math.floor((usableWidth + config.gap + EPS) / (dy + config.gap));
-    return Math.max(config.layout === "cross" ? 0 : slots(length,width), config.layout === "long" ? 0 : slots(width,length));
-  };
+  const directions:("LWH"|"WLH")[]=config.layout==="long"?["LWH"]:config.layout==="cross"?["WLH"]:["LWH","WLH"];
+  const floorSlots=({length,width}:Size)=>floorPalletSlots(request,length,width,config.gap,directions);
   const tall = (s: Size) => Math.max(0, (s.cargoHeight + config.height + lid) / Math.min(s.length,s.width) - 1.5);
-  return [...sizes.values()].sort((a,b) => tall(a)-tall(b) || floorSlots(b)-floorSlots(a) ||
+  return [...sizes.values()].sort((a,b) => (!request.palletBuild?.oneKitPerPallet?tall(a)-tall(b):0) || floorSlots(b)-floorSlots(a) ||
     a.length*a.width*(a.cargoHeight+config.height)-b.length*b.width*(b.cargoHeight+config.height) ||
     a.length*a.width-b.length*b.width || a.cargoHeight-b.cargoHeight).slice(0, MAX_TRIALS);
 }
@@ -157,6 +169,8 @@ export function previewPalletRecipe(input: PalletRecipeInput): PalletRecipePrevi
     .find(items => packagingGroupKey(items[0]) === groupKey);
   if (!group) throw new Error("请选择可打托的产品或完整套装 / Select a product or complete kit available to palletize");
   const perSet = normalizedSetCode(group[0]) ? group.reduce((n,p) => n + normalizedUnitsPerSet(p), 0) : 1;
+  const oneKit=!!request.palletBuild?.oneKitPerPallet&&!!normalizedSetCode(group[0]);
+  if(oneKit&&cartons!==perSet)throw Error(`一套一托时，每托须放 ${perSet} 箱 / One kit per pallet requires exactly ${perSet} cartons`);
   if (cartons % perSet) throw new Error(`每托箱数须为 ${perSet} 的倍数以保留完整套装 / Use a multiple of ${perSet} cartons to keep kits complete`);
   const orderCartons = perSet * Math.min(...group.map(p => Math.floor(
     (p.quantity - (request.palletBuild?.looseQuantities?.[p.id] ?? 0)) / (perSet > 1 ? normalizedUnitsPerSet(p) : 1),
@@ -181,7 +195,8 @@ export function previewPalletRecipe(input: PalletRecipeInput): PalletRecipePrevi
   }
 
   const trial = (candidate: FloorPalletConfig): PalletRecipePreview | undefined => {
-    const {plan, violation} = packPalletCargo({...request, strategy:"practical"}, candidate, candidate.maxCargoHeight!, products, cartons);
+    const localRequest={...request,strategy:"practical" as const};
+    const {plan,violation}=oneKit?packSingleKit(localRequest,candidate,candidate.maxCargoHeight!,products):packPalletCargo(localRequest,candidate,candidate.maxCargoHeight!,products,cartons);
     if (violation || !plan.placements.length) return undefined;
     const inside = packagingInterior(candidate);
     const cargoHeight = Math.max(...plan.placements.map(b => b.z + b.dz));
@@ -201,6 +216,10 @@ export function previewPalletRecipe(input: PalletRecipeInput): PalletRecipePrevi
     if (preview) return preview;
     throw new Error("当前尺寸或限制下无法打托，请检查长宽、限高、承重和朝向 / Review deck dimensions, height, payload and orientations");
   }
+  let best:PalletRecipePreview|undefined;
+  const envelopeVolume=(preview:PalletRecipePreview)=>preview.config.length*preview.config.width*preview.height;
+  const slots=(preview:PalletRecipePreview)=>floorPalletSlots(request,preview.config.length,preview.config.width,preview.config.gap,
+    loadedPalletDirections(preview.config,preview.placements,productMap));
   for (const size of candidateSizes(input, group, heightLimit)) {
     const proposal = trial({...config, length:size.length, width:size.width, maxCargoHeight:size.cargoHeight});
     if (proposal?.placements.length !== cartons) continue;
@@ -210,7 +229,10 @@ export function previewPalletRecipe(input: PalletRecipeInput): PalletRecipePrevi
       maxCargoHeight:Math.min(heightLimit, roundedUp(Math.max(...proposal.placements.map(b=>b.z+b.dz)))),
     };
     const checked = trial(trimmed);
-    return checked?.placements.length === cartons ? checked : proposal;
+    const candidate=checked?.placements.length===cartons?checked:proposal;
+    if(!oneKit)return candidate;
+    if(!best||slots(candidate)>slots(best)||slots(candidate)===slots(best)&&envelopeVolume(candidate)<envelopeVolume(best))best=candidate;
   }
+  if(best)return best;
   throw new Error("在当前柜门、朝向、层数和承重条件下未找到目标尺寸，请减少每托箱数或微调包装 / No size was found for this target under the current door, orientation, layer and payload rules. Reduce the target or adjust packaging");
 }

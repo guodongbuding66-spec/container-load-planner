@@ -1,6 +1,6 @@
 import { describe,expect,it } from "vitest";
 import { DEFAULT_PACKAGING,packagingParts,placedPackagingParts,packagingReservations,packagingReservedVolume,packagingMassCenter,parsePackaging } from "./packaging";
-import { DEFAULT_PALLET_BUILD } from "./loading-workflow";
+import { DEFAULT_PALLET_BUILD,parsePalletBuild } from "./loading-workflow";
 import { packLoadingWorkflow } from "./pack-loading";
 import { restorePackingSnapshot } from "./engine";
 import { isolatePalletPlan } from "./pallet-inspection";
@@ -8,12 +8,48 @@ import { analyzeEmptySpaces } from "./free-space";
 import { parseFloorPalletConfig } from "./floor-pallets";
 import { buildPlacementCsv,parseCsvRecords } from "./csv";
 import { parseWorkspaceBackup,restoreWorkspacePlans,serializeWorkspaceBackup } from "./workspace-file";
+import { CONTAINER_PRESETS,MULTI_CARTON_SET_PRODUCTS } from "./presets";
+import { previewPalletRecipe } from "./pallet-recipe";
+import { palletSpecifications } from "./pallet-specifications";
+import { capturePreparedPalletLayout } from "./prepared-pallet-layout";
+import { packagingGroupKey } from "./packaging-choice";
 import type { PackingRequest,ProductInput } from "./types";
 const product:ProductInput={id:"c",sku:"C",name:"Carton",length:450,width:350,height:200,weight:10,quantity:9,priority:50,rotationPolicy:"upright",stackable:true,maxStackLayers:0,color:"#4488aa"};
 const config={...DEFAULT_PALLET_BUILD.config,length:1000,width:800,height:100,weight:40,maxLoad:500,maxCargoHeight:400,packaging:{...DEFAULT_PACKAGING,enclosure:"panel" as const,wallThickness:50}};
 const build={...DEFAULT_PALLET_BUILD,config};
 const request:PackingRequest={mode:"mixed",strategy:"maximum",workflow:"palletized",palletBuild:build,products:[product],clearance:0,container:{id:"vehicle",name:"Vehicle",length:3000,width:1000,height:1000,doorWidth:1000,doorHeight:800,maxWeight:2000}};
 describe("Custom complete packaging",()=>{
+  it("recommends compact packaging and keeps the screenshot's 120 five-carton sets intact",()=>{
+    const container=CONTAINER_PRESETS.find(p=>p.id==="40hq")!;
+    const config={...build.config,length:1340,width:600,height:144,maxCargoHeight:550,gap:50,layout:"long" as const,
+      packaging:{...DEFAULT_PACKAGING,enclosure:"slatted" as const,wallThickness:30,railCount:3,lid:true}};
+    const palletBuild={...build,config,oneKitPerPallet:true,maxPallets:200,mix:"mixed" as const};
+    const order={...request,container,palletBuild,products:MULTI_CARTON_SET_PRODUCTS,clearance:10,strategy:"practical" as const};
+    const original=palletSpecifications(palletBuild)[0];
+    const recipe={request:order,spec:original,groupKey:packagingGroupKey(order.products[0]),cartons:5};
+    expect(()=>previewPalletRecipe({...recipe,mode:"current"})).toThrow();
+    expect(()=>previewPalletRecipe({...recipe,cartons:10,mode:"suggest"})).toThrow(/exactly 5/);
+    const suggested=previewPalletRecipe({...recipe,mode:"suggest"});
+    expect(suggested.placements).toHaveLength(5);
+    expect([suggested.config.length,suggested.config.width,suggested.height]).toEqual([1340,1140,544]);
+    const chamber={...order,palletBuild:{...palletBuild,config:suggested.config}};
+    const prepared=packLoadingWorkflow({...chamber,workflow:"pallet-only"});
+    expect(prepared.pallets).toHaveLength(120);
+    expect(prepared.placements).toHaveLength(600);
+    const loaded=packLoadingWorkflow({...chamber,preparedPalletLayout:capturePreparedPalletLayout(prepared)});
+    expect(loaded.pallets).toHaveLength(16);
+    for(const plan of [prepared,loaded]){
+      expect(plan.validation.errors).toEqual([]);
+      expect(plan.palletization?.oneKitPerPallet).toBe(true);
+      for(const pallet of plan.pallets!){
+        const cartons=plan.placements.filter(b=>b.palletIds?.[0]===pallet.id);
+        expect(cartons.map(b=>b.sku).sort()).toEqual(order.products.map(p=>p.sku).sort());
+        expect(new Set(cartons.map(b=>b.setNumber)).size).toBe(1);
+      }
+    }
+    expect(parsePalletBuild(palletBuild).oneKitPerPallet).toBe(true);
+    expect(()=>restorePackingSnapshot(chamber,{...loaded,palletization:{...loaded.palletization,oneKitPerPallet:undefined}})).toThrow(/One-kit pallet rule/);
+  },25_000);
   it("reserves wall margins and a fixed lid even on a partly filled last crate",()=>{
     const plan=packLoadingWorkflow({...request,workflow:"pallet-only"});
     expect(plan.validation.errors).toEqual([]);expect(plan.placements).toHaveLength(9);expect(plan.pallets).toHaveLength(2);

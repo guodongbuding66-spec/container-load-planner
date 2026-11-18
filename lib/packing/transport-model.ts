@@ -19,7 +19,7 @@ export function transportOpacity(transparency: number) {
 }
 
 /** Generic exterior geometry. Every panel stays outside the entered cargo envelope. */
-export function createTransportParts(space: ContainerSpec): TransportPart[] {
+export function createTransportParts(space: ContainerSpec,reduced=false): TransportPart[] {
   const { length: l, width: w, height: h } = space;
   if (![l, w, h].every(n => Number.isFinite(n) && n > 0)) return [];
   const category = space.category ?? (space.id.startsWith("truck-") ? "truck" : space.id.startsWith("pallet-") ? "pallet" : "container");
@@ -36,15 +36,25 @@ export function createTransportParts(space: ContainerSpec): TransportPart[] {
   const flatbed = category === "truck" && open;
   const wallHeight = open ? Math.min(h, w) : h;
   box("floor", "floor", [0, -t / 2, 0], [l + 2 * t, t, w + 2 * t]);
+  if(!reduced){
+    const crossMembers=Math.min(24,Math.max(4,Math.ceil(l/625)));
+    for(let i=0;i<crossMembers;i++)box("floor-crossmember","frame",[-l/2+(i+.5)*l/crossMembers,-1.25*t,0],[1.25*t,.5*t,w]);
+  }
   if (!flatbed) {
     box("front-wall", "body", [-l / 2 - t / 2, wallHeight / 2, 0], [t, wallHeight, w]);
     if (!rack) for (const side of [-1, 1]) {
       box("side-wall", "body", [0, wallHeight / 2, side * (w / 2 + t / 2)], [l, wallHeight, t]);
       // Bounded repetition keeps the model inexpensive even for long trailers.
-      const ribs = Math.min(32, Math.max(4, Math.ceil(l / 450)));
-      for (let i = 0; i < ribs; i++) box("wall-rib", "body", [-l / 2 + (i + .5) * l / ribs, wallHeight / 2, side * (w / 2 + t * 1.15)], [t * .55, wallHeight * .93, t * .65]);
+      const ribs = reduced?Math.min(12,Math.max(4,Math.ceil(l/1050))):Math.min(48,Math.max(6,Math.ceil(l/295)));
+      for (let i = 0; i < ribs; i++) box("wall-rib", "body", [-l / 2 + (i + .5) * l / ribs, wallHeight / 2, side * (w / 2 + t * 1.15)], [Math.min(l/ribs*.42,t*2.3), wallHeight * .93, t * .65]);
     }
-    if (!open) box("roof", "body", [0, h + t / 2, 0], [l + 2 * t, t, w + 2 * t]);
+    if (!open) {
+      box("roof", "body", [0, h + t / 2, 0], [l + 2 * t, t, w + 2 * t]);
+      if(!reduced){
+        const ribs=Math.min(24,Math.max(4,Math.ceil(l/535)));
+        for(let i=0;i<ribs;i++)box("roof-rib","body",[-l/2+(i+.5)*l/ribs,h+t*1.15,0],[t*1.8,t*.3,w*.93]);
+      }
+    }
     for (const x of [-1, 1]) for (const z of [-1, 1]) {
       box("corner-post", "frame", [x * (l / 2 + t / 2), wallHeight / 2, z * (w / 2 + t / 2)], [t, wallHeight + t, t]);
       for (const y of [0, wallHeight]) box("corner-fitting", "frame", [x * (l / 2 + t * 1.2), y, z * (w / 2 + t * 1.2)], [t * 2.2, t * 2, t * 2.2]);
@@ -57,6 +67,10 @@ export function createTransportParts(space: ContainerSpec): TransportPart[] {
         box("rear-door", "body", [l / 2 + t / 2, dh / 2, side * dw / 4], [t, dh, dw / 2 - Math.min(t / 4, dw / 10)]);
         for (const fraction of [.14, .37]) box("door-lock-rod", "frame", [l / 2 + t * 1.25, dh / 2, side * dw * fraction], [t * .35, dh * .88, t * .35]);
         box("door-handle", "frame", [l / 2 + t * 1.7, dh * .42, side * dw * .3], [t * .4, t * 1.2, Math.min(dw / 5, t * 4)]);
+        if(!reduced)for(const fraction of [.16,.4,.63,.85]) {
+          box("door-hinge","frame",[l/2+t*1.18,dh*fraction,side*dw*.475],[t*.55,t*1.65,t*2.1]);
+          box("door-rod-guide","frame",[l/2+t*1.26,dh*fraction,side*dw*.37],[t*.45,t*.63,t*.95]);
+        }
       }
       box("door-header", "frame", [l / 2 + t / 2, (h + dh) / 2, 0], [t, Math.max(t, h - dh), w]);
     }

@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useId, useMemo, type ReactNode } from "react";
-import { Box, ScanLine } from "lucide-react";
+import { Box, Ruler, ScanLine } from "lucide-react";
 import { type TransportDisplayMode } from "../lib/packing/transport-model";
 import { tr, useLanguage } from "./language";
 import { type DimensionStyle, type DimensionUnit } from "../lib/packing/scene-dimensions";
@@ -29,14 +29,15 @@ export function useTransportAppearance() {
   if (!appearance) throw new Error("Transport appearance provider is missing");
   return appearance;
 }
-export function TransportModelControls() {
+export function TransportModelControls({showDimensions=false}:{showDimensions?:boolean}) {
   useLanguage();
-  const { mode, transparency, setMode, setTransparency } = useTransportAppearance();
+  const { mode, transparency, setMode, setTransparency, dimensions, setDimensions } = useTransportAppearance();
   const id = useId();
   return <div className="transport-model-controls" role="group" aria-label={tr("柜体与车厢外观", "Container and vehicle appearance")}>
     <div className="transport-model-modes" role="group" aria-label={tr("模型显示方式", "Model display")}>
       <button type="button" aria-pressed={mode === "model"} onClick={() => setMode("model")}><Box size={14}/>{tr("实物模型", "Physical model")}</button>
       <button type="button" aria-pressed={mode === "wireframe"} onClick={() => setMode("wireframe")}><ScanLine size={14}/>{tr("线框", "Wireframe")}</button>
+      {showDimensions&&<button type="button" aria-pressed={dimensions} onClick={()=>setDimensions(!dimensions)}><Ruler size={14}/>{tr("尺寸","Dimensions")}</button>}
     </div>
     <label className="transport-opacity" htmlFor={id}><span>{tr("透明度", "Transparency")}</span><input id={id} type="range" min={0} max={100} step={5} value={transparency} disabled={mode === "wireframe"} aria-valuetext={`${transparency}%`} onChange={e => setTransparency(Number(e.target.value))}/><output htmlFor={id}>{transparency}%</output></label>
   </div>;

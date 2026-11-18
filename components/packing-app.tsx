@@ -400,14 +400,14 @@ export function PackingApp() {
   const accountButton = useRef<HTMLButtonElement>(null);
   const [toolsOpen,setToolsOpen] = useState(false);
   const [toolsVisited,setToolsVisited] = useState(false);
-  const [cargoPane,setCargoPane] = useState<"cargo"|"pallets"|"rules">("cargo");
+  const [palletPreviewReady,setPalletPreviewReady]=useState(false);
   const [resultPane,setResultPane] = useState<"view"|"review"|"exports">("view");
   const [viewRevision,setViewRevision] = useState(0);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [mode, setMode] = useState<PackingMode>("mixed");
   const [loadingWorkflow, setLoadingWorkflow] = useState<LoadingWorkflow>("palletized");
   const [palletBuild, setPalletBuild] = useState<PalletBuildOptions>(() => ({
-    ...DEFAULT_PALLET_BUILD, config:{...structuredClone(DEFAULT_PALLET_BUILD.config),maxCargoHeight:0},
+    ...DEFAULT_PALLET_BUILD, oneKitPerPallet:true, config:{...structuredClone(DEFAULT_PALLET_BUILD.config),maxCargoHeight:0},
   }));
   const [preparedPalletLayout,setPreparedPalletLayout]=useState<PreparedPalletLayout>();
   const workflow: LoadingWorkflow = mode === "single" ? "single-capacity" : loadingWorkflow === "single-capacity" ? "direct" : loadingWorkflow;
@@ -463,6 +463,7 @@ export function PackingApp() {
   const [storageState, setStorageState] = useState<StorageState>("saved");
   const [productPage, setProductPage] = useState(0);
   const [showProductRules,setShowProductRules]=useState(false);
+  const [kitRows,setKitRows]=useState<Set<string>|null>(null);
   const locateFromReviewRef=useRef<((id:string)=>void)|null>(null);
   const [renderPrintViews, setRenderPrintViews] = useState(false);
   const [solverSchedule, setSolverSchedule] = useState<SolverSchedule>("parallel");
@@ -596,7 +597,8 @@ export function PackingApp() {
           setPreparedPalletLayout(parsePreparedPalletLayout(data.preparedPalletLayout));
           if (data.floorPallets) setFloorPallets(parseFloorPalletConfig(data.floorPallets));
           if (data.loadingRules) setLoadingRules(parseLoadingRules(data.loadingRules));
-          if (data.mode === "single" || data.mode === "mixed") setMode(data.mode);
+          if (data.workflow==="palletized"||data.workflow==="pallet-only") setMode("mixed");
+          else if (data.mode === "single" || data.mode === "mixed") setMode(data.mode);
           if (data.strategy === "practical" || data.strategy === "maximum") setStrategy(data.strategy);
           if (typeof data.practicalTargetPercent === "number") {
             setPracticalTargetPercent(clampNumber(data.practicalTargetPercent, DEFAULT_PRACTICAL_TARGET * 100, 50, 95));
@@ -704,7 +706,7 @@ export function PackingApp() {
       setStatus("idle");
       setMessage(tr("输入已修改；正在按最新有效参数重新计算"));
     } else setMessage(tr("参数已更新；正在准备实时计算"));
-    if (!autoCalculate || workflowStep !== 4) setMessage(tr("输入已修改；完成货物与装载配置后，再统一计算方案。"));
+    if (!autoCalculate || workflowStep !== 7) setMessage(tr("输入已修改；完成货物与装载配置后，再统一计算方案。"));
   }, [autoCalculate, clearActiveCalculation, status, workflowStep, setDirty, setStatus, setMessage]);
 
   const setNumericFieldValidity = useCallback((fieldKey: string, valid: boolean) => {
@@ -1087,6 +1089,28 @@ export function PackingApp() {
       : tt`已取消 ${code} 的成套约束，相关 SKU 将按散箱计算。`);
   };
 
+  const groupSelectedKit = () => {
+    const selected=activeProducts.filter(p=>kitRows?.has(p.id));
+    if(selected.length<2||hasPendingDimensionChanges||invalidNumericFields.size)return;
+    const selectedCodes=new Set(selected.flatMap(p=>p.setCode?.trim()?[p.setCode.trim()]:[]));
+    if(activeProducts.some(p=>!kitRows?.has(p.id)&&selectedCodes.has(p.setCode?.trim()??""))){
+      setMessage(tr("请选中原套装的所有箱型，再合并。","Select every carton type in the existing kit before grouping."),"error");
+      return;
+    }
+    const cartons=selected.reduce((n,p)=>n+(p.unitsPerSet??1),0);
+    const existingCode=selected[0].setCode?.trim();
+    const code=existingCode&&selected.every(p=>p.setCode?.trim()===existingCode)?existingCode:nextSetCode(products,cartons);
+    const hadPrepared=!!preparedPalletLayout;
+    setProducts(current=>current.map(p=>kitRows?.has(p.id)?{...p,setCode:code}:p));
+    setPalletBuild(current=>({...current,oneKitPerPallet:true}));
+    setPreparedPalletLayout(undefined);
+    setKitRows(null);
+    markDirty();
+    setMessage(hadPrepared
+      ? tr("已合并为一套一托，请重新生成托内布置。","Grouped as one kit per pallet. Regenerate the pallet layout.")
+      : tr("已合并所选箱型。打托时每托放一整套。","Selected cartons grouped. Each pallet will take one complete kit."),"done");
+  };
+
   const removeProduct = (id: string) => {
     clearNumericDraftErrors();
     setProducts((current) => (current.length <= 1 ? current : current.filter((item) => item.id !== id)));
@@ -1096,7 +1120,6 @@ export function PackingApp() {
   const loadSample = () => {
     clearActiveCalculation();
     setToolsOpen(false);
-    setCargoPane("cargo");
     setResultPane("view");
     setPreparedPalletLayout(undefined);
     setWorkflowStep(1);modePackagingDrafts.current={};setPalletSetupSpec("primary");setFloorPallets(undefined);palletDraftRef.current=null;rulesDraftRef.current=null;
@@ -1150,7 +1173,9 @@ export function PackingApp() {
   const loadTwoCartonSetTest = () => {
     setWorkflowStep(1);modePackagingDrafts.current={};setPalletSetupSpec("primary");setFloorPallets(undefined);palletDraftRef.current=null;rulesDraftRef.current=null;
     clearNumericDraftErrors();
-    setMode("single");
+    setPreparedPalletLayout(undefined);
+    setMode(isPalletWorkflow?"mixed":"single");
+    if(isPalletWorkflow)setPalletBuild(current=>({...current,oneKitPerPallet:true}));
     setStrategy("practical");
     setTargetVolumePercent(85);
     setTargetWeightPercent(90);
@@ -1163,13 +1188,15 @@ export function PackingApp() {
     setCameraProjection("perspective");
     markDirty();
     setStatus("idle");
-    setMessage(tr("已载入单品 1 套 2 箱：保持单品模式，自动计算最大完整套数，无需填写需求箱数"));
+    setMessage(isPalletWorkflow?tr("已载入两箱套装，已启用一套一托。","Loaded a two-carton kit with one kit per pallet."):tr("已载入单品 1 套 2 箱：保持单品模式，自动计算最大完整套数，无需填写需求箱数"));
   };
 
   const loadMultiCartonSetTest = () => {
     setWorkflowStep(1);modePackagingDrafts.current={};setPalletSetupSpec("primary");setFloorPallets(undefined);palletDraftRef.current=null;rulesDraftRef.current=null;
     clearNumericDraftErrors();
-    setMode("single");
+    setPreparedPalletLayout(undefined);
+    setMode(isPalletWorkflow?"mixed":"single");
+    if(isPalletWorkflow)setPalletBuild(current=>({...current,oneKitPerPallet:true}));
     setStrategy("practical");
     setTargetVolumePercent(85);
     setTargetWeightPercent(90);
@@ -1182,7 +1209,7 @@ export function PackingApp() {
     setCameraProjection("perspective");
     markDirty();
     setStatus("idle");
-    setMessage(tr("已载入单品 1 套 5 箱；保持单品模式，3 箱、4 箱及更多箱型使用同一通用算法。"));
+    setMessage(isPalletWorkflow?tr("已载入 120 套五箱装示例，已启用一套一托。","Loaded 120 five-carton kits with one kit per pallet."):tr("已载入单品 1 套 5 箱；保持单品模式，3 箱、4 箱及更多箱型使用同一通用算法。"));
   };
 
   const loadRealA64M = () => {
@@ -1244,6 +1271,7 @@ export function PackingApp() {
   const validateInputs = useCallback(() => {
     if (invalidNumericFields.size) return tr("有数字输入尚未完成，请填写后再计算。");
     if (!activeProducts.length) return tr("请至少添加一个产品。");
+    if(mode==="mixed"&&!activeProducts.some(p=>p.quantity>0))return tr("至少一种箱型的需求箱数应大于 0。","Enter a positive order quantity for at least one carton type.");
     const containerError = workflow === "pallet-only" ? null : validateContainerInput(container, clearance);
     if (containerError) return containerError;
     const invalid = activeProducts.find(
@@ -1451,7 +1479,7 @@ export function PackingApp() {
   }, [workflow,palletBuild,preparedPalletLayout,isPalletWorkflow,floorPallets,loadingRules, activeProducts, clearance, clearActiveCalculation, container, hasPendingDimensionChanges, isEditingDimensions, mode, practicalTargetPercent, reversePlan, submitPacking, validateInputs, setStatus, setMessage]);
 
   useEffect(() => {
-    if (workflowStep !== 4 || manualRun || status === "working" || !autoCalculate || !hydrated || isEditingDimensions || hasPendingDimensionChanges) return;
+    if (workflowStep !== 7 || manualRun || status === "working" || !autoCalculate || !hydrated || isEditingDimensions || hasPendingDimensionChanges) return;
     if (!dirty && resultBundle) return;
     const timer = window.setTimeout(calculate, AUTO_CALCULATE_DELAY_MS);
     return () => window.clearTimeout(timer);
@@ -1511,7 +1539,7 @@ export function PackingApp() {
     flushSync(() => {
       setIsPlaying(false);
       setToolsOpen(false);
-      setWorkflowStep(4);
+      setWorkflowStep(7);
       setRenderPrintViews(true);
     });
     window.requestAnimationFrame(() => window.print());
@@ -1554,8 +1582,7 @@ export function PackingApp() {
       setPalletRecipePending(false);
       setPreviewRuleDraft(null);
       setToolsOpen(false);
-      setCargoPane("cargo");
-      setResultPane("view");
+        setResultPane("view");
       modePackagingDrafts.current={};
       setPalletSetupSpec("primary");
       setLoadingWorkflow(parseLoadingWorkflow(restored.workflow,restored.mode));
@@ -1584,7 +1611,7 @@ export function PackingApp() {
         setAutoCalculate(false);
         strategyRef.current=restoredPlan.strategy;
         setStrategy(restoredPlan.strategy);
-        setWorkflowStep(4);
+        setWorkflowStep(7);
         setResultBundle(restoredPlan);
         setDirty(false);
         presentPlan(restoredPlan);
@@ -1648,7 +1675,7 @@ export function PackingApp() {
       const inherited=inheritOrderDelivery(products,result?.delivery);
       const next=updates?updateOrderQuantities(inherited,updates):importOrderRows(inherited,parsed!,orderImportMode as "replace"|"append");
       assertOrderReferences(next,palletBuild,container);
-      const importedMode = orderImportMode==="replace"?inferImportedPackingMode(next):"mixed";
+      const importedMode = orderImportMode==="replace"&&!isPalletWorkflow?inferImportedPackingMode(next):"mixed";
       clearNumericDraftErrors();
       if(importedMode==="mixed"&&workflow==="single-capacity")setLoadingWorkflow("direct");
       setProducts(next);
@@ -1684,9 +1711,6 @@ export function PackingApp() {
   };
 
   const scrollTo = (id: string, focusDestination = false) => {
-    if(id==="products")setCargoPane("cargo");
-    if(["packaging-settings","pallet-recipe","pallet-build-preview"].includes(id)&&workflowStep===3)setCargoPane("pallets");
-    if(id==="loading-rules"||id==="planning-targets")setCargoPane("rules");
     if(id==="result"||id==="loading-diagnosis")setResultPane("view");
     if(id==="plan-review"||id==="load-summary")setResultPane("review");
     if(id==="coordinates"||id==="loaded-pallets")setResultPane("exports");
@@ -1762,14 +1786,22 @@ export function PackingApp() {
   const workspaceBackup = useMemo(() => serializeWorkspaceBackup({palletLayerTemplates,workflow,palletBuild,preparedPalletLayout,floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit},ENGINE_VERSION,dirty?null:result,resultBundle?.strategyPlans), [palletLayerTemplates,workflow,palletBuild,preparedPalletLayout,floorPallets,loadingRules,mode,strategy,practicalTargetPercent,container,clearance,products,customContainers,targetVolumePercent,targetWeightPercent,lengthUnit,weightUnit,dirty,result,resultBundle?.strategyPlans]);
   const upgradesDisabled = hasPendingDimensionChanges || isEditingDimensions || invalidNumericFields.size > 0 || status === "working";
   const capacityRequest: PackingRequest = {workflow,palletBuild:isPalletWorkflow?palletBuild:undefined,floorPallets:isPalletWorkflow?undefined:floorPallets,loadingRules,mode,strategy,practicalTargetUtilization:practicalTargetPercent/100,container,clearance,products:activeProducts};
-  const applyCapacityStock=(next:ProductInput[])=>{if(result?.deliveryIdentity||hasManualPreparation)return;clearActiveCalculation();setAutoCalculate(false);setProducts(next);clearNumericDraftErrors();rulesDraftRef.current=null;markDirty();setToolsOpen(false);setResultPane("view");setWorkflowStep(4);setManualRun(value=>value+1);};
-  const applyPalletBuildTrial=(next:PalletBuildOptions)=>{if(result?.deliveryIdentity||hasManualPreparation)return;clearActiveCalculation();setAutoCalculate(false);setPalletBuild(next);persistDraft({palletBuild:next});clearNumericDraftErrors();palletDraftRef.current=null;rulesDraftRef.current=null;markDirty();setToolsOpen(false);setResultPane("view");setWorkflowStep(4);setManualRun(value=>value+1);};
+  const applyCapacityStock=(next:ProductInput[])=>{if(result?.deliveryIdentity||hasManualPreparation)return;clearActiveCalculation();setAutoCalculate(false);setProducts(next);clearNumericDraftErrors();rulesDraftRef.current=null;markDirty();setToolsOpen(false);setResultPane("view");setWorkflowStep(7);setManualRun(value=>value+1);};
+  const applyPalletBuildTrial=(next:PalletBuildOptions)=>{if(result?.deliveryIdentity||hasManualPreparation)return;clearActiveCalculation();setAutoCalculate(false);setPalletBuild(next);persistDraft({palletBuild:next});clearNumericDraftErrors();palletDraftRef.current=null;rulesDraftRef.current=null;markDirty();setToolsOpen(false);setResultPane("view");setWorkflowStep(7);setManualRun(value=>value+1);};
   const palletPreviewRequest = previewRuleDraft ? {...capacityRequest, loadingRules:previewRuleDraft.rules, products:selectProductsForMode(previewRuleDraft.products,mode)} : capacityRequest;
   const changePreparedLayout=(layout:PreparedPalletLayout|undefined)=>{
     setPreparedPalletLayout(layout);
     markDirty();
     persistDraft({preparedPalletLayout:layout});
     if(layout)setMessage(tr("已采用托内布置，开始计算时将使用这些箱位。","Pallet layout applied. Calculation will use these carton positions."));
+  };
+  const changePalletBuild=(next:PalletBuildOptions)=>{
+    setPalletBuild(next);
+    if(preparedPalletLayout&&!!next.oneKitPerPallet!==!!palletBuild.oneKitPerPallet){
+      setPreparedPalletLayout(undefined);
+      setMessage(tr("每托套数规则已更改，请重新生成托内布置。","Kit rule changed. Regenerate the pallet layout."));
+    }
+    markDirty();
   };
   const adoptDeliveryVersion=(next:PackingResult)=>{
     if(result?.deliveryIdentity&&next.deliveryIdentity?.planId===result.deliveryIdentity.planId){const id=result.deliveryIdentity,known=fieldRecordsRef.current.get(`${id.planId}/${id.revisionId}`)??readVersionFieldRecords(id,localStorage),prior=id.previousRevisionId?(fieldRecordsRef.current.get(`${id.planId}/${id.previousRevisionId}`)??readRevisionFieldRecords({planId:id.planId,revisionId:id.previousRevisionId},localStorage)):null;requireKnownFieldHandover(result,known,prior);guardFieldRevision(result,next,known);}
@@ -1828,25 +1860,40 @@ export function PackingApp() {
   };
   const goToStep=(step:WorkflowStep,anchor?:string,focusDestination=false)=>{
     setToolsOpen(false);
-    if(step===3){
-      if(anchor==="loading-rules"||anchor==="planning-targets")setCargoPane("rules");
-      else if(anchor&&["packaging-settings","pallet-recipe","pallet-build-preview"].includes(anchor))setCargoPane("pallets");
-      else if(step!==workflowStep||anchor==="products")setCargoPane("cargo");
+    if(step>workflowStep+1){
+      setMessage(tr("请按顺序完成当前步骤。","Complete the steps in order."));
+      return false;
     }
-    if(step===4&&step!==workflowStep)setResultPane("view");
+    if(step===7&&step!==workflowStep)setResultPane("view");
     if(step===workflowStep){
       if(anchor) window.requestAnimationFrame(()=>scrollTo(anchor,focusDestination));
       return true;
     }
-    if(step===4&&!result&&status!=="working"){setMessage(tr("请先在「货物与布置」计算方案。","Calculate a plan from Cargo & layout first."));return false;}
+    if(step===7&&!result){setMessage(tr("请在「核对计算」开始计算。","Start the calculation in Review."));return false;}
     if(step>workflowStep&&invalidNumericFields.size){setMessage(tr("请先修正标红的输入。","Correct the highlighted inputs to continue."));return false;}
-    if(workflowStep===2||workflowStep===3){
+    if(step>workflowStep){
+      if(workflowStep===1&&workflow!=="pallet-only"){
+        const issue=validateContainerInput(container,clearance);
+        if(issue){setMessage(issue,"error");return false;}
+      }
+      if(workflowStep===3){
+        const issue=validateInputs();
+        if(issue){setMessage(issue,"error");return false;}
+      }
+      if(workflowStep===4&&isPalletWorkflow&&(palletRecipePending||!palletPreviewReady)){
+        setMessage(tr("请先完成并核对打托预览。","Complete and check the pallet preview first."));
+        return false;
+      }
+    }
+    if(workflowStep>=2&&workflowStep<=5){
       if(!palletDraftRef.current?.invalid)commitSetup();
       else if(step>workflowStep){setMessage(tr("请先修正底层托盘参数。","Correct the floor pallet settings to continue."));return false;}
     }
-    if(step!==4&&status==="working"){clearActiveCalculation();setStatus("idle");setMessage(tr("已暂停计算，可继续修改配置。"));}
+    if(step!==7&&status==="working"){clearActiveCalculation();setStatus("idle");setMessage(tr("已暂停计算，可继续修改配置。"));}
     if(step<workflowStep&&invalidNumericFields.size)clearNumericDraftErrors();
     palletDraftRef.current=null;rulesDraftRef.current=null;setSetupInvalid(false);setPreviewRuleDraft(null);
+    if(step===4)setPalletPreviewReady(false);
+    if(workflowStep===3)setKitRows(null);
     setWorkflowStep(step);
     window.requestAnimationFrame(()=>{
       if(anchor) scrollTo(anchor,focusDestination);
@@ -1871,7 +1918,7 @@ export function PackingApp() {
       scrollTo("workflow-tools",true);
       return;
     }
-    if(workflowStep===3&&palletRecipePending){
+    if(workflowStep===4&&palletRecipePending){
       return tr("请先回到配置页，采用或取消本次打托预览。","Apply or cancel the pending pallet preview in setup first.");
     }
     if((target==="recipe"||target==="packaging"||target==="pallet-preview")&&!isPalletWorkflow){
@@ -1881,25 +1928,26 @@ export function PackingApp() {
       return tr("在「选柜型」选择包含装柜的装载方式后，可设置体积和载重目标。","Choose a container loading method to set volume and payload targets.");
     }
     const destinations = {
-      products:[3,"products"], setup:[1,"workspace"], recipe:[3,preparedPalletLayout?"pallet-build-preview":"pallet-recipe"],
-      "pallet-preview":[3,"pallet-build-preview"],
-      packaging:[2,"packaging-settings"], rules:[3,"loading-rules"], "planning-targets":[3,"planning-targets"], review:[4,"result"],
-      checks:[4,"plan-review"], pallets:[4,"loaded-pallets"], coordinates:[4,"coordinates"],
+      products:[3,"products"], setup:[1,"workspace"], recipe:[4,preparedPalletLayout?"pallet-build-preview":"pallet-recipe"],
+      "pallet-preview":[4,"pallet-build-preview"],
+      packaging:[2,"packaging-settings"], rules:[5,"loading-rules"], "planning-targets":[5,"planning-targets"], review:[7,"result"],
+      checks:[7,"plan-review"], pallets:[7,"loaded-pallets"], coordinates:[7,"coordinates"],
     } as const;
     const [step,anchor] = destinations[target];
-    if(step===4&&(!result||target==="pallets"&&!result.pallets?.length&&!result.palletization?.looseQuantities)){
+    if(step===7&&(!result||target==="pallets"&&!result.pallets?.length&&!result.palletization?.looseQuantities)){
       return target==="pallets"
         ? tr("先计算包含托盘的方案，再打开整托清单。","Calculate a plan with pallet loads first.")
-        : tr("先在「货物与布置」计算方案，再查看结果。","Calculate a plan in Cargo & layout first.");
+        : tr("先在「核对计算」计算方案，再查看结果。","Calculate the load plan in Review first.");
     }
     if(!goToStep(step,anchor,true)) return tr("请先完成工作区内待修正的输入。","Complete the highlighted workspace inputs first.");
   };
   const startConfiguredCalculation=()=>{
+    if(workflowStep!==6)return;
     if(palletRecipePending){setMessage(tr("请先采用或取消本次打托预览。","Apply or cancel the pending pallet preview first."));return;}
     if(!commitSetup())return;
     const error=validateInputs();
     if(error){setStatus("error");setMessage(error);return;}
-    setResultPane("view");setWorkflowStep(4);setAutoCalculate(false);setManualRun(v=>v+1);
+    setResultPane("view");setWorkflowStep(7);setAutoCalculate(false);setManualRun(v=>v+1);
     window.requestAnimationFrame(()=>document.querySelector('.wizard-steps')?.scrollIntoView({behavior:"smooth",block:"start"}));
   };
   const canExport = Boolean(result?.validation.valid && result.metrics.loadedCount > 0 && !resultAudit?.hasErrors && !dirty && !hasPendingDimensionChanges);
@@ -1931,7 +1979,7 @@ export function PackingApp() {
     if(hasManualPreparation)return;
     if(patch){const next=withPalletRecipe(palletBuild,specId,patch);setPalletBuild(next);persistDraft({palletBuild:next});markDirty();}
     setPalletSetupSpec(specId);
-    goToStep(3,"pallet-recipe");
+    goToStep(4,"pallet-recipe");
   }}/>:null;
   const openLoadDiagnosis=()=>{
     if(result?.palletization&&capacityTrial){scrollTo("loading-diagnosis");return;}
@@ -1990,6 +2038,7 @@ export function PackingApp() {
               setToolsOpen(!toolsOpen);
               if(!toolsOpen){setToolsVisited(true);scrollTo("workflow-tools");}
             }}><Settings2 size={16}/>{tr("方案工具")}</button>
+        <div className="workspace-other-entry"/>
         <LearningHub guide={guide} onGuideChange={setGuide} onCase={loadIndustryCase} onStep={tutorialAction} integration={JSON.stringify({schema:"cargo-fit-integration-v1",units:{length:"mm",weight:"kg",volume:"mm3"},runtime:"local-web-worker",request:fleetRequest,result:result?{...result,strategyPlans:undefined}:null},null,2)}/>
           </div>
         </header>
@@ -2003,7 +2052,7 @@ export function PackingApp() {
         {showViewer && result && <PlanViewer plans={[result]} exportsBlocked={!canExport} onClose={()=>setShowViewer(false)}/>}
 
         <div className="workspace-flow" hidden={toolsOpen}>
-        <WorkflowSteps current={workflowStep} canOpenPlan={!!result||status==="working"||workflowStep===4} onSelect={goToStep}/>
+        <WorkflowSteps current={workflowStep} onSelect={goToStep}/>
 
         {!toolsOpen && workStatus}
 
@@ -2079,7 +2128,7 @@ export function PackingApp() {
             </div>
             <div className="panel space-stage-preview" hidden={workflow==="pallet-only"}>
               <div className="space-overview"><strong>{tr(container.name)}</strong><span>{container.length} × {container.width} × {container.height} mm</span><span>{formatNumber(container.maxWeight,1)} kg {tr("最大净载重","max. payload")}</span></div>
-              <SpaceModelPreview space={container} appearanceOnly/>
+              <SpaceModelPreview space={container} compactDimensions/>
             </div>
           </div>
           {(workflow!=="pallet-only"||!!container.exclusions?.length)&&<details className="stage-options space-advanced">
@@ -2094,13 +2143,12 @@ export function PackingApp() {
           </div>
 
           {isPalletWorkflow
-            ? <PalletBuildSettings chooseOnly initialSpecId={palletSetupSpec} onSelectSpec={setPalletSetupSpec} resetToken={numericResetVersion} value={palletBuild} only={workflow==="pallet-only"} onChange={value=>{setPalletBuild(value);markDirty();}} onValidityChange={setNumericFieldValidity}/>
+            ? <PalletBuildSettings chooseOnly initialSpecId={palletSetupSpec} onSelectSpec={setPalletSetupSpec} resetToken={numericResetVersion} value={palletBuild} only={workflow==="pallet-only"} onChange={changePalletBuild} onValidityChange={setNumericFieldValidity}/>
             : <FloorPalletSettings inline config={floorPallets} container={container} clearance={clearance} customSpaces={customContainers} onDraftChange={receivePalletDraft} onSave={()=>{}} onClose={()=>{}}/>}
         </section>}
-        {workflowStep===3 && <section id="cargo-layout" className="wizard-page" aria-label={tr("第三步：尺寸与托内布置","Step 3: Dimensions and layout")}>
-          <div className="wizard-page-heading"><div><h2>{tr("录入货物与布置","Enter cargo and arrange the load")}</h2>
+        {workflowStep===3 && <section id="cargo-layout" className="wizard-page" aria-label={tr("第三步：录入货物","Step 3: Cargo")}>
+          <div className="wizard-page-heading"><div><h2>{tr("录入货物","Enter cargo")}</h2>
             <p>{tr("填写外箱尺寸、单箱毛重和订单箱数。","Enter each carton's outside dimensions, gross weight and quantity.")}</p></div></div>
-          {palletRecipePending&&<p className="workflow-field-status" role="status">{tr("采用或取消按箱数打托的试排后即可计算。","Apply or cancel the carton-count trial to calculate.")} <button type="button" className="button small" onClick={()=>scrollTo("pallet-recipe")}>{tr("返回打托试排","Return to pallet trial")}</button></p>}
           {invalidNumericFields.size>0&&<p className="workflow-field-status" role="status">{tr("还有输入需要修正。","Some inputs still need correction.")} <button type="button" className="button small" onClick={()=>{
             const key=[...invalidNumericFields][0];
             const id=key.startsWith("pallet-build:")?"packaging-settings":key.startsWith("target:")?"loading-rules":"products";
@@ -2110,12 +2158,6 @@ export function PackingApp() {
               if(field){revealDetails(field);field.focus();}
             });
           }}>{tr("定位输入","Find input")}</button></p>}
-          <WorkbenchTabs label={tr("货物与布置","Cargo and layout")} value={cargoPane} onChange={setCargoPane} items={[
-            ["cargo",tr("货物清单","Cargo list")],
-            ...(isPalletWorkflow?[["pallets",tr("包装与托内预览","Packaging & pallet preview")] as const]:[]),
-            ["rules",tr("高级规则","Advanced rules")],
-          ]}/>
-          <div className="workbench-pane" hidden={cargoPane!=="cargo"}>
         <section id="products" className="panel product-panel">
           <div className="panel-head">
             <h3>{tr("订单箱规","Order cartons")}</h3>
@@ -2188,8 +2230,12 @@ export function PackingApp() {
                 </div>
                 <div className="set-quick-actions" aria-label={tr("新建套装箱数")}>
                   {[2, 3, 4, 5].map((count) => <button key={count} onClick={() => addCartonSet(count)}><Plus size={13} />{count}{tr(" 箱套装")}</button>)}
+                  {mode==="mixed"&&activeProducts.length>1&&<button type="button" onClick={()=>setKitRows(new Set())}>{tr("勾选已有箱型","Select existing cartons")}</button>}
                 </div>
               </div>
+              {setInputSummaries.length>1&&setInputSummaries.every(set=>set.componentCount===1)&&<p className="helper-text">
+                {tr("当前每个套装编码只有一种箱规。属于同一产品的箱型，请勾选后合并。","Each current kit code contains one carton type. Select and group the cartons that belong to the same product.")}
+              </p>}
               {setInputSummaries.length ? (
                 <div className="set-builder-grid">
                   {setInputSummaries.slice(0, MAX_VISIBLE_SET_SUMMARIES).map((summary) => (
@@ -2224,6 +2270,11 @@ export function PackingApp() {
               )}
           </section>
           </details>
+          {mode==="mixed"&&kitRows&&<div className="kit-row-selection">
+            <span role="status">{tr("勾选属于同一个产品的箱型。","Select the carton types for one product.")} · {kitRows.size} {tr("行已选","rows selected")}</span>
+            <button className="button primary small" type="button" disabled={kitRows.size<2||hasPendingDimensionChanges||invalidNumericFields.size>0} onClick={groupSelectedKit}>{tr("合并为一套 · 一套一托","Group as one kit per pallet")}</button>
+            <button className="button small" type="button" onClick={()=>setKitRows(null)}>{tr("取消选择","Cancel selection")}</button>
+          </div>}
           {totalProductPages > 1 ? (
             <nav className="product-pagination" aria-label={tr("产品表分页")}>
               <span>{tr("共 ")}{formatNumber(activeProducts.length)}{tr(" 个 SKU · 第 ")}{currentProductPage + 1} / {totalProductPages}{tr(" 页")}</span>
@@ -2244,15 +2295,16 @@ export function PackingApp() {
                   const dimensionsInvalid=(["length","width","height"] as const).some(field=>invalidNumericFields.has(`product:${product.id}:${field}`));
                   const volumePending=dimensionsInvalid||pendingDimensionProducts.has(product.id);
                   const calculatedCbm = exactCartonVolumeCbm(product);
-                  const roundedCbm = roundedCartonVolumeCbm(product);
-                  return <tr key={product.id}>
-                    <td className="cargo-color-cell"><input className="color-input" aria-label={tt`${rowLabel} 颜色`} type="color" value={product.color} onChange={(event) => updateProduct(product.id, "color", event.target.value)} /></td>
+                  return <tr key={product.id} className={mode==="mixed"&&kitRows?.has(product.id)?"kit-row-selected":undefined}>
+                    <td className="cargo-color-cell">{mode==="mixed"&&kitRows
+                      ? <input type="checkbox" className="kit-row-checkbox" aria-label={`${tr("选择箱型","Select carton type")} ${rowLabel}`} checked={kitRows.has(product.id)} onChange={event=>{const next=new Set(kitRows);if(event.target.checked)next.add(product.id);else next.delete(product.id);setKitRows(next);}}/>
+                      : <input className="color-input" aria-label={tt`${rowLabel} 颜色`} type="color" value={product.color} onChange={(event) => updateProduct(product.id, "color", event.target.value)} />}</td>
                     <td className="cargo-sku-cell"><input aria-label={`${rowLabel} SKU`} maxLength={80} className="sku-input" value={product.sku} onChange={(event) => updateProduct(product.id, "sku", event.target.value)} /><button className="button small" disabled={hasPendingDimensionChanges} aria-label={`${rowLabel} ${tr("订单行","Order row")}`} onClick={()=>setActiveOrderLine(product.id)}>{tr("订单行","Order row")}</button><small className="order-row-reference" title={product.id}>{product.orderLine?.lineReference||product.id}</small>{product.orderLine&&<small className="order-row-reference">{[product.orderLine.customer,product.orderLine.batch].filter(Boolean).join(" · ")}</small>}</td>
-                    <td className="cargo-settings-cell"><button className="button primary cargo-settings-button" disabled={hasPendingDimensionChanges} onClick={()=>setActiveCargo(product.id)} aria-label={`${rowLabel} ${tr("货物设置")}`}><Box size={16}/><span className="cargo-settings-label">{tr("朝向与规则", "Orientation & rules")}</span><span className="cargo-settings-short">{tr("设置", "Settings")}</span></button></td>
+                    <td className="cargo-settings-cell"><button className="button small cargo-settings-button" disabled={hasPendingDimensionChanges} onClick={()=>setActiveCargo(product.id)} aria-label={`${rowLabel} ${tr("货物设置")}`}><Box size={16}/><span className="cargo-settings-label">{tr("朝向与规则", "Orientation & rules")}</span><span className="cargo-settings-short">{tr("设置", "Settings")}</span></button></td>
                     <td className="numeric-cell" data-label={tr("外箱长")}><NumericInput showError min={fromMillimeters(.001,lengthUnit)} max={fromMillimeters(100000,lengthUnit)} resetToken={numericResetVersion} ariaLabel={tt`${rowLabel} 外箱长`} value={fromMillimeters(product.length, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => stageProductDimension(product.id, "length", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setDimensionFieldValidity(product.id, "length", valid)} onFocusChange={handleDimensionFocusChange} /><small className="cell-unit">{lengthUnit}</small></td>
                     <td className="numeric-cell" data-label={tr("外箱宽")}><NumericInput showError min={fromMillimeters(.001,lengthUnit)} max={fromMillimeters(100000,lengthUnit)} resetToken={numericResetVersion} ariaLabel={tt`${rowLabel} 外箱宽`} value={fromMillimeters(product.width, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => stageProductDimension(product.id, "width", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setDimensionFieldValidity(product.id, "width", valid)} onFocusChange={handleDimensionFocusChange} /><small className="cell-unit">{lengthUnit}</small></td>
                     <td className="numeric-cell" data-label={tr("外箱高")}><NumericInput showError min={fromMillimeters(.001,lengthUnit)} max={fromMillimeters(100000,lengthUnit)} resetToken={numericResetVersion} ariaLabel={tt`${rowLabel} 外箱高`} value={fromMillimeters(product.height, lengthUnit)} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => stageProductDimension(product.id, "height", toMillimeters(value, lengthUnit))} onValidityChange={(valid) => setDimensionFieldValidity(product.id, "height", valid)} onFocusChange={handleDimensionFocusChange} /><small className="cell-unit">{lengthUnit}</small></td>
-                    <td className="cbm-cell" data-label="CBM"><output className="cbm-auto-value" aria-label={tt`${rowLabel} 自动计算 CBM`}>{volumePending?"—":roundedCbm.toFixed(2)}</output><small className="cell-meta">{dimensionsInvalid?tr("请检查尺寸","Check dimensions"):volumePending?tr("待确认尺寸","Pending dimensions"):<>{tr("自动计算 · 精确值 ")}{calculatedCbm.toFixed(4)}</>}</small></td>
+                    <td className="cbm-cell" data-label="CBM"><output className="cbm-auto-value" aria-label={tt`${rowLabel} 自动计算 CBM`}>{volumePending?"—":calculatedCbm.toFixed(calculatedCbm>0&&calculatedCbm<.0001?6:4)}</output><small className="cell-unit">{dimensionsInvalid?tr("请检查尺寸","Check dimensions"):volumePending?tr("待确认尺寸","Pending dimensions"):"m³"}</small></td>
                     <td className="numeric-cell" data-label={tr("毛重")}><NumericInput showError resetToken={numericResetVersion} ariaLabel={tt`${rowLabel} 毛重`} value={fromKilograms(product.weight, weightUnit)} precision={weightUnitPrecision(weightUnit)} onValueChange={(value) => updateProduct(product.id, "weight", toKilograms(value, weightUnit))} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:weight`, valid)} /><small className="cell-unit">{weightUnit}</small>{product.weight===0&&!invalidNumericFields.has(`product:${product.id}:weight`)&&<small className="cargo-field-note">{tr("当前按零重量计算","Counted as zero mass")}</small>}</td>
                     {mode === "mixed" ? <td className="numeric-cell" data-label={tr("需求箱数")}><NumericInput showError resetToken={numericResetVersion} ariaLabel={tt`${rowLabel} 需求箱数`} value={product.quantity} integer max={1_000_000} onValueChange={(value) => updateProduct(product.id, "quantity", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:quantity`, valid)} /><small className="cell-unit">{tr("箱")}</small></td> : null}
                     {mode === "mixed" || isSingleProductSet ? <><td data-label={tr("套装编码")}><input className="set-code-input" aria-label={tt`${rowLabel} 套装编码`} maxLength={80} value={product.setCode ?? ""} placeholder={tr("留空=散箱")} readOnly={mode === "single"} onChange={(event) => updateProduct(product.id, "setCode", event.target.value)} /><small>{mode === "single" ? tr("同一产品包装") : tr("同编码组成一套")}</small></td><td className="numeric-cell" data-label={tr("套内数量")}><NumericInput resetToken={numericResetVersion} ariaLabel={tt`${rowLabel} 套内数量`} value={product.unitsPerSet || 1} integer min={1} max={99} onValueChange={(value) => updateProduct(product.id, "unitsPerSet", value)} onValidityChange={(valid) => setNumericFieldValidity(`product:${product.id}:unitsPerSet`, valid)} /><small className="cell-unit">{tr("箱 / 套")}</small></td></> : null}
@@ -2286,10 +2338,20 @@ export function PackingApp() {
           ) : null}
         </section>
 
-          </div>
-          {isPalletWorkflow&&<div className="workbench-pane" hidden={cargoPane!=="pallets"}>
-          <PalletBuildSettings previewActive={cargoPane==="pallets"&&!toolsOpen} products={activeProducts} request={palletPreviewRequest} preparedLayout={preparedPalletLayout} onPreparedLayoutChange={changePreparedLayout} layerTemplates={palletLayerTemplates} onLayerTemplatesChange={setPalletLayerTemplates} initialSpecId={palletSetupSpec} onSelectSpec={setPalletSetupSpec} onRecipePending={setPalletRecipePending} resetToken={numericResetVersion} onReset={clearNumericDraftErrors} invalid={invalidNumericFields.size>0||hasPendingDimensionChanges} value={palletBuild} only={workflow === "pallet-only"} onChange={value=>{setPalletBuild(value);markDirty();}} onValidityChange={setNumericFieldValidity}/></div>}
-          <div className="workbench-pane" hidden={cargoPane!=="rules"}>
+        </section>}
+        {workflowStep===4&&<section className="wizard-page" aria-label={tr("第四步：布置预览","Step 4: Layout preview")}>
+          <div className="wizard-page-heading"><div><h2>{isPalletWorkflow?tr("核对托内布置","Review pallet layout"):tr("确认散箱布置","Review loose loading setup")}</h2>
+            <p>{isPalletWorkflow?tr("核对当前包装与托内货物，必要时调整尺寸或摆放。","Review the packaging and pallet contents. Adjust dimensions or placement as needed."):tr("确认散箱如何落位，再核对装载规则。","Confirm where loose cartons may be placed before reviewing loading rules.")}</p></div></div>
+          {isPalletWorkflow?<PalletBuildSettings previewActive={!toolsOpen} onPreviewReady={setPalletPreviewReady} products={activeProducts} request={palletPreviewRequest} preparedLayout={preparedPalletLayout} onPreparedLayoutChange={changePreparedLayout} layerTemplates={palletLayerTemplates} onLayerTemplatesChange={setPalletLayerTemplates} initialSpecId={palletSetupSpec} onSelectSpec={setPalletSetupSpec} onRecipePending={setPalletRecipePending} resetToken={numericResetVersion} onReset={clearNumericDraftErrors} invalid={invalidNumericFields.size>0||hasPendingDimensionChanges} value={palletBuild} only={workflow === "pallet-only"} onChange={changePalletBuild} onValidityChange={setNumericFieldValidity}/>:
+            <article className="panel layout-method-review"><h3>{floorPallets?tr("使用底层托盘","Floor pallets"):tr("散箱直接装柜","Loose cartons")}</h3><p>{floorPallets
+              ? `${floorPallets.name} · ${floorPallets.length} × ${floorPallets.width} × ${floorPallets.height} mm`
+              :tr("纸箱在柜内直接排列，后续计算会生成实际箱位。","Cartons are arranged directly in the container. Calculation generates the exact placements.")}</p>
+              {floorPallets&&<p>{floorPallets.allowFloorCargo?tr("允许使用底托外的地板空间。","Floor space outside the pallets can be used."):tr("货物仅放在底层托盘上。","Cartons must be placed on floor pallets.")}</p>}
+              <button type="button" className="button small" onClick={()=>goToStep(2)}>{tr("修改底层托盘","Edit floor pallets")}</button>
+            </article>}
+        </section>}
+        {workflowStep===5&&<section className="wizard-page" aria-label={tr("第五步：装载规则","Step 5: Loading rules")}>
+          <div className="wizard-page-heading"><div><h2>{tr("核对装载规则","Review loading rules")}</h2><p>{tr("按货物和现场要求核对朝向、承托及装载顺序。","Review orientation, support and loading order for this shipment.")}</p></div></div>
           <div id="loading-rules"><LoadingRuleSettings inline rules={loadingRules} products={products} onDraftChange={receiveRulesDraft} onSave={()=>{}} onClose={()=>{}}/></div>
           {workflow !== "pallet-only" && <details id="planning-targets" className="wizard-advanced"><summary>{tr("计算偏好与计划目标")}</summary><div className="wizard-preference-grid">            <article className="panel mode-panel">
               <div className="panel-head compact"><div><span className="section-kicker">01</span><h2>{tr("计算偏好","Solver preferences")}</h2></div></div>
@@ -2355,8 +2417,8 @@ export function PackingApp() {
               <div className="ratio-chips" aria-label={tr("各 SKU 建议箱数")}>
                 {selectedPredictionQuantities.map((item) => <span key={item.productId}><b>{item.sku}</b>{formatNumber(item.suggestedQuantity)}{tr(" 箱")}</span>)}
               </div>
-              <button className="reverse-apply-button" onClick={mode === "single" ? startConfiguredCalculation : applyReversePlan} disabled={status === "working" || hasPendingDimensionChanges || reversePlan.recommendedTotal <= 0}><ShieldCheck size={17} />{mode === "single"
-                ? status === "working" ? tr("正在同步双算法方案…") : tr("重新计算当前双算法快照")
+              <button className="reverse-apply-button" onClick={mode === "single" ? ()=>goToStep(6) : applyReversePlan} disabled={status === "working" || hasPendingDimensionChanges || reversePlan.recommendedTotal <= 0}><ShieldCheck size={17} />{mode === "single"
+                ? status === "working" ? tr("正在同步双算法方案…") : tr("前往核对计算","Continue to review")
                 : tr("将算术数量填入订单（随后计算）","Fill arithmetic quantities into order (calculate next)")}</button>
               <p className="reverse-note">{dirty
                 ? tr("输入已修改，计算后再展示经过校验的统一建议。")
@@ -2369,9 +2431,29 @@ export function PackingApp() {
                   : tr("倒推先保持当前 SKU 数量比例；箱型方向、门洞和碎片空间会影响最终实际利用率，应用后将用装箱算法重新验证。")}</p>
             </article>
 </div></details>}
+        </section>}
+        {workflowStep===6&&<section className="wizard-page" aria-label={tr("第六步：核对计算","Step 6: Review and calculate")}>
+          <div className="wizard-page-heading"><div><h2>{tr("核对后开始计算","Review and calculate")}</h2><p>{tr("确认柜型、包装、订单数量和装载规则。","Confirm the container, packaging, order quantities and loading rules.")}</p></div></div>
+          <div className="workflow-review-grid">
+            <article className="panel"><h3>{tr("柜型与装载方式","Container and method")}</h3>
+              <strong>{workflow==="pallet-only"?tr("只打托","Palletize only"):tr(container.name)}</strong>
+              {workflow!=="pallet-only"&&<p>{container.length} × {container.width} × {container.height} mm · {formatNumber(container.maxWeight)} kg</p>}
+              <button type="button" className="button small" onClick={()=>goToStep(1)}>{tr("修改柜型","Edit container")}</button></article>
+            <article className="panel"><h3>{tr("包装与托内布置","Packaging and layout")}</h3>
+              <strong>{isPalletWorkflow?palletBuild.config.name:floorPallets?.name??tr("散箱直接装柜","Loose cartons")}</strong>
+              {isPalletWorkflow&&<p>{palletBuild.oneKitPerPallet?tr("一套一托","One kit per pallet"):tr("按包装限制打托","Palletize to packaging limits")} · {formatNumber(palletBuild.maxPallets)} {tr("托上限","pallet limit")}</p>}
+              <button type="button" className="button small" onClick={()=>goToStep(4)}>{tr("查看布置","Review layout")}</button></article>
+            <article className="panel"><h3>{tr("货物清单","Cargo manifest")}</h3>
+              <strong>{formatNumber(activeProducts.length)} {tr("种箱规","carton types")}{mode==="mixed"&&` · ${formatNumber(activeProducts.reduce((sum,p)=>sum+p.quantity,0))} ${tr("箱","cartons")}`}</strong>
+              {setInputSummaries.length>0&&<p>{mode==="mixed"?`${formatNumber(setInputSummaries.reduce((sum,set)=>sum+set.completeSets,0))} ${tr("完整套","complete kits")}`:`${setInputSummaries[0].cartonsPerSet} ${tr("箱/套","cartons per kit")}`}</p>}
+              <button type="button" className="button small" onClick={()=>goToStep(3)}>{tr("修改货物","Edit cargo")}</button></article>
+            <article className="panel"><h3>{tr("装载规则","Loading rules")}</h3>
+              <strong>{loadingRules.layout==="layers"?tr("逐层摆放","Build in layers"):loadingRules.layout==="deep-first"?tr("从柜内深处开始","Load deep-first"):tr("自动布置","Automatic layout")}</strong>
+              <p>{tr("现场易执行与高密度参考分别计算。","Practical and high-density plans are calculated independently.")}</p>
+              <button type="button" className="button small" onClick={()=>goToStep(5)}>{tr("修改规则","Edit rules")}</button></article>
           </div>
         </section>}
-        {workflowStep===4 && <section className="wizard-page" aria-label={tr("第四步：查看方案","Step 4: Results")}>
+        {workflowStep===7 && <section className="wizard-page" aria-label={tr("第七步：查看方案","Step 7: Results")}>
           <div className="wizard-page-heading"><div><h2>{tr(workflow === "pallet-only" ? "打托方案" : "装箱方案", workflow === "pallet-only" ? "Pallet plan" : "Loading plan")}</h2><p>{workflow==="pallet-only"?tr("独立托盘编组","Independent pallet layout"): <>{tr(result?.container.name ?? container.name)} · {isPalletWorkflow?tr("先打托，再装柜","Palletize first, then load"):floorPallets?tt`使用托盘 ${floorPallets.length} × ${floorPallets.width} × ${floorPallets.height} mm`:tr("直接装柜，无底层托盘")}</>}</p></div><button className="button" onClick={()=>goToStep(3)}><ChevronLeft size={16}/>{tr("修改货物或布置","Edit cargo or layout")}</button></div>
           <div className="plan-command-bar">
           <div className="result-strategy-switch" role="group" aria-label={tr("方案算法切换")}><button className={strategy==="practical"?"selected":""} aria-pressed={strategy==="practical"} onClick={()=>switchStrategy("practical")}><ShieldCheck size={18}/><span><strong>{tr("现场易执行")}</strong><small>{strategyLabel("practical", cachedPracticalPlan)}</small></span></button><button className={strategy==="maximum"?"selected":""} aria-pressed={strategy==="maximum"} onClick={()=>switchStrategy("maximum")}><Gauge size={18}/><span><strong>{tr("高密度参考")}</strong><small>{strategyLabel("maximum", cachedMaximumPlan)}</small></span></button></div>
@@ -2687,16 +2769,23 @@ export function PackingApp() {
 
         </section>}
 
-        {workflowStep<4&&<div className="stage-action-bar">
-          {workflowStep>1&&<button type="button" className="button ghost" onClick={()=>goToStep(workflowStep===3?2:1)}><ChevronLeft size={17}/>{tr("上一步","Back")}</button>}
+        {workflowStep<7&&<div className="stage-action-bar">
+          {workflowStep>1&&<button type="button" className="button ghost" onClick={()=>goToStep((workflowStep-1) as WorkflowStep)}><ChevronLeft size={17}/>{tr("上一步","Back")}</button>}
           <span className="stage-context">{workflow==="pallet-only"?tr("只打托","Palletize only"):tr(container.name)}
             {workflowStep===3&&` · ${formatNumber(activeProducts.length)} ${tr("个箱型","carton types")}`}</span>
-          {workflowStep===3?
+          {workflowStep===6?
             <button type="button" className="button primary" disabled={setupInvalid||invalidNumericFields.size>0||hasPendingDimensionChanges||palletRecipePending} onClick={startConfiguredCalculation}>
               {workflow==="pallet-only"?tr("计算打托","Calculate pallets"):tr("计算装柜","Calculate loading")}<ChevronRight size={17}/>
             </button>:
-            <button type="button" className="button primary" onClick={()=>goToStep(workflowStep===1?2:3)}>
-              {workflowStep===1?tr("下一步 · 选包装","Next · Packaging"):tr("下一步 · 录入货物","Next · Cargo")}<ChevronRight size={17}/>
+            <button type="button" className="button primary" disabled={workflowStep===4&&isPalletWorkflow&&(!palletPreviewReady||palletRecipePending)}
+              onClick={()=>goToStep((workflowStep+1) as WorkflowStep)}>
+              {[
+                tr("下一步 · 选包装","Next · Packaging"),
+                tr("下一步 · 录入货物","Next · Cargo"),
+                tr("下一步 · 布置预览","Next · Layout"),
+                tr("下一步 · 装载规则","Next · Rules"),
+                tr("下一步 · 核对计算","Next · Review"),
+              ][workflowStep-1]}<ChevronRight size={17}/>
             </button>}
         </div>}
         </div>
@@ -2711,7 +2800,7 @@ export function PackingApp() {
           <ProductCatalog products={activeProducts} plan={resultAudit?.hasErrors?null:result} preparedLayout={preparedPalletLayout} disabled={upgradesDisabled} onProducts={replaceProductInputs}/>
           </>}
           loading={<>
-          {!isPalletWorkflow && <PrebuiltPalletPanel key={JSON.stringify(fleetRequest)} request={fleetRequest} disabled={upgradesDisabled} onAdopt={next=>{const build=next.palletBuild??{...DEFAULT_PALLET_BUILD,config:next.palletization!.config,mix:next.palletization!.mix};palletDraftRef.current=null;setFloorPallets(undefined);setLoadingWorkflow("palletized");setPreparedPalletLayout(undefined);setPalletBuild(build);persistDraft({workflow:"palletized",palletBuild:build,preparedPalletLayout:undefined,floorPallets:undefined,strategy:next.strategy});strategyRef.current=next.strategy;setStrategy(next.strategy);setToolsOpen(false);setResultPane("view");setWorkflowStep(4);adoptManualPlan(next);}}/>}
+          {!isPalletWorkflow && <PrebuiltPalletPanel key={JSON.stringify(fleetRequest)} request={fleetRequest} disabled={upgradesDisabled} onAdopt={next=>{const build=next.palletBuild??{...DEFAULT_PALLET_BUILD,config:next.palletization!.config,mix:next.palletization!.mix};palletDraftRef.current=null;setFloorPallets(undefined);setLoadingWorkflow("palletized");setPreparedPalletLayout(undefined);setPalletBuild(build);persistDraft({workflow:"palletized",palletBuild:build,preparedPalletLayout:undefined,floorPallets:undefined,strategy:next.strategy});strategyRef.current=next.strategy;setStrategy(next.strategy);setToolsOpen(false);setResultPane("view");setWorkflowStep(7);adoptManualPlan(next);}}/>}
           <DimensionScenarios key={JSON.stringify([fleetRequest,workflow,palletBuild,result?.id])} request={{...fleetRequest,workflow,palletBuild,floorPallets:isPalletWorkflow?undefined:floorPallets,singleCartonLimit:result?.singleCartonLimit}} result={dirty?null:result} disabled={upgradesDisabled||dirty} unit={lengthUnit} onProducts={next=>replaceProductInputs(products.map(p=>next.find(n=>n.id===p.id)??p))}/>
           <BearingRules key={JSON.stringify(products.map(p=>[p.id,p.maxTopLoadKg]))} products={activeProducts} disabled={upgradesDisabled} onChange={next=>replaceProductInputs(products.map(p=>next.find(n=>n.id===p.id)??p))}/>
           {mode === "mixed" && workflow!=="pallet-only" ? <FleetPlanner key={JSON.stringify([fleetRequest,customContainers,workflow,palletBuild])} request={{...fleetRequest,workflow,palletBuild:workflow==="palletized"?palletBuild:undefined,floorPallets:isPalletWorkflow?undefined:floorPallets}} customContainers={customContainers} disabled={upgradesDisabled||setupInvalid} initialFleet={pendingFleetTail} onInitialConsumed={consumeFleetTail} canApplyTail={!result?.deliveryIdentity&&!hasManualPreparation} onApplyTail={next=>{if(upgradesDisabled||setupInvalid||result?.deliveryIdentity||hasManualPreparation||!next.request.palletBuild)return false;setPendingFleetTail(next);applyPalletBuildTrial(next.request.palletBuild);return true;}}/> : null}
@@ -2733,7 +2822,7 @@ export function PackingApp() {
         />
 
         </section>}
-        <footer className="app-footer"><span className="workspace-version">CargoFit · v{ENGINE_VERSION}</span><span>{tr("尺寸与柜型预设仅供测算，正式出货请复核实际数据")}</span><div className="workspace-footer-links"/></footer>
+        <footer className="app-footer"><span className="workspace-version">CargoFit · v{ENGINE_VERSION}</span><span>{tr("尺寸与柜型预设仅供测算，正式出货请复核实际数据")}</span></footer>
       </div>
     </main>
   );

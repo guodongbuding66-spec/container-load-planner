@@ -53,6 +53,7 @@ type Props = {
   products?:ProductInput[];
   onAdopt?:(plan:PackingResult)=>void;
   presentation?: boolean;
+  compactPreview?: boolean;
   result: PackingResult | null;
   visibleProducts: Set<string>;
   visibleCount: number;
@@ -96,10 +97,15 @@ function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSele
   const materials = useMemo(() => {
     const dims=[first.dx,first.dz,first.dy], axis=first.orientation.indexOf("H");
     if(group.cargoType==="pallet")dims[axis===0?0:axis===1?2:1]=Math.max(1,dims[axis===0?0:axis===1?2:1]-(group.baseHeight??0));
-    const textures=labels&&shape==="box"&&!group.solidModel?[boxFaceTexture(group.sku,group.color,dims[2],dims[1],group.orientation[2],mark),boxFaceTexture(group.sku,group.color,dims[0],dims[2],undefined,mark),boxFaceTexture(group.sku,group.color,dims[0],dims[1],group.orientation[2],mark)]:[];
+    const face={mark,reduced:reducedRendering,label:labels};
+    const textures=(labels||!reducedRendering)&&shape==="box"&&!group.solidModel?[
+      boxFaceTexture(group.sku,group.color,dims[2],dims[1],{...face,up:group.orientation[2]}),
+      boxFaceTexture(group.sku,group.color,dims[0],dims[2],{...face,seam:true}),
+      boxFaceTexture(group.sku,group.color,dims[0],dims[1],{...face,up:group.orientation[2]}),
+    ]:[];
     const maps=[textures[0],textures[0],textures[1],textures[1],textures[2],textures[2]];
     return maps.map(map=>new THREE.MeshStandardMaterial({map:map??null,color:map?"white":group.color,roughness:.82,wireframe:collisionProxy||shape==="irregular",transparent:collisionProxy||shape==="irregular",opacity:collisionProxy?.75:shape==="irregular"?.6:1}));
-  },[first.dx,first.dy,first.dz,first.orientation,group.baseHeight,group.cargoType,group.sku,group.color,group.orientation,group.solidModel,labels,shape,collisionProxy,mark]);
+  },[first.dx,first.dy,first.dz,first.orientation,group.baseHeight,group.cargoType,group.sku,group.color,group.orientation,group.solidModel,labels,shape,collisionProxy,mark,reducedRendering]);
   useEffect(()=>()=>{new Set(materials.map(m=>m.map)).forEach(t=>t?.dispose());materials.forEach(m=>m.dispose());},[materials]);
   const parts=useMemo(()=>group.cargoType!=="pallet"||!group.baseHeight?[]:group.sources.flatMap(box=>{
     const world=[box.dx,box.dy,box.dz];
@@ -192,10 +198,10 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
   return (
     <group>
       <SectionGeometry result={result} section={section} scale={scale} offset={offset}>
-      {!isolated&&result.workflow !== "pallet-only" && <group position={[0,baseHeight*scale,0]}><TransportModel space={result.container} scale={scale} mode={modelMode} transparency={transparency}/></group>}
+      {!isolated&&result.workflow !== "pallet-only" && <group position={[0,baseHeight*scale,0]}><TransportModel space={result.container} scale={scale} mode={modelMode} transparency={transparency} reduced={reducedRendering}/></group>}
       {!isolated&&baseHeight > 0 && (result.container.category !== "pallet" || modelMode === "wireframe") && <PalletStructures pallets={[{id:"space-base",presetId:result.container.id,name:result.container.name,x:0,y:0,z:-baseHeight,dx:effective.length,dy:effective.width,dz:baseHeight,weight:0,maxLoad:result.container.maxWeight,orientation:"LWH"}]} scale={scale} offset={offset}/>}
       {!isolated&&<SceneAnalysisOverlay regions={siteExclusionBoxes(result.container,result.clearance).flatMap(b=>{const clipped=sectionBox(b,result,section);return clipped?[clipped]:[];})} scale={scale} offset={offset}/>}
-      <PalletStructures pallets={pallets} scale={scale} offset={offset} onSelect={palletPicking?p=>onSelect(palletAnchors([p])[0]):undefined}/>
+      <PalletStructures pallets={pallets} scale={scale} offset={offset} reduced={reducedRendering} onSelect={palletPicking?p=>onSelect(palletAnchors([p])[0]):undefined}/>
       {groups.map((group) => (
         <InstancedBoxes key={group.productId} group={group} collisionProxy={appearance.collisionProxy} scale={scale} offset={offset} reducedRendering={reducedRendering} labels={labels} onSelect={onSelect} />
       ))}
@@ -218,6 +224,7 @@ export function ContainerScene({
   result:source,
   editor,products=[],onAdopt,
   presentation = false,
+  compactPreview = false,
   visibleProducts,
   visibleCount,
   onVisibleCountChange,
@@ -336,13 +343,14 @@ export function ContainerScene({
       cameraView={cameraView}
       projectionMode={projectionMode}
       webglSupported={webglSupported}
+      compact={compactPreview}
       palletOnly={result?.workflow === "pallet-only"}
       hasCargo={Boolean(result?.placements.length)}
       hasCollisionBody={Object.values(result?.cargoDetails ?? {}).some(product => product.solidModel)}
       fullscreenToggle={fullscreenToggle}
       onViewChange={view => { setFocusId(null); onCameraViewChange(view); }}
       onProjectionChange={projection => { setFocusId(null); onProjectionModeChange(projection); }}
-      onReset={() => { restoreView(); onCameraViewChange("perspective"); onProjectionModeChange("perspective"); }}
+      onReset={() => { restoreView(); onCameraViewChange("perspective"); onProjectionModeChange(compactPreview?"orthographic":"perspective"); }}
       onSave={() => void saveImage()}
     />} fullscreenFooter={result&&onVisibleCountChange&&<footer className="scene-progress"><span>{tr("装载进度")}</span><input type="range" min={0} max={result.placements.length} value={visibleCount} aria-label={tr("全屏装载进度", "Fullscreen loading progress")} onChange={e=>onVisibleCountChange(Number(e.target.value))}/><output>{visibleCount} / {result.placements.length} {tr("箱")}</output></footer>}>
 {editor?.changed&&<p className="scene-draft-notice" role="status">{tr("正在预览编辑草稿；采用后更新指标与导出。","Previewing edit draft. Apply to update totals and exports.")}</p>}

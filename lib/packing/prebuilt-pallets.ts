@@ -28,7 +28,7 @@ export function orderPalletizedCargo(boxes: PlacedBox[], pallets: PlacedPallet[]
   }
   ordered.push(...loose.slice(i),...[...groups.values()].flat());return ordered;
 }
-export type Palletization = { looseQuantities?:LooseQuantities; selection?:PackagingSelection;selectionChoices?:PackagingChoice[]; editRevision?:number; manualPreparation?:boolean; config: FloorPalletConfig; mix: "single" | "mixed"; stackLayers?: number; maxTopLoadKg?: number; preparedCount?: number; bounded?: boolean; only?: boolean; specifications?:PalletBuildSpecification[]; preparedBySpecification?:Record<string,number> };
+export type Palletization = { oneKitPerPallet?:boolean; looseQuantities?:LooseQuantities; selection?:PackagingSelection;selectionChoices?:PackagingChoice[]; editRevision?:number; manualPreparation?:boolean; config: FloorPalletConfig; mix: "single" | "mixed"; stackLayers?: number; maxTopLoadKg?: number; preparedCount?: number; bounded?: boolean; only?: boolean; specifications?:PalletBuildSpecification[]; preparedBySpecification?:Record<string,number> };
 export function parsePalletization(value: unknown): Palletization | undefined {
   if (value === undefined) return undefined;
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid prebuilt pallets");
@@ -40,7 +40,7 @@ export function parsePalletization(value: unknown): Palletization | undefined {
   if (p.stackLayers !== undefined && (!Number.isInteger(p.stackLayers) || p.stackLayers < 1 || p.stackLayers > 20)) throw new Error("Invalid pallet stack layers");
   if (p.maxTopLoadKg !== undefined && (!Number.isFinite(p.maxTopLoadKg) || p.maxTopLoadKg < 0 || p.maxTopLoadKg > 100000)) throw new Error("Invalid pallet top load");
   if (p.preparedCount !== undefined && (!Number.isInteger(p.preparedCount) || p.preparedCount < 0 || p.preparedCount > 200)) throw new Error("Invalid prepared pallet count");
-  for (const k of ["bounded", "only", "manualPreparation"] as const) if (p[k] !== undefined && typeof p[k] !== "boolean") throw new Error("Invalid pallet metadata");
+  for (const k of ["bounded", "only", "manualPreparation", "oneKitPerPallet"] as const) if (p[k] !== undefined && typeof p[k] !== "boolean") throw new Error("Invalid pallet metadata");
   if(p.selection!==undefined&&p.selection!=="ordered"&&p.selection!=="compact")throw new Error("Invalid packaging selection mode");
   const config=parseFloorPalletConfig(p.config);assertDeckSupportStacking(config,p.stackLayers??1,p.maxTopLoadKg??0);const specifications=p.specifications===undefined?undefined:parsePackagingSpecifications(p.specifications);
   let preparedBySpecification:Record<string,number>|undefined;
@@ -54,7 +54,7 @@ export function parsePalletization(value: unknown): Palletization | undefined {
   }else if(p.preparedBySpecification!==undefined)throw new Error("Prepared packaging definitions are missing");
   const selectionChoices=parsePackagingChoices(p.selectionChoices,new Set(specifications?.map(s=>s.id)??["primary"]));
   if(selectionChoices&&p.selection!=="compact")throw new Error("Packaging choice records require compact selection");
-  return { ...(looseQuantities?{looseQuantities}:{}), ...(p.selection===undefined?{}:{selection:p.selection}),...(selectionChoices?{selectionChoices}:{}), config, mix: p.mix, ...(p.editRevision===undefined?{}:{editRevision:p.editRevision}), ...(p.manualPreparation?{manualPreparation:true}:{}), ...(p.stackLayers === undefined ? {} : { stackLayers: p.stackLayers }), ...(p.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: p.maxTopLoadKg }), ...(p.preparedCount === undefined ? {} : { preparedCount: p.preparedCount }), ...(p.bounded === undefined ? {} : { bounded: p.bounded }), ...(p.only === undefined ? {} : { only: p.only }),...(specifications?{specifications,preparedBySpecification}:{}) };
+  return { ...(p.oneKitPerPallet?{oneKitPerPallet:true}:{}), ...(looseQuantities?{looseQuantities}:{}), ...(p.selection===undefined?{}:{selection:p.selection}),...(selectionChoices?{selectionChoices}:{}), config, mix: p.mix, ...(p.editRevision===undefined?{}:{editRevision:p.editRevision}), ...(p.manualPreparation?{manualPreparation:true}:{}), ...(p.stackLayers === undefined ? {} : { stackLayers: p.stackLayers }), ...(p.maxTopLoadKg === undefined ? {} : { maxTopLoadKg: p.maxTopLoadKg }), ...(p.preparedCount === undefined ? {} : { preparedCount: p.preparedCount }), ...(p.bounded === undefined ? {} : { bounded: p.bounded }), ...(p.only === undefined ? {} : { only: p.only }),...(specifications?{specifications,preparedBySpecification}:{}) };
 }
 export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPallet[], container: ContainerSpec, clearance: number, value: Palletization, products:readonly ProductInput[] = []) {
   value=parsePalletization(value)!;
@@ -91,6 +91,8 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
     const top = Math.max(cargoTop,p.z+(p.enclosureHeight??0)), height = top - p.z;
     if (config.maxCargoHeight && height > packagingHeight(config) + EPS || !value.only && height > Math.min(container.height, container.loadingAccess === "open" ? container.height : container.doorHeight) - clearance + EPS) errors.push("Loaded pallet exceeds door or cargo height limit");
     if (value.mix === "single" && new Set(cargo.map(b => b.setCode ? `set:${b.setCode}` : `sku:${b.productId}`)).size > 1) errors.push("Single-product pallet contains mixed cargo");
+    const kit = value.oneKitPerPallet ? cargo.find(box=>box.setCode) : undefined;
+    if(kit&&cargo.some(box=>box.setCode!==kit.setCode||box.setNumber!==kit.setNumber)) errors.push("一套一托仅允许同一整套货物 / A one-kit pallet must contain exactly one complete kit");
     const envelope=palletLoadEnvelope(p,cargo);
     if(p.measuredEnvelope&&(envelope.x< -EPS||envelope.y< -EPS||envelope.x+envelope.dx>container.length-2*clearance+EPS||envelope.y+envelope.dy>container.width-2*clearance+EPS||envelope.z+envelope.dz>container.height-clearance+EPS||container.loadingAccess!=="open"&&(envelope.dy>container.doorWidth-2*clearance+EPS||envelope.dz>container.doorHeight-clearance+EPS)))errors.push("Measured unit envelope exceeds container or door / 实测整托包络超过柜内或门洞限制");
     envelopes.push({ ...p, ...envelope, weight: p.weight + cargo.reduce((n, b) => n + b.weight, 0), productId: p.id, sku: p.id, color: "#997947", layer: 1, orientation: p.orientation });

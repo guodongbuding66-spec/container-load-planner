@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { parseNumericDraft } from "../lib/packing/numeric-draft";
 import { packagingInterior } from "../lib/packing/packaging";
 import { packagingGroupKey } from "../lib/packing/packaging-choice";
+import { normalizedSetCode, normalizedUnitsPerSet } from "../lib/packing/set-utils";
 import { canSuggestPalletSize, initialPalletRecipeCartons, redesignPalletRecipeSpec, palletRecipeGroups, type PalletRecipePatch, type PalletRecipeInput, type PalletRecipePreview } from "../lib/packing/pallet-recipe";
 import { MAX_CARTONS_PER_PALLET, MAX_PACKAGING_SPECIFICATIONS, palletSpecifications } from "../lib/packing/pallet-specifications";
 import type { FloorPalletConfig, PackingRequest, PalletBuildSpecification } from "../lib/packing/types";
@@ -150,6 +151,8 @@ export function PalletRecipe(props:Props) {
   const {stacking,setStacking,automaticQuantity,setAutomaticQuantity,setStackingValid,draft,redesigned,canRedesign,setSelected,groups,group,groupKey,canSuggest,mode,parsed,cartons,pending,key,current,preview,errors,applyPreview,cancel,suggest,restoreCurrent,fine,fineTune,fitsTarget,updateFine,removeLimit}=usePalletRecipe(props);
   const height = Math.min(request.container.height,request.container.loadingAccess==="open"?request.container.height:request.container.doorHeight)-request.clearance;
   const tiers = preview ? Math.max(0,Math.min(stacking.maxLayers||99, Math.floor(height/preview.height))) : 0;
+  const kitCartons=request.palletBuild?.oneKitPerPallet&&group&&normalizedSetCode(group[0])
+    ? group.reduce((sum,product)=>sum+normalizedUnitsPerSet(product),0):0;
 
   return <section id="pallet-recipe" className="pallet-recipe" aria-label={tr("按箱数自动打托","Pallet sizing by carton count")}>
     <h3>{tr("按箱数自动打托","Pallet sizing by carton count")}</h3>
@@ -167,6 +170,9 @@ export function PalletRecipe(props:Props) {
         aria-invalid={parsed.state === "invalid"} placeholder={tr("例如 20","e.g. 20")} disabled={disabled||!group}
         onChange={e=>suggest(e.target.value)}/></label>
     </div>
+    {kitCartons>0&&<div className="packaging-preview-actions">
+      <button type="button" className="button small" disabled={disabled||!canSuggest&&!canRedesign} onClick={()=>suggest(String(kitCartons))}>{tr(`按一整套推荐尺寸 · ${kitCartons} 箱`,`Size for one complete kit · ${kitCartons} cartons`)}</button>
+    </div>}
     {!group && <p>{tr("请先添加符合本规格的货物或完整套装。","Add eligible cargo or a complete kit for this specification.")}</p>}
     {initialCartons!==undefined&&<small>{tr("保留你设置的每托箱数，重新建议尺寸；未设置箱数时按余量与承重建议。采用前，装柜结果仍显示原方案。","Your cartons-per-pallet target is retained while dimensions are redesigned. If no count is set, stock and payload suggest one. Loading results remain unchanged until you apply.")}</small>}
     {group && <small>{group.map(p => `${p.sku} · ${p.length} × ${p.width} × ${p.height} mm`).join(" / ")}</small>}

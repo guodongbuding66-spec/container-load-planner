@@ -2,7 +2,7 @@ import {declaredUnitStacking,declaredStackLayers,declaredTopLoad,openUnitLayers}
 import {reviewPalletLowerBound,type PalletSearchSummary} from "./pallet-search";
 import {looseReservationErrors,looseOutsideUnit} from "./loose-cargo";
 import {applyTypeSupport,DEFAULT_LOADING_RULES} from "./loading-rules";
-import {retainsLoadedRows} from "./set-utils";
+import {normalizedSetCode,normalizedUnitsPerSet,retainsLoadedRows} from "./set-utils";
 import {crateAutoEnabled,crateTopCapacity,crateCandidateAllowed,isCrate} from "./crate-auto-stack";
 import {completePackagingTare,deckSupportHeight} from "./deck-support";
 import {assertAccessorySupportWorkflow} from "./accessory-support";
@@ -63,6 +63,31 @@ export function packPalletCargo(request: PackingRequest, config: FloorPalletConf
   return {plan, violation};
 }
 
+/** Keep a complete small kit and test lower heights on the same deck. */
+export function packSingleKit(request:PackingRequest,config:FloorPalletConfig,cargoHeight:number,products:ProductInput[]) {
+  const cartons=products.reduce((sum,p)=>sum+p.quantity,0);
+  if(cartons>16)return packPalletCargo(request,config,cargoHeight,products,cartons);
+  const rules=request.loadingRules??DEFAULT_LOADING_RULES;
+  const searchRequest={...request,loadingRules:{...rules,search:"deep" as const,layout:rules.layout==="auto"?"layers" as const:rules.layout}};
+  const trial=(height:number)=>packPalletCargo(searchRequest,config,height,products,cartons);
+  let best=trial(cargoHeight);
+  if(best.violation||best.plan.placements.length!==cartons){
+    best=packPalletCargo(request,config,cargoHeight,products,cartons);
+    if(best.violation||best.plan.placements.length!==cartons)return best;
+  }
+  const top=(plan:PackingResult)=>Math.max(...plan.placements.map(b=>b.z+b.dz));
+  let minimum=Math.max(deckSupportHeight(config),...products.map(p=>Math.min(...getOrientations(p,false).map(o=>o.dz))));
+  let maximum=top(best.plan);
+  for(let step=0;step<4&&maximum-minimum>=1;step++){
+    const height=Math.floor((minimum+maximum)*5)/10;
+    if(height<=deckSupportHeight(config)||height>=maximum)break;
+    const candidate=trial(height);
+    if(candidate.violation||candidate.plan.placements.length!==cartons)minimum=height;
+    else {best=candidate;maximum=top(candidate.plan);}
+  }
+  return best;
+}
+
 /** A flat, complete top and the tightest known residual load limit are required. */
 function topCapacity(cargo: PlacedBox[], request: PackingRequest, config: FloorPalletConfig, options: PalletBuildOptions) {
   if (packagingInterior(config).crate) return crateTopCapacity(config, config.weight + cargo.reduce((n,b)=>n+b.weight,0));
@@ -106,6 +131,7 @@ function buildPalletCandidate(request: PackingRequest, input: FloorPalletConfig,
   for(const p of remaining){const key=groupKey(p);groups.set(key,[...groups.get(key)??[],p]);}
   const eligible = new Map(specifications.map(s=>{const allowed=s.productIds?new Set(s.productIds):undefined;return [s.id,new Set([...groups].filter(([,items])=>!allowed||items.every(p=>allowed.has(p.id))).map(([key])=>key))];}));
   const choiceByUnit=new Map<string,Omit<PackagingChoice,"palletId">>();
+  const kitLayouts=new Map<string,ReturnType<typeof packSingleKit>>();
   const prepared:PreparedUnit[] = [], failed = new Set<string>(), used = new Map(specifications.map(s=>[s.id,0]));
   let cartonCount=0, coordinateLimit=false, lastReason="";
   const unitDirections = (unit: PreparedUnit) => loadedPalletDirections(bySpecification.get(unit.specificationId)!.config, unit.cargo, sourceProducts);
@@ -159,6 +185,13 @@ function buildPalletCandidate(request: PackingRequest, input: FloorPalletConfig,
     const first=remaining.find(p=>p.quantity>0&&!failed.has(groupKey(p)));
     if(!first)break;
     const firstKey=groupKey(first);
+    const oneKit=!!options.oneKitPerPallet&&!!normalizedSetCode(first);
+    const kitProducts=oneKit?groups.get(firstKey)!.map(p=>({...p,quantity:normalizedUnitsPerSet(p)})):undefined;
+    const cartonsPerKit=kitProducts?.reduce((sum,p)=>sum+p.quantity,0)??0;
+    if(kitProducts?.some((p,i)=>groups.get(firstKey)![i].quantity<p.quantity)){
+      failed.add(firstKey);
+      continue;
+    }
     let chosen:PreparedUnit|undefined;
     const candidates:{unit:PreparedUnit;summary:PackagingCandidate}[]=[];
     for(const spec of specifications){
@@ -168,16 +201,27 @@ function buildPalletCandidate(request: PackingRequest, input: FloorPalletConfig,
       if(interior.crate&&!only&&packagingHeight(c)>palletCargoCeiling(request.container,request.clearance,{...c,maxCargoHeight:0})+.0001){lastReason="木箱整体高度超过柜内或门洞净高 / Crate exterior exceeds vehicle or door height";continue;}
       const cargoHeight=only||interior.crate?c.maxCargoHeight!:palletCargoCeiling(request.container,request.clearance,c)-c.height;
       if(cargoHeight<=0){lastReason="托盘上方没有可用净高";continue;}
-      const products=remaining.filter(p=>!failed.has(groupKey(p))&&eligible.get(spec.id)!.has(groupKey(p))&&(options.mix==="mixed"||groupKey(p)===firstKey));
+      if(oneKit&&spec.cartonLimit!==undefined&&spec.cartonLimit<cartonsPerKit){
+        lastReason="每托箱数上限低于一套所需箱数 / Carton limit is below the number of cartons in one kit";
+        continue;
+      }
+      const products=kitProducts??remaining.filter(p=>!failed.has(groupKey(p))&&eligible.get(spec.id)!.has(groupKey(p))&&(options.mix==="mixed"||groupKey(p)===firstKey)&&(!options.oneKitPerPallet||!normalizedSetCode(p)));
       if(deckSupportHeight(c)>=cargoHeight){lastReason="托内支承件已占满当前货物净高 / Deck supports occupy the cargo height";continue;}
-      const {plan:local, violation} = packPalletCargo(request,c,cargoHeight,products,spec.cartonLimit);
+      const layoutKey=JSON.stringify([spec.id,firstKey]);
+      let layout=oneKit?kitLayouts.get(layoutKey):undefined;
+      if(!layout){
+        layout=oneKit?packSingleKit(request,c,cargoHeight,products):packPalletCargo(request,c,cargoHeight,products,spec.cartonLimit);
+        if(oneKit)kitLayouts.set(layoutKey,layout);
+      }
+      const {plan:local,violation}=layout;
       if(violation){lastReason=violation;continue;}
+      if(oneKit&&local.placements.length!==cartonsPerKit){lastReason=`${normalizedSetCode(first)} · 当前规格放不下一整套 / A complete kit does not fit this packaging`;continue;}
       if(!local.placements.some(b=>groupKey(sourceProducts.get(b.productId)!)===firstKey)){if(c.packaging?.deckSupports?.length)lastReason="托内支承条件下未找到完整货物；请检查接触、静载、朝向、悬跨、净高及套装规则。有限搜索不证明无解 / No complete cargo found under current deck support constraints; check contact, static limits, orientation, spans, height and kits. Bounded search is not an infeasibility proof";continue;}
       if(cartonCount+local.placements.length>MAX_VISIBLE_PLACEMENTS){coordinateLimit=true;if(options.selection==="compact")continue;break;}
       const height=Math.max(deckSupportHeight(c),...local.placements.map(b=>b.z+b.dz));
       const unitId=nextUnitId();
       const unit:PreparedUnit={id:unitId,specificationId:spec.id,cargo:local.placements,height:interior.crate?packagingHeight(c):height+c.height,weight:local.metrics.grossWeight+c.weight,
-        tail:local.summaries.every(s=>s.unloaded===0),topCapacity:only?0:topCapacity(local.placements,request,c,{...options,config:c,stackLayers:spec.stackLayers,maxTopLoadKg:spec.maxTopLoadKg})};
+        tail:oneKit?groups.get(firstKey)!.some(p=>p.quantity<2*normalizedUnitsPerSet(p)):local.summaries.every(s=>s.unloaded===0),topCapacity:only?0:topCapacity(local.placements,request,c,{...options,config:c,stackLayers:spec.stackLayers,maxTopLoadKg:spec.maxTopLoadKg})};
       if (!only && (multiple || options.selection === "compact") && !loadedPalletFits(request.container,request.clearance,c,unit.height,unitDirections(unit))) continue;
       if(!only&&options.selection==="compact"&&unit.weight>request.container.maxWeight-containerAccessoryWeight(request.container)+.0001)continue;
       if(options.selection!=="compact"){chosen=unit;break;}
@@ -237,7 +281,7 @@ function buildPalletCandidate(request: PackingRequest, input: FloorPalletConfig,
   }
   if(placements.length>MAX_VISIBLE_PLACEMENTS)throw Error("Mixed load exceeds the coordinate limit / 混装超过箱位上限，请减少生成托盘或散装预留");
   const bounded=(prepared.length===options.maxPallets||coordinateLimit||cartonCount>=MAX_VISIBLE_PLACEMENTS)&&remaining.some(p=>p.quantity>0);
-  const palletization={...(manual?{manualPreparation:true}:{}),...(options.looseQuantities?{looseQuantities:options.looseQuantities}:{}),...(options.selection===undefined?{}:{selection:options.selection}),...(!manual&&options.selection==="compact"?{selectionChoices}:{}),config:options.config,mix:options.mix,...(build?{stackLayers:options.stackLayers,maxTopLoadKg:options.maxTopLoadKg,preparedCount:prepared.length,bounded,only}:{}),...(multiple?{specifications,preparedBySpecification:Object.fromEntries(used)}:{})};
+  const palletization={...(manual?{manualPreparation:true}:{}),...(options.oneKitPerPallet?{oneKitPerPallet:true}:{}),...(options.looseQuantities?{looseQuantities:options.looseQuantities}:{}),...(options.selection===undefined?{}:{selection:options.selection}),...(!manual&&options.selection==="compact"?{selectionChoices}:{}),config:options.config,mix:options.mix,...(build?{stackLayers:options.stackLayers,maxTopLoadKg:options.maxTopLoadKg,preparedCount:prepared.length,bounded,only}:{}),...(multiple?{specifications,preparedBySpecification:Object.fromEntries(used)}:{})};
   const plan:PackingResult=restorePackingSnapshot({...request,floorPallets:undefined,container,clearance:only?0:request.clearance,strategy},{strategy,placements,pallets,palletization,delivery:request.delivery,accessConfig:request.accessConfig});
   plan.warnings=["货物打托与整托坐标已通过独立校验"];
   if(compactOrderImproved)plan.warnings.push("已比较小包装优先的整托入柜顺序；采用的候选增加箱数且各已装订单行不减量 / Compared compact-first unit loading; the adopted candidate increases cartons without reducing any loaded order row");
@@ -246,7 +290,7 @@ function buildPalletCandidate(request: PackingRequest, input: FloorPalletConfig,
   else if(options.selection==="compact")plan.warnings.push("多规格逐托比较：优先满足必装与高优先级货量，同货量依次选更小外包络、更小占地和更轻包装；局部启发式不保证全局最少托数或费用。");
   else if(multiple)plan.warnings.push("多种包装按列表顺序和适用 SKU 尝试；每种可用数量独立限制，不推定全局最少包装数。");
   if(prepared.length&&!pallets.length)plan.warnings.push("完整托盘无法在当前柜型、门洞、净空或载重条件下装入；请调整打托规格或柜型");
-  if(remaining.some(p=>p.quantity>0)&&multiple)plan.warnings.push("仍有货物待打包，请核对各规格适用 SKU、可用数量、净空与完整套装要求。");
+  if(remaining.some(p=>p.quantity>0)&&(multiple||options.oneKitPerPallet))plan.warnings.push(lastReason||"仍有货物待打包，请核对各规格适用 SKU、可用数量、净空与完整套装要求。");
   if(looseProducts.length)plan.warnings.push("按指定箱数预留散装；其余货物保持完整托盘。散箱不占用整托内部，也不与整托互相承托；未装数量仍在订单中 / Loose reservations are explicit; complete units stay intact. Loose cargo cannot use unit voids or cross-support units. Unloaded quantities remain in the order");
   plan.workflow=only?"pallet-only":"palletized";plan.palletBuild=options;
   if(only){plan.metrics.effectiveVolume=independentPalletVolume(palletization,pallets);plan.metrics.volumeUtilization=plan.metrics.loadedVolume/plan.metrics.effectiveVolume;if(plan.metrics.envelopeVolume!==undefined)plan.metrics.envelopeUtilization=plan.metrics.envelopeVolume/plan.metrics.effectiveVolume;plan.warnings.unshift("仅生成独立托盘；三维编组位置用于查看，不代表柜内箱位。利用率按每托限高包络统计");}
