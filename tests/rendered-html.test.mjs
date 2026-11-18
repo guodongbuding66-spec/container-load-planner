@@ -284,6 +284,9 @@ test("protects mobile calculations and enforces a readable typography floor", as
   assert.match(mobileCargoRules, /input\.set-code-input \{[^}]*width:100%/);
   assert.match(mobileCargoRules, /td:has\(> \.constraint-select\) \{ grid-column:1 \/ -1; \}/);
   assert.match(mobileCargoRules, /\.product-table \.constraint-select \{ width:100%;min-height:40px/);
+  const workbenchStyles = await readFile(new URL("../app/cargo-workbench.css", import.meta.url), "utf8");
+  assert.match(workbenchStyles, /\.space-stage-preview \.transport-model-modes \{[^}]*flex-wrap: wrap/);
+  assert.match(workbenchStyles, /\.wizard-preference-grid \{ grid-template-columns: minmax\(0,1fr\)/);
 });
 
 test("separates utilization planning from the selected strategy capacity ceiling", async () => {

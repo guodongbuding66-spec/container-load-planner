@@ -162,7 +162,7 @@ body:has(.cargo-workbench) {
 }
 .cargo-workbench .status-strip[data-status=error] { color: #9c332e; }
 .cargo-workbench .status-dot { box-shadow: none; flex: 0 0 7px; }
-.cargo-workbench .wizard-page { display: grid; gap: 16px; padding-top: 12px; min-width: 0; }
+.cargo-workbench .wizard-page { display: grid; grid-template-columns: minmax(0,1fr); gap: 16px; padding-top: 12px; min-width: 0; }
 .cargo-workbench .wizard-page-heading { padding: 0; gap: 10px; min-width: 0; }
 .cargo-workbench .wizard-page-heading h2 { color: var(--ink); font-size: clamp(22px,3vw,28px); letter-spacing: -.024em; line-height: 1.28; }
 .cargo-workbench .wizard-page-heading p { color: var(--muted); font-size: 14px; }
@@ -249,6 +249,7 @@ body:has(.cargo-workbench) {
 .space-overview strong { flex-basis: 100%; color: var(--ink); font-size: 18px; }
 .cargo-workbench .space-stage-preview .space-model-preview { height: clamp(200px,26dvh,260px); }
 .space-stage-preview .transport-model-controls { margin-bottom: 7px; }
+.space-stage-preview .transport-model-modes { flex: 0 1 auto; flex-wrap: wrap; min-width: 0; max-width: 100%; }
 .space-stage-preview .space-model-section { margin-bottom: 0; }
 .kit-pallet-rule { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--teal-soft); cursor: pointer; }
 .kit-pallet-rule input,.kit-row-checkbox { flex: none; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--teal); }
@@ -415,6 +416,10 @@ body:has(.cargo-workbench) {
 @media (max-width: 600px) {
   .cargo-workbench .wizard-steps { grid-template-columns: repeat(4,minmax(0,1fr)); }
   .cargo-workbench .workflow-review-grid { grid-template-columns: minmax(0,1fr); }
+  .cargo-workbench .wizard-preference-grid { grid-template-columns: minmax(0,1fr); }
+  .cargo-workbench .wizard-preference-grid .panel { min-width: 0; }
+  .wizard-preference-grid :is(.strategy-heading,.reverse-panel .panel-head) { flex-wrap: wrap; }
+  .wizard-preference-grid .strategy-segmented button { min-width: 0; white-space: normal; }
   .cargo-workbench .app-main { padding-inline: 10px; }
   .cargo-workbench .topbar { align-items: flex-start; }
   .cargo-workbench .top-actions { gap: 3px; }
