@@ -282,6 +282,8 @@ test("protects mobile calculations and enforces a readable typography floor", as
   assert.match(mobileCargoRules, /\.product-table tr td \{[^}]*height:auto/);
   assert.match(mobileCargoRules, /\.cbm-cell\) \{[^}]*min-width:0/);
   assert.match(mobileCargoRules, /input\.set-code-input \{[^}]*width:100%/);
+  assert.match(mobileCargoRules, /td:has\(> \.constraint-select\) \{ grid-column:1 \/ -1; \}/);
+  assert.match(mobileCargoRules, /\.product-table \.constraint-select \{ width:100%;min-height:40px/);
 });
 
 test("separates utilization planning from the selected strategy capacity ceiling", async () => {
