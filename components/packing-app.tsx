@@ -2443,7 +2443,7 @@ export function PackingApp() {
               {workflow!=="pallet-only"&&<p>{container.length} × {container.width} × {container.height} mm · {formatNumber(container.maxWeight)} kg</p>}
               <button type="button" className="button small" onClick={()=>goToStep(1)}>{tr("修改柜型","Edit container")}</button></article>
             <article className="panel"><h3>{tr("包装与托内布置","Packaging and layout")}</h3>
-              <strong>{isPalletWorkflow?palletBuild.config.name:floorPallets?.name??tr("散箱直接装柜","Loose cartons")}</strong>
+              {isPalletWorkflow?<ul className="review-packaging-specs">{palletSpecifications(palletBuild).filter(s=>s.maxPallets>0).map(s=><li key={s.id}><strong>{s.config.name}</strong><small>{s.config.length} × {s.config.width} mm · {tr("可用","Available")} {s.maxPallets} {tr("托","units")}</small></li>)}</ul>:<strong>{floorPallets?.name??tr("散箱直接装柜","Loose cartons")}</strong>}
               {isPalletWorkflow&&<p>{palletBuild.oneKitPerPallet?tr("一套一托","One kit per pallet"):tr("按包装限制打托","Palletize to packaging limits")} · {formatNumber(palletBuild.maxPallets)} {tr("托上限","pallet limit")}</p>}
               <button type="button" className="button small" onClick={()=>goToStep(4)}>{tr("查看布置","Review layout")}</button></article>
             <article className="panel"><h3>{tr("货物清单","Cargo manifest")}</h3>

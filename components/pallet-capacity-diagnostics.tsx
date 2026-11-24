@@ -6,7 +6,7 @@ import {inspectPalletCapacity} from "../lib/packing/pallet-capacity";
 import {palletDiagnosticGroups,type CapacityRow} from "../lib/packing/pallet-diagnostic-groups";
 import type {PackingResult} from "../lib/packing/types";
 import {tr,useLanguage} from "./language";
-type Row=CapacityRow&{search:string;count:number;members?:CapacityRow[]};
+type Row=CapacityRow&{search:string;count:number;detail?:boolean;members?:CapacityRow[]};
 export function PalletCapacityDiagnostics({plan}:{plan?:PackingResult|null}){
  useLanguage();const report=useMemo(()=>plan?inspectPalletCapacity(plan):null,[plan]);
  const [grouped,setGrouped]=useState(true),[expanded,setExpanded]=useState<Set<string>>(new Set());
@@ -15,11 +15,11 @@ export function PalletCapacityDiagnostics({plan}:{plan?:PackingResult|null}){
  const rows:Row[]=grouped?palletDiagnosticGroups(plan,report.rows).flatMap((members,i)=>{
   if(members.length===1)return [{...members[0],count:1,search:`${members[0].id} ${members[0].name}`}];
   const id=`group-${i}-${members[0].id}`,group={...members[0],id,count:members.length,members,search:members.map(r=>`${r.id} ${r.name}`).join(" ")};
-  return [group,...(expanded.has(id)?members.map(r=>({...r,count:1,search:`${r.id} ${r.name}`})):[])];
+  return [group,...(expanded.has(id)?members.map(r=>({...r,count:1,detail:true,search:`${r.id} ${r.name}`})):[])];
  }):original;
  const quantity=(n:number|null)=>n===null?<StatusBadge tone="warning">{tr("未核验","Unverified")}</StatusBadge>:n.toFixed(1);
  const columns:GridColumn<Row>[]=[
-  {id:"unit",header:tr("单元／规格","Unit / specification"),value:r=>r.members?`${r.members[0].id} … ${r.members.at(-1)!.id}`:r.id,render:r=><>{r.members?<button type="button" className="grid-expand" aria-expanded={expanded.has(r.id)} onClick={()=>setExpanded(previous=>{const next=new Set(previous);if(next.has(r.id))next.delete(r.id);else next.add(r.id);return next;})}>{expanded.has(r.id)?tr("收起","Collapse"):tr("展开","Expand")} · {r.members[0].id} … {r.members.at(-1)!.id}</button>:<strong>{r.id}</strong>}<small>{r.name}</small></>},
+  {id:"unit",header:tr("单元／规格","Unit / specification"),value:r=>r.members?`${r.members[0].id} … ${r.members.at(-1)!.id}`:r.id,render:r=><>{r.members?<button type="button" className="grid-expand" aria-expanded={expanded.has(r.id)} onClick={()=>setExpanded(previous=>{const next=new Set(previous);if(next.has(r.id))next.delete(r.id);else next.add(r.id);return next;})}>{expanded.has(r.id)?tr("收起","Collapse"):tr("展开","Expand")} · {r.members[0].id} … {r.members.at(-1)!.id}</button>:<strong className={r.detail?"grid-child-unit":undefined}>{r.id}</strong>}<small>{r.name}</small></>},
   {id:"units",header:tr("托数","Units"),numeric:true,value:r=>r.count},
   {id:"size",header:tr("底座尺寸 mm","Base size mm"),value:r=>`${r.length} × ${r.width} × ${r.baseHeight}`},
   {id:"cartons",header:tr("箱数／托","Cartons / unit"),numeric:true,value:r=>r.cartons},

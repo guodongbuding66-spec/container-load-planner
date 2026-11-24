@@ -650,3 +650,7 @@ body:has(.cargo-workbench) { background:#f4f6f8; }
 @media(min-width:1000px) { .cargo-workbench .wizard-page:has(#products),.cargo-workbench .wizard-page:has(.space-stage-grid),.cargo-workbench .wizard-page:has(.packaging-picker),.cargo-workbench .wizard-page:has(#loading-rules),.cargo-workbench .wizard-page:has(.review-panel) { max-width:1200px;margin-inline:auto; } }
 .packaging-policy-grid .section-card > header { min-height:42px; }
 .packaging-policy-grid .section-card > header h3 { margin:0; }
+.review-packaging-specs { list-style:none;margin:0;padding:0;display:grid;gap:10px; }
+.review-packaging-specs li { display:grid;gap:4px; }
+.review-packaging-specs small { color:var(--muted);font-size:12px; }
+.excel-data-grid .grid-child-unit { display:inline-block;padding-left:18px;font-weight:500; }
