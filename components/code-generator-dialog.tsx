@@ -8,7 +8,7 @@ import {UnitInput} from "./ui/unit-input";
 import {tr,useLanguage} from "./language";
 
 function download(blob:Blob,name:string){const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);}
-export function CodeGeneratorDialog({initial,variables,onInsert,onClose}:{initial?:CodeConfig;variables:CodeVariables;onInsert:(config:CodeConfig)=>string|undefined;onClose:()=>void}){
+export function CodeGeneratorDialog({initial,editing=false,variables,onInsert,onClose}:{initial?:CodeConfig;editing?:boolean;variables:CodeVariables;onInsert:(config:CodeConfig)=>string|undefined;onClose:()=>void}){
  const language=useLanguage();const [config,setConfig]=useState<CodeConfig>(()=>initial??{codeType:"code128",value:String(variables.sku??"ITEM-2026-001"),width:100,height:32,showText:true});
  const [invalid,setInvalid]=useState(new Set<string>()),[error,setError]=useState(""),[busy,setBusy]=useState(false);
  const preview=useMemo(()=>{try{const layout=codeLayout(config,variables);return {layout,svg:codeSvg(config,variables),error:""};}catch(e){return {error:codeErrorMessage(e,language)};}},[config,variables,language]);
@@ -40,7 +40,7 @@ export function CodeGeneratorDialog({initial,variables,onInsert,onClose}:{initia
     </div>
     <p role="status">{preview.layout&&!invalid.size?`${type[1]} · ${config.width} × ${config.height} mm · ${tr("模块","Module")} ${preview.layout.module.toFixed(3)} mm · ${tr("已保留静区","Quiet zone preserved")}${preview.layout.value!==config.value?` · ${tr("实际编码","Encoded")}: ${preview.layout.value}`:""}`:""}</p>
     {(error||preview.error)&&<p role="alert" className="code-generator-error">{error||preview.error}</p>}
-    <div className="code-generator-actions"><button type="button" className="button primary" disabled={!valid} onClick={()=>{const message=onInsert({...config,value:preview.layout!.value});if(message)setError(message);else onClose();}}>{initial?tr("更新所选编码","Update code"):tr("插入唛头","Insert into mark")}</button><button type="button" className="button" disabled={!valid} onClick={()=>void save(false)}>{tr("下载 SVG","Download SVG")}</button><button type="button" className="button" disabled={!valid} onClick={()=>void save(true)}>{tr("下载 PNG · 300 DPI","Download PNG · 300 DPI")}</button></div>
+    <div className="code-generator-actions"><button type="button" className="button primary" disabled={!valid} onClick={()=>{const message=onInsert({...config,value:preview.layout!.value});if(message)setError(message);else onClose();}}>{editing?tr("更新所选编码","Update code"):tr("插入唛头","Insert into mark")}</button><button type="button" className="button" disabled={!valid} onClick={()=>void save(false)}>{tr("下载 SVG","Download SVG")}</button><button type="button" className="button" disabled={!valid} onClick={()=>void save(true)}>{tr("下载 PNG · 300 DPI","Download PNG · 300 DPI")}</button></div>
     <small>{tr("在当前浏览器生成，不上传编码内容。SVG 按毫米导出；二维编码保持原生模块比例。请使用 SVG 进行原尺寸印刷。","Generated locally without uploading content. SVG retains millimeters and matrix codes retain native module proportions. Use SVG for physical-size printing.")}</small>
    </section>
   </div>

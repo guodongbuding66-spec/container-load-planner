@@ -360,7 +360,7 @@ function ShippingMarkStudio({mark, product, onApply, onClose}:{
           </section>
         </aside>
       </div>
-      {codeDialog&&<CodeGeneratorDialog key={codeDialog.element?.id??codeDialog.type??"new"} variables={codeVariables} initial={codeDialog.element?{codeType:codeDialog.element.codeType!,value:codeDialog.element.value,width:codeDialog.element.width,height:codeDialog.element.height,showText:codeDialog.element.codeShowText!==false}:codeDialog.type?{codeType:codeDialog.type,value:product.sku,width:40,height:40,showText:false}:undefined} onInsert={insertCode} onClose={()=>setCodeDialog(undefined)}/>}
+      {codeDialog&&<CodeGeneratorDialog key={codeDialog.element?.id??codeDialog.type??"new"} variables={codeVariables} editing={!!codeDialog.element} initial={codeDialog.element?{codeType:codeDialog.element.codeType!,value:codeDialog.element.value,width:codeDialog.element.width,height:codeDialog.element.height,showText:codeDialog.element.codeShowText!==false}:codeDialog.type?{codeType:codeDialog.type,value:product.sku,width:40,height:40,showText:false}:undefined} onInsert={insertCode} onClose={()=>setCodeDialog(undefined)}/>}
     </div>
   </FeatureDialog>;
 }
