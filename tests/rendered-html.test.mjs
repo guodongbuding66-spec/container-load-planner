@@ -173,7 +173,7 @@ test("keeps a multi-carton product in single-product mode without carton demand 
 
   assert.match(source, /loadTwoCartonSetTest[\s\S]*?setMode\("single"\)/);
   assert.match(source, /不需要填写需求箱数/);
-  assert.match(source, /mode === "mixed" \? <th>\{tr\("需求箱数"\)\}<\/th> : null/);
+  assert.match(source, /mode === "mixed" \? <td className="numeric-cell" data-label=\{tr\("需求箱数"\)\}/);
   assert.doesNotMatch(source, /const addCartonSet[\s\S]{0,160}setMode\("mixed"\)/);
   assert.match(engine, /function packSingleSet/);
   assert.match(engine, /products: selectProductsForMode\(normalizedProducts, request\.mode\)/);
@@ -346,7 +346,9 @@ test("auto-calculates CBM and displays complete sets before carton details", asy
   const source = await readFile(new URL("../components/packing-app.tsx", import.meta.url), "utf8");
   const engine = await readFile(new URL("../lib/packing/engine.ts", import.meta.url), "utf8");
 
-  assert.match(source, /<th>\{tr\("CBM 自动"\)\}<\/th>/);
+  const columns = await readFile(new URL("../components/cargo-entry-columns.ts", import.meta.url), "utf8");
+  assert.match(columns, /id:"cbm",header:tr\("CBM 自动 \(m³\)"/);
+  assert.match(columns, /value:exactCartonVolumeCbm/);
   assert.match(source, /className="cbm-auto-value"/);
   assert.match(source, /volumePending\?"—":calculatedCbm/);
   assert.match(source, /calculatedCbm\.toFixed\(calculatedCbm>0/);
