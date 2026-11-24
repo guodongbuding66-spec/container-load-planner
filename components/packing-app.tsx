@@ -1,4 +1,5 @@
 "use client";
+import {DEMO_PRODUCTS,DEMO_ACCESS,demoPalletBuild,isDemoOrder} from "../lib/packing/demo-order";
 import {CargoSpaceWarnings} from "./cargo-space-warnings";
 import {issueDeliveryIdentity} from "../lib/packing/delivery-identity";
 import {OrderCapacityTrial} from "./order-capacity-trial";
@@ -408,9 +409,7 @@ export function PackingApp() {
   const [exportingPdf, setExportingPdf] = useState(false);
   const [mode, setMode] = useState<PackingMode>("mixed");
   const [loadingWorkflow, setLoadingWorkflow] = useState<LoadingWorkflow>("palletized");
-  const [palletBuild, setPalletBuild] = useState<PalletBuildOptions>(() => ({
-    ...DEFAULT_PALLET_BUILD, oneKitPerPallet:true, config:{...structuredClone(DEFAULT_PALLET_BUILD.config),maxCargoHeight:0},
-  }));
+  const [palletBuild, setPalletBuild] = useState<PalletBuildOptions>(demoPalletBuild);
   const [preparedPalletLayout,setPreparedPalletLayout]=useState<PreparedPalletLayout>();
   const workflow: LoadingWorkflow = mode === "single" ? "single-capacity" : loadingWorkflow === "single-capacity" ? "direct" : loadingWorkflow;
   const isPalletWorkflow = workflow === "pallet-only" || workflow === "palletized";
@@ -421,7 +420,7 @@ export function PackingApp() {
   );
   const [container, setContainer] = useState<ContainerSpec>({ ...CONTAINER_PRESETS[2] });
   const [clearance, setClearance] = useState(10);
-  const [products, setProducts] = useState<ProductInput[]>(() => SAMPLE_PRODUCTS.map((item) => ({ ...item })));
+  const [products, setProducts] = useState<ProductInput[]>(() => structuredClone(DEMO_PRODUCTS));
   const [palletLayerTemplates,setPalletLayerTemplates]=useState<PalletLayerTemplate[]>([]);
   const [autoCalculate, setAutoCalculate] = useState(false);
   const [workflowStep,setWorkflowStep]=useState<WorkflowStep>(1);
@@ -759,7 +758,8 @@ export function PackingApp() {
   const activeProducts = useMemo(() => selectProductsForMode(products, mode), [mode, products]);
   const resultAudit = useMemo(() => result ? auditPackingResult(result, activeProducts) : null, [result, activeProducts]);
   const planReview = useMemo(() => result && resultAudit ? reviewPlan(result, activeProducts, resultAudit) : null, [result, activeProducts, resultAudit]);
-  const exampleOrder=activeProducts.length===SAMPLE_PRODUCTS.length&&activeProducts.every((p,i)=>{
+  const demoOrder=isDemoOrder(activeProducts);
+  const exampleOrder=demoOrder||activeProducts.length===SAMPLE_PRODUCTS.length&&activeProducts.every((p,i)=>{
     const sample=SAMPLE_PRODUCTS[i];
     return p.sku===sample.sku&&p.length===sample.length&&p.width===sample.width&&p.height===sample.height&&p.quantity===sample.quantity&&p.weight===sample.weight;
   });
@@ -1130,7 +1130,7 @@ export function PackingApp() {
     setAutoCalculate(false);
     clearNumericDraftErrors();
     setLoadingWorkflow("palletized");
-    setPalletBuild({...DEFAULT_PALLET_BUILD, config:{...structuredClone(DEFAULT_PALLET_BUILD.config),maxCargoHeight:0}});
+    setPalletBuild(demoPalletBuild());
     setLoadingRules({...DEFAULT_LOADING_RULES});
     setMode("mixed");
     strategyRef.current = "practical";
@@ -1140,14 +1140,14 @@ export function PackingApp() {
     setContainer({ ...CONTAINER_PRESETS[2] });
     setPracticalTargetPercent(recommendedPracticalTarget(CONTAINER_PRESETS[2]) * 100);
     setClearance(10);
-    setProducts(SAMPLE_PRODUCTS.map((item) => ({ ...item })));
+    setProducts(structuredClone(DEMO_PRODUCTS));
     setProductPage(0);
     setResultBundle(null);
     setCameraView("perspective");
     setCameraProjection("perspective");
     markDirty();
     setStatus("idle");
-    setMessage(tr("已载入户外产品拼柜示例"));
+    setMessage(tr("已载入宽托装柜示例（含有限路径搜索）","Loaded the wide-pallet demo with bounded access search"));
     scrollTo("workspace", true);
   };
 
@@ -1465,6 +1465,7 @@ export function PackingApp() {
     }
     submitPacking({
       workflow, palletBuild: isPalletWorkflow ? palletBuild : undefined,
+      accessConfig: demoOrder&&workflow==="palletized"?DEMO_ACCESS:undefined,
       preparedPalletLayout: isPalletWorkflow ? preparedPalletLayout : undefined,
       floorPallets: isPalletWorkflow ? undefined : floorPallets, loadingRules,
       mode,
@@ -1477,7 +1478,7 @@ export function PackingApp() {
     }, mode === "single"
       ? tt`正在实时重算现场与极限方案；计划上限 ${reversePlan.recommendedDisplay.toLocaleString()} ${reversePlan.displayUnit === "set" ? tr("套") : tr("箱")}…`
       : tr("正在实时重算双算法坐标，并执行边界、重叠与载重校验…"));
-  }, [workflow,palletBuild,preparedPalletLayout,isPalletWorkflow,floorPallets,loadingRules, activeProducts, clearance, clearActiveCalculation, container, hasPendingDimensionChanges, isEditingDimensions, mode, practicalTargetPercent, reversePlan, submitPacking, validateInputs, setStatus, setMessage]);
+  }, [workflow,palletBuild,preparedPalletLayout,isPalletWorkflow,floorPallets,loadingRules, activeProducts, demoOrder, clearance, clearActiveCalculation, container, hasPendingDimensionChanges, isEditingDimensions, mode, practicalTargetPercent, reversePlan, submitPacking, validateInputs, setStatus, setMessage]);
 
   useEffect(() => {
     if (workflowStep !== 7 || manualRun || status === "working" || !autoCalculate || !hydrated || isEditingDimensions || hasPendingDimensionChanges) return;
@@ -1816,7 +1817,7 @@ export function PackingApp() {
   const adoptLoadedLocks=(records:FieldRecords)=>{if(!result)return;const id=result.deliveryIdentity!,prior=id.previousRevisionId?(fieldRecordsRef.current.get(`${id.planId}/${id.previousRevisionId}`)??readRevisionFieldRecords({planId:id.planId,revisionId:id.previousRevisionId},localStorage)):null;requireKnownFieldHandover(result,records,prior);const next=lockLoadedFieldPositions(result,records,activeProducts);clearActiveCalculation();setAutoCalculate(false);setResultBundle(next);setDirty(false);presentPlan(next);setStatus("done");setMessage(tr("已锁定已装箱位；可调整其余货物，登记下一版后明确迁移现场记录。","Loaded positions locked. Edit the remaining cargo, issue the next revision, then explicitly carry over field records."));};
 
   const planEditor=usePlanEditor(result,activeProducts,upgradesDisabled||!result?.validation.valid||result.metrics.loadedCount!==result.placements.length,adoptManualPlan);
-  const fleetRequest: PackingRequest = {delivery:orderDelivery(activeProducts,Object.fromEntries(Object.entries(result?.delivery??{}).filter(([id])=>activeProducts.some(p=>p.id===id&&!p.orderLine)))),accessConfig:result?.accessConfig, floorPallets, loadingRules, mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
+  const fleetRequest: PackingRequest = {delivery:orderDelivery(activeProducts,Object.fromEntries(Object.entries(result?.delivery??{}).filter(([id])=>activeProducts.some(p=>p.id===id&&!p.orderLine)))),accessConfig:result?.accessConfig??(demoOrder&&workflow==="palletized"?DEMO_ACCESS:undefined), floorPallets, loadingRules, mode, strategy, practicalTargetUtilization: practicalTargetPercent / 100, container, clearance, products: activeProducts };
 
   const downloadExcelTemplate = async () => { setMessage(tr("正在生成 Excel 模板…")); try { const { createSpreadsheetTemplate } = await import("../lib/packing/spreadsheet"); const bytes=await createSpreadsheetTemplate(); const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));const a=document.createElement("a");a.href=url;a.download="CargoFit_products_template.xlsx";document.body.appendChild(a);a.click();a.remove();setMessage(tr("Excel 模板已生成。"), "done");setTimeout(()=>URL.revokeObjectURL(url),10000); } catch(e) {setMessage(e instanceof Error?e.message:tr("Excel 模板导出失败。","The Excel template could not be exported."), "error");} };
   const downloadPdf = async () => { if(!result?.validation.valid||resultAudit?.hasErrors||dirty||hasPendingDimensionChanges)return;setExportingPdf(true);try{const {downloadPdfGuide}=await import("../lib/packing/pdf-guide");await downloadPdfGuide(result,getAppLanguage(),activeProducts);}catch(e){setMessage(e instanceof Error?e.message:tr("PDF 导出失败。","The PDF could not be exported."), "error");}finally{setExportingPdf(false);} };
@@ -2190,6 +2191,7 @@ export function PackingApp() {
               <button className="button small" aria-pressed={showProductRules} onClick={()=>setShowProductRules(v=>!v)}>{showProductRules?tr("收起详细规则"):tr("显示详细规则")}</button>
             </div>
           </div>
+          {demoOrder&&<p className="helper-text">{tr("此演示使用 1200 × 2300 mm 宽托、1800 mm 货物限高及有限装卸路径搜索。承重资料和运输固定仍须现场核验。","This demo uses 1200 × 2300 mm pallets, 1800 mm cargo ceilings and bounded access search. Bearing evidence and transport securing still require on-site verification.")}</p>}
           {exampleOrder&&<p className="example-order-note">{tr("当前显示示例订单。可编辑下表，或用 Excel / CSV 导入自己的订单。","This is a sample order. Edit the rows or import your own order with Excel or CSV.")}</p>}
           <div className="unit-toolbar" role="group" aria-label={tr("箱规录入单位")}>
             <div>
@@ -2287,7 +2289,7 @@ export function PackingApp() {
               </div>
             </nav>
           ) : null}
-          {workflow!=="pallet-only"&&<CargoSpaceWarnings products={activeProducts} container={container} clearance={clearance}/>}
+          <CargoSpaceWarnings products={activeProducts} container={container} clearance={clearance} palletBuild={workflow==="pallet-only"?palletBuild:undefined}/>
           <div className="product-table-wrap" role="region" aria-label={tr("货物清单表格","Cargo manifest table")} tabIndex={0}>
             <table className={`product-table ${showProductRules?"expanded":"compact-cargo-table"}`}>
               <thead><tr><th>{tr("标识")}</th><th className="cargo-sku-heading">SKU</th><th className="cargo-settings-heading">{tr("货物设置", "Cargo settings")}</th><th>{tr("外箱长")}</th><th>{tr("外箱宽")}</th><th>{tr("外箱高")}</th><th>{tr("CBM 自动")}</th><th>{tr("毛重")}</th>{mode === "mixed" ? <th>{tr("需求箱数")}</th> : null}{mode === "mixed" || isSingleProductSet ? <><th>{tr("套装编码")}</th><th>{tr("套内数量")}</th></> : null}{mode === "mixed" && showProductRules ? <><th>{tr("装载优先级")}</th><th>{tr("必装")}</th></> : null}{showProductRules && <><th>{tr("方向规则")}</th><th>{tr("可承托")}</th><th>{tr("必须底置")}</th><th>{tr("层数上限")}</th></>}<th aria-label={tr("操作")} /></tr></thead>

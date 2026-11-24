@@ -55,7 +55,7 @@ export function projectDimensions(bounds: DimensionBounds, values: { L: number; 
       // Distance from the centre alone also selected edges inside the silhouette.
       const exterior=corners.every(p=>nx*(p.x-start.x)+ny*(p.y-start.y)<=.5);
       const padding=(Math.abs(nx)*labelWidth+Math.abs(ny)*labelHeight)/2;
-      const labelCenter={x:mid.x+nx*(gap+padding+(options.style==="ruler"?font+12:5)),y:mid.y+ny*(gap+padding+(options.style==="ruler"?font+12:5)),depth:0};
+      const labelCenter={x:mid.x+nx*(gap+padding+(options.style==="ruler"?font+22:15)),y:mid.y+ny*(gap+padding+(options.style==="ruler"?font+22:15)),depth:0};
       const desired={x:labelCenter.x-labelWidth/2,y:labelCenter.y-labelHeight/2,width:labelWidth,height:labelHeight};
       const outward=(r:LabelRect)=>nx*(r.x+(nx<0?r.width:0)-start.x)+ny*(r.y+(ny<0?r.height:0)-start.y)>=gap+1;
       const placements=[desired,...[font,font*2].flatMap(step=>[0,-.3,.3].map(slide=>({...desired,x:desired.x+nx*step+dx*slide,y:desired.y+ny*step+dy*slide})))];

@@ -11,6 +11,7 @@ import type { PlacedPallet } from "../lib/packing/types";
 import { createSceneLabelMaterial, LABEL_RENDER_ORDER, layoutSceneLabel, sceneLabelFrame, sceneLabelPose } from "../lib/packing/scene-labels";
 import { markArtworkUrl, type MarkFace } from "../lib/packing/shipping-mark-artwork";
 import { MARK_ASPECT, markLines, type ShippingMark } from "../lib/packing/shipping-mark";
+import {packagingWireframeGeometry} from "../lib/packing/packaging-wireframe";
 
 export function useShippingMarkCanvas(mark: ShippingMark | undefined, sku: string, face?: MarkFace) {
   const [decoded, setDecoded] = useState<{ src: string; image: HTMLImageElement }>();
@@ -184,6 +185,9 @@ function PackagingFinishGroup({ parts, reduced=false, wireframe=false, ...props 
     return [...groups].map(([key, group]) => ({ key, parts: group.parts, geometry: createPackagingGeometry(group.size, material) }));
   }, [parts, material,reduced]);
   useEffect(() => () => { batches.forEach(b => b.geometry.dispose()); }, [batches]);
+  const edges=useMemo(()=>wireframe?packagingWireframeGeometry(parts,props.scale,props.offset):null,[parts,props.scale,props.offset,wireframe]);
+  useEffect(()=>()=>edges?.dispose(),[edges]);
+  if(edges)return <lineSegments name="packaging-physical-wireframe" geometry={edges} raycast={()=>{}}><lineBasicMaterial color={parts[0].pallet.packaging?.color??"#725835"} transparent opacity={Math.max(.65,opacity)} depthWrite={false}/></lineSegments>;
   return <>{batches.map(batch => <PackagingInstances key={batch.key} geometry={batch.geometry}
     parts={batch.parts} materials={finish.materials} reduced={reduced} {...props}/>)}</>;
 }

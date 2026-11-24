@@ -3,13 +3,13 @@ version: alpha
 name: CargoFit Workbench
 description: Sequential cargo planning, packaging review and shipment handover.
 colors:
-  ink: "#172A32"
-  muted: "#516670"
+  ink: "#0F172A"
+  muted: "#64748B"
   line: "#E2E8F0"
   surface: "#FFFFFF"
   canvas: "#F4F6F8"
-  teal: "#116C64"
-  teal-dark: "#0E544F"
+  teal: "#0F766E"
+  teal-dark: "#115E59"
   teal-soft: "#E6F4F0"
 ---
 
@@ -40,3 +40,5 @@ Use StatusBadge to distinguish warning, failure, success and inapplicable states
 Keep packaging recipes scoped to their product or complete kit. A preview selection changes inspection, while all saved specifications remain available to calculation. Preserve separate draft, applied and calculated states.
 
 Do not introduce marketing animations into the workbench, hide engineering warnings to make a summary pass, or change packing constraints during visual refactoring. Do not overlay table actions on editable values or replace missing ratings with zero.
+
+Use app/tokens.css as the implementation source for semantic roles and control sizes. CompactConstraintTable renders SKU bounds with explicit status, separate from a completed plan review.

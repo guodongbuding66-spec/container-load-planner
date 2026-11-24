@@ -1,6 +1,5 @@
 "use client";
 import {UnitInput} from "./ui/unit-input";
-import {SectionCard} from "./ui/section-card";
 import {UnitStackingSettings} from "./unit-stacking-settings";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {looseReservationErrors} from "../lib/packing/loose-cargo";
@@ -125,11 +124,11 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
             <small>{tr("套装须同时选择全部组成 SKU，至少保留一个适用 SKU。","For kits, select every component SKU together. Select at least one eligible SKU.")}</small>
           </div>
         </details>}
-        {products.length>0&&<SectionCard className="packaging-policy loose-reservations" title={tr("整托与散箱混装","Complete units and loose cartons")}>
+        {products.length>0&&<details className="packaging-policy loose-reservations"><summary>{tr("整托与散箱混装","Complete units and loose cartons")} <small>{Object.values(value.looseQuantities??{}).reduce((n,v)=>n+v,0)} {tr("箱","cartons")}</small></summary><div className="packaging-policy-body">
           <p>{tr("直接散装","Loose")} <strong>{Object.values(value.looseQuantities??{}).reduce((n,v)=>n+v,0)}</strong> {tr("箱","cartons")}</p>
           <small>{tr("在上一步「录入货物」按产品设置。当前预览只试排待打托货物，装柜时合并散箱。","Configure each product in the Cargo step. This preview arranges palletized cargo. Loose cartons are included when loading the vehicle.")}</small>
           {only&&value.looseQuantities&&<button type="button" className="button small" onClick={()=>onChange({...value,looseQuantities:undefined})}>{tr("清除散装预留","Clear loose reservations")}</button>}
-        </SectionCard>}
+        </div></details>}
         {!only&&<details className="packaging-policy saved-stacking-rules">
           <summary>{tr("已采用规格的整托堆叠","Stacking for the saved specification")} <small>{current.config.unitStacking?.enabled||(!current.config.unitStacking&&current.stackLayers>1)?tr("已启用","Enabled"):tr("未启用","Off")}</small></summary>
           <div className="packaging-policy-body">
@@ -148,7 +147,7 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
     <div className="pallet-build-grid packaging-dimensions" key={`dimensions-${current.id}`}>{fields.map(([key,label,unit,min])=><label key={key}>{label}<UnitInput unit={unit} showError resetToken={resetToken} ariaLabel={label} value={current.config[key]??0} min={min} max={key==="gap"||key==="weight"?10000:100000} precision={1} onValueChange={v=>update({config:{...current.config,[key]:v}})} onValidityChange={valid=>fieldValidity(`pallet-build:${key}`,valid)}/>
       {key==="maxCargoHeight"&&!only&&!crate&&<small>{tr("0 = 按柜内和柜门净高自动","0 = use vehicle and door clearance")}</small>}</label>)}
       {!only&&<label>{tr("托盘方向","Loaded pallet orientation")}<select aria-label={tr("托盘方向","Loaded pallet orientation")} value={current.config.layout} onChange={e=>update({config:{...current.config,layout:e.target.value as PalletBuildOptions["config"]["layout"]}})}><option value="auto">{tr("自动水平旋转","Auto horizontal rotation")}</option><option value="long">{tr("长边沿柜长","Length along vehicle")}</option><option value="cross">{tr("宽边沿柜长","Width along vehicle")}</option></select></label>}
-      {!only&&!current.config.unitStacking&&!crate&&!current.config.packaging?.deckSupports?.length&&<><label>{tr("整托堆叠层数","Loaded pallet stack layers")}<NumericInput resetToken={resetToken} ariaLabel={tr("整托堆叠层数","Loaded pallet stack layers")} value={current.stackLayers} integer min={1} max={20} onValueChange={stackLayers=>update({stackLayers})} onValidityChange={valid=>fieldValidity("pallet-build:layers",valid)}/></label><label>{tr("整托可承上压","Loaded pallet top load")}<div className="pallet-build-number"><NumericInput resetToken={resetToken} ariaLabel={tr("整托可承上压","Loaded pallet top load")} value={current.maxTopLoadKg} min={0} max={100000} precision={1} onValueChange={maxTopLoadKg=>update({maxTopLoadKg})} onValidityChange={valid=>fieldValidity("pallet-build:top",valid)}/><span>kg</span></div></label></>}
+      {!only&&!current.config.unitStacking&&!crate&&!current.config.packaging?.deckSupports?.length&&<><label>{tr("整托堆叠层数","Loaded pallet stack layers")}<NumericInput resetToken={resetToken} ariaLabel={tr("整托堆叠层数","Loaded pallet stack layers")} value={current.stackLayers} integer min={1} max={20} onValueChange={stackLayers=>update({stackLayers})} onValidityChange={valid=>fieldValidity("pallet-build:layers",valid)}/></label><label>{tr("整托可承上压","Loaded pallet top load")}<UnitInput unit="kg" resetToken={resetToken} ariaLabel={tr("整托可承上压","Loaded pallet top load")} value={current.maxTopLoadKg} min={0} max={100000} precision={1} onValueChange={maxTopLoadKg=>update({maxTopLoadKg})} onValidityChange={valid=>fieldValidity("pallet-build:top",valid)}/></label></>}
     </div>
     {!only&&!crate&&!!current.config.maxCargoHeight&&<div className="packaging-preview-actions">
       <button type="button" className="button small" onClick={()=>{fieldValidity("pallet-build:maxCargoHeight",true);update({config:{...current.config,maxCargoHeight:0}});}}>{tr("按柜门净高自动加层","Use door clearance for carton layers")}</button>

@@ -9,6 +9,10 @@ import type { ProductInput } from "../lib/packing/types";
 import { FeatureDialog } from "./feature-dialog";
 import { NumericInput } from "./numeric-input";
 import { tr, useLanguage } from "./language";
+import {CodeGeneratorDialog} from "./code-generator-dialog";
+import {codeLayout,type CodeConfig,type CodeType} from "../lib/packing/code-generator";
+import {codePlacement,markCodeIssues} from "../lib/packing/shipping-mark-artwork";
+import {withPngDpi} from "../lib/packing/png-print";
 
 const BOXSTUDIO_MARKS = "https://boxstudio-sigma.vercel.app/marks";
 const ARTWORK_FORMAT = "cargofit-shipping-mark-v1";
@@ -20,7 +24,7 @@ function faceLabel(face: MarkFace) {
   return face==="front" ? tr("正唛","Front mark") : tr("侧唛","Side mark");
 }
 function kindLabel(kind: MarkKind) {
-  return {text:tr("文字","Text"),image:tr("图片","Image"),qr:tr("二维码","QR code"),barcode:tr("条码","Barcode"),symbol:tr("搬运图标","Handling symbol"),frame:tr("边框","Frame")}[kind];
+  return {text:tr("文字","Text"),image:tr("图片","Image"),qr:tr("二维码","QR code"),barcode:tr("条码","Barcode"),code:tr("编码","Code"),symbol:tr("搬运图标","Handling symbol"),frame:tr("边框","Frame")}[kind];
 }
 function emptyBoard(width:number,height:number):MarkBoard {
   return {width:Math.min(250,Math.max(20,width)),height:Math.min(80,Math.max(20,height)),elements:[]};
@@ -83,6 +87,7 @@ function ShippingMarkStudio({mark, product, onApply, onClose}:{
   });
   const [draft,setDraft]=useState<MarkElement>(),[grid,setGrid]=useState(true),[snap,setSnap]=useState(false);
   const [error,setError]=useState(""),[busy,setBusy]=useState(false),[showSymbols,setShowSymbols]=useState(false);
+  const [codeDialog,setCodeDialog]=useState<{element?:MarkElement;type?:CodeType}>();
   const imageInput=useRef<HTMLInputElement>(null), projectInput=useRef<HTMLInputElement>(null);
   const svg=useRef<SVGSVGElement>(null),drag=useRef<Drag>(null);
   const board=history.current[face];
@@ -93,7 +98,8 @@ function ShippingMarkStudio({mark, product, onApply, onClose}:{
   const oversized=board.width>faceWidth||board.height>product.height;
   const warnings=board.elements.filter(e=>outsideMarkSafeArea(e,board));
   const full=board.elements.length>=MARK_MAX_ELEMENTS;
-  const codePlaceholder=product.sku.toUpperCase().replace(/[^0-9A-Z. $/+%-]/g,"-").slice(0,32)||"ITEM-001";
+  const codeIssues=MARK_FACES.flatMap(f=>markCodeIssues(history.current[f]).map(issue=>`${faceLabel(f)} · ${tr(...issue.split(" / ") as [string,string])}`));
+  const codeVariables=useMemo(()=>({sku:product.sku,weight:product.weight,length:product.length,width:product.width,height:product.height}),[product]);
 
   const record=(next:MarkArtwork)=>{
     try {
@@ -113,6 +119,15 @@ function ShippingMarkStudio({mark, product, onApply, onClose}:{
     const shift=board.elements.length%5*3;
     const next=keepMarkOnBoard({...element,x:element.x+shift,y:element.y+shift},board);
     if(setBoard({...board,elements:[...board.elements,next]}))setSelected(next.id);
+  };
+  const insertCode=(config:CodeConfig)=>{
+    try{
+      if(full&&!codeDialog?.element)return tr("图层数量已达上限。","Layer limit reached.");
+      const original=codeDialog?.element;
+      const element=codePlacement(board,{...(original??markElement("code",config.value,config.width,config.height)),kind:"code",value:config.value,width:config.width,height:config.height,angle:0,codeType:config.codeType,codeShowText:config.showText},!!original);
+      if(setBoard({...board,elements:original?board.elements.map(e=>e.id===original.id?element:e):[...board.elements,element]})){setSelected(element.id);return;}
+      return tr("无法保存编码图层。","Could not save the code layer.");
+    }catch(e){const message=e instanceof Error?e.message:String(e);return message.includes(" / ")?tr(...message.split(" / ") as [string,string]):message;}
   };
   const changeSize=(dimension:"width"|"height",value:number)=>{
     if(board[dimension]===value)return;
@@ -167,10 +182,12 @@ function ShippingMarkStudio({mark, product, onApply, onClose}:{
     const dy=(event.clientY-start.startY)*board.height/rect.height;
     if(!draft&&Math.hypot(event.clientX-start.startX,event.clientY-start.startY)<2)return;
     const e=start.original;
-    setDraft(keepMarkOnBoard(start.mode==="move"?{...e,x:round(e.x+dx),y:round(e.y+dy)}:{
+    const next=keepMarkOnBoard(start.mode==="move"?{...e,x:round(e.x+dx),y:round(e.y+dy)}:{
       ...e,width:Math.max(1,Math.min(board.width-e.x,round(e.width+dx))),
       height:Math.max(1,Math.min(board.height-e.y,round(e.height+dy))),
-    },board));
+    },board);
+    if(next.kind==="code"){try{codeLayout({codeType:next.codeType!,value:next.value,width:next.width,height:next.height,showText:next.codeShowText!==false});}catch{return;}}
+    setDraft(next);
   };
   const finishDrag=()=>{
     if(drag.current&&draft&&drag.current.id===draft.id)replace(draft);
@@ -202,6 +219,7 @@ function ShippingMarkStudio({mark, product, onApply, onClose}:{
     const stem=`${name}-${face}`;
     setBusy(true);setError("");
     try {
+      if(format!=="json"&&MARK_FACES.some(f=>markCodeIssues(history.current[f]).length))throw Error(tr("请先移开覆盖编码的图层，并保留安全边距。","Clear overlapping layers and preserve the code safe margin before export."));
       if(format==="json")downloadMark(new Blob([JSON.stringify({format:ARTWORK_FORMAT,artwork:history.current},null,2)],{type:"application/json"}),`${name}-marks.json`);
       if(format==="svg")downloadMark(new Blob([markBoardSvg(board)],{type:"image/svg+xml"}),`${stem}.svg`);
       if(format==="png"){
@@ -212,7 +230,7 @@ function ShippingMarkStudio({mark, product, onApply, onClose}:{
           const canvas=document.createElement("canvas");canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
           canvas.getContext("2d")!.drawImage(image,0,0);
           const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error()),"image/png"));
-          downloadMark(blob,`${stem}.png`);
+          downloadMark(new Blob([withPngDpi(new Uint8Array(await blob.arrayBuffer())) as BlobPart],{type:"image/png"}),`${stem}.png`);
         }finally{URL.revokeObjectURL(url);}
       }
     }catch{setError(tr("导出失败，请重试或改用 SVG。","Export failed. Retry or choose SVG."));}
@@ -222,7 +240,7 @@ function ShippingMarkStudio({mark, product, onApply, onClose}:{
   const safe=MARK_SAFE_AREA;
 
   return <FeatureDialog wide fullscreen title={tr("唛头设计工作台","Shipping mark studio")} subtitle={product.sku} onClose={onClose}
-    footer={<><p role="status">{error||(invalidFields.size?tr("请修正当前标红的数字。","Correct the highlighted numbers."):tr("应用后仍需在货物设置中保存。SVG 保留毫米尺寸。","Apply the marks, then save Cargo settings. SVG retains physical dimensions."))}</p><button type="button" className="button" onClick={onClose}>{tr("取消","Cancel")}</button><button type="button" className="button primary" disabled={busy||invalidFields.size>0} onClick={apply}>{tr("应用到当前 SKU","Apply to SKU")}</button></>}>
+    footer={<><p role="status">{error||codeIssues[0]||(invalidFields.size?tr("请修正当前标红的数字。","Correct the highlighted numbers."):tr("应用后仍需在货物设置中保存。SVG 保留毫米尺寸。","Apply the marks, then save Cargo settings. SVG retains physical dimensions."))}</p><button type="button" className="button" onClick={onClose}>{tr("取消","Cancel")}</button><button type="button" className="button primary" disabled={busy||invalidFields.size>0||MARK_FACES.some(f=>markCodeIssues(history.current[f]).length)} onClick={apply}>{tr("应用到当前 SKU","Apply to SKU")}</button></>}>
     <div className="mark-studio" aria-busy={busy}>
       <div className="mark-studio-top">
         <div className="mark-face-switch" role="group" aria-label={tr("唛头画板","Mark artboards")}>
@@ -243,8 +261,8 @@ function ShippingMarkStudio({mark, product, onApply, onClose}:{
             <div className="mark-actions" role="group" aria-label={tr("添加图层","Add layer")}>
               <button type="button" className="button small" disabled={busy||full} onClick={()=>add(markElement("text",product.sku.slice(0,120),Math.max(12,board.width*.55),Math.max(10,board.height*.25)))}><Type size={15}/>{kindLabel("text")}</button>
               <button type="button" className="button small" disabled={busy||full} onClick={()=>imageInput.current?.click()}><ImagePlus size={15}/>{tr("图片 / SVG","Image / SVG")}</button>
-              <button type="button" className="button small" disabled={busy||full} onClick={()=>add(markElement("qr",product.sku.slice(0,120),Math.min(board.width,board.height)*.55,Math.min(board.width,board.height)*.55))}><QrCode size={15}/>{kindLabel("qr")}</button>
-              <button type="button" className="button small" disabled={busy||full} onClick={()=>add(markElement("barcode",codePlaceholder,board.width*.76,board.height*.32))}><Barcode size={15}/>{kindLabel("barcode")}</button>
+              <button type="button" className="button small" disabled={busy||full} onClick={()=>setCodeDialog({type:"qrcode"})}><QrCode size={15}/>{kindLabel("qr")}</button>
+              <button type="button" className="button small" disabled={busy||full} onClick={()=>setCodeDialog({})}><Barcode size={15}/>{tr("条码生成器","Code generator")}</button>
               <button type="button" className="button small" disabled={busy||full} onClick={()=>add(markElement("frame","",board.width-12,board.height-12))}><Frame size={15}/>{kindLabel("frame")}</button>
             </div>
             <button type="button" className="button small" disabled={busy||full} aria-expanded={showSymbols} onClick={()=>setShowSymbols(v=>!v)}><Package size={15}/>{tr("搬运图标","Handling symbols")}</button>
@@ -307,9 +325,10 @@ function ShippingMarkStudio({mark, product, onApply, onClose}:{
             <h3>{tr("图层","Layers")} <small>{board.elements.length}/{MARK_MAX_ELEMENTS}</small></h3>
             {board.elements.length===0&&<p>{tr("添加文字、图片或模板开始排版。","Add text, an image or a template to start.")}</p>}
             <div className="mark-layer-list" role="group" aria-label={tr("选择图层","Select layer")}>
-              {[...board.elements].reverse().map(e=><button key={e.id} type="button" className="button small" disabled={busy} aria-pressed={e.id===selected} onClick={()=>setSelected(e.id)}>{kindLabel(e.kind)}{(e.kind==="text"||e.kind==="qr"||e.kind==="barcode")&&<span>{e.value.split("\n")[0]}</span>}</button>)}
+              {[...board.elements].reverse().map(e=><button key={e.id} type="button" className="button small" disabled={busy} aria-pressed={e.id===selected} onClick={()=>setSelected(e.id)}>{e.kind==="code"?e.codeType:kindLabel(e.kind)}{(e.kind==="text"||e.kind==="qr"||e.kind==="barcode"||e.kind==="code")&&<span>{e.value.split("\n")[0]}</span>}</button>)}
             </div>
             {current&&<div className="mark-layer-props" key={current.id}>
+              {current.kind==="code"&&<button type="button" className="button" onClick={()=>setCodeDialog({element:current})}>{tr("编辑编码、尺寸与文字","Edit code, size and caption")}</button>}
               {(current.kind==="text"||current.kind==="qr")&&<label>{current.kind==="qr"?tr("二维码内容","QR content"):kindLabel("text")}<textarea rows={current.kind==="text"?3:2} maxLength={current.kind==="qr"?160:480} disabled={busy} value={current.value} onChange={e=>replace({...current,value:e.target.value})}/></label>}
               {current.kind==="barcode"&&<label>Code 39
                 <input maxLength={32} disabled={busy} value={current.value} onChange={e=>{
@@ -318,7 +337,7 @@ function ShippingMarkStudio({mark, product, onApply, onClose}:{
                   else setError(tr("Code 39 支持大写字母、数字、空格及 - . $ / + %。","Code 39 supports uppercase letters, digits, spaces and - . $ / + %."));
                 }}/></label>}
               <div className="mark-property-grid">
-                {(["x","y","width","height","angle",...(current.kind==="text"?["fontSize"] as const:[])] as const).map(field=>{
+                {(["x","y",...(current.kind==="code"?[]:["width","height","angle"] as const),...(current.kind==="text"?["fontSize"] as const:[])] as const).map(field=>{
                   const label={x:"X mm",y:"Y mm",width:tr("宽 mm","W mm"),height:tr("高 mm","H mm"),angle:tr("角度 °","Angle °"),fontSize:tr("字号 mm","Type size mm")}[field];
                   return <label key={field}>{label}<NumericInput ariaLabel={label} value={current[field]} min={field==="angle"?-180:field==="x"||field==="y"?0:1}
                     max={field==="angle"?180:field==="fontSize"?250:field==="x"?board.width-current.width:field==="y"?board.height-current.height:field==="width"?board.width-current.x:board.height-current.y} precision={1} showError onValidityChange={v=>numericValidity(current.id+"-"+field,v)} onValueChange={v=>{if(!busy)replace({...current,[field]:v});}}/></label>;
@@ -341,6 +360,7 @@ function ShippingMarkStudio({mark, product, onApply, onClose}:{
           </section>
         </aside>
       </div>
+      {codeDialog&&<CodeGeneratorDialog key={codeDialog.element?.id??codeDialog.type??"new"} variables={codeVariables} initial={codeDialog.element?{codeType:codeDialog.element.codeType!,value:codeDialog.element.value,width:codeDialog.element.width,height:codeDialog.element.height,showText:codeDialog.element.codeShowText!==false}:codeDialog.type?{codeType:codeDialog.type,value:product.sku,width:40,height:40,showText:false}:undefined} onInsert={insertCode} onClose={()=>setCodeDialog(undefined)}/>}
     </div>
   </FeatureDialog>;
 }

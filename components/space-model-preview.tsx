@@ -11,14 +11,13 @@ import { tr, tt, useLanguage } from "./language";
 import type { ContainerSpec, FloorPalletConfig, PlacedPallet } from "../lib/packing/types";
 import type { CameraView, SceneSize } from "../lib/packing/camera-fit";
 import { transportSceneBounds } from "../lib/packing/transport-model";
-import { supportsWebGL } from "../lib/packing/webgl-support";
 import { detectRuntimePolicy } from "../lib/packing/runtime-policy";
 import { SceneCameraController } from "../lib/packing/scene-camera";
 import { PalletStructures } from "./scene-details";
 import { SceneDimensions } from "./scene-dimensions";
 import { DimensionControls } from "./dimension-controls";
 import type { DimensionBounds } from "../lib/packing/scene-dimensions";
-import { SceneErrorBoundary } from "./scene-error-boundary";
+import {ViewportRenderer} from "./viewport-renderer";
 import { SceneCameraRig } from "./scene-camera-rig";
 import { TransportModel } from "./transport-model";
 import { TransportModelControls, useTransportAppearance } from "./transport-appearance";
@@ -91,7 +90,7 @@ export function SpaceModelPreview({ pallet, space, appearanceOnly = false, compa
       <button type="button" className="button small" aria-pressed={wireframe} onClick={()=>setWireframe(v=>!v)}>{tr("线框","Wireframe")}</button>
     </div>}
     <div className={`space-model-preview${touchActive?" touch-active":""}`}>
-      {!ready?<div className="model-invalid">{tr("正在检测三维图形能力…")}</div>:!supportsWebGL()?fallback:<SceneErrorBoundary resetKey={`${length}-${width}-${height}`} fallback={fallback}>
+      <ViewportRenderer resetKey={`${length}-${width}-${height}`} fallback={fallback}>
         <Canvas dpr={reduced?1:[1,1.5]} gl={{antialias:!reduced,powerPreference:reduced?"low-power":"high-performance"}} shadows={!!model&&!reduced}>
           <color attach="background" args={["#f2f5f6"]}/>
           {model?<><PackagingLighting reduced={reduced} reflective={model.packaging?.material==="steel"}/><PalletStructures pallets={base} scale={scale} offset={offset} reduced={reduced} wireframe={wireframe}/></>:
@@ -99,7 +98,7 @@ export function SpaceModelPreview({ pallet, space, appearanceOnly = false, compa
           {showDimensions&&<SceneDimensions bounds={dimensionBounds} values={{L:length,W:width,H:height}} unit={appearance.dimensionUnit} fontSize={appearance.dimensionFontSize} style={appearance.dimensionStyle} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}
           <SceneCameraRig controller={controller} containerSize={containerSize} sceneBounds={sceneBounds} view={view} projection={space?"orthographic":"perspective"} onInteraction={()=>setView("free")} enablePan={false}/>
         </Canvas>
-      </SceneErrorBoundary>}
+      </ViewportRenderer>
     </div>
     <div className="model-preview-guide">
       <span>{tr("拖动旋转 · 滚轮缩放","Drag to rotate · scroll to zoom")}</span>

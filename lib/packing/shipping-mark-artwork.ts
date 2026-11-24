@@ -1,8 +1,9 @@
 import QRCode from "qrcode";
 import {shippingMarkSymbol} from "./shipping-mark-symbols";
+import {codeLayout,codeSvg,isCodeType,type CodeType} from "./code-generator";
 
 export type MarkFace = "front" | "side";
-export type MarkKind = "text" | "image" | "qr" | "barcode" | "symbol" | "frame";
+export type MarkKind = "text" | "image" | "qr" | "barcode" | "code" | "symbol" | "frame";
 export type MarkElement = {
   id: string;
   kind: MarkKind;
@@ -15,12 +16,14 @@ export type MarkElement = {
   color: string;
   fontSize: number;
   bold: boolean;
+  codeType?: CodeType;
+  codeShowText?: boolean;
 };
 export type MarkBoard = { width: number; height: number; elements: MarkElement[] };
 export type MarkArtwork = Record<MarkFace, MarkBoard>;
 
 export const MARK_FACES = ["front", "side"] as const;
-export const MARK_KINDS = ["text", "image", "qr", "barcode", "symbol", "frame"] as const;
+export const MARK_KINDS = ["text", "image", "qr", "barcode", "code", "symbol", "frame"] as const;
 export const MARK_MAX_ELEMENTS = 24;
 export const MARK_SAFE_AREA = 4;
 export const MARK_IMAGE_LIMIT = 120_000;
@@ -44,10 +47,15 @@ export function parseMarkArtwork(value: unknown): MarkArtwork {
         !within(e.x, 0, 2000) || !within(e.y, 0, 2000) || !within(e.width, 1, 2000) || !within(e.height, 1, 2000) ||
         !within(e.angle, -180, 180) || typeof e.color !== "string" || !/^#[0-9a-f]{6}$/i.test(e.color) ||
         !within(e.fontSize, 1, 250) || typeof e.bold !== "boolean" || typeof e.value !== "string" ||
-        (e.kind === "image" ? !isMarkImage(e.value) : e.value.length > 480) ||
+        (e.kind === "image" ? !isMarkImage(e.value) : e.value.length > (e.kind==="code"?2048:480)) ||
         (e.kind === "qr" && e.value.length > 160) || (e.kind==="barcode"&&!isCode39(e.value)) || (e.kind==="symbol"&&!shippingMarkSymbol(e.value))) return fail();
       ids.add(e.id);
       const {id, kind, x, y, width, height, angle, value, color, fontSize, bold} = e;
+      if(kind==="code"){
+        if(!isCodeType(e.codeType)||typeof e.codeShowText!=="boolean"||angle!==0)return fail();
+        codeLayout({codeType:e.codeType,value,width,height,showText:e.codeShowText});
+        return {id,kind,x,y,width,height,angle,value,color,fontSize,bold,codeType:e.codeType,codeShowText:e.codeShowText};
+      }
       return {id, kind, x, y, width, height, angle, value, color, fontSize, bold};
     });
     if (elements.reduce((sum, e) => sum + (e.kind === "image" ? e.value.length : 0), 0) > MARK_IMAGE_LIMIT * 2) return fail();
@@ -58,6 +66,30 @@ export function parseMarkArtwork(value: unknown): MarkArtwork {
 
 export function markElement(kind: MarkKind, value: string, width: number, height: number): MarkElement {
   return {id:globalThis.crypto.randomUUID(),kind,value,x:6,y:6,width,height,angle:0,color:"#17242c",fontSize:9,bold:kind==="text"};
+}
+
+/** Code quiet zones are part of the complete element, never trimmed on insertion. */
+function overlapsCode(code:Pick<MarkElement,"x"|"y"|"width"|"height">,other:MarkElement,gap=0){
+ const r=other.angle*Math.PI/180,w=Math.abs(Math.cos(r))*other.width+Math.abs(Math.sin(r))*other.height,h=Math.abs(Math.sin(r))*other.width+Math.abs(Math.cos(r))*other.height,x=other.x+(other.width-w)/2,y=other.y+(other.height-h)/2;
+ // A frame has an empty interior; only its actual border can cover a quiet zone.
+ const stroke=Math.min(.6,other.width/2,other.height/2)+gap;
+ if(other.kind==="frame"&&other.angle===0&&code.x>=x+stroke&&code.y>=y+stroke&&code.x+code.width<=x+w-stroke&&code.y+code.height<=y+h-stroke)return false;
+ return code.x<x+w+gap&&code.x+code.width+gap>x&&code.y<y+h+gap&&code.y+code.height+gap>y;
+}
+export function codePlacement(board:MarkBoard,element:MarkElement,editing=false):MarkElement{
+ const safe=MARK_SAFE_AREA,others=board.elements.filter(e=>e.id!==element.id);
+ const fits=(x:number,y:number)=>x>=safe&&y>=safe&&x+element.width<=board.width-safe&&y+element.height<=board.height-safe&&!others.some(o=>overlapsCode({...element,x,y},o,2));
+ if(editing&&fits(element.x,element.y))return element;
+ const xs=[safe,...others.map(o=>o.x+o.width+3)],ys=[safe,...others.map(o=>o.y+o.height+3)];
+ for(const y of ys)for(const x of xs)if(fits(x,y))return {...element,x,y};
+ throw Error("画板没有足够空白位置；请移动其他图层或增大画板 / No clear area fits the full code; move layers or enlarge the artboard");
+}
+export function markCodeIssues(board:MarkBoard){
+ return board.elements.filter(e=>e.kind==="code").flatMap(e=>{
+  if(outsideMarkSafeArea(e,board))return ["编码超出安全边距 / Code crosses the safe margin"];
+  const overlapping=board.elements.some(o=>o.id!==e.id&&overlapsCode(e,o));
+  return overlapping?["编码或静区被其他图层覆盖 / Another layer overlaps the code or quiet zone"]:[];
+ });
 }
 
 export function keepMarkOnBoard(e: MarkElement, board: Pick<MarkBoard,"width"|"height">): MarkElement {
@@ -79,6 +111,7 @@ const xml = (s: string) => wellFormed(s).replace(/[\u0000-\u0008\u000b\u000c\u00
 
 export function markElementSvg(e: MarkElement) {
   const {width:w,height:h,color}=e;
+  if(e.kind==="code")return codeSvg({codeType:e.codeType!,value:e.value,width:w,height:h,showText:e.codeShowText!==false},{},false);
   if(e.kind==="symbol"){
     const symbol=shippingMarkSymbol(e.value);
     return symbol ? `<svg width="${w}" height="${h}" viewBox="${symbol.viewBox}" color="${color}" preserveAspectRatio="xMidYMid meet"><metadata>${symbol.source}</metadata>${symbol.paths}</svg>` : "";

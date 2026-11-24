@@ -1,0 +1,14 @@
+:root {
+  --bg-canvas:#F4F6F8;--bg-surface:#FFFFFF;--bg-subtle:#F8FAFC;--bg-hover:#F1F5F9;
+  --border-card:#E2E8F0;--border-divider:#E5E7EB;--border-focus:#0F766E;
+  --text-primary:#0F172A;--text-secondary:#334155;--text-muted:#64748B;
+  --brand-primary:#0F766E;--brand-hover:#115E59;
+  --status-pass-bg:#DCFCE7;--status-pass-fg:#166534;
+  --status-warn-bg:#FEF3C7;--status-warn-fg:#92400E;
+  --status-fail-bg:#FEE2E2;--status-fail-fg:#991B1B;
+  --status-neutral-bg:#F1F5F9;--status-neutral-fg:#475569;
+  --radius-card:10px;--radius-control:6px;--control-height:36px;--space-section:24px;--space-block:16px;
+  /* Compatibility aliases let existing workbench controls share the same roles. */
+  --ink:var(--text-primary);--muted:var(--text-muted);--line:var(--border-card);
+  --surface:var(--bg-surface);--teal:var(--brand-primary);--teal-dark:var(--brand-hover);--teal-soft:#E6F4F0;
+}

@@ -4,6 +4,7 @@ import "./features.css";
 import "./scene-workbench.css";
 import "./compact-workspace.css";
 import "./cargo-workbench.css";
+import "./tokens.css";
 import { GalaxyEcosystemMenu } from "../components/galaxy-ecosystem-menu";
 import { AppLanguageTitle } from "../components/language";
 

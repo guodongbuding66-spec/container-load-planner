@@ -13,6 +13,7 @@ import { markFaceForAxis } from "../lib/packing/shipping-mark-artwork";
 import { boxFaceTexture, CargoSurfaceLabels, MetricLabel, PalletStructures, SelectionOutline, useShippingMarkCanvas } from "./scene-details";
 import { SceneDimensions } from "./scene-dimensions";
 import { LoadingSceneFallback } from "./loading-scene-fallback";
+import {ViewportRenderer} from "./viewport-renderer";
 import { sceneMeasurement } from "../lib/packing/scene-dimensions";
 import { palletParts, palletAnchors } from "../lib/packing/floor-pallets";
 import { SceneFullscreen } from "./scene-fullscreen";
@@ -373,11 +374,7 @@ export function ContainerScene({
           <strong>{tr("等待计算方案")}</strong>
           <span>{tr("填写左侧参数后，柜内真实摆放会显示在这里")}</span>
         </div>
-      ) : webglSupported === null ? (
-        <div className="scene-loading">{tr("正在检测三维图形能力…")}</div>
-      ) : !webglSupported ? (
-        <LoadingSceneFallback editor={editor?.enabled?editor:undefined} regions={regions} heatColors={heatColors} result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} selected={selected} onSelect={selectBox} onClearSelection={clearSelection} palletPicking={palletPicking} section={section} manualMeasurement={inspection.measurement} manualMeasurements={inspection.savedOverlays}/>
-      ) : (
+      ) : <ViewportRenderer resetKey={result.id} fallback={<LoadingSceneFallback editor={editor?.enabled?editor:undefined} regions={regions} heatColors={heatColors} result={result} visibleProducts={visibleProducts} visibleCount={visibleCount} selected={selected} onSelect={selectBox} onClearSelection={clearSelection} palletPicking={palletPicking} section={section} manualMeasurement={inspection.measurement} manualMeasurements={inspection.savedOverlays}/> }>
         <>
           <div className="scene-canvas">
             <Canvas
@@ -414,7 +411,7 @@ export function ContainerScene({
           </div>}
           {!isolated&&result.workflow!=="pallet-only"&&<div className="door-marker">{tr("箱门方向")}</div>}
         </>
-      )}
+      </ViewportRenderer>}
     </div></SceneWorkbench></SceneFullscreen>
   );
 }
