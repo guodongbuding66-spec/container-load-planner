@@ -6,9 +6,10 @@ import {tr,useLanguage} from "./language";
 
 const normalize=(text:string)=>text.normalize("NFKC").trim().toLowerCase();
 
-export function useRecordPage<T extends {search:string}>(records:T[],size=12) {
+export function useRecordPage<T extends {search:string}>(records:T[],size=12,control?:{page:number;onPageChange:(page:number)=>void}) {
   const [query,setQuery]=useState("");
-  const [page,setPage]=useState(0);
+  const [localPage,setLocalPage]=useState(0);
+  const page=control?.page??localPage,setPage=control?.onPageChange??setLocalPage;
   const matches=useMemo(()=>{
     const words=normalize(query).split(/\s+/).filter(Boolean);
     return words.length?records.filter(r=>words.every(word=>normalize(r.search).includes(word))):records;
