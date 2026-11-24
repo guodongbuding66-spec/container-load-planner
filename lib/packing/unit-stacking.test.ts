@@ -29,7 +29,9 @@ it.each([3,20])("keeps %i cartons per pallet and loads multiple complete tiers a
  const preview=previewPalletRecipe({request:r,spec,groupKey:'sku:'+r.products[0].id,cartons:count,mode:'suggest'});
  r.palletBuild=withPalletRecipe(r.palletBuild!,'primary',{config:preview.config,cartonLimit:count});
  for(const strategy of ['practical','maximum'] as const){const p=packLoadingWorkflow({...r,strategy});expect(p.validation.valid).toBe(true);expect(p.pallets!.some(v=>v.z>0)).toBe(true);expect(p.metrics.loadedCount).toBe(count===3?378:strategy==='practical'?540:560);expect(p.pallets!.every(v=>v.z+(v.enclosureHeight??v.dz)<=r.container.height-r.clearance)).toBe(true);}
-});
+// Hundreds of cartons are packed by both solvers; shared CI CPUs need a larger
+// per-case budget than small unit tests. Keep every count and geometry assertion.
+},15000);
 it("honors explicit floor-only, zero top load, prohibited structure and cumulative upper load",()=>{
  for(const change of [{unitStacking:{enabled:false,maxLayers:0}},{unitStacking:{enabled:true,maxLayers:0,maxTopLoadKg:0}},{crateBearing:{...emptyCrateBearing(),policy:'prohibited' as const}}]){
   const r=fixture();Object.assign(r.palletBuild!.config,change);const p=packLoadingWorkflow(r);expect(p.pallets!.every(v=>v.z===0)).toBe(true);
