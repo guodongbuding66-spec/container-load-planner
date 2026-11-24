@@ -558,3 +558,15 @@ body:has(.cargo-workbench) {
 .mark-symbol-library { display: grid; grid-template-columns: repeat(auto-fill,minmax(100px,1fr)); gap: 8px; max-height: 280px; overflow: auto; padding: 12px; border-bottom: 1px solid var(--line); }
 .mark-symbol-library .button { display: grid; justify-items: center; gap: 4px; min-height: 76px; white-space: normal; text-align: center; font-size: 12px; }
 .mark-symbol-thumbnail { display: block; width: 40px; height: 40px; background: white center / contain no-repeat; }
+
+.mark-inspector :is(.numeric-input,input:not([type]),textarea) {
+  width: 100%; min-height: 36px; padding: 8px;
+  border: 1px solid var(--line); border-radius: 5px;
+  background: var(--surface); color: var(--ink); font: inherit;
+}
+.mark-inspector :is(.numeric-input,input:not([type]),textarea):focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+.mark-inspector input[aria-invalid="true"] { border-color: #ba4b3f; background: #fff5f3; }
+@media (min-width: 721px) {
+  .mark-inspector { max-height: max(280px,calc(100dvh - 300px)); overflow: auto; }
+  .mark-stage-panel { align-self: start; }
+}

@@ -39,6 +39,9 @@ export function PackagingEditor({value,onChange,onValidityChange,resetToken=0,on
   const enclosurePreset=ENCLOSURE_PRESETS.find(p=>p.enclosure===spec.enclosure&&p.lid===spec.lid&&(p.railCount??railCount)===railCount&&(p.panelSegments??1)===panelCount&&!spec.railHeight);
   const hasSupports=!!spec.deckSupports?.length;
   const missingTare=spec.deckSupports?.some(s=>s.weightKg===null);
+  useEffect(()=>{
+    if(missingTare&&engineering.current)engineering.current.open=true;
+  },[missingTare]);
   // Incomplete support data cannot enter the solver. The physical shell remains inspectable.
   const shell=error&&hasSupports?{...value,packaging:{...spec,deckSupports:undefined}}:value;
   const appearance=<label className="preview-opacity">
@@ -85,7 +88,7 @@ export function PackagingEditor({value,onChange,onValidityChange,resetToken=0,on
     <BottomDeckSettings value={value} onChange={onChange} disabled={invalid}/>
     </details>
     {inner.crate&&<CrateExteriorHeight value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken}/>}
-    <details ref={engineering} className="packaging-engineering" open={missingTare||undefined}>
+    <details ref={engineering} className="packaging-engineering">
       <summary>{tr("承重与实测资料","Load ratings and measurements")}</summary>
       <DeckSupportSettings value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken} invalid={invalid}/>
     <ForkInterfaceSettings value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken} invalid={invalid}/>

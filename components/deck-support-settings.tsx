@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useState} from "react";
+import {useEffect,useRef,useState} from "react";
 import {MAX_DECK_SUPPORTS,deckSupportMass,completePackagingTare,type DeckSupport} from "../lib/packing/deck-support";
 import {DEFAULT_PACKAGING,packagingInterior} from "../lib/packing/packaging";
 import type {FloorPalletConfig} from "../lib/packing/types";
@@ -21,9 +21,11 @@ function SupportRow({s,index,onChange,onRemove,onValidityChange,resetToken}:{s:D
 }
 export function DeckSupportSettings({value,onChange,onValidityChange,resetToken,invalid=false}:{value:FloorPalletConfig;onChange:(v:FloorPalletConfig)=>void;onValidityChange:Validity;resetToken?:number;invalid?:boolean}){
  useLanguage();const rows=value.packaging?.deckSupports??[],spec=value.packaging??DEFAULT_PACKAGING,inside=packagingInterior(value),mass=deckSupportMass(value);
+ const details=useRef<HTMLDetailsElement>(null),missingTare=rows.some(s=>s.weightKg===null);
+ useEffect(()=>{if(missingTare&&details.current)details.current.open=true;},[missingTare]);
  const update=(next:DeckSupport[])=>onChange({...value,packaging:{...spec,deckSupports:next.length?next:undefined}});
  const add=()=>update([...rows,{id:crypto.randomUUID(),name:`${tr("实心垫木","Solid timber")} ${rows.length+1}`,x:inside.inset,y:inside.inset,dx:Math.max(1,Math.min(100,inside.length)),dy:Math.max(1,Math.min(100,inside.width)),dz:Math.max(1,Math.min(50,value.maxCargoHeight||50)),weightKg:null,maxLoadKg:null,source:"",revision:""}]);
- return <details className="panel deck-support-settings" open={rows.some(s=>s.weightKg===null)||undefined}><summary>{tr("托内实心支承件","Solid supports inside packaging")} · {rows.length}</summary>
+ return <details ref={details} className="panel deck-support-settings"><summary>{tr("托内实心支承件","Solid supports inside packaging")} · {rows.length}</summary>
  <p>{tr("每行是一件直接贴合实际底座顶面的实心平顶垫木／支承块，X/Y 从原始托盘左前角起算，单位 mm。厚度占用货物限高；底部须完整贴合实际面板，暂不支持跨板缝、架空、叠垫木或空心框架。","Each row is one solid, flat-top piece resting directly on the actual deck. X/Y use the original pallet corner, in mm. Thickness consumes cargo height. Full contact with real deck boards is required; bridging gaps, floating, stacked pieces and hollow frames are not supported.")}</p>
  <p>{tr("新增支承自重与下方原包装自重分开填写，两者合计为整托包装自重；支承件也占用底座额定载荷，请勿在原包装自重中重复填写。首阶段仅预打托，整托单层底置。缺来源、版本或静载上限保持未核验，已填数值仍执行。","Enter added support mass separately from the existing packaging tare; their sum is complete tare. Supports also consume the deck payload rating: do not duplicate their mass in the base tare. Prebuilt, floor-only units in this stage. Missing source, revision or load rating remains unverified; entered numeric limits still apply.")}</p>
  <p>{tr("新增自重 / 完整包装自重 kg","Added / complete packaging tare kg")}: {Number.isFinite(mass)?`${mass} / ${completePackagingTare(value)}`:tr("未填写完整","Incomplete")}</p>
