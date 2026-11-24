@@ -9,6 +9,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { RefObject } from "react";
+import { markFaceForAxis } from "../lib/packing/shipping-mark-artwork";
 import { boxFaceTexture, CargoSurfaceLabels, MetricLabel, PalletStructures, SelectionOutline, useShippingMarkCanvas } from "./scene-details";
 import { SceneDimensions } from "./scene-dimensions";
 import { LoadingSceneFallback } from "./loading-scene-fallback";
@@ -93,19 +94,28 @@ function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSele
   const geometry=useMemo(()=>cargoShapeGeometry({cargoType:group.cargoType,cargoShape:group.cargoShape,shapeAxis:group.shapeAxis,shapeTopRatio:group.shapeTopRatio,shapeWallRatio:group.shapeWallRatio,shapeWallHeightRatio:group.shapeWallHeightRatio,shapeStepLengthRatio:group.shapeStepLengthRatio,shapeStepHeightRatio:group.shapeStepHeightRatio,solidModel:group.solidModel},group.orientation as OrientationCode,reducedRendering,group.orientationSigns,collisionProxy),[collisionProxy,group.solidModel,group.cargoType,group.cargoShape,group.shapeAxis,group.shapeTopRatio,group.shapeWallRatio,group.shapeWallHeightRatio,group.shapeStepLengthRatio,group.shapeStepHeightRatio,group.orientation,group.orientationSigns,reducedRendering]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
   const labelDimensions=useMemo<[number,number,number]>(()=>{const dims:[number,number,number]=[originalFirst.dx,originalFirst.dz,originalFirst.dy],a=originalFirst.orientation.indexOf("H");if(group.cargoType==="pallet")dims[a===0?0:a===1?2:1]-=group.baseHeight??0;return dims;},[originalFirst.dx,originalFirst.dy,originalFirst.dz,originalFirst.orientation,group.baseHeight,group.cargoType]);
-  const mark = useShippingMarkCanvas(labels ? group.shippingMark : undefined, group.sku);
+  const shippingMark=labels?group.shippingMark:undefined;
+  const artwork=shippingMark?.artwork;
+  const mark=useShippingMarkCanvas(shippingMark,group.sku);
+  const front=useShippingMarkCanvas(shippingMark,group.sku,"front");
+  const side=useShippingMarkCanvas(shippingMark,group.sku,"side");
   const materials = useMemo(() => {
     const dims=[first.dx,first.dz,first.dy], axis=first.orientation.indexOf("H");
     if(group.cargoType==="pallet")dims[axis===0?0:axis===1?2:1]=Math.max(1,dims[axis===0?0:axis===1?2:1]-(group.baseHeight??0));
-    const face={mark,reduced:reducedRendering,label:labels};
-    const textures=(labels||!reducedRendering)&&shape==="box"&&!group.solidModel?[
-      boxFaceTexture(group.sku,group.color,dims[2],dims[1],{...face,up:group.orientation[2]}),
-      boxFaceTexture(group.sku,group.color,dims[0],dims[2],{...face,seam:true}),
-      boxFaceTexture(group.sku,group.color,dims[0],dims[1],{...face,up:group.orientation[2]}),
-    ]:[];
+    const axes=[[2,1],[0,2],[0,1]] as const;
+    const cartonHeight=[0,2,1][axis];
+    const textures=(labels||!reducedRendering)&&shape==="box"&&!group.solidModel?axes.map(([horizontal,vertical],normal)=>{
+      const face=markFaceForAxis(group.orientation,normal);
+      const layout=artwork&&face?artwork[face]:undefined;
+      const design=face==="front"?front:face==="side"?side:undefined;
+      return boxFaceTexture(group.sku,group.color,dims[horizontal],dims[vertical],{
+        mark:artwork?design:mark,markSize:layout,markTurn:!!layout&&cartonHeight===horizontal,
+        reduced:reducedRendering,label:labels,seam:normal===1,up:normal===1?undefined:group.orientation[2],
+      });
+    }):[];
     const maps=[textures[0],textures[0],textures[1],textures[1],textures[2],textures[2]];
     return maps.map(map=>new THREE.MeshStandardMaterial({map:map??null,color:map?"white":group.color,roughness:.82,wireframe:collisionProxy||shape==="irregular",transparent:collisionProxy||shape==="irregular",opacity:collisionProxy?.75:shape==="irregular"?.6:1}));
-  },[first.dx,first.dy,first.dz,first.orientation,group.baseHeight,group.cargoType,group.sku,group.color,group.orientation,group.solidModel,labels,shape,collisionProxy,mark,reducedRendering]);
+  },[first.dx,first.dy,first.dz,first.orientation,group.baseHeight,group.cargoType,group.sku,group.color,group.orientation,group.solidModel,labels,shape,collisionProxy,mark,front,side,artwork,reducedRendering]);
   useEffect(()=>()=>{new Set(materials.map(m=>m.map)).forEach(t=>t?.dispose());materials.forEach(m=>m.dispose());},[materials]);
   const parts=useMemo(()=>group.cargoType!=="pallet"||!group.baseHeight?[]:group.sources.flatMap(box=>{
     const world=[box.dx,box.dy,box.dz];
@@ -130,7 +140,7 @@ function InstancedBoxes({ group, scale, offset, reducedRendering, labels, onSele
     meshRef.current.instanceMatrix.needsUpdate=true;meshRef.current.computeBoundingSphere();if(labelRef.current){labelRef.current.instanceMatrix.needsUpdate=true;labelRef.current.computeBoundingSphere();}
     if(baseRef.current){parts.forEach((p,i)=>{transform.position.set((p.x+p.dx/2)*scale+offset.x,(p.z+p.dz/2)*scale+offset.y,(p.y+p.dy/2)*scale+offset.z);transform.scale.set(p.dx*scale*.997,p.dz*scale*.995,p.dy*scale*.997);transform.updateMatrix();baseRef.current!.setMatrixAt(i,transform.matrix);baseRef.current!.setColorAt(i,new THREE.Color(p.kind==="block"?"#ac8151":"#d4af7b"));});baseRef.current.instanceMatrix.needsUpdate=true;if(baseRef.current.instanceColor)baseRef.current.instanceColor.needsUpdate=true;baseRef.current.computeBoundingSphere();}
   },[group.solidModel,group.boxes,group.sources,group.baseHeight,group.cargoType,parts,materials,offset,scale,transform,shape,labels]);
-  return <><instancedMesh ref={meshRef} args={[geometry,materials,group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering} onClick={e=>{if(e.delta>3)return;e.stopPropagation();if(e.instanceId!==undefined)onSelect(group.boxes[e.instanceId],e.point?[(e.point.x-offset.x)/scale,(e.point.z-offset.z)/scale,(e.point.y-offset.y)/scale]:undefined,e.shiftKey);}}></instancedMesh>{labels&&(group.solidModel||shape!=="box")&&<CargoSurfaceLabels sku={group.sku} source={geometry} dimensions={labelDimensions} count={group.boxes.length} instanceRef={labelRef} mark={mark}/>} {parts.length>0&&<instancedMesh ref={baseRef} args={[undefined,undefined,parts.length]}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>}</>;
+  return <><instancedMesh ref={meshRef} args={[geometry,materials,group.boxes.length]} castShadow={!reducedRendering} receiveShadow={!reducedRendering} onClick={e=>{if(e.delta>3)return;e.stopPropagation();if(e.instanceId!==undefined)onSelect(group.boxes[e.instanceId],e.point?[(e.point.x-offset.x)/scale,(e.point.z-offset.z)/scale,(e.point.y-offset.y)/scale]:undefined,e.shiftKey);}}></instancedMesh>{labels&&(group.solidModel||shape!=="box")&&<CargoSurfaceLabels sku={group.sku} source={geometry} dimensions={labelDimensions} count={group.boxes.length} instanceRef={labelRef} mark={front??side??mark}/>} {parts.length>0&&<instancedMesh ref={baseRef} args={[undefined,undefined,parts.length]}><boxGeometry/><meshStandardMaterial roughness={.92}/></instancedMesh>}</>;
 }
 
 function SceneCapture({ register }: { register: (capture: () => Promise<Blob>) => void }) {

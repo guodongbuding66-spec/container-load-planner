@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseWorkspaceBackup, restoreWorkspacePlans, serializeWorkspaceBackup, type WorkspaceInputs } from "./workspace-file";
 import { pack } from "./engine";
+import { markElement } from "./shipping-mark-artwork";
 
 const inputs: WorkspaceInputs = {
   mode: "mixed", strategy: "maximum", practicalTargetPercent: 84.5,
@@ -26,6 +27,19 @@ describe("portable workspace backups", () => {
     expect(restored?.placements).toEqual(result.placements);
     expect(restored?.cargoDetails?.a.shippingMark).toEqual(shippingMark);
     expect(() => parseWorkspaceBackup(file.replace(shippingMark.image, "https://example.org/mark.png"))).toThrow("Invalid shipping mark image");
+  });
+  it("restores separate front and side artwork without changing packing coordinates",()=>{
+    const shippingMark={artwork:{
+      front:{width:250,height:80,elements:[markElement("text","ISUNOR · REF 1042",80,20)]},
+      side:{width:200,height:64,elements:[markElement("barcode","ITEM-001",100,25)]},
+    }};
+    const marked={...inputs,products:[{...inputs.products[0],quantity:4,shippingMark}]};
+    const result=pack(marked);
+    const file=serializeWorkspaceBackup(marked,result.engineVersion,result);
+    const parsed=parseWorkspaceBackup(file),restored=restoreWorkspacePlans(file,parsed);
+    expect(parsed.products[0].shippingMark).toEqual(shippingMark);
+    expect(restored?.cargoDetails?.a.shippingMark).toEqual(shippingMark);
+    expect(restored?.placements).toEqual(result.placements);
   });
   it("discards derived results and untrusted metadata", () => {
     const file = JSON.parse(serializeWorkspaceBackup(inputs, "old"));

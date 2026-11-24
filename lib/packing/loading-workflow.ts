@@ -14,7 +14,7 @@ export function parseLoadingWorkflow(value: unknown, mode: PackingMode = "mixed"
   if (!["direct", "pallet-only", "palletized", "single-capacity"].includes(value as string)) throw new Error("装载方式无效");
   return value as LoadingWorkflow;
 }
-export function parsePalletBuild(value: unknown): PalletBuildOptions {
+export function parsePalletBuild(value: unknown, draft=false): PalletBuildOptions {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("打托配置无效");
   const p = value as PalletBuildOptions;
   if(p.oneKitPerPallet!==undefined&&typeof p.oneKitPerPallet!=="boolean")throw Error("Invalid one-kit pallet rule");
@@ -33,9 +33,10 @@ export function parsePalletBuild(value: unknown): PalletBuildOptions {
     };
   }
   let additionalSpecs: PalletBuildOptions["additionalSpecs"];
-  if(p.additionalSpecs!==undefined){if(!Array.isArray(p.additionalSpecs)||p.additionalSpecs.length>7)throw new Error("Use at most 8 packaging specifications");if(p.additionalSpecs.length){additionalSpecs=parsePackagingSpecifications(p.additionalSpecs);if(additionalSpecs.some(s=>s.id==="primary"))throw new Error("Primary packaging identifier is reserved");}}
-  assertDeckSupportStacking(parseFloorPalletConfig(p.config),p.stackLayers,p.maxTopLoadKg);
-  return { ...(p.oneKitPerPallet?{oneKitPerPallet:true}:{}), ...(looseQuantities?{looseQuantities}:{}), ...(p.selection===undefined?{}:{selection:p.selection}), config: { ...parseFloorPalletConfig(p.config), count: 0, allowFloorCargo: false }, mix: p.mix, maxPallets: p.maxPallets, stackLayers: p.stackLayers, maxTopLoadKg: p.maxTopLoadKg, ...(primaryRule?{primaryRule}:{}),...(additionalSpecs?{additionalSpecs}:{}) };
+  if(p.additionalSpecs!==undefined){if(!Array.isArray(p.additionalSpecs)||p.additionalSpecs.length>7)throw new Error("Use at most 8 packaging specifications");if(p.additionalSpecs.length){additionalSpecs=parsePackagingSpecifications(p.additionalSpecs,draft);if(additionalSpecs.some(s=>s.id==="primary"))throw new Error("Primary packaging identifier is reserved");}}
+  const config=parseFloorPalletConfig(p.config,draft);
+  if(!draft)assertDeckSupportStacking(config,p.stackLayers,p.maxTopLoadKg);
+  return { ...(p.oneKitPerPallet?{oneKitPerPallet:true}:{}), ...(looseQuantities?{looseQuantities}:{}), ...(p.selection===undefined?{}:{selection:p.selection}), config: { ...config, count: 0, allowFloorCargo: false }, mix: p.mix, maxPallets: p.maxPallets, stackLayers: p.stackLayers, maxTopLoadKg: p.maxTopLoadKg, ...(primaryRule?{primaryRule}:{}),...(additionalSpecs?{additionalSpecs}:{}) };
 }
 export function palletInspectionContainer(config: FloorPalletConfig, count: number): ContainerSpec {
   const columns = Math.min(5, Math.ceil(Math.sqrt(count))), rows = Math.ceil(count / columns), spacing = 200;

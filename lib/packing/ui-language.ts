@@ -1,4 +1,5 @@
 export const ENGLISH: Record<string, string> = {
+  "请填写第 {0} 个托内支承件的新增自重，或确认零自重": "Enter the added tare for deck support {0}, or confirm zero tare",
   "固定案例运行完成。": "Fixed cases completed.",
   "线程异常，保留已完成案例。": "Worker failed; completed cases are retained.",
   "达到 120 秒时限，保留部分结果。": "Reached the 120-second limit; partial results retained.",

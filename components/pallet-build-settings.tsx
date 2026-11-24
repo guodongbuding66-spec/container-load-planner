@@ -123,20 +123,12 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
             <small>{tr("套装须同时选择全部组成 SKU，至少保留一个适用 SKU。","For kits, select every component SKU together. Select at least one eligible SKU.")}</small>
           </div>
         </details>}
-        {products.length>0&&<details className="packaging-policy loose-reservations">
-          <summary>{tr("整托与散箱混装","Complete units and loose cartons")} <small>{Object.values(value.looseQuantities??{}).reduce((n,v)=>n+v,0)} {tr("箱预留散装","cartons reserved loose")}</small></summary>
-          <div className="packaging-policy-body">
-            {only?<p>{tr("只打托模式不生成散装货物。请清除预留，或切换至先打托后装柜。","Pallet-only mode cannot include loose cargo. Clear reservations or switch to palletize, then load.")}</p>:<>
-              <div className="loose-reservation-list">{products.map(p=><label key={p.id}>
-                <span><strong>{p.sku}</strong>{p.setCode&&` · ${p.setCode} (${p.unitsPerSet??1} ${tr("箱/套","cartons/set")})`}</span>
-                <NumericInput resetToken={resetToken} ariaLabel={`${tr("预留散装箱数","Reserved loose cartons")} ${p.sku}`} value={value.looseQuantities?.[p.id]??0} integer min={0} max={p.quantity} onValueChange={n=>onChange({...value,looseQuantities:{...value.looseQuantities,[p.id]:n}})} onValidityChange={valid=>fieldValidity(`pallet-build:loose:${p.id}`,valid)}/>
-                <small>{tr("订单箱数","Ordered cartons")} {p.quantity}</small>
-              </label>)}</div>
-              <small>{tr("套装各 SKU 预留相同完整套数。散箱只与散箱堆叠，不会自动拆托。","Reserve equal whole-set quantities for each kit component. Loose cartons stack with other loose cartons. Packaged units stay intact.")}</small>
-            </>}
-            <button type="button" className="button small" onClick={()=>{onChange({...value,looseQuantities:undefined});for(const p of products)fieldValidity(`pallet-build:loose:${p.id}`,true);}}>{tr("清除散装预留","Clear loose reservations")}</button>
-          </div>
-        </details>}
+        {products.length>0&&<section className="packaging-policy loose-reservations">
+          <h3>{tr("整托与散箱混装","Complete units and loose cartons")}</h3>
+          <p>{tr("直接散装","Loose")} <strong>{Object.values(value.looseQuantities??{}).reduce((n,v)=>n+v,0)}</strong> {tr("箱","cartons")}</p>
+          <small>{tr("在上一步「录入货物」按产品设置。当前预览只试排待打托货物，装柜时合并散箱。","Configure each product in the Cargo step. This preview arranges palletized cargo. Loose cartons are included when loading the vehicle.")}</small>
+          {only&&value.looseQuantities&&<button type="button" className="button small" onClick={()=>onChange({...value,looseQuantities:undefined})}>{tr("清除散装预留","Clear loose reservations")}</button>}
+        </section>}
         {!only&&<details className="packaging-policy saved-stacking-rules">
           <summary>{tr("已采用规格的整托堆叠","Stacking for the saved specification")} <small>{current.config.unitStacking?.enabled||(!current.config.unitStacking&&current.stackLayers>1)?tr("已启用","Enabled"):tr("未启用","Off")}</small></summary>
           <div className="packaging-policy-body">
@@ -149,6 +141,7 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
     </div>
     {!chooseOnly&&<>
     <PackagingEditor key={current.id} value={current.config} onChange={config=>update({config})} onValidityChange={fieldValidity} resetToken={resetToken} onReset={reset} invalid={invalid}
+      recipe={recipe&&<details className="package-options" open={recipePending||undefined}><summary>{value.oneKitPerPallet?tr("推荐一套一托的包装尺寸","Suggest packaging for one kit"):tr("按每托箱数自动配尺寸","Size by cartons per pallet")}</summary>{recipe}</details>}
       preview={request?(appearance,empty)=><PalletBuildPreview request={request} value={value} specId={current.id} active={previewActive} appearance={appearance} empty={empty} disabled={invalid||draftInvalid||recipePending}
         preparedLayout={preparedLayout} onPreparedLayoutChange={onPreparedLayoutChange} layerTemplates={layerTemplates} onLayerTemplatesChange={onLayerTemplatesChange} onReadyChange={onPreviewReady}/>:undefined}>
     <div className="pallet-build-grid packaging-dimensions" key={`dimensions-${current.id}`}>{fields.map(([key,label,unit,min])=><label key={key}>{label}<div className="pallet-build-number"><NumericInput showError resetToken={resetToken} ariaLabel={label} value={current.config[key]??0} min={min} max={key==="gap"||key==="weight"?10000:100000} precision={1} onValueChange={v=>update({config:{...current.config,[key]:v}})} onValidityChange={valid=>fieldValidity(`pallet-build:${key}`,valid)}/><span>{unit}</span></div>
@@ -160,7 +153,6 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
       <button type="button" className="button small" onClick={()=>{fieldValidity("pallet-build:maxCargoHeight",true);update({config:{...current.config,maxCargoHeight:0}});}}>{tr("按柜门净高自动加层","Use door clearance for carton layers")}</button>
       <small>{tr("托内纸箱可以多层堆码，整托堆叠层数单独设置。","Cartons can stack within a pallet. Pallet-on-pallet stacking has its own setting.")}</small>
     </div>}
-    {recipe&&<details className="package-options" open={recipePending||undefined}><summary>{value.oneKitPerPallet?tr("推荐一套一托的包装尺寸","Suggest packaging for one kit"):tr("按每托箱数自动配尺寸","Size by cartons per pallet")}</summary>{recipe}</details>}
     <details className="package-options"><summary>{tr("打托数量与混托规则","Pallet limits and mixing")}</summary>
     <div className="pallet-build-grid packaging-order-rules"><label>{tr("单品托 / 混托","Pallet mix")}<select aria-label={tr("单品托 / 混托","Pallet mix")} value={value.mix} onChange={e=>onChange({...value,mix:e.target.value as "single"|"mixed"})}><option value="single">{tr("单 SKU / 完整套装","One SKU / whole kits")}</option><option value="mixed">{tr("允许多 SKU 混托","Allow mixed SKUs")}</option></select></label><label>{tr("生成托盘上限","Prepared pallet limit")}<NumericInput resetToken={resetToken} ariaLabel={tr("生成托盘上限","Prepared pallet limit")} value={value.maxPallets} integer min={1} max={200} onValueChange={maxPallets=>onChange({...value,maxPallets})} onValidityChange={valid=>fieldValidity("pallet-build:limit",valid)}/><small>{tr("所有规格合计上限","Total across all specifications")}</small></label></div>
     </details>

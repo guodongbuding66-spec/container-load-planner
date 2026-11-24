@@ -1,6 +1,6 @@
 import {expect,it} from "vitest";
 import {DEFAULT_PACKAGING,packagingReservedVolume,placedPackagingParts,packagingMassCenter} from "./packaging";
-import {DEFAULT_PALLET_BUILD} from "./loading-workflow";
+import {DEFAULT_PALLET_BUILD,parsePalletBuild} from "./loading-workflow";
 import {packLoadingWorkflow} from "./pack-loading";
 import {inspectDeckSupports,palletDeckSupportGeometry,completePackagingTare,type DeckSupport} from "./deck-support";
 import {auditPackingResult} from "./result-audit";
@@ -92,3 +92,15 @@ it("localizes attached support diagnostics",async()=>{
 it("rejects missing specifications and forged attached geometry in the independent validator",()=>{const plan=make(),pallet=plan.pallets![0];expect(validatePacking(plan.placements,plan.container,0,[p],"maximum","mixed",plan.pallets).valid).toBe(false);expect(validatePacking(plan.placements,plan.container,0,[p],"maximum","mixed",[{...pallet,weight:5}],undefined,plan.palletization).valid).toBe(false);const malformed={...pallet,packaging:{...pallet.packaging!,deckSupports:[{...s,weightKg:null}]}};expect(validatePacking(plan.placements,plan.container,0,[p],"maximum","mixed",[malformed],undefined,plan.palletization).valid).toBe(false);});
 
 it("allocates added support mass at its actual longitudinal location",async()=>{const {analyzeLoads}=await import('./load-analysis'),c={...config,length:400,maxLoad:100,packaging:{...config.packaging!,deckSupports:[{...s,dx:100,maxLoadKg:100}]}};const q={...p,length:100,quantity:1},plan=make({products:[q],palletBuild:{...request.palletBuild!,config:c}}),zones=analyzeLoads(plan,[q]).zones;expect(plan.placements[0].x).toBe(100);expect(zones.map(z=>z.weight)).toEqual([6.25,11.25,1.25,1.25]);expect(zones.reduce((n,z)=>n+z.weight,0)).toBe(plan.metrics.grossWeight);});
+
+it("restores an unfinished support in the local draft and requires its tare before solving",()=>{
+ const unfinished={...config.packaging!,deckSupports:[{...s,weightKg:null}]};
+ const saved={...request.palletBuild!,config:{...config,packaging:unfinished}};
+ const restored=parsePalletBuild(JSON.parse(JSON.stringify(saved)),true);
+ expect(restored.config.packaging!.deckSupports![0].weightKg).toBeNull();
+ expect(()=>parsePalletBuild(restored)).toThrow(/第 1 个托内支承件/);
+ const confirmed={...restored,config:{...config,packaging:{...unfinished,deckSupports:[{...s,weightKg:0}]}}};
+ const plan=make({palletBuild:parsePalletBuild(confirmed)});
+ expect(plan.validation.valid).toBe(true);
+ expect(plan.pallets![0].weight).toBe(config.weight);
+});

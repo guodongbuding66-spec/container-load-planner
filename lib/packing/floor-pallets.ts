@@ -10,7 +10,7 @@ import { parsePackaging, packagingInterior, packagingRailCount, packagingReserve
 import { bodyContactArea, bodyTopLevels } from "./cargo-body";
 
 export const PALLET_PRODUCT_ID = "__floor-pallet__";
-export function parseFloorPalletConfig(value: unknown): FloorPalletConfig {
+export function parseFloorPalletConfig(value: unknown, draft=false): FloorPalletConfig {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("底层托盘设置无效。");
   const v = value as Record<string, unknown>;
   for (const k of ["presetId", "name"]) if (typeof v[k] !== "string" || !(v[k] as string).trim() || (v[k] as string).length > 120) throw new Error("托盘名称无效。");
@@ -20,7 +20,7 @@ export function parseFloorPalletConfig(value: unknown): FloorPalletConfig {
   if (!Number.isInteger(v.count) || Number(v.count) < 0 || Number(v.count) > 200) throw new Error("底层托盘数量必须为 0–200 的整数。");
   if (!["auto", "long", "cross"].includes(String(v.layout)) || typeof v.allowFloorCargo !== "boolean") throw new Error("托盘布局规则无效。");
   if (v.maxCargoHeight !== undefined && (typeof v.maxCargoHeight !== "number" || !Number.isFinite(v.maxCargoHeight) || v.maxCargoHeight < 0 || v.maxCargoHeight > 100000)) throw new Error("托盘货物限高必须为 0–100000 mm；0 表示按柜高及门洞自动限制。");
-  const packaging=v.packaging===undefined?undefined:parsePackaging(v.packaging);
+  const packaging=v.packaging===undefined?undefined:parsePackaging(v.packaging,draft);
   validateBaseMeasurements(Number(v.length),Number(v.width),Number(v.height),packaging);
   if(packaging){
     const inner=packagingInterior({...v,packaging} as FloorPalletConfig);
@@ -29,7 +29,8 @@ export function parseFloorPalletConfig(value: unknown): FloorPalletConfig {
   }
   const parsed:FloorPalletConfig={ ...(v.forkInterface===undefined?{}:{forkInterface:parseForkInterface(v.forkInterface)}), ...(v.crateBearing===undefined?{}:{crateBearing:parseCrateBearing(v.crateBearing)}), ...(packaging?{packaging}:{}), presetId: v.presetId as string, name: v.name as string, length: v.length as number, width: v.width as number, height: v.height as number, weight: v.weight as number, maxLoad: v.maxLoad as number, count: v.count as number, gap: v.gap as number, layout: v.layout as FloorPalletConfig["layout"], allowFloorCargo: v.allowFloorCargo, ...(v.maxCargoHeight === undefined ? {} : {maxCargoHeight:v.maxCargoHeight as number}) };
   if(v.unitStacking!==undefined)parsed.unitStacking=parseUnitStacking(v.unitStacking);
-  validateDeckSupports(parsed);return parsed;
+  if(!draft)validateDeckSupports(parsed);
+  return parsed;
 }
 
 /** Loaded pallets must clear the door as a unit; heights are measured from the vehicle floor. */

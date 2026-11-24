@@ -2,7 +2,7 @@
 import {BottomDeckSettings} from "./bottom-deck-settings";
 import {DeckSupportSettings} from "./deck-support-settings";
 import { CrateExteriorHeight } from "./crate-exterior-height";
-import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { DEFAULT_PACKAGING, packagingInterior, packagingHeight, packagingLidThickness, packagingRailCount, type PackagingSpec } from "../lib/packing/packaging";
 import { BASE_PRESETS, ENCLOSURE_PRESETS, withBasePreset, withEnclosurePreset } from "../lib/packing/packaging-presets";
 import { parseFloorPalletConfig } from "../lib/packing/floor-pallets";
@@ -19,10 +19,11 @@ type Template={name:string;config:FloorPalletConfig};
 function readTemplates(){try{return localStorage.getItem(STORAGE)??"[]";}catch{return "[]";}}
 function subscribeTemplates(callback:()=>void){window.addEventListener("storage",callback);return()=>window.removeEventListener("storage",callback);}
 
-export function PackagingEditor({value,onChange,onValidityChange,resetToken=0,onReset,invalid=false,children,preview}:{value:FloorPalletConfig;onChange:(v:FloorPalletConfig)=>void;onValidityChange:(key:string,valid:boolean)=>void;resetToken?:number;onReset?:()=>void;invalid?:boolean;children?:ReactNode;preview?:(appearance:ReactNode,empty:ReactNode)=>ReactNode}) {
+export function PackagingEditor({value,onChange,onValidityChange,resetToken=0,onReset,invalid=false,children,recipe,preview}:{value:FloorPalletConfig;onChange:(v:FloorPalletConfig)=>void;onValidityChange:(key:string,valid:boolean)=>void;resetToken?:number;onReset?:()=>void;invalid?:boolean;children?:ReactNode;recipe?:ReactNode;preview?:(appearance:ReactNode,empty:ReactNode)=>ReactNode}) {
   useLanguage();
   const spec=value.packaging??{...DEFAULT_PACKAGING,opacity:1},inner=packagingInterior(value);
   const rails=spec.enclosure==="slatted"||spec.enclosure==="frame";
+  const engineering = useRef<HTMLDetailsElement>(null);
   const railCount=packagingRailCount(spec), panelCount=spec.panelSegments??1;
   const [sessionTemplates,setTemplates]=useState<Template[]|null>(null),[name,setName]=useState(""),[notice,setNotice]=useState("");
   const raw=useSyncExternalStore(subscribeTemplates,readTemplates,()=>"[]");
@@ -34,19 +35,36 @@ export function PackagingEditor({value,onChange,onValidityChange,resetToken=0,on
   const patch=(v:Partial<PackagingSpec>)=>onChange({...value,packaging:{...spec,...v}});
   const presets=TRANSPORT_PRESETS.filter(p=>p.category==="pallet");
   const save=()=>{const label=name.trim();if(!label||error)return;const next=[{name:label,config:parseFloorPalletConfig({...value,name:label})},...templates.filter(t=>t.name!==label)].slice(0,30);setTemplates(next);try{localStorage.setItem(STORAGE,JSON.stringify(next));setNotice(tr("模板已保存；当前规格也会随工作区备份。","Template saved; the current specification is included in workspace backups."));}catch{setNotice(tr("模板仅保留本次会话；可备份工作区保留当前规格。","Template retained for this session; back up the workspace to keep its current specification."));}};
+  const basePreset=BASE_PRESETS.find(p=>p.base===spec.base&&(p.bottomDeck??"runners")===(spec.bottomDeck??"runners")&&p.topDeck===spec.topDeck&&p.deckBoards===spec.deckBoards&&p.runners===spec.runners&&!spec.measurements&&(spec.assembledBase||spec.base==="solid"||spec.base==="corner-feet"));
+  const enclosurePreset=ENCLOSURE_PRESETS.find(p=>p.enclosure===spec.enclosure&&p.lid===spec.lid&&(p.railCount??railCount)===railCount&&(p.panelSegments??1)===panelCount&&!spec.railHeight);
+  const hasSupports=!!spec.deckSupports?.length;
+  const missingTare=spec.deckSupports?.some(s=>s.weightKg===null);
+  // Incomplete support data cannot enter the solver. The physical shell remains inspectable.
+  const shell=error&&hasSupports?{...value,packaging:{...spec,deckSupports:undefined}}:value;
   const appearance=<label className="preview-opacity">
     <span>{tr("包装不透明度","Packaging opacity")}</span>
     <input type="range" aria-label={tr("包装模型不透明度","Packaging model opacity")} min={5} max={100} value={Math.round(spec.opacity*100)} onChange={e=>patch({opacity:Number(e.target.value)/100})}/>
     <output>{Math.round(spec.opacity*100)}%</output>
   </label>;
-  return <div className={`packaging-editor${preview?" packaging-editor-with-preview":""}`}><section className="packaging-fields">
+  return <div className={`packaging-editor${preview?" packaging-editor-with-preview":""}`}>
+    {error&&<div className="packaging-fix" role="alert">
+      <div><strong>{tr("请先修正包装资料","Correct the packaging details")}</strong><p>{trText(error)}</p></div>
+      {hasSupports&&<button type="button" className="button small" onClick={()=>{
+        const details=engineering.current;
+        if(!details)return;
+        details.open=true;
+        const supports=details.querySelector<HTMLDetailsElement>(".deck-support-settings");
+        if(supports){supports.open=true;supports.querySelector("summary")?.focus();}
+      }}>{tr("打开托内支承件","Open deck supports")}</button>}
+    </div>}
+    <section className="packaging-fields">
     {children}
     <details className="packaging-structure-options">
     <summary>{tr("包装结构、材质与模板","Packaging structure, materials and templates")}</summary>
     <div className="pallet-build-grid">
       <label>{tr("托盘预设","Pallet preset")}<select aria-label={tr("打托托盘预设","Build pallet preset")} value="" onChange={e=>{const p=presets.find(p=>p.id===e.target.value);if(p){onReset?.();onChange({...value,presetId:p.id,name:p.name,length:p.length,width:p.width,height:p.baseHeight??144});}}}><option value="">{tr("自定义 / 选择预设","Custom / choose preset")}</option>{presets.map(p=><option key={p.id} value={p.id}>{tr(p.name)} · {p.length} × {p.width}</option>)}</select></label>
-      <label>{tr("底座结构预设","Base construction preset")}<select aria-label={tr("底座结构","Base structure")} value="" onChange={e=>{const preset=BASE_PRESETS.find(p=>p.id===e.target.value);if(preset){onReset?.();onChange(withBasePreset(value,preset));}}}><option value="">{tr("选择底座预设","Choose a base preset")}</option>{BASE_PRESETS.map(preset=><option key={preset.id} value={preset.id}>{tr(...preset.label)}</option>)}</select></label>
-      <label>{tr("围护结构预设","Enclosure construction preset")}<select aria-label={tr("围护结构","Enclosure")} value="" onChange={e=>{const preset=ENCLOSURE_PRESETS.find(p=>p.id===e.target.value);if(preset){onReset?.();onChange(withEnclosurePreset(value,preset));}}}><option value="">{tr("选择围护预设","Choose an enclosure preset")}</option>{ENCLOSURE_PRESETS.map(preset=><option key={preset.id} value={preset.id}>{tr(...preset.label)}</option>)}</select></label>
+      <label>{tr("底座结构预设","Base construction preset")}<select aria-label={tr("底座结构","Base structure")} value={basePreset?.id??""} onChange={e=>{const preset=BASE_PRESETS.find(p=>p.id===e.target.value);if(preset){onReset?.();onChange(withBasePreset(value,preset));}}}><option value="">{tr("自定义底座","Custom base")}</option>{BASE_PRESETS.map(preset=><option key={preset.id} value={preset.id}>{tr(...preset.label)}</option>)}</select></label>
+      <label>{tr("围护结构预设","Enclosure construction preset")}<select aria-label={tr("围护结构","Enclosure")} value={enclosurePreset?.id??""} onChange={e=>{const preset=ENCLOSURE_PRESETS.find(p=>p.id===e.target.value);if(preset){onReset?.();onChange(withEnclosurePreset(value,preset));}}}><option value="">{tr("自定义围护","Custom enclosure")}</option>{ENCLOSURE_PRESETS.map(preset=><option key={preset.id} value={preset.id}>{tr(...preset.label)}</option>)}</select></label>
       <label>{tr("外观材质","Appearance material")}<select aria-label={tr("包装材质","Packaging material")} value={spec.material} onChange={e=>{const material=e.target.value as PackagingSpec["material"];patch({material,color:material==="steel"?"#8797a2":material==="plastic"?"#375467":material==="plywood"?"#ccac7f":"#d4af7b"});}}>{[["wood","实木","Timber"],["plywood","胶合板","Plywood"],["plastic","塑料","Plastic"],["steel","钢材","Steel"]].map(([id,zh,en])=><option key={id} value={id}>{tr(zh,en)}</option>)}</select></label>
       {spec.base!=="solid"&&spec.base!=="corner-feet"&&<><label>{tr("面板根数","Deck boards")}<NumericInput resetToken={resetToken} ariaLabel={tr("面板根数","Deck boards")} value={spec.deckBoards} integer min={2} max={12} onValueChange={v=>patch({deckBoards:v})} onValidityChange={v=>onValidityChange("pallet-build:boards",v)}/></label><label>{tr("底梁排数","Runner rows")}<NumericInput resetToken={resetToken} ariaLabel={tr("底梁排数","Runner rows")} value={spec.runners} integer min={2} max={5} onValueChange={v=>patch({runners:v})} onValidityChange={v=>onValidityChange("pallet-build:runners",v)}/></label></>}
       {inner.crate&&<><label>{tr("围板 / 框架厚度 mm","Wall / frame thickness mm")}<NumericInput resetToken={resetToken} ariaLabel={tr("围板厚度","Wall thickness")} value={spec.wallThickness} min={1} max={200} onValueChange={v=>patch({wallThickness:v})} onValidityChange={v=>onValidityChange("pallet-build:wall",v)}/></label><label className="packaging-check"><input type="checkbox" checked={spec.lid} onChange={e=>patch({lid:e.target.checked})}/>{tr("加装箱盖","Add lid")}</label></>}
@@ -67,7 +85,7 @@ export function PackagingEditor({value,onChange,onValidityChange,resetToken=0,on
     <BottomDeckSettings value={value} onChange={onChange} disabled={invalid}/>
     </details>
     {inner.crate&&<CrateExteriorHeight value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken}/>}
-    <details className="packaging-engineering">
+    <details ref={engineering} className="packaging-engineering" open={missingTare||undefined}>
       <summary>{tr("承重与实测资料","Load ratings and measurements")}</summary>
       <DeckSupportSettings value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken} invalid={invalid}/>
     <ForkInterfaceSettings value={value} onChange={onChange} onValidityChange={onValidityChange} resetToken={resetToken} invalid={invalid}/>
@@ -75,14 +93,13 @@ export function PackagingEditor({value,onChange,onValidityChange,resetToken=0,on
     </details>
     {notice&&<small role="status">{notice}</small>}
     <p className="helper-text">{tr("输入的长宽为外尺寸；原包装自重包含底座、围板和箱盖；新增托内支承件自重另填并自动合计。材质用于显示，额定承重采用实测数据。","Length and width are exterior dimensions. Base tare includes the deck, enclosure and lid; added deck-support mass is entered separately and summed automatically. Material controls appearance; use measured load ratings.")}</p>
-    {error&&<p role="alert">{trText(error)}</p>}
   </section>
   <div className="packaging-preview-column">
-    {preview ? preview(appearance,error?null:<SpaceModelPreview pallet={value} appearanceOnly/>) :
-      <aside className="packaging-preview">{appearance}{!error&&<SpaceModelPreview pallet={value}/>}</aside>}
+    {preview ? preview(appearance,<SpaceModelPreview pallet={shell} appearanceOnly/>) :
+      <aside className="packaging-preview">{appearance}<SpaceModelPreview pallet={shell}/></aside>}
     <dl className="packaging-dimension-summary">
       <div><dt>{inner.crate?tr("木箱外尺寸","Crate exterior"):tr("托盘尺寸","Pallet dimensions")}</dt><dd>{value.length} × {value.width} × {inner.crate?packagingHeight(value):value.height} mm</dd></div>
       {inner.crate&&<div><dt>{tr("内部净尺寸","Clear interior")}</dt><dd>{inner.length} × {inner.width} × {value.maxCargoHeight} mm</dd></div>}
     </dl>
-  </div></div>;
+  </div>{recipe&&<div className="packaging-recipe-wide">{recipe}</div>}</div>;
 }

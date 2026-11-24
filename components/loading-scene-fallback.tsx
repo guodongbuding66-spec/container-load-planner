@@ -1,4 +1,5 @@
 "use client";
+import { markArtworkUrl } from "../lib/packing/shipping-mark-artwork";
 import {palletLoadEnvelope} from "../lib/packing/unit-envelope";
 import type {MeasurementOverlay} from "../lib/packing/saved-measurements";
 import {siteExclusionBoxes} from "../lib/packing/site-exclusions";
@@ -84,14 +85,16 @@ export function LoadingSceneFallback({result,visibleProducts,visibleCount,select
   const labels = [...labelBoxes].sort((a, b) => Number(b.id === selected?.id) - Number(a.id === selected?.id)).slice(0, labelLimit).flatMap(box => {
     const rect = rectFor(box);
     const mark = appearance.labels ? result.cargoDetails?.[box.productId]?.shippingMark : undefined;
-    const lines = markLines(mark?.text ?? (mark?.image ? "" : box.sku));
+    const board = mark?.artwork?.front.elements.length ? mark.artwork.front : mark?.artwork?.side.elements.length ? mark.artwork.side : undefined;
+    const image = board ? markArtworkUrl(board) : mark?.image;
+    const lines = markLines(mark?.text ?? (image ? "" : box.sku));
     const points = silhouettes.get(`${box.productId}/${box.orientation}/${box.orientationSigns?.join("/") ?? ""}`) ?? [[[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]]];
-    const ratio = mark ? MARK_ASPECT : (box.sku.length * 7 + 12) / 20;
+    const ratio = board ? board.width/board.height : mark ? MARK_ASPECT : (box.sku.length * 7 + 12) / 20;
     const label = appearance.labels ? cargoFootprintLabel(points, rectFor(originalBoxes.get(box.id) ?? box), ratio)
       : layoutSceneLabel({x:rect.x+rect.width/2-box.sku.length*3.5,y:rect.y+rect.height/2-9,width:box.sku.length*7+12,height:20},viewport,occupied);
     if (!label || appearance.labels && (label.x < rect.x || label.y < rect.y || label.x + label.width > rect.x + rect.width || label.y + label.height > rect.y + rect.height) || occupied.some(other => labelsOverlap(label, other, appearance.labels ? 0 : 4))) return [];
     occupied.push(label);
-    return [{ id: box.id, lines, image: mark?.image, label }];
+    return [{ id: box.id, lines, image, label }];
   });
   return <div className="scene-fallback"><div ref={host} className="fallback-model-stage"><svg viewBox={`0 0 ${viewport.width} ${viewport.height}`} role="img" aria-label={tr("真实坐标俯视图", "Actual-coordinate top view")} onPointerDown={e=>{if(editor?.enabled&&editor.rectangle){drag.current={x:e.clientX,y:e.clientY,rectangle:true,add:e.shiftKey};e.currentTarget.setPointerCapture(e.pointerId);}}} onPointerUp={e=>{const start=drag.current;drag.current=null;if(!start||!editor)return;const svg=e.currentTarget,matrix=svg.getScreenCTM();if(!matrix)return;const point=svg.createSVGPoint();point.x=start.x;point.y=start.y;const a=point.matrixTransform(matrix.inverse());point.x=e.clientX;point.y=e.clientY;const b=point.matrixTransform(matrix.inverse());const moved=Math.hypot(e.clientX-start.x,e.clientY-start.y)>3;suppressClick.current=true;
       if(start.rectangle){const ids=inspectBoxes(result,visibleProducts,visibleCount,section).filter(box=>{const r=rectFor(box),x=r.x+r.width/2,y=r.y+r.height/2;return x>=Math.min(a.x,b.x)&&x<=Math.max(a.x,b.x)&&y>=Math.min(a.y,b.y)&&y<=Math.max(a.y,b.y);}).map(box=>box.id);editor.selectMany(ids,start.add);}else if(moved){const r=rectFor({x:0,y:0,z:0,dx:100,dy:100,dz:1});editor.move({x:(b.x-a.x)/r.width*100,y:(b.y-a.y)/r.height*100,z:0});}}} onPointerCancel={()=>{drag.current=null;}} onClick={event=>{if(event.target===event.currentTarget&&!editor?.rectangle)onClearSelection?.();}}>

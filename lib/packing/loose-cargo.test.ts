@@ -111,3 +111,32 @@ describe("Explicit complete units and loose cargo",()=>{
   });
 
 });
+
+
+it("allocates an entire kit together while preserving independent loose carton choices",async()=>{
+ const {cargoAllocationGroups,withCargoAllocation}=await import("./loose-cargo");
+ const products=[{...cargo,id:"a",setCode:"KIT",unitsPerSet:2,quantity:20},{...cargo,id:"b",setCode:"KIT",unitsPerSet:1,quantity:10},{...cargo,id:"c",quantity:5}];
+ const groups=cargoAllocationGroups(products);
+ expect(groups.map(g=>[g.key,g.maximum,g.cartonsPerUnit])).toEqual([["kit:KIT",10,3],["sku:c",5,1]]);
+ const mixed=withCargoAllocation({c:5},groups[0].members,3);
+ expect(mixed).toEqual({a:6,b:3,c:5});
+ expect(looseReservationErrors(mixed,products)).toEqual([]);
+ expect(withCargoAllocation(mixed,groups[0].members,0)).toEqual({c:5});
+ expect(()=>withCargoAllocation(mixed,groups[0].members,11)).toThrow();
+ expect(()=>withCargoAllocation(mixed,groups[0].members,1.5)).toThrow();
+});
+
+
+it.each(["practical","maximum"] as const)("loads separate pallet-only and loose-only SKUs with %s",strategy=>{
+ const palletCargo={...cargo,id:"pallet-item",sku:"PALLET-ITEM",quantity:4};
+ const looseCargo={...cargo,id:"loose-item",sku:"LOOSE-ITEM",quantity:2};
+ const plan=run({strategy,products:[palletCargo,looseCargo],palletBuild:{...build,looseQuantities:{"loose-item":2}}});
+ expect(plan.validation.valid).toBe(true);
+ expect(plan.placements.filter(b=>b.productId===palletCargo.id)).toHaveLength(4);
+ expect(plan.placements.filter(b=>b.productId===palletCargo.id).every(b=>b.palletIds?.length===1)).toBe(true);
+ expect(plan.placements.filter(b=>b.productId===looseCargo.id)).toHaveLength(2);
+ expect(plan.placements.filter(b=>b.productId===looseCargo.id).every(b=>!b.palletIds?.length)).toBe(true);
+ expect(plan.metrics.grossWeight).toBe(80);
+ expect(auditPackingResult(plan,[palletCargo,looseCargo]).hasErrors).toBe(false);
+ expect(plan.summaries.every(s=>s.loaded+s.unloaded===s.requested)).toBe(true);
+});

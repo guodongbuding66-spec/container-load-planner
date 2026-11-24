@@ -50,7 +50,7 @@ export function validateBaseMeasurements(length:number,width:number,height:numbe
   }else if(spec.topDeck!=="solid"&&spec.deckBoards*t.deckBoardWidth>width||spec.runners*t.supportWidth>width||t.deckThickness+t.bottomThickness+(spec.base==="block"?t.bearerThickness:0)>=height||spec.base==="block"&&3*t.supportLength>length)throw Error("实测面板、底梁或支承块重叠，或没有有效叉孔高度");
 }
 export const DEFAULT_PACKAGING: PackagingSpec = { base:"block", enclosure:"none", material:"wood", color:"#d4af7b", opacity:1, deckBoards:5, runners:3, wallThickness:30, lid:true };
-export function parsePackaging(value: unknown): PackagingSpec {
+export function parsePackaging(value: unknown, draft=false): PackagingSpec {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid packaging structure");
   const p=value as PackagingSpec;
   if(p.bottomDeck!==undefined&&!["runners","grid","none"].includes(p.bottomDeck)||p.bottomDeck&&p.bottomDeck!=="runners"&&!["block","stringer"].includes(p.base))throw Error("底板结构无效 / Invalid bottom construction");
@@ -64,7 +64,7 @@ export function parsePackaging(value: unknown): PackagingSpec {
     const size=p[field];
     if (size !== undefined && (!Number.isFinite(size) || size < 1 || size > 200)) throw Error("盖板厚度与横档高度须为 1–200 mm / Lid thickness and rail height must be 1–200 mm");
   }
-  return {base:p.base,...(p.assembledBase?{assembledBase:true as const}:{}),...(p.bottomDeck&&p.bottomDeck!=="runners"?{bottomDeck:p.bottomDeck}:{}),...(p.topDeck?{topDeck:p.topDeck}:{}),enclosure:p.enclosure,material:p.material,color:p.color.toLowerCase(),opacity:p.opacity,deckBoards:p.deckBoards,runners:p.runners,wallThickness:p.wallThickness,lid:p.lid,...(p.lidThickness===undefined?{}:{lidThickness:p.lidThickness}),...(p.railCount===undefined?{}:{railCount:p.railCount}),...(p.railHeight===undefined?{}:{railHeight:p.railHeight}),...(p.panelSegments===undefined?{}:{panelSegments:p.panelSegments}),...(p.measurements===undefined?{}:{measurements:parseBaseMeasurements(p.measurements)}),...(p.deckSupports===undefined?{}:{deckSupports:parseDeckSupports(p.deckSupports)})};
+  return {base:p.base,...(p.assembledBase?{assembledBase:true as const}:{}),...(p.bottomDeck&&p.bottomDeck!=="runners"?{bottomDeck:p.bottomDeck}:{}),...(p.topDeck?{topDeck:p.topDeck}:{}),enclosure:p.enclosure,material:p.material,color:p.color.toLowerCase(),opacity:p.opacity,deckBoards:p.deckBoards,runners:p.runners,wallThickness:p.wallThickness,lid:p.lid,...(p.lidThickness===undefined?{}:{lidThickness:p.lidThickness}),...(p.railCount===undefined?{}:{railCount:p.railCount}),...(p.railHeight===undefined?{}:{railHeight:p.railHeight}),...(p.panelSegments===undefined?{}:{panelSegments:p.panelSegments}),...(p.measurements===undefined?{}:{measurements:parseBaseMeasurements(p.measurements)}),...(p.deckSupports===undefined?{}:{deckSupports:parseDeckSupports(p.deckSupports,draft)})};
 }
 function solidBase(spec:PackagingSpec,height:number) {
   return spec.base==="solid"||height<50&&!spec.measurements&&!spec.assembledBase&&spec.base!=="corner-feet"&&(spec.bottomDeck??"runners")==="runners";

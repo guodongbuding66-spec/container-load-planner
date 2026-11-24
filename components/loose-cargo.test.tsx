@@ -1,6 +1,7 @@
 import {renderToStaticMarkup} from "react-dom/server";
 import {afterEach,expect,it,vi} from "vitest";
 import {TransportAppearanceProvider} from "./transport-appearance";
+import {CargoLoadingAllocation} from "./cargo-loading-allocation";
 import {PalletBuildSettings} from "./pallet-build-settings";
 import {PalletManifest} from "./pallet-manifest";
 import {setAppLanguage} from "./language";
@@ -15,13 +16,13 @@ const plan=()=>packLoadingWorkflow({mode:"mixed",workflow:"palletized",strategy:
 afterEach(()=>{vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("zh");vi.unstubAllGlobals();});
 
 it("offers explicit carton reservations with order limits and whole-kit wording",()=>{
-  const html=renderMarkup(<PalletBuildSettings value={value} products={products} only={false} onChange={()=>{}} onValidityChange={()=>{}}/>);
-  expect(html).toContain('aria-label="预留散装箱数 SHED-BOX"');expect(html).toContain("订单箱数");expect(html).toContain("6</small>");expect(html).toContain("不会自动拆托");expect(html).toContain("整托与散箱混装");
+  const html=renderMarkup(<CargoLoadingAllocation value={value.looseQuantities} products={products} onChange={()=>{}} onValidityChange={()=>{}}/>);
+  expect(html).toContain('aria-label="SHED-BOX 散装箱数"');expect(html).toContain("订单箱数");expect(html).toContain("全部散装");expect(html).toContain("全部打托");expect(html).toContain("分别指定数量");
 });
 it("renders the English configuration and loaded loose manifest without Chinese leftovers",()=>{
   vi.stubGlobal("document",{documentElement:{lang:""}});setAppLanguage("en");
-  const html=renderMarkup(<><PalletBuildSettings value={value} products={products} only={false} onChange={()=>{}} onValidityChange={()=>{}}/><PalletManifest result={plan()} products={products}/></>);
-  expect(html).toContain('aria-label="Reserved loose cartons SHED-BOX"');expect(html).toContain("Loose cargo manifest");expect(html).toContain("Loaded on units");expect(html).not.toMatch(/[\u3400-\u9fff]/u);
+  const html=renderMarkup(<><CargoLoadingAllocation value={value.looseQuantities} products={products} onChange={()=>{}} onValidityChange={()=>{}}/><PalletManifest result={plan()} products={products}/></>);
+  expect(html).toContain('aria-label="SHED-BOX loose cartons"');expect(html).toContain("Loose cargo manifest");expect(html).toContain("Loaded on units");expect(html).not.toMatch(/[\u3400-\u9fff]/u);
 });
 it("keeps pallet-only reservations visible with a correction and clear action",()=>{
   const html=renderMarkup(<PalletBuildSettings value={value} products={products} only onChange={()=>{}} onValidityChange={()=>{}}/>);

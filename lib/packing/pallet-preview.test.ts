@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_PALLET_BUILD } from "./loading-workflow";
 import { packLoadingWorkflow } from "./pack-loading";
 import { palletPreviewInput, withPalletPreviewAppearance } from "./pallet-preview";
+import { BASE_PRESETS, ENCLOSURE_PRESETS, withBasePreset, withEnclosurePreset } from "./packaging-presets";
 import { projectionBoxes } from "./plan-projection";
 import { capturePreparedPalletLayout } from "./prepared-pallet-layout";
 import type { PackingRequest, PalletBuildOptions } from "./types";
@@ -26,6 +27,16 @@ describe("live pallet preview", () => {
     expect(palletPreviewInput(request,build)).toBe(palletPreviewInput(request,style));
     expect(palletPreviewInput(request,build)).not.toBe(palletPreviewInput(request,{...build,config:{...build.config,height:100}}));
     expect(palletPreviewInput(request,build)).not.toBe(palletPreviewInput({...request,products:[{...request.products[0],quantity:9}]},build));
+  });
+
+  it("rebuilds the inspected package after base and enclosure presets change",()=>{
+    const base=BASE_PRESETS.find(p=>p.id==="corner-feet")!;
+    const enclosure=ENCLOSURE_PRESETS.find(p=>p.id==="frame-three")!;
+    const config=withEnclosurePreset(withBasePreset(build.config,base),enclosure);
+    const next=JSON.parse(palletPreviewInput(request,{...build,config})) as PackingRequest;
+    const plan=packLoadingWorkflow(next);
+    expect(plan.validation.valid).toBe(true);
+    expect(plan.pallets?.[0].packaging).toMatchObject({base:"corner-feet",enclosure:"frame",railCount:3,lid:false});
   });
 
   it("applies a live finish to the same coordinates and both their solid and orthographic packaging", () => {

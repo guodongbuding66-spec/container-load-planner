@@ -26,7 +26,6 @@ type Preview = { key: string; attempt: number; plan?: PackingResult; error?: str
 export function PalletBuildPreview({request,value,specId,disabled,active=true,appearance,empty,preparedLayout,onPreparedLayoutChange,layerTemplates,onLayerTemplatesChange,onReadyChange}:Props) {
   useLanguage();
   const [preview,setPreview] = useState<Preview>();
-  const [lastPlan,setLastPlan] = useState<PackingResult>();
   const [attempt,setAttempt] = useState(0);
   const [showManifest,setShowManifest] = useState(false);
   const [sampleId,setSampleId] = useState("");
@@ -50,30 +49,31 @@ export function PalletBuildPreview({request,value,specId,disabled,active=true,ap
     if (!input || disabled || !active || matches) return;
     let cancelled = false;
     let worker: Worker | undefined;
+    let deadline: number | undefined;
     const timer = window.setTimeout(() => {
       const publish = (next: Pick<Preview,"plan" | "error">) => {
         if (cancelled) return;
+        window.clearTimeout(deadline);
         worker?.terminate();
         worker = undefined;
         setPreview({key:input,attempt,...next});
-        if (next.plan) setLastPlan(next.plan);
       };
       try {
         const inspection = JSON.parse(input) as PackingRequest;
         const build = inspection.palletBuild!;
         worker = new Worker(new URL("../lib/packing/palletize.worker.ts",import.meta.url),{type:"module"});
         worker.onmessage = e => e.data.ok ? publish({plan:e.data.result.plan}) : publish({error:e.data.error});
-        worker.onerror = () => publish({error:"worker"});
+        worker.onerror = worker.onmessageerror = () => publish({error:"worker"});
+        deadline = window.setTimeout(() => publish({error:"timeout"}),45_000);
         worker.postMessage({request:inspection,config:build.config,mix:build.mix,limit:build.maxPallets,build});
       } catch (error) {
         publish({error:error instanceof Error ? error.message : String(error)});
       }
     }, 260);
-    return () => { cancelled = true; window.clearTimeout(timer); worker?.terminate(); };
+    return () => { cancelled = true; window.clearTimeout(timer); window.clearTimeout(deadline); worker?.terminate(); };
   },[input,attempt,disabled,active,matches]);
   const current = matches ? preview.plan : undefined;
-  const source = current ?? lastPlan;
-  const plan = useMemo(() => source && withPalletPreviewAppearance(source,value), [source,value]);
+  const plan = useMemo(() => current && !disabled ? withPalletPreviewAppearance(current,value) : undefined, [current,disabled,value]);
   // The same immutable placement snapshot feeds inspection, projections and all edit actions.
   const fresh = !!current && !disabled;
   const ready = fresh&&current.validation.valid || !disabled&&issue==="cargo"&&request.workflow==="palletized"&&request.products.some(p=>p.quantity>0);
@@ -91,6 +91,7 @@ export function PalletBuildPreview({request,value,specId,disabled,active=true,ap
     : issue === "cargo" ? tr("在货物清单中添加待打托的箱子。","Add cartons for palletizing in the cargo list.")
     : issue === "stock" ? tr("至少一种包装需要有库存。","Enter stock for at least one packaging specification.")
     : issue ? trText(issue)
+    : error === "timeout" ? tr("托内试排超时。当前显示包装结构，可重试试排。","Layout timed out. The packaging model is visible while you retry.")
     : error === "worker" ? tr("预览生成失败，请重试。","Preview failed. Please retry.")
     : error ? trText(error)
     : !matches ? tr("正在试排托内货物…","Arranging cartons…")
@@ -111,7 +112,7 @@ export function PalletBuildPreview({request,value,specId,disabled,active=true,ap
       <div><dt>{tr("整托数量","Pallets")}</dt><dd>{loadedUnits.size}</dd></div>
       <div><dt>{tr("待打托","Remaining")}</dt><dd>{plan.summaries.reduce((n,s) => n+s.unloaded,0).toLocaleString()} <small>{tr("箱","cartons")}</small></dd></div>
     </dl>}
-    {status && <p className="pallet-build-preview-status" role={error?"alert":"status"}>{status}{plan&&!fresh&&` · ${tr("当前画面为上次布局","Showing the last layout")}`}</p>}
+    {status && <p className="pallet-build-preview-status" role={error?"alert":"status"}>{status}</p>}
     {error && !disabled && <button type="button" className="button small" onClick={()=>setAttempt(v=>v+1)}><RotateCcw size={14}/>{tr("重试预览","Retry preview")}</button>}
     {sample && plan ? <>
       <div className="pallet-preview-selection">
@@ -125,7 +126,7 @@ export function PalletBuildPreview({request,value,specId,disabled,active=true,ap
       {sampleCartons.size>0&&<ul className="pallet-preview-contents" aria-label={tr("当前托内箱型","Cartons on selected pallet")}>
         {[...sampleCartons].map(([sku,count])=><li key={sku}>{sku} <b>× {count}</b></li>)}
       </ul>}
-      {active && !editingId && !showManifest && <PalletUnitPreviewScene result={plan} id={sample.id} actions={appearance} products={stagedProducts}/>}
+      {active && !(editingId && fresh) && !showManifest && <PalletUnitPreviewScene result={plan} id={sample.id} actions={appearance} products={stagedProducts}/>}
       <div className="packaging-preview-actions">
         <button type="button" className="button ghost small" disabled={!fresh} onClick={()=>setShowManifest(true)}><Rows3 size={14}/>{tr("查看打托清单","View pallet manifest")}</button>
         {onPreparedLayoutChange && (!plan.palletization?.oneKitPerPallet||plan.placements.some(box=>!box.setCode)) && <PalletOrderConsolidationButton plan={plan} products={stagedProducts} disabled={!fresh} preparation onAdopt={adopt}/>}

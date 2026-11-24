@@ -130,6 +130,7 @@ import {parseSiteExclusions} from "../lib/packing/site-exclusions";
 import {SiteExclusionSettings} from "./site-exclusion-settings";
 import {VehicleEngineeringReview,VehicleEngineeringSettings} from "./vehicle-engineering";
 import {parseVehicleEngineering} from "../lib/packing/vehicle-engineering";
+import { CargoLoadingAllocation } from "./cargo-loading-allocation";
 import { PalletBuildSettings } from "./pallet-build-settings";
 import {parsePreparedPalletLayout,type PreparedPalletLayout} from "../lib/packing/prepared-pallet-layout";
 import { DEFAULT_PALLET_BUILD, parseLoadingWorkflow, parsePalletBuild } from "../lib/packing/loading-workflow";
@@ -593,7 +594,7 @@ export function PackingApp() {
           };
           setLoadingWorkflow(parseLoadingWorkflow(data.workflow, data.mode));
           if (data.palletLayerTemplates) setPalletLayerTemplates(parsePalletLayerTemplates(data.palletLayerTemplates));
-          if (data.palletBuild) setPalletBuild(parsePalletBuild(data.palletBuild));
+          if (data.palletBuild) setPalletBuild(parsePalletBuild(data.palletBuild,true));
           setPreparedPalletLayout(parsePreparedPalletLayout(data.preparedPalletLayout));
           if (data.floorPallets) setFloorPallets(parseFloorPalletConfig(data.floorPallets));
           if (data.loadingRules) setLoadingRules(parseLoadingRules(data.loadingRules));
@@ -1797,9 +1798,9 @@ export function PackingApp() {
   };
   const changePalletBuild=(next:PalletBuildOptions)=>{
     setPalletBuild(next);
-    if(preparedPalletLayout&&!!next.oneKitPerPallet!==!!palletBuild.oneKitPerPallet){
+    if(preparedPalletLayout&&(!!next.oneKitPerPallet!==!!palletBuild.oneKitPerPallet||JSON.stringify(next.looseQuantities)!==JSON.stringify(palletBuild.looseQuantities))){
       setPreparedPalletLayout(undefined);
-      setMessage(tr("每托套数规则已更改，请重新生成托内布置。","Kit rule changed. Regenerate the pallet layout."));
+      setMessage(tr("货物分配或每托套数已更改，请重新生成托内布置。","Cargo allocation or kit rule changed. Regenerate the pallet layout."));
     }
     markDirty();
   };
@@ -2116,7 +2117,7 @@ export function PackingApp() {
           <article className="stage-mode">
             <h3>{tr("货物怎么装？","How will you load the cargo?")}</h3>
             <div className="loading-workflow-options" role="group" aria-label={tr("装载方式", "Loading workflow")}>
-              {([["palletized","先打托再装柜","Palletize then load","纸箱先装入托盘或木箱","Pack cartons onto pallets or into crates first"],
+              {([["palletized","先打托再装柜","Palletize then load","支持全部打托，也可按货物指定散箱混装","Palletize all cargo or mix pallets with selected loose cartons"],
                 ["direct","散箱直接装柜","Load loose cartons","按订单直接摆放纸箱","Place ordered cartons directly in the container"],
                 ["pallet-only","只打托","Palletize only","计算每托摆放和总托数","Plan pallet contents and total units"],
                 ["single-capacity","单品容量测算","Single-product capacity","估算一个产品最多能装多少","Estimate capacity for one product"]] as const)
@@ -2338,6 +2339,7 @@ export function PackingApp() {
           ) : null}
         </section>
 
+        {workflow==="palletized"&&<CargoLoadingAllocation products={activeProducts} value={palletBuild.looseQuantities} resetToken={numericResetVersion} onValidityChange={setNumericFieldValidity} onChange={looseQuantities=>changePalletBuild({...palletBuild,looseQuantities})}/>}
         </section>}
         {workflowStep===4&&<section className="wizard-page" aria-label={tr("第四步：布置预览","Step 4: Layout preview")}>
           <div className="wizard-page-heading"><div><h2>{isPalletWorkflow?tr("核对托内布置","Review pallet layout"):tr("确认散箱布置","Review loose loading setup")}</h2>
@@ -2446,6 +2448,7 @@ export function PackingApp() {
             <article className="panel"><h3>{tr("货物清单","Cargo manifest")}</h3>
               <strong>{formatNumber(activeProducts.length)} {tr("种箱规","carton types")}{mode==="mixed"&&` · ${formatNumber(activeProducts.reduce((sum,p)=>sum+p.quantity,0))} ${tr("箱","cartons")}`}</strong>
               {setInputSummaries.length>0&&<p>{mode==="mixed"?`${formatNumber(setInputSummaries.reduce((sum,set)=>sum+set.completeSets,0))} ${tr("完整套","complete kits")}`:`${setInputSummaries[0].cartonsPerSet} ${tr("箱/套","cartons per kit")}`}</p>}
+              {workflow==="palletized"&&<p>{tr("待打托","To palletize")} {activeProducts.reduce((sum,p)=>sum+p.quantity-(palletBuild.looseQuantities?.[p.id]??0),0)} · {tr("直接散装","Loose")} {Object.values(palletBuild.looseQuantities??{}).reduce((sum,n)=>sum+n,0)} {tr("箱","cartons")}</p>}
               <button type="button" className="button small" onClick={()=>goToStep(3)}>{tr("修改货物","Edit cargo")}</button></article>
             <article className="panel"><h3>{tr("装载规则","Loading rules")}</h3>
               <strong>{loadingRules.layout==="layers"?tr("逐层摆放","Build in layers"):loadingRules.layout==="deep-first"?tr("从柜内深处开始","Load deep-first"):tr("自动布置","Automatic layout")}</strong>

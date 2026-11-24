@@ -12,6 +12,7 @@ export function parseDeckSupports(value:unknown,draft=false):DeckSupport[]|undef
   if(!raw||typeof raw!=="object"||Array.isArray(raw))return fail();const s=raw as DeckSupport;
   if(typeof s.id!=="string"||!/^[-a-zA-Z0-9_]{1,80}$/.test(s.id)||ids.has(s.id)||typeof s.name!=="string"||!draft&&!s.name.trim()||s.name.length>100)return fail();
   if(![s.x,s.y,s.dx,s.dy,s.dz].every(n=>typeof n==="number"&&Number.isFinite(n)&&n>=0&&n<=100000)||Math.min(s.dx,s.dy,s.dz)<1)return fail();
+  if(!draft&&s.weightKg===null)throw Error(`请填写第 ${ids.size+1} 个托内支承件的新增自重，或确认零自重`);
   if(!(draft&&s.weightKg===null)&&(typeof s.weightKg!=="number"||!Number.isFinite(s.weightKg)||s.weightKg<0||s.weightKg>10000))return fail();
   if(!(s.maxLoadKg===null||typeof s.maxLoadKg==="number"&&Number.isFinite(s.maxLoadKg)&&s.maxLoadKg>=0&&s.maxLoadKg<=100000))return fail();
   if(typeof s.source!=="string"||s.source.length>500||typeof s.revision!=="string"||s.revision.length>120)return fail();

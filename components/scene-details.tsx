@@ -9,11 +9,14 @@ import { createPackagingFinish, createPackagingGeometry } from "../lib/packing/p
 import type { SceneSize } from "../lib/packing/camera-fit";
 import type { PlacedPallet } from "../lib/packing/types";
 import { createSceneLabelMaterial, LABEL_RENDER_ORDER, layoutSceneLabel, sceneLabelFrame, sceneLabelPose } from "../lib/packing/scene-labels";
+import { markArtworkUrl, type MarkFace } from "../lib/packing/shipping-mark-artwork";
 import { MARK_ASPECT, markLines, type ShippingMark } from "../lib/packing/shipping-mark";
 
-export function useShippingMarkCanvas(mark: ShippingMark | undefined, sku: string) {
+export function useShippingMarkCanvas(mark: ShippingMark | undefined, sku: string, face?: MarkFace) {
   const [decoded, setDecoded] = useState<{ src: string; image: HTMLImageElement }>();
-  const source = mark?.image;
+  const board = face && mark?.artwork?.[face];
+  const artwork = useMemo(() => board && board.elements.length > 0 ? markArtworkUrl(board) : undefined, [board]);
+  const source = artwork ?? mark?.image;
   useEffect(() => {
     if (!source) return;
     const image = new Image();
@@ -24,6 +27,14 @@ export function useShippingMarkCanvas(mark: ShippingMark | undefined, sku: strin
   }, [source]);
   return useMemo(() => {
     const image = source && decoded?.src === source ? decoded.image : undefined;
+    if(artwork){
+      if(!image)return;
+      const canvas=document.createElement("canvas");
+      canvas.width=image.naturalWidth;
+      canvas.height=image.naturalHeight;
+      canvas.getContext("2d")!.drawImage(image,0,0);
+      return canvas;
+    }
     if (!mark?.text && !image) return;
     const canvas = document.createElement("canvas");
     canvas.width = 512;
@@ -50,12 +61,12 @@ export function useShippingMarkCanvas(mark: ShippingMark | undefined, sku: strin
       lines.forEach((line, index) => ctx.fillText(line, 256, first + index * lineHeight, 480));
     }
     return canvas;
-  }, [mark?.text, source, decoded, sku]);
+  }, [mark?.text, source, decoded, sku, artwork]);
 }
 
 /** Each face gets a canvas matching its physical aspect, so text never stretches. */
-export function boxFaceTexture(sku: string, color: string, width: number, height: number, options:{up?:string;mark?:HTMLCanvasElement;reduced?:boolean;label?:boolean;seam?:boolean}={}) {
-  const {up,mark,reduced=false,label=true,seam=false}=options;
+export function boxFaceTexture(sku: string, color: string, width: number, height: number, options:{up?:string;mark?:HTMLCanvasElement;markSize?:{width:number;height:number};markTurn?:boolean;reduced?:boolean;label?:boolean;seam?:boolean}={}) {
+  const {up,mark,markSize,markTurn=false,reduced=false,label=true,seam=false}=options;
   const ratio = width / height, longest = reduced?256:1024;
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(8, Math.round(ratio >= 1 ? longest : longest * ratio));
@@ -83,9 +94,16 @@ export function boxFaceTexture(sku: string, color: string, width: number, height
     return texture;
   }
   if (mark) {
-    const scale = Math.min(w * .9 / mark.width, h * .82 / mark.height);
-    const dw = mark.width * scale, dh = mark.height * scale;
-    ctx.drawImage(mark, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    const maxW=markTurn?h:w,maxH=markTurn?w:h;
+    const physicalScale=markSize?(markTurn?h/height:w/width):Infinity;
+    const naturalW=markSize?.width??mark.width,naturalH=markSize?.height??mark.height;
+    const scale=Math.min(maxW*.98/naturalW,maxH*.98/naturalH,markSize?physicalScale:Math.min(w*.9/mark.width,h*.82/mark.height));
+    const dw=naturalW*scale,dh=naturalH*scale;
+    ctx.save();
+    ctx.translate(w/2,h/2);
+    if(markTurn)ctx.rotate(-Math.PI/2);
+    ctx.drawImage(mark,-dw/2,-dh/2,dw,dh);
+    ctx.restore();
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     return texture;

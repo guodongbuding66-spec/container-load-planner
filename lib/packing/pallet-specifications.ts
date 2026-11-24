@@ -28,16 +28,17 @@ export function parsePalletCartonLimit(value: unknown): number | undefined {
   }
   return value;
 }
-export function parsePackagingSpecifications(value: unknown): PalletBuildSpecification[] {
+export function parsePackagingSpecifications(value: unknown, draft=false): PalletBuildSpecification[] {
   if (!Array.isArray(value) || !value.length || value.length > MAX_PACKAGING_SPECIFICATIONS) throw new Error("Use 1–8 packaging specifications / 包装规格须为 1–8 种");
   const specifications = value.map(raw => {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("Invalid packaging specification");
     const s = raw as PalletBuildSpecification;
     if (typeof s.id !== "string" || !/^[a-zA-Z0-9_-]{1,80}$/.test(s.id) || ["__proto__","constructor","prototype"].includes(s.id) || !Number.isInteger(s.stackLayers) || s.stackLayers < 1 || s.stackLayers > 20 || !Number.isFinite(s.maxTopLoadKg) || s.maxTopLoadKg < 0 || s.maxTopLoadKg > 100000) throw new Error("Invalid packaging identifier or stacking rule");
-    assertDeckSupportStacking(parseFloorPalletConfig(s.config),s.stackLayers,s.maxTopLoadKg);
+    const config=parseFloorPalletConfig(s.config,draft);
+    if(!draft)assertDeckSupportStacking(config,s.stackLayers,s.maxTopLoadKg);
     const productIds = parsePackagingSelection(s.productIds);
     const cartonLimit = parsePalletCartonLimit(s.cartonLimit);
-    return { id:s.id, config:{...parseFloorPalletConfig(s.config),count:0,allowFloorCargo:false}, maxPallets:parsePackagingLimit(s.maxPallets), ...(productIds ? {productIds} : {}), ...(cartonLimit === undefined ? {} : {cartonLimit}), stackLayers:s.stackLayers, maxTopLoadKg:s.maxTopLoadKg };
+    return { id:s.id, config:{...config,count:0,allowFloorCargo:false}, maxPallets:parsePackagingLimit(s.maxPallets), ...(productIds ? {productIds} : {}), ...(cartonLimit === undefined ? {} : {cartonLimit}), stackLayers:s.stackLayers, maxTopLoadKg:s.maxTopLoadKg };
   });
   if (new Set(specifications.map(s => s.id)).size !== specifications.length) throw new Error("Duplicate packaging specification / 包装规格标识重复");
   return specifications;

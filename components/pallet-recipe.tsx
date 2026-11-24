@@ -161,7 +161,7 @@ export function PalletRecipe(props:Props) {
       : tr("当前显示已保存的包装。修改每托箱数后，会自动生成新的打托尺寸与堆码预览。","Showing the saved packaging. Changing cartons per pallet automatically generates new dimensions and a stacking preview.")}</p>
     {!canSuggest && !redesigned && <div className="packaging-preview-actions"><button type="button" className="button small" disabled={disabled||!canRedesign||!group} onClick={()=>suggest(String(initialPalletRecipeCartons(request,redesignPalletRecipeSpec(spec))??""))}>{tr("自动推荐每托箱数与尺寸","Suggest carton count and dimensions")}</button></div>}
     {redesigned&&<p role="status">{tr("新打托预览尚未采用。采用后才会替换旧限高和箱数，并保留旧包装资料；新尺寸需重新核对自重、承重和结构。","New pallet preview is not applied yet. Applying replaces the old height and carton limit and retains the old packaging records. Verify tare, payload and structure for the new dimensions.")}</p>}
-    <div className="pallet-recipe-layout"><div className="pallet-recipe-inputs">
+    <div className={`pallet-recipe-layout${preview||errors||key&&!current?"":" pallet-recipe-layout-single"}`}><div className="pallet-recipe-inputs">
     <div className="pallet-build-grid">
       {groups.length > 1 && <label>{tr("预览货物","Preview cargo")}<select value={groupKey} onChange={e=>{setSelected(e.target.value);suggest();}}>
         {groups.map(items => <option key={packagingGroupKey(items[0])} value={packagingGroupKey(items[0])}>{items[0].setCode || items[0].sku}</option>)}
@@ -175,7 +175,13 @@ export function PalletRecipe(props:Props) {
     </div>}
     {!group && <p>{tr("请先添加符合本规格的货物或完整套装。","Add eligible cargo or a complete kit for this specification.")}</p>}
     {initialCartons!==undefined&&<small>{tr("保留你设置的每托箱数，重新建议尺寸；未设置箱数时按余量与承重建议。采用前，装柜结果仍显示原方案。","Your cartons-per-pallet target is retained while dimensions are redesigned. If no count is set, stock and payload suggest one. Loading results remain unchanged until you apply.")}</small>}
-    {group && <small>{group.map(p => `${p.sku} · ${p.length} × ${p.width} × ${p.height} mm`).join(" / ")}</small>}
+    {group&&<div className="pallet-recipe-cartons">
+      <table>
+        <caption>{tr("参与试排的箱型","Cartons in this preview")}</caption>
+        <thead><tr><th scope="col">SKU</th><th scope="col">{tr("长","L")} (mm)</th><th scope="col">{tr("宽","W")} (mm)</th><th scope="col">{tr("高","H")} (mm)</th>{kitCartons>0&&<th scope="col">{tr("箱/套","Per kit")}</th>}</tr></thead>
+        <tbody>{group.map(p=><tr key={p.id}><th scope="row">{p.sku}</th><td>{p.length}</td><td>{p.width}</td><td>{p.height}</td>{kitCartons>0&&<td>{normalizedUnitsPerSet(p)}</td>}</tr>)}</tbody>
+      </table>
+    </div>}
     {cartons!==undefined&&group&&<>
       {request.workflow!=="pallet-only"&&<UnitStackingSettings value={stacking} onChange={setStacking} disabled={disabled} onValidityChange={setStackingValid}/>}
       <label className="pallet-recipe-quantity"><input type="checkbox" checked={automaticQuantity} disabled={disabled} onChange={e=>setAutomaticQuantity(e.target.checked)}/>{tr("按订单生成托盘（本规格与总上限改为 200 托）","Prepare pallets for the order (set this specification and total limits to 200)")}</label>

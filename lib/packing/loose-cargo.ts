@@ -40,3 +40,43 @@ export function looseManifest(plan: PackingResult) {
   for(const b of plan.placements){const entry=counts.get(b.productId)??{loose:0,palletized:0,weightKg:0};if(b.palletIds?.length)entry.palletized++;else{entry.loose++;entry.weightKg+=b.weight;}counts.set(b.productId,entry);}
   return plan.summaries.map(s=>({productId:s.productId,sku:s.sku,reserved:allocation[s.productId]??0,...counts.get(s.productId)??{loose:0,palletized:0,weightKg:0},unloaded:s.unloaded}));
 }
+
+/** One editable allocation row per whole kit or independent carton type. */
+export function cargoAllocationGroups(products: readonly ProductInput[]) {
+  const groups = new Map<string, ProductInput[]>();
+  for (const product of products) {
+    const code = product.setCode?.trim();
+    const key = code ? `kit:${code}` : `sku:${product.id}`;
+    const members = groups.get(key) ?? [];
+    members.push(product);
+    groups.set(key, members);
+  }
+  return [...groups].map(([key, members]) => {
+    const kit = key.startsWith("kit:");
+    const units = (product: ProductInput) => kit ? product.unitsPerSet ?? 1 : 1;
+    return {
+      key, members, kit,
+      label: kit ? members[0].setCode!.trim() : members[0].sku,
+      maximum: Math.min(...members.map(p => Math.floor(p.quantity / units(p)))),
+      cartonsPerUnit: members.reduce((sum, p) => sum + units(p), 0),
+      orderCartons: members.reduce((sum, p) => sum + p.quantity, 0),
+    };
+  });
+}
+
+/** Update all components together while preserving allocations for other products. */
+export function withCargoAllocation(
+  allocation: LooseQuantities | undefined,
+  members: readonly ProductInput[],
+  looseUnits: number,
+): LooseQuantities | undefined {
+  if (!Number.isSafeInteger(looseUnits) || looseUnits < 0) throw Error("Invalid loose allocation");
+  const next = {...allocation};
+  for (const product of members) {
+    const amount = looseUnits * (product.setCode?.trim() ? product.unitsPerSet ?? 1 : 1);
+    if (amount > product.quantity) throw Error("Loose allocation exceeds the order");
+    if (amount) next[product.id] = amount;
+    else delete next[product.id];
+  }
+  return parseLooseQuantities(next);
+}

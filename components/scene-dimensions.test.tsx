@@ -54,6 +54,11 @@ describe("actual scene graph dimensions and selected-carton regression",()=>{
       frame();expect(painted).toContain("L 2200 mm");expect(painted).toContain("W 620 mm");expect(painted).toContain("H 180 mm");
       const hud=store.getState().scene.getObjectByName("scene-dimensions") as THREE.Mesh;
       expect((hud.material as THREE.Material).depthTest).toBe(false);expect(hud.renderOrder).toBeGreaterThan(10000);
+      const shader={vertexShader:"#include <project_vertex>"};
+      (hud.material as THREE.MeshBasicMaterial).onBeforeCompile(shader as THREE.WebGLProgramParametersWithUniforms,renderer);
+      expect(shader.vertexShader).toBe("gl_Position = vec4(position.xy, 0.0, 1.0);");
+      expect(hud.frustumCulled).toBe(false);
+      expect(hud.geometry.getAttribute("position").count).toBe(4);
       // Fiber forwards click events after an OrbitControls drag. A different
       // instance under the pointer must not replace the measured carton.
       const click=store.getState().scene.getObjectsByProperty("isInstancedMesh",true)[0] as THREE.InstancedMesh&{__r3f:{handlers:{onClick:(e:{delta:number;instanceId:number;stopPropagation:()=>void})=>void}}};
@@ -78,7 +83,7 @@ describe("actual scene graph dimensions and selected-carton regression",()=>{
           expect(measures.filter(d=>d.color==="#5522aa").map(d=>d.text)).toContain(`L ${result.container.length} mm`);
           expect(strokes).toContain("#ff6600");expect(strokes).toContain("#b57925");
           for(const d of measures){
-            const projected=new THREE.Vector3(d.x/viewport.width*2-1,1-d.y/viewport.height*2,0).applyMatrix4(hud.matrixWorld).project(activeCamera);
+            const projected=new THREE.Vector3(d.x/viewport.width*2-1,1-d.y/viewport.height*2,0);
             expect((projected.x+1)*viewport.width/2).toBeCloseTo(d.x,5);expect((1-projected.y)*viewport.height/2).toBeCloseTo(d.y,5);
           }
         }
