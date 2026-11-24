@@ -7,3 +7,10 @@
 
 /_next/static/*
   Cache-Control: public, max-age=31556952, immutable
+
+# Preview-only same-origin QA route; remove before release.
+https://codex-cargofit-ui-0953.container-load-planner.pages.dev/layout-qa-app*
+  ! X-Frame-Options
+  X-Frame-Options: SAMEORIGIN
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'
