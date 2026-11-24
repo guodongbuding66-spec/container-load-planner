@@ -67,8 +67,8 @@ export function ModelPreviewFallback({ space, pallet, mode, transparency, showDi
       </defs>}
       {material&&<polygon points={footprint} fill="#554938" opacity=".17" filter={`url(#${id}-contact)`}/>}
       <g opacity={opacity}>{faces.map(f=><g key={f.id}>
-        <polygon data-part={f.name} points={f.points} fill={f.color} stroke={material?"#3b3024":f.color} strokeOpacity={material ? .20 : 1} strokeWidth={material ? .62 : .35}/>
-        {f.texture&&<polygon points={f.points} fill={`url(#${id}${f.id})`}/>}
+        <polygon data-part={f.name} points={f.points} fill={mode==="wireframe"?"none":f.color} stroke={material?"#3b3024":f.color} strokeOpacity={material ? .20 : 1} strokeWidth={material ? .62 : .35}/>
+        {mode!=="wireframe"&&f.texture&&<polygon points={f.points} fill={`url(#${id}${f.id})`}/>}
       </g>)}</g>
       {!pallet&&<g fill="none" stroke="#608995" strokeWidth={mode==="wireframe"?1.5:.7} opacity={mode==="wireframe"?1:.45}>{[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]].map(([a,b])=>{const start=project(corners[a]),end=project(corners[b]);return <line key={`${a}-${b}`} x1={start.x} y1={start.y} x2={end.x} y2={end.y}/>;})}</g>}
       {dimensionsEnabled&&<DimensionSvg dimensions={dimensions} fontSize={appearance.dimensionFontSize} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}

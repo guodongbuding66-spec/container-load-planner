@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { Environment, Lightformer } from "@react-three/drei";
 import { Layers3, PackageOpen, Box } from "lucide-react";
 import { deckSupportHeight, completePackagingTare } from "../lib/packing/deck-support";
-import { packagingHeight, packagingInterior } from "../lib/packing/packaging";
+import { DEFAULT_PACKAGING, packagingHeight, packagingInterior } from "../lib/packing/packaging";
 import { tr, tt, useLanguage } from "./language";
 import type { ContainerSpec, FloorPalletConfig, PlacedPallet } from "../lib/packing/types";
 import type { CameraView, SceneSize } from "../lib/packing/camera-fit";
@@ -43,11 +43,12 @@ function PackagingLighting({ reflective, reduced }: { reflective: boolean; reduc
 }
 
 const subscribe = () => () => {};
-export function SpaceModelPreview({ pallet, space, appearanceOnly = false, compactDimensions = false }: { pallet?: FloorPalletConfig; space?: ContainerSpec; appearanceOnly?: boolean; compactDimensions?: boolean }) {
+export function SpaceModelPreview({ pallet, space, appearanceOnly = false, compactDimensions = false, onPalletChange }: { onPalletChange?:(value:FloorPalletConfig)=>void;pallet?: FloorPalletConfig; space?: ContainerSpec; appearanceOnly?: boolean; compactDimensions?: boolean }) {
   useLanguage();
   const appearance = useTransportAppearance();
   const ready = useSyncExternalStore(subscribe, () => true, () => false);
   const reduced = ready && detectRuntimePolicy().reducedRendering;
+  const [wireframe,setWireframe]=useState(false);
   const [view, setView] = useState<CameraView>("perspective");
   const [inspection, setInspection] = useState<"model"|"base"|"interior">("model");
   const [touchActive, setTouchActive] = useState(false);
@@ -68,8 +69,9 @@ export function SpaceModelPreview({ pallet, space, appearanceOnly = false, compa
   const containerSize=useMemo<SceneSize>(()=>[length*scale,height*scale,width*scale],[length,height,width,scale]);
   const sceneBounds=useMemo(()=>space?transportSceneBounds(space,scale,appearance.mode,0):undefined,[space,scale,appearance.mode]);
   const showDimensions = appearance.dimensions && !appearanceOnly;
+  const updateFinish=(patch:Partial<NonNullable<FloorPalletConfig["packaging"]>>)=>{if(pallet)onPalletChange?.({...pallet,packaging:{...DEFAULT_PACKAGING,...pallet.packaging,...patch}});};
   if (![length,width,height].every(v=>Number.isFinite(v)&&v>0)) return <div className="space-model-preview model-invalid"><p>{tr("填写有效的长、宽、高后显示尺寸模型。")}</p></div>;
-  const fallback = <ModelPreviewFallback space={space} pallet={model} mode={appearance.mode} transparency={appearance.transparency} showDimensions={showDimensions}/>;
+  const fallback = <ModelPreviewFallback space={space} pallet={model} mode={pallet&&wireframe?"wireframe":appearance.mode} transparency={appearance.transparency} showDimensions={showDimensions}/>;
   return <section className="space-model-section" aria-label={tt`${model ? tr("托盘") : tr("装载空间")}三维模型，${length} × ${width} × ${height} mm`}>
     {!model&&<TransportModelControls showDimensions={compactDimensions}/>}
     {(crate||!appearanceOnly&&!compactDimensions)&&<div className="model-preview-controls">
@@ -80,11 +82,19 @@ export function SpaceModelPreview({ pallet, space, appearanceOnly = false, compa
       </div>}
       {!appearanceOnly&&!compactDimensions&&<DimensionControls/>}
     </div>}
+    {pallet&&onPalletChange&&<div className="packaging-appearance-controls">
+      <label>{tr("材质","Material")}<select aria-label={tr("预览包装材质","Preview packaging material")} value={pallet.packaging?.material??"wood"} onChange={e=>updateFinish({material:e.target.value as "wood"|"plywood"|"plastic"|"steel"})}>
+        <option value="wood">{tr("实木","Wood")}</option><option value="plywood">{tr("胶合板","Plywood")}</option><option value="plastic">{tr("塑料","Plastic")}</option><option value="steel">{tr("钢材","Steel")}</option>
+      </select></label>
+      <label>{tr("颜色","Color")}<input type="color" aria-label={tr("包装颜色","Packaging color")} value={pallet.packaging?.color??DEFAULT_PACKAGING.color} onChange={e=>updateFinish({color:e.target.value})}/></label>
+      <label>{tr("不透明度","Opacity")}<input type="range" aria-label={tr("包装不透明度","Packaging opacity")} min={0} max={100} step={5} value={Math.round((pallet.packaging?.opacity??1)*100)} onChange={e=>updateFinish({opacity:Number(e.target.value)/100})}/><output>{Math.round((pallet.packaging?.opacity??1)*100)}%</output></label>
+      <button type="button" className="button small" aria-pressed={wireframe} onClick={()=>setWireframe(v=>!v)}>{tr("线框","Wireframe")}</button>
+    </div>}
     <div className={`space-model-preview${touchActive?" touch-active":""}`}>
       {!ready?<div className="model-invalid">{tr("正在检测三维图形能力…")}</div>:!supportsWebGL()?fallback:<SceneErrorBoundary resetKey={`${length}-${width}-${height}`} fallback={fallback}>
         <Canvas dpr={reduced?1:[1,1.5]} gl={{antialias:!reduced,powerPreference:reduced?"low-power":"high-performance"}} shadows={!!model&&!reduced}>
           <color attach="background" args={["#f2f5f6"]}/>
-          {model?<><PackagingLighting reduced={reduced} reflective={model.packaging?.material==="steel"}/><PalletStructures pallets={base} scale={scale} offset={offset} reduced={reduced}/></>:
+          {model?<><PackagingLighting reduced={reduced} reflective={model.packaging?.material==="steel"}/><PalletStructures pallets={base} scale={scale} offset={offset} reduced={reduced} wireframe={wireframe}/></>:
             space&&<><hemisphereLight color="#edf5fa" groundColor="#8e8272" intensity={1.6}/><directionalLight position={[2,5,4]} intensity={2}/><TransportModel space={space} scale={scale} mode={appearance.mode} transparency={appearance.transparency} reduced={reduced}/></>}
           {showDimensions&&<SceneDimensions bounds={dimensionBounds} values={{L:length,W:width,H:height}} unit={appearance.dimensionUnit} fontSize={appearance.dimensionFontSize} style={appearance.dimensionStyle} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}
           <SceneCameraRig controller={controller} containerSize={containerSize} sceneBounds={sceneBounds} view={view} projection={space?"orthographic":"perspective"} onInteraction={()=>setView("free")} enablePan={false}/>

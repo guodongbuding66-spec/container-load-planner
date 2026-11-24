@@ -107,11 +107,13 @@ export function PalletBuildPreview({request,value,specId,disabled,active=true,ap
       <h3>{title}</h3>
       {preparedLayout && <span>{tr("已采用人工布置","Manual layout applied")}</span>}
     </header>
+    <p className="helper-text">{tr("下方汇总使用全部已保存包装；切换预览托盘只改变查看对象。最终计算继续使用同一批包装和货物规则。","Totals include all saved packaging. Selecting a preview changes only the inspected unit; final calculation uses the same packaging and cargo rules.")}</p>
     {plan && <dl className="live-preview-metrics">
       <div><dt>{tr("已打托","Palletized")}</dt><dd>{plan.metrics.loadedCount.toLocaleString()} <small>{tr("箱","cartons")}</small></dd></div>
       <div><dt>{tr("整托数量","Pallets")}</dt><dd>{loadedUnits.size}</dd></div>
       <div><dt>{tr("待打托","Remaining")}</dt><dd>{plan.summaries.reduce((n,s) => n+s.unloaded,0).toLocaleString()} <small>{tr("箱","cartons")}</small></dd></div>
     </dl>}
+    {plan&&plan.summaries.some(s=>s.unloaded>0)&&<p className="cargo-space-warnings" role="status">{tr("仍有货物未打托","Cargo still awaiting pallets")}: {plan.summaries.filter(s=>s.unloaded>0).map(s=>`${s.sku} × ${s.unloaded}`).join(" · ")}</p>}
     {status && <p className="pallet-build-preview-status" role={error?"alert":"status"}>{status}</p>}
     {error && !disabled && <button type="button" className="button small" onClick={()=>setAttempt(v=>v+1)}><RotateCcw size={14}/>{tr("重试预览","Retry preview")}</button>}
     {sample && plan ? <>

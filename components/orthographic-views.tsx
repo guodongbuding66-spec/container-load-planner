@@ -313,6 +313,7 @@ export function OrthographicViews({
 
   return (
     <div className="projection-grid">
+      {!palletOnly&&<p className="projection-space-note">{tr("图中尺寸为扣减预留间隙后的可用内尺：长、宽各扣两侧间隙，高扣顶部间隙。","Dimensions show usable space after clearance: both ends of length/width and the top of height.")}</p>}
       {views.map((view) => {
         const copy = VIEW_COPY[view.kind];
         const title = view.kind === "door" && palletOnly ? tr("正视图","Front view") : tr(copy.title);

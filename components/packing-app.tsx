@@ -1,4 +1,5 @@
 "use client";
+import {CargoSpaceWarnings} from "./cargo-space-warnings";
 import {issueDeliveryIdentity} from "../lib/packing/delivery-identity";
 import {OrderCapacityTrial} from "./order-capacity-trial";
 import {oneLayerPalletCeilings} from "../lib/packing/pallet-height";
@@ -853,12 +854,11 @@ export function PackingApp() {
   const hasKnownContainer = containerChoices.some((item) => item.id === container.id);
 
   const updateContainer = (field: keyof ContainerSpec, value: number) => {
-    setContainer((current) => ({
-      ...current,
-      id: "custom-draft",
-      name: tr("自定义柜型（未保存）"),
-      [field]: value,
-    }));
+    setContainer(current=>{
+      const next={...current,[field]:value};
+      const match=containerChoices.find(p=>(["length","width","height","doorWidth","doorHeight","maxWeight"] as const).every(k=>p[k]===next[k]) && (p.loadingAccess??"rear")===(next.loadingAccess??"rear") && (p.baseHeight??0)===(next.baseHeight??0));
+      return {...next,id:match?.id??"custom-draft",name:match?.name??tr("自定义柜型（未保存）")};
+    });
     markDirty();
   };
 
@@ -2053,7 +2053,7 @@ export function PackingApp() {
         {showViewer && result && <PlanViewer plans={[result]} exportsBlocked={!canExport} onClose={()=>setShowViewer(false)}/>}
 
         <div className="workspace-flow" hidden={toolsOpen}>
-        <WorkflowSteps current={workflowStep} onSelect={goToStep}/>
+        <WorkflowSteps workflow={workflow} current={workflowStep} onSelect={goToStep}/>
 
         {!toolsOpen && workStatus}
 
@@ -2287,6 +2287,7 @@ export function PackingApp() {
               </div>
             </nav>
           ) : null}
+          {workflow!=="pallet-only"&&<CargoSpaceWarnings products={activeProducts} container={container} clearance={clearance}/>}
           <div className="product-table-wrap" role="region" aria-label={tr("货物清单表格","Cargo manifest table")} tabIndex={0}>
             <table className={`product-table ${showProductRules?"expanded":"compact-cargo-table"}`}>
               <thead><tr><th>{tr("标识")}</th><th className="cargo-sku-heading">SKU</th><th className="cargo-settings-heading">{tr("货物设置", "Cargo settings")}</th><th>{tr("外箱长")}</th><th>{tr("外箱宽")}</th><th>{tr("外箱高")}</th><th>{tr("CBM 自动")}</th><th>{tr("毛重")}</th>{mode === "mixed" ? <th>{tr("需求箱数")}</th> : null}{mode === "mixed" || isSingleProductSet ? <><th>{tr("套装编码")}</th><th>{tr("套内数量")}</th></> : null}{mode === "mixed" && showProductRules ? <><th>{tr("装载优先级")}</th><th>{tr("必装")}</th></> : null}{showProductRules && <><th>{tr("方向规则")}</th><th>{tr("可承托")}</th><th>{tr("必须底置")}</th><th>{tr("层数上限")}</th></>}<th aria-label={tr("操作")} /></tr></thead>
@@ -2480,10 +2481,10 @@ export function PackingApp() {
               />
               <MetricCard icon={<Layers3 size={21} />} label={tr("体积利用率")} value={formatPercent(result.metrics.volumeUtilization)} detail={`${(result.metrics.loadedVolume / 1_000_000_000).toFixed(2)} CBM`} tone="blue" />
               <MetricCard icon={<Weight size={21} />} label={tr("已装毛重")} value={`${formatNumber(result.metrics.grossWeight, 1)} kg`} detail={tt`载重利用 ${formatPercent(result.metrics.weightUtilization)}`} tone="amber" />
-              <MetricCard icon={<ShieldCheck size={21} />} label={tr("方案复核", "Plan review")} value={planReview?.failed ? `${planReview.failed} ${tr("项不通过", "failed")}` : `${planReview?.unverified ?? 0} ${tr("项未核验", "unverified")}`} detail={tr("数据 · 几何 · 承重 · 路径 · 固定", "Data · geometry · bearing · access · securing")} tone={planReview?.failed ? "red" : "amber"} />
+              <MetricCard icon={<ShieldCheck size={21} />} label={tr("方案复核", "Plan review")} value={planReview?.failed ? `${planReview.failed} ${tr("项不通过", "failed")}` : `${planReview?.unverified ?? 0} ${tr("项未核验", "unverified")}`} detail={tr("数据 · 几何 · 承重 · 路径 · 固定", "Data · Geometry · Bearing · Access · Securing")} tone={planReview?.failed ? "red" : "amber"} />
             </div>}
           {result&&<WorkbenchTabs label={tr("装柜结果","Loading results")} value={resultPane} onChange={setResultPane} items={[
-            ["view",tr("装柜预览","Load preview")],["review",tr("装载明细与复核","Breakdown & review")],["exports",tr("清单与导出","Manifests & exports")],
+            ["view",workflow==="pallet-only"?tr("打托预览","Pallet preview"):tr("装柜预览","Load preview")],["review",tr("装载明细与复核","Breakdown & review")],["exports",tr("清单与导出","Manifests & exports")],
           ]}/>}
           <div className="workbench-pane result-view-pane" hidden={!!result&&resultPane!=="view"}>
           {result&&!hasPendingDimensionChanges&&!resultAudit?.hasErrors&&<LoadingShortfall plan={result} products={activeProducts} onDetails={openLoadDiagnosis} onGuide={setGuide}/>}
@@ -2596,7 +2597,7 @@ export function PackingApp() {
         {result ? (
           <section className="result-section">
             <div className="workbench-pane result-review-pane" hidden={resultPane!=="review"}>
-            <div className="result-title"><div><span className="section-kicker">CALCULATED PLAN</span><h2>{tr("方案结果")}</h2></div><span className="run-meta">{resultPlanLimitDisplay !== null
+            <div className="result-title"><div><h2>{tr("方案结果")}</h2></div><span className="run-meta">{resultPlanLimitDisplay !== null
               ? tt`现场计划方案 · ${formatNumber(resultLoadedDisplay)} ${resultDisplayUnit === "set" ? tr("套") : tr("箱")}可执行${resultPlanLimitDisplay !== resultLoadedDisplay ? tt` · 算术上限 ${formatNumber(resultPlanLimitDisplay)} ${resultDisplayUnit === "set" ? tr("套") : tr("箱")}` : ""}`
               : result.strategy === "practical" ? tt`现场可执行上限 · 经验率 ${(result.practicalTargetUtilization * 100).toFixed(1)}%` : tr("高密度启发式结果 · 非最优性证明")}{tr(" · 算法 ")}{result.engineVersion} · {formatNumber(result.metrics.solveTimeMs, 1)} ms</span></div>
             <details className="result-method-details">
@@ -2783,9 +2784,9 @@ export function PackingApp() {
             <button type="button" className="button primary" disabled={workflowStep===4&&isPalletWorkflow&&(!palletPreviewReady||palletRecipePending)}
               onClick={()=>goToStep((workflowStep+1) as WorkflowStep)}>
               {[
-                tr("下一步 · 选包装","Next · Packaging"),
+                isPalletWorkflow?tr("下一步 · 选包装","Next · Packaging"):tr("下一步 · 底托选项","Next · Floor options"),
                 tr("下一步 · 录入货物","Next · Cargo"),
-                tr("下一步 · 布置预览","Next · Layout"),
+                isPalletWorkflow?tr("下一步 · 布置预览","Next · Layout"):tr("下一步 · 散箱布置","Next · Loose layout"),
                 tr("下一步 · 装载规则","Next · Rules"),
                 tr("下一步 · 核对计算","Next · Review"),
               ][workflowStep-1]}<ChevronRight size={17}/>

@@ -60,7 +60,7 @@ export function reviewPlan(plan: PackingResult, products?: readonly ProductInput
           : ["检查货物最终位置直线通过后门及卸货支撑顺序；具体装卸操作由现场安排。", "Checks straight rear-door cargo travel at the final position and unloading support order; on-site teams arrange actual loading operations."],
       model: access.model, pathIssues: access.issues, items: access.issues.map(i => `${i.phase}/${i.id}: ${i.reason}${i.obstacles.length ? " (" + i.obstacles.join(", ") + ")" : ""}`) });
   }
-  add({ id: "securing", state: empty ? "not-applicable" : "unverified", scope: ["尚未建立绑扎、挡木、气袋和制动工况模型，需现场确认固定方案。", "Lashings, blocking, airbags and braking conditions are not modeled; confirm a securing plan on site."], model: "not-modeled", items: [] });
+  add({ id: "securing", state: empty || plan.workflow === "pallet-only" ? "not-applicable" : "unverified", scope: ["尚未建立绑扎、挡木、气袋和制动工况模型，需现场确认固定方案。", "Lashings, blocking, airbags and braking conditions are not modeled; confirm a securing plan on site."], model: "not-modeled", items: [] });
   if(plan.pallets?.some(p=>p.packaging&&p.packaging.enclosure!=="none")){
     const check=checks.find(c=>c.id==="bearing")!;
     check.scope=["箱体静态上压与木箱实际四角传力列均按当前录入额定值核对，资料缺失仍未核验；材料、连接件、柜底局部压力与运输动态载荷未核验。","Carton top loads and actual four-path crate columns use current entered ratings. Missing evidence stays unverified. Material, joints, local floor pressure and transport dynamics are unverified."];

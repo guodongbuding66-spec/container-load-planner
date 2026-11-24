@@ -129,6 +129,7 @@ type StructurePart = PackagingPart & { pallet: PlacedPallet };
 type FinishProps = {
   parts: StructurePart[]; scale: number; offset: THREE.Vector3;
   reduced?: boolean;
+  wireframe?: boolean;
   onSelect?: (p: PlacedPallet) => void;
 };
 function PackagingInstances({ parts, scale, offset, onSelect, geometry, materials, reduced=false }: FinishProps & {
@@ -160,14 +161,14 @@ function PackagingInstances({ parts, scale, offset, onSelect, geometry, material
     onClick={e => { if (e.delta <= 3 && onSelect && e.instanceId !== undefined) { e.stopPropagation(); onSelect(parts[e.instanceId].pallet); } }}/>;
 }
 
-function PackagingFinishGroup({ parts, reduced=false, ...props }: FinishProps) {
+function PackagingFinishGroup({ parts, reduced=false, wireframe=false, ...props }: FinishProps) {
   const material = parts[0].pallet.packaging?.material ?? DEFAULT_PACKAGING.material;
   const opacity = parts[0].pallet.packaging?.opacity ?? 1;
   const finish = useMemo(() => {
-    if(!reduced)return createPackagingFinish(material,opacity);
-    const simple=new THREE.MeshStandardMaterial({roughness:.85,opacity,transparent:opacity<1,depthWrite:opacity===1});
+    if(!reduced){const finish=createPackagingFinish(material,opacity);finish.materials.forEach(m=>m.wireframe=wireframe);return finish;}
+    const simple=new THREE.MeshStandardMaterial({roughness:.85,opacity,transparent:opacity<1,depthWrite:opacity===1,wireframe});
     return {materials:[simple],dispose:()=>simple.dispose()};
-  }, [material, opacity,reduced]);
+  }, [material, opacity,reduced,wireframe]);
   useEffect(() => () => finish.dispose(), [finish]);
   const batches = useMemo(() => {
     if(reduced)return [{key:"box",parts,geometry:new THREE.BoxGeometry()}];

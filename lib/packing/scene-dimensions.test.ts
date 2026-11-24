@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three-stdlib";
 import { SceneCameraController } from "./scene-camera";
 import type { CameraPresetView, CameraProjection } from "./camera-fit";
-import { cameraDimensionProjector, formatDimension, paintDimensions, projectDimensions, sceneMeasurement } from "./scene-dimensions";
+import { visibleDimensionSegments, cameraDimensionProjector, formatDimension, paintDimensions, projectDimensions, sceneMeasurement } from "./scene-dimensions";
 import { labelsOverlap } from "./scene-labels";
 import { TRANSPORT_PRESETS } from "./transport-library";
 import { projectModelPreview } from "./model-preview";
@@ -174,10 +174,23 @@ describe("engineering dimensions attached to actual measured edges",()=>{
     rig.update({containerSize:size,viewport,view:"perspective",projection:"perspective"},controls);
     const project=cameraDimensionProjector(rig.cameras.perspective,viewport),marks=projectDimensions(measurement.bounds,measurement.values,project,viewport,{style:"ruler"});
     const strokes:string[]=[],fills:string[]=[];
-    const ctx={strokeStyle:"",fillStyle:"",beginPath(){},moveTo(){},lineTo(){},stroke(){strokes.push(this.strokeStyle);},strokeText(){},fillText(){fills.push(this.fillStyle);}};
+    const ctx={save(){},restore(){},rect(){},clip(){},strokeStyle:"",fillStyle:"",beginPath(){},moveTo(){},lineTo(){},stroke(){strokes.push(this.strokeStyle);},strokeText(){},fillText(){fills.push(this.fillStyle);}};
     paintDimensions(ctx as unknown as CanvasRenderingContext2D,marks,18,{lineColor:"#ff6600",textColor:"#5522aa"});
     expect(strokes).toEqual(["#ff6600"]);expect(fills.length).toBeGreaterThan(3);expect(new Set(fills)).toEqual(new Set(["#5522aa"]));
     expect(projectDimensions(measurement.bounds,{...measurement.values,L:0},project,viewport,{style:"ruler"})).toEqual([]);
     controls.dispose();
   });
+});
+
+it("cuts rendered line tracks around dimension text while retaining physical measured segments",()=>{
+ const viewport={width:920,height:420},rig=new SceneCameraController(),controls=new OrbitControls(rig.cameras.orthographic);
+ rig.update({containerSize:size,viewport,view:"top",projection:"orthographic"},controls);
+ const marks=projectDimensions(measurement.bounds,measurement.values,cameraDimensionProjector(rig.cameras.orthographic,viewport),viewport,{style:"ruler",fontSize:18});
+ const physical=JSON.stringify(marks.map(d=>d.segments));
+ const lines=visibleDimensionSegments(marks);
+ for(const d of marks)for(const [a,b] of lines)for(let t=0;t<=1;t+=.1){
+  const x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
+  expect(x>d.label.x&&x<d.label.x+d.label.width&&y>d.label.y&&y<d.label.y+d.label.height).toBe(false);
+ }
+ expect(JSON.stringify(marks.map(d=>d.segments))).toBe(physical);controls.dispose();
 });

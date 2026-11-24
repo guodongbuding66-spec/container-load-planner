@@ -1,5 +1,6 @@
 "use client";
 
+import type {LoadingWorkflow} from "../lib/packing/types";
 import { Check } from "lucide-react";
 import { tr, useLanguage } from "./language";
 
@@ -15,8 +16,8 @@ const steps = [
   [7, "查看方案", "Results"],
 ] as const;
 
-export function WorkflowSteps({current,onSelect}:{
-  current:WorkflowStep; onSelect:(step:WorkflowStep)=>void;
+export function WorkflowSteps({current,onSelect,workflow="palletized"}:{
+  workflow?:LoadingWorkflow;current:WorkflowStep; onSelect:(step:WorkflowStep)=>void;
 }) {
   useLanguage();
   return <nav className="wizard-steps" aria-label={tr("装柜计算步骤","Loading workflow")}>
@@ -24,7 +25,7 @@ export function WorkflowSteps({current,onSelect}:{
       className={current===id?"current":id<current?"complete":""} disabled={id>current}
       onClick={()=>onSelect(id)}>
       <span className="wizard-step-number" aria-hidden="true">{id<current?<Check size={15}/>:id}</span>
-      <strong>{tr(label,en)}</strong>
+      <strong>{id===2&&(workflow==="direct"||workflow==="single-capacity")?tr("底托选项","Floor options"):id===4&&(workflow==="direct"||workflow==="single-capacity")?tr("散箱布置","Loose layout"):id===1&&workflow==="pallet-only"?tr("装载方式","Workflow"):tr(label,en)}</strong>
     </button>)}
   </nav>;
 }

@@ -51,17 +51,18 @@ export function usePalletRecipe({request, spec, disabled, onApply, onPendingChan
   const [selected, setSelected] = useState("");
   const [method, setMethod] = useState<PalletRecipeInput["mode"]>(initialCartons !== undefined ? "suggest" : spec.cartonLimit ? "current" : "suggest");
   const [response, setResponse] = useState<{key:string; preview?:PalletRecipePreview; error?:string}>();
-  const groups = palletRecipeGroups(request.products, spec.productIds, request.palletBuild?.looseQuantities);
-  const group = groups.find(items => packagingGroupKey(items[0]) === selected) ?? groups[0];
+  const groups = palletRecipeGroups(request.products, undefined, request.palletBuild?.looseQuantities);
+  const group = groups.find(items => packagingGroupKey(items[0]) === selected) ?? groups.find(items=>items.every(p=>spec.productIds?.includes(p.id))) ?? groups[0];
   const groupKey = group ? packagingGroupKey(group[0]) : "";
   const canSuggest = canSuggestPalletSize(recipeSpec.config);
   const mode = fine ? "current" : method;
-  const archiveBlocked = redesigned && !canRedesign;
+  const needsNewSpec=!!spec.productIds&&!!group&&!group.every(p=>spec.productIds!.includes(p.id))&&!request.palletBuild?.additionalSpecs?.some(s=>s.productIds?.length===group.length&&group.every(p=>s.productIds!.includes(p.id)));
+  const archiveBlocked = (redesigned||needsNewSpec) && !canRedesign;
   const parsed = parseNumericDraft(draft, {integer:true, min:1, max:MAX_CARTONS_PER_PALLET});
   const cartons = parsed.state === "valid" ? parsed.value : undefined;
   const pending = !!stackingDraft || quantityDirty || redesigned || !!fine || cartons !== spec.cartonLimit || draft.trim() !== "" && mode === "suggest" || parsed.state === "invalid";
   const key = !disabled && stackingValid && !fineInvalid && !archiveBlocked && groupKey && cartons !== undefined
-    ? JSON.stringify({request, spec:recipeSpec, groupKey, cartons, mode} satisfies PalletRecipeInput)
+    ? JSON.stringify({request, spec:{...recipeSpec,productIds:group.map(p=>p.id)}, groupKey, cartons, mode} satisfies PalletRecipeInput)
     : "";
   const current = response?.key === key ? response : undefined;
 
@@ -114,7 +115,7 @@ export function usePalletRecipe({request, spec, disabled, onApply, onPendingChan
     const config = mode === "suggest" || fine
       ? {...preview.config, presetId:"carton-sized", name:`${group[0].sku.slice(0, 80)} ${packagingInterior(preview.config).crate ? tr("定制木箱","sized crate") : tr("定制托盘","sized pallet")}`}
       : recipeSpec.config;
-    apply({config, cartonLimit:cartons, ...(automaticQuantity?{automaticQuantity:true}:{}), ...(redesigned?{redesigned:true}:{})});
+    apply({config, productIds:group.map(p=>p.id), cartonLimit:cartons, ...(automaticQuantity?{automaticQuantity:true}:{}), ...(redesigned?{redesigned:true}:{})});
     setRedesigned(false);
     setStacking(undefined);
     setQuantityDirty(false);
@@ -173,6 +174,7 @@ export function PalletRecipe(props:Props) {
     {kitCartons>0&&<div className="packaging-preview-actions">
       <button type="button" className="button small" disabled={disabled||!canSuggest&&!canRedesign} onClick={()=>suggest(String(kitCartons))}>{tr(`按一整套推荐尺寸 · ${kitCartons} 箱`,`Size for one complete kit · ${kitCartons} cartons`)}</button>
     </div>}
+    <p className="helper-text">{tr("采用后按当前产品／完整套装保存独立包装，其他产品的包装继续保留。","Applying saves packaging for this product or complete kit and retains the designs for other cargo.")}</p>
     {!group && <p>{tr("请先添加符合本规格的货物或完整套装。","Add eligible cargo or a complete kit for this specification.")}</p>}
     {initialCartons!==undefined&&<small>{tr("保留你设置的每托箱数，重新建议尺寸；未设置箱数时按余量与承重建议。采用前，装柜结果仍显示原方案。","Your cartons-per-pallet target is retained while dimensions are redesigned. If no count is set, stock and payload suggest one. Loading results remain unchanged until you apply.")}</small>}
     {group&&<div className="pallet-recipe-cartons">

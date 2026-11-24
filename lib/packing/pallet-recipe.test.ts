@@ -203,3 +203,23 @@ describe("pallet recipes", () => {
     expect(()=>parsePalletBuild({...palletBuild,primaryRule:{maxPallets:50,cartonLimit}})).toThrow(/每托箱数/);
   });
 });
+
+it.each(["practical","maximum"] as const)("retains two product-specific pallet recipes with loose cartons in %s",strategy=>{
+ const request={...oneLayerCrateFixture(),strategy},p=request.products[0];
+ request.products=[{...p,id:"shed",sku:"SHED-101",length:1100,width:550,height:120,weight:40,quantity:4,setCode:undefined},
+ {...p,id:"bed",sku:"BED-205",length:600,width:400,height:160,weight:28,quantity:4,setCode:undefined},
+ {...p,id:"parcel",sku:"PARCEL-310",length:300,width:300,height:300,weight:8,quantity:4,setCode:undefined}];
+ let build={...request.palletBuild!,looseQuantities:{parcel:4},additionalSpecs:undefined,primaryRule:undefined};
+ for(const id of ["shed","bed"]){
+  const preview=previewPalletRecipe({request:{...request,palletBuild:build},spec:{...palletSpecifications(build)[0],productIds:[id]},groupKey:`sku:${id}`,cartons:2,mode:"suggest"});
+  expect(preview.placements).toHaveLength(2);
+  build=withPalletRecipe(build,"primary",{config:{...preview.config,name:id},cartonLimit:2,productIds:[id],automaticQuantity:true}) as typeof build;
+ }
+ const specs=palletSpecifications(build);expect(specs).toHaveLength(2);expect(specs.map(s=>s.productIds)).toEqual([["shed"],["bed"]]);
+ const plan=packLoadingWorkflow({...request,palletBuild:parsePalletBuild(build)});
+ expect(plan.validation.valid).toBe(true);expect(plan.metrics.loadedCount).toBe(12);
+ expect(new Set(plan.pallets?.map(p=>p.specificationId)).size).toBe(2);
+ expect(plan.placements.filter(p=>!p.palletIds?.length)).toHaveLength(4);
+ expect(plan.placements.filter(p=>p.palletIds?.length)).toHaveLength(8);
+ expect(plan.pallets).toHaveLength(4);
+});

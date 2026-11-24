@@ -91,7 +91,7 @@ export function markElementSvg(e: MarkElement) {
   if(e.kind==="barcode"){
     const code=code39(e.value);
     if(!code)return "";
-    return `<svg width="${w}" height="${h}" viewBox="0 0 ${code.width} 30" preserveAspectRatio="none"><rect width="100%" height="100%" fill="white"/>${code.bars.map(bar=>`<rect x="${bar.x}" y="0" width="${bar.width}" height="30" fill="black"/>`).join("")}</svg>`;
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${code.width} 40" preserveAspectRatio="none"><rect width="100%" height="100%" fill="white"/>${code.bars.map(bar=>`<rect x="${bar.x}" y="0" width="${bar.width}" height="29" fill="black"/>`).join("")}<text x="${code.width/2}" y="38" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="black">${xml(e.value)}</text></svg>`;
   }
   if(e.kind==="qr"){
     const value=wellFormed(e.value);

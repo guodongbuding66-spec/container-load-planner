@@ -570,3 +570,83 @@ body:has(.cargo-workbench) {
   .mark-inspector { max-height: max(280px,calc(100dvh - 300px)); overflow: auto; }
   .mark-stage-panel { align-self: start; }
 }
+
+/* Keep frequent controls visible and comparable across modes. */
+.cargo-workbench .space-stage-grid.is-pallet-only { grid-template-columns: minmax(0,1fr); }
+.cargo-workbench .space-stage-grid.is-pallet-only .stage-mode { border-top: 0; padding-top: 0; }
+.cargo-workbench .packaging-picker-heading { display: block; margin-bottom: 16px; }
+.cargo-workbench .packaging-picker-heading > label { display: grid; gap: 6px; max-width: 100%; }
+.packaging-picker-options > h3 { margin: 0 0 10px; }
+.packaging-appearance-controls { display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 0; }
+.packaging-appearance-controls label { display:flex;align-items:center;gap:6px;font-size:12px; }
+.packaging-appearance-controls select { max-width:140px;min-height:34px;border:1px solid var(--line);border-radius:5px;padding:4px;background:var(--surface); }
+.packaging-appearance-controls input[type=range] { width:90px; }
+.packaging-appearance-controls input[type=color] { width:30px;height:30px;padding:2px;border:1px solid var(--line); }
+.packaging-policy.loose-reservations { padding:14px;background:var(--surface-soft,#f4f8f8);border-radius:6px; }
+.packaging-policy.loose-reservations h3 { margin:0 0 8px;font-size:14px; }
+.packaging-policy.loose-reservations small { display:block;line-height:1.6; }
+.review-overflow-note { display:block;margin-top:8px; }
+.projection-space-note { grid-column:1 / -1;margin:0;font-size:12px;color:var(--muted); }
+.cargo-space-warnings { padding:12px 16px;margin-bottom:12px;background:#fff8e7;border:1px solid #dfbe75;border-radius:6px;color:#745114; }
+.cargo-space-warnings ul { margin:8px 0;padding-left:20px; }
+.capacity-spreadsheet { min-width:1040px;table-layout:fixed; }
+.capacity-spreadsheet th,.capacity-spreadsheet td { padding:10px 12px!important;border:1px solid var(--line);vertical-align:top;text-align:left;line-height:1.5; }
+.capacity-spreadsheet tbody tr:nth-child(even) { background:#f4f8f8; }
+.capacity-spreadsheet small { display:block;white-space:normal;line-height:1.5;margin-top:4px; }
+.pallet-capacity-diagnostics .record-table { max-height:560px;overflow:auto; }
+@media(min-width:761px) {
+ .cargo-workbench .product-table.compact-cargo-table { min-width:1040px;table-layout:fixed; }
+ .cargo-workbench .product-table.compact-cargo-table th,.cargo-workbench .product-table.compact-cargo-table td { padding:8px 5px;min-width:0;width:auto; }
+ .cargo-workbench .product-table.compact-cargo-table :is(.cargo-sku-cell,.cargo-sku-heading) { width:136px;min-width:0; }
+ .cargo-workbench .product-table.compact-cargo-table :is(.cargo-settings-cell,.cargo-settings-heading) { width:76px;min-width:0; }
+ .cargo-workbench .product-table.compact-cargo-table .cargo-settings-label { display:none; }
+ .cargo-workbench .product-table.compact-cargo-table .cargo-settings-short { display:inline; }
+ .cargo-workbench .product-table.compact-cargo-table :is(td,th):first-child { width:36px; }
+ .cargo-workbench .product-table.compact-cargo-table td input:not([type=checkbox]):not([type=color]) { min-width:0;width:100%!important; }
+ .cargo-workbench .product-table.compact-cargo-table :is(.cargo-row-actions,th:last-child) { position:static;width:64px;min-width:64px;box-shadow:none; }
+ .cargo-workbench .product-table.compact-cargo-table .cargo-row-actions .icon-button { width:26px;min-width:26px; }
+ .cargo-workbench .product-table .cargo-row-actions { position:static; }
+ .cargo-workbench .product-table thead th:last-child { position:static; }
+}
+.order-capacity-trial > details { padding:12px 0;border-bottom:1px solid var(--line); }
+.order-capacity-trial summary { font-weight:650;cursor:pointer; }
+.order-capacity-trial > .upgrade-actions { padding-top:14px; }
+.height-diagnostic-group { margin:14px 0; }
+.height-diagnostic-group h4 { margin:0 0 6px; }
+.order-capacity-trial .upgrade-table-wrap { margin:12px 0; }
+
+.cargo-workbench { --canvas:#f4f6f8;--line:#e2e8f0; }
+body:has(.cargo-workbench) { background:#f4f6f8; }
+.status-badge { display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;white-space:nowrap;font-size:12px;line-height:1.4;font-weight:600; }
+.status-badge-success { background:#e6f4f0;color:#0e544f; }
+.status-badge-warning { background:#fff2d4;color:#785312; }
+.status-badge-danger { background:#fbe9e6;color:#9c382c; }
+.status-badge-neutral { background:#edf1f4;color:#4c5d66; }
+.unit-input { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;border:1px solid var(--line);border-radius:6px;background:var(--surface);min-width:0; }
+.cargo-workbench .unit-input .numeric-input { min-height:36px;width:100%;min-width:0;border:0;box-shadow:none;background:transparent;margin:0; }
+.unit-input:focus-within { outline:2px solid var(--teal);outline-offset:1px; }
+.unit-input:has([aria-invalid=true]) { border-color:#b74032; }
+.unit-input-suffix { padding:0 10px;color:var(--muted);font-size:12px; }
+.unit-input .numeric-error { grid-column:1 / -1;padding:0 8px 6px; }
+.section-card > header { padding:10px 12px;border-bottom:1px solid var(--line);background:#f4f7f8; }
+.section-card > header h3 { margin:0;font-size:14px; }
+.section-card-body { padding:12px; }
+.cargo-workbench .packaging-policy-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:12px; }
+.cargo-workbench .packaging-policy-grid > * { min-width:0;padding:0;background:transparent;border:0;border-radius:0; }
+.cargo-workbench .packaging-policy-grid > details > summary { padding:10px 12px;border-bottom:1px solid var(--line);background:#f4f7f8;min-height:42px; }
+.cargo-workbench .packaging-policy-grid .packaging-policy-body { padding:12px; }
+.excel-data-grid-scroll { max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:6px; }
+.excel-data-grid table { width:100%;min-width:1000px;border-collapse:collapse;font-size:13px; }
+.excel-data-grid th,.excel-data-grid td { padding:10px 12px;border:1px solid var(--line);text-align:left;vertical-align:top;line-height:1.5; }
+.excel-data-grid th { position:sticky;top:0;z-index:1;background:#f1f5f9;font-weight:600; }
+.excel-data-grid .numeric { text-align:right;font-variant-numeric:tabular-nums; }
+.excel-data-grid tbody tr:nth-child(even) { background:#f7f9fa; }
+.excel-data-grid tbody tr:hover { background:var(--teal-soft); }
+.excel-data-grid small { display:block;line-height:1.5;margin-top:4px; }
+.grid-expand { border:0;background:transparent;color:var(--teal);text-align:left;cursor:pointer;font:inherit;font-weight:600;padding:0; }
+.grid-group-toggle,.data-grid-actions { display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:12px 0; }
+.data-grid-actions [role=status] { font-size:12px;color:var(--muted); }
+@media(max-width:900px) { .cargo-workbench .packaging-policy-grid { grid-template-columns:minmax(0,1fr); } }
+@media(min-width:1000px) { .cargo-workbench .wizard-page:has(#products),.cargo-workbench .wizard-page:has(.space-stage-grid),.cargo-workbench .wizard-page:has(.packaging-picker),.cargo-workbench .wizard-page:has(#loading-rules),.cargo-workbench .wizard-page:has(.review-panel) { max-width:1200px;margin-inline:auto; } }
+.packaging-policy-grid .section-card > header { min-height:42px; }
+.packaging-policy-grid .section-card > header h3 { margin:0; }

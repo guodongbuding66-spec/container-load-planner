@@ -62,6 +62,6 @@ export function FloorPalletSettings({config,container,clearance,customSpaces,onS
       <p className="feature-muted">{tr("板块、墩块及叉孔为通用结构示意；承托按平台外包络核验。","Generic deck, block and fork-opening model; support uses the deck envelope.")}</p>
     </section></div> : <p className="no-pallet-note">{tr("直接使用柜内净空，货物 Z = 0 从柜底起算。已有托盘货物的包装总高请在第一步录入，避免重复加高。","Use the vehicle floor. Enter the full outer height of pre-palletized goods in step 1 to avoid adding a second base.")}</p>}
   </>;
-  if(inline)return <article className="panel floor-pallet-panel"><div className="panel-head"><div><span className="section-kicker">PALLET BASE</span><h2>{tr("柜内托盘","Floor pallets")}</h2><p>{tr("可选；启用后同步扣除空间与载重。","Optional; reserve pallet volume and tare when enabled.")}</p></div></div>{content}</article>;
+  if(inline)return <article className="panel floor-pallet-panel"><div className="panel-head"><div><h2>{tr("柜内托盘","Floor pallets")}</h2><p>{tr("可选；启用后同步扣除空间与载重。","Optional; reserve pallet volume and tare when enabled.")}</p></div></div>{content}</article>;
   return <FeatureDialog title={tr("柜内底层托盘","Floor pallets")} subtitle={tr("将托盘放进集装箱或货车，货物坐标随底座同步抬高。","Place physical pallets inside the vehicle.")} onClose={onClose} footer={<><p role={error?"alert":undefined}>{error||tr("保存设置后，在第三步统一计算。","Save settings, then calculate in step 3.")}</p><button className="button" onClick={onClose}>{tr("取消")}</button><button className="button primary" onClick={save}><Check size={16}/>{tr("保存设置","Save settings")}</button></>}>{content}</FeatureDialog>;
 }

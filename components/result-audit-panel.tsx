@@ -43,7 +43,7 @@ export function PlanReviewPanel({report,plan,onLocate}:{report:PlanReview;plan?:
         {showRef(issue.id)} · {issue.phase==="load"?tr("装货","Loading"):tr("卸货","Unloading")} · {tr(...ACCESS_REASONS[issue.reason])}
         {issue.obstacles.length>0&&<small>{tr("关联单元","Related units")} {issue.obstacles.slice(0,4).map((id,index)=><span key={id}>{index>0&&" · "}{showRef(id)}</span>)}{issue.obstacles.length>4&&` +${issue.obstacles.length-4}`}</small>}
       </li>)}</ol>:c.items.length>0&&<small>{c.items.slice(0,8).map((item,i)=><span key={i}>{i>0&&" · "}{showRef(item)}</span>)}</small>}
-      {c.items.length>8&&<small>{tr("仅显示前 8 项","First 8 shown")} · {c.items.length} {tr("条","records")}</small>}
+      {c.items.length>8&&<small className="review-overflow-note">{tr("仅显示前 8 项","First 8 shown")} · {c.items.length} {tr("条","records")}</small>}
     </li>)}</ul>
   </details>;
 }

@@ -1,4 +1,6 @@
 "use client";
+import {UnitInput} from "./ui/unit-input";
+import {SectionCard} from "./ui/section-card";
 import {UnitStackingSettings} from "./unit-stacking-settings";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {looseReservationErrors} from "../lib/packing/loose-cargo";
@@ -58,7 +60,7 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
   ] as const;
   const recipe=request&&!preparedLayout&&<PalletRecipe key={`${current.id}/${resetToken}`} request={request} spec={current}
       disabled={(invalid&&issue!=="height")||draftInvalid}
-      onApply={patch=>onChange(withPalletRecipe(value,current.id,patch))} onPendingChange={recipeValidity}/>;
+      onApply={patch=>{const next=withPalletRecipe(value,current.id,patch);onChange(next);const saved=palletSpecifications(next).find(s=>s.config===patch.config);if(saved)select(saved.id);}} onPendingChange={recipeValidity}/>;
   const spec=current.config.packaging??DEFAULT_PACKAGING;
   const basePreset=BASE_PRESETS.find(preset=>spec.base===preset.base&&
     (spec.bottomDeck??"runners")===(preset.bottomDeck??"runners")&&spec.topDeck===preset.topDeck&&
@@ -80,12 +82,12 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
       </label>
       {chooseOnly&&<section className="packaging-picker"><div className="packaging-picker-options">
         <div className="packaging-picker-heading">
-          <h3>{tr("围护预设","Enclosure presets")}</h3>
           <label>{tr("底座预设","Base preset")}<select aria-label={tr("底座预设","Base preset")} value={basePreset?.id??""} disabled={draftInvalid} onChange={event=>{const preset=BASE_PRESETS.find(item=>item.id===event.target.value);if(preset)update({config:withBasePreset(current.config,preset)});}}>
             <option value="">{tr("现有底座","Current base")}</option>
             {BASE_PRESETS.map(preset=><option key={preset.id} value={preset.id}>{tr(...preset.label)}</option>)}
           </select></label>
         </div>
+        <h3>{tr("围护预设","Enclosure presets")}</h3>
         <div className="packaging-preset-grid" role="group" aria-label={tr("打托包装类型","Packaging enclosure type")}>
           {ENCLOSURE_PRESETS.map(preset=><button type="button" key={preset.id} disabled={draftInvalid}
             aria-pressed={spec.enclosure===preset.enclosure&&(spec.panelSegments??1)===(preset.panelSegments??1)&&(preset.railCount===undefined||packagingRailCount(spec)===preset.railCount)}
@@ -93,7 +95,7 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
             <strong>{tr(...preset.label)}</strong><small>{tr(...preset.description)}</small>
           </button>)}
         </div>
-        </div><SpaceModelPreview pallet={current.config} appearanceOnly/>
+        </div><SpaceModelPreview pallet={current.config} onPalletChange={config=>update({config})}/>
       </section>}
       <details className="package-options">
         <summary>{tr("包装规格与库存","Packaging specifications and stock")}</summary>
@@ -123,12 +125,11 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
             <small>{tr("套装须同时选择全部组成 SKU，至少保留一个适用 SKU。","For kits, select every component SKU together. Select at least one eligible SKU.")}</small>
           </div>
         </details>}
-        {products.length>0&&<section className="packaging-policy loose-reservations">
-          <h3>{tr("整托与散箱混装","Complete units and loose cartons")}</h3>
+        {products.length>0&&<SectionCard className="packaging-policy loose-reservations" title={tr("整托与散箱混装","Complete units and loose cartons")}>
           <p>{tr("直接散装","Loose")} <strong>{Object.values(value.looseQuantities??{}).reduce((n,v)=>n+v,0)}</strong> {tr("箱","cartons")}</p>
           <small>{tr("在上一步「录入货物」按产品设置。当前预览只试排待打托货物，装柜时合并散箱。","Configure each product in the Cargo step. This preview arranges palletized cargo. Loose cartons are included when loading the vehicle.")}</small>
           {only&&value.looseQuantities&&<button type="button" className="button small" onClick={()=>onChange({...value,looseQuantities:undefined})}>{tr("清除散装预留","Clear loose reservations")}</button>}
-        </section>}
+        </SectionCard>}
         {!only&&<details className="packaging-policy saved-stacking-rules">
           <summary>{tr("已采用规格的整托堆叠","Stacking for the saved specification")} <small>{current.config.unitStacking?.enabled||(!current.config.unitStacking&&current.stackLayers>1)?tr("已启用","Enabled"):tr("未启用","Off")}</small></summary>
           <div className="packaging-policy-body">
@@ -144,7 +145,7 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
       recipe={recipe&&<details className="package-options" open={recipePending||undefined}><summary>{value.oneKitPerPallet?tr("推荐一套一托的包装尺寸","Suggest packaging for one kit"):tr("按每托箱数自动配尺寸","Size by cartons per pallet")}</summary>{recipe}</details>}
       preview={request?(appearance,empty)=><PalletBuildPreview request={request} value={value} specId={current.id} active={previewActive} appearance={appearance} empty={empty} disabled={invalid||draftInvalid||recipePending}
         preparedLayout={preparedLayout} onPreparedLayoutChange={onPreparedLayoutChange} layerTemplates={layerTemplates} onLayerTemplatesChange={onLayerTemplatesChange} onReadyChange={onPreviewReady}/>:undefined}>
-    <div className="pallet-build-grid packaging-dimensions" key={`dimensions-${current.id}`}>{fields.map(([key,label,unit,min])=><label key={key}>{label}<div className="pallet-build-number"><NumericInput showError resetToken={resetToken} ariaLabel={label} value={current.config[key]??0} min={min} max={key==="gap"||key==="weight"?10000:100000} precision={1} onValueChange={v=>update({config:{...current.config,[key]:v}})} onValidityChange={valid=>fieldValidity(`pallet-build:${key}`,valid)}/><span>{unit}</span></div>
+    <div className="pallet-build-grid packaging-dimensions" key={`dimensions-${current.id}`}>{fields.map(([key,label,unit,min])=><label key={key}>{label}<UnitInput unit={unit} showError resetToken={resetToken} ariaLabel={label} value={current.config[key]??0} min={min} max={key==="gap"||key==="weight"?10000:100000} precision={1} onValueChange={v=>update({config:{...current.config,[key]:v}})} onValidityChange={valid=>fieldValidity(`pallet-build:${key}`,valid)}/>
       {key==="maxCargoHeight"&&!only&&!crate&&<small>{tr("0 = 按柜内和柜门净高自动","0 = use vehicle and door clearance")}</small>}</label>)}
       {!only&&<label>{tr("托盘方向","Loaded pallet orientation")}<select aria-label={tr("托盘方向","Loaded pallet orientation")} value={current.config.layout} onChange={e=>update({config:{...current.config,layout:e.target.value as PalletBuildOptions["config"]["layout"]}})}><option value="auto">{tr("自动水平旋转","Auto horizontal rotation")}</option><option value="long">{tr("长边沿柜长","Length along vehicle")}</option><option value="cross">{tr("宽边沿柜长","Width along vehicle")}</option></select></label>}
       {!only&&!current.config.unitStacking&&!crate&&!current.config.packaging?.deckSupports?.length&&<><label>{tr("整托堆叠层数","Loaded pallet stack layers")}<NumericInput resetToken={resetToken} ariaLabel={tr("整托堆叠层数","Loaded pallet stack layers")} value={current.stackLayers} integer min={1} max={20} onValueChange={stackLayers=>update({stackLayers})} onValidityChange={valid=>fieldValidity("pallet-build:layers",valid)}/></label><label>{tr("整托可承上压","Loaded pallet top load")}<div className="pallet-build-number"><NumericInput resetToken={resetToken} ariaLabel={tr("整托可承上压","Loaded pallet top load")} value={current.maxTopLoadKg} min={0} max={100000} precision={1} onValueChange={maxTopLoadKg=>update({maxTopLoadKg})} onValidityChange={valid=>fieldValidity("pallet-build:top",valid)}/><span>kg</span></div></label></>}

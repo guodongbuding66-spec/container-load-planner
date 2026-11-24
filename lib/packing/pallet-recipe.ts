@@ -35,7 +35,7 @@ export function canSuggestPalletSize(config: FloorPalletConfig) {
     !config.packaging?.deckSupports?.length && !config.forkInterface && !config.crateBearing;
 }
 
-export type PalletRecipePatch = Partial<Pick<PalletBuildSpecification,"config"|"cartonLimit">> & {redesigned?:boolean;automaticQuantity?:boolean};
+export type PalletRecipePatch = Partial<Pick<PalletBuildSpecification,"config"|"cartonLimit"|"productIds">> & {redesigned?:boolean;automaticQuantity?:boolean};
 
 /** A new design draft, never a claim that the existing measured structure changed. */
 export function redesignPalletRecipeSpec(spec: PalletBuildSpecification): PalletBuildSpecification {
@@ -73,7 +73,20 @@ export function initialPalletRecipeCartons(request: PackingRequest, spec: Pallet
 
 /** Apply the displayed recipe to the selected specification in one transaction. */
 export function withPalletRecipe(build: PalletBuildOptions, id: string, patch: PalletRecipePatch): PalletBuildOptions {
-  const spec = palletSpecifications(build).find(s => s.id === id);
+  const specs = palletSpecifications(build);
+  let spec = specs.find(s => s.id === id);
+  const sameCargo = (ids:readonly string[]|undefined) => !!ids && !!patch.productIds && ids.length===patch.productIds.length && ids.every(id=>patch.productIds!.includes(id));
+  if(patch.productIds && spec?.productIds && !sameCargo(spec.productIds)) {
+    const existing=specs.find(s=>sameCargo(s.productIds));
+    if(existing){spec=existing;id=existing.id;}
+    else {
+      if(specs.length>=MAX_PACKAGING_SPECIFICATIONS)throw new Error("包装规格已达上限 / Packaging specification limit reached");
+      let nextId=`recipe-${id}`;while(specs.some(s=>s.id===nextId))nextId+="-new";
+      const {redesigned,automaticQuantity,...changes}=patch;
+      const next={...spec,...changes,id:nextId,maxPallets:automaticQuantity?200:spec.maxPallets,...(redesigned?{stackLayers:1,maxTopLoadKg:0}:{})};
+      return {...build,maxPallets:patch.automaticQuantity?200:build.maxPallets,additionalSpecs:[...build.additionalSpecs??[],next]};
+    }
+  }
   if (!spec) throw new Error("包装规格已变化，请重新预览 / Packaging specification changed. Preview again");
   const {redesigned, automaticQuantity, ...changes} = patch;
   const next = {...spec, ...changes, ...(automaticQuantity?{maxPallets:200}:{})};

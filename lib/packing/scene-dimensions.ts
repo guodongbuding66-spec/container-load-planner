@@ -55,7 +55,7 @@ export function projectDimensions(bounds: DimensionBounds, values: { L: number; 
       // Distance from the centre alone also selected edges inside the silhouette.
       const exterior=corners.every(p=>nx*(p.x-start.x)+ny*(p.y-start.y)<=.5);
       const padding=(Math.abs(nx)*labelWidth+Math.abs(ny)*labelHeight)/2;
-      const labelCenter={x:mid.x+nx*(gap+padding+5),y:mid.y+ny*(gap+padding+5),depth:0};
+      const labelCenter={x:mid.x+nx*(gap+padding+(options.style==="ruler"?font+12:5)),y:mid.y+ny*(gap+padding+(options.style==="ruler"?font+12:5)),depth:0};
       const desired={x:labelCenter.x-labelWidth/2,y:labelCenter.y-labelHeight/2,width:labelWidth,height:labelHeight};
       const outward=(r:LabelRect)=>nx*(r.x+(nx<0?r.width:0)-start.x)+ny*(r.y+(ny<0?r.height:0)-start.y)>=gap+1;
       const placements=[desired,...[font,font*2].flatMap(step=>[0,-.3,.3].map(slide=>({...desired,x:desired.x+nx*step+dx*slide,y:desired.y+ny*step+dy*slide})))];
@@ -106,7 +106,34 @@ export function projectDimensions(bounds: DimensionBounds, values: { L: number; 
       d.ticks.push({text,label});occupied.push(label);
     }
   }
+  // A diagonal or clamped ruler can cross another axis label. Clip its line
+  // beneath text, and omit tick captions on any track. Keep physical tick positions.
+  const intersects=(r:LabelRect,[a,b]:DimensionSegment)=>{
+    let lo=0,hi=1;const dx=b.x-a.x,dy=b.y-a.y;
+    for(const [p,q] of [[-dx,a.x-r.x],[dx,r.x+r.width-a.x],[-dy,a.y-r.y],[dy,r.y+r.height-a.y]]){
+      if(Math.abs(p)<1e-9){if(q<0)return false;continue;}
+      const t=q/p;if(p<0)lo=Math.max(lo,t);else hi=Math.min(hi,t);if(lo>hi)return false;
+    }return true;
+  };
+  for(const d of result)d.ticks=d.ticks.filter(t=>!result.some(other=>other.segments.some(s=>intersects(t.label,s))));
+
   return result;
+}
+
+
+export function visibleDimensionSegments(dimensions:DimensionAnnotation[]):DimensionSegment[]{
+ const rects=dimensions.flatMap(d=>[d.label,...d.ticks.map(t=>t.label)]).map(r=>({x:r.x-4,y:r.y-3,width:r.width+8,height:r.height+6}));
+ let segments=dimensions.flatMap(d=>d.segments);
+ for(const r of rects)segments=segments.flatMap(segment=>{
+  const [a,b]=segment,dx=b.x-a.x,dy=b.y-a.y;let lo=0,hi=1;
+  for(const [p,q] of [[-dx,a.x-r.x],[dx,r.x+r.width-a.x],[-dy,a.y-r.y],[dy,r.y+r.height-a.y]]){
+   if(Math.abs(p)<1e-9){if(q<0)return [segment];continue;}
+   const t=q/p;if(p<0)lo=Math.max(lo,t);else hi=Math.min(hi,t);if(lo>hi)return [segment];
+  }
+  const at=(t:number)=>({x:a.x+t*dx,y:a.y+t*dy,depth:0});
+  const parts:DimensionSegment[]=[];if(lo>0)parts.push([a,at(lo)]);if(hi<1)parts.push([at(hi),b]);return parts;
+ });
+ return segments;
 }
 
 export function cameraDimensionProjector(camera: THREE.Camera, viewport: {width:number;height:number}) {
@@ -117,7 +144,7 @@ export function cameraDimensionProjector(camera: THREE.Camera, viewport: {width:
 /** No DOM-specific APIs: shared drawing primitives make the GPU overlay testable. */
 export function paintDimensions(ctx: CanvasRenderingContext2D, dimensions: DimensionAnnotation[], fontSize: number, colors: DimensionColors = {}) {
   ctx.lineWidth=1.4;ctx.strokeStyle=colors.lineColor??DIMENSION_LINE_COLOR;ctx.lineCap="round";
-  ctx.beginPath();for(const d of dimensions)for(const [a,b] of d.segments){ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);}ctx.stroke();
+  ctx.beginPath();for(const [a,b] of visibleDimensionSegments(dimensions)){ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);}ctx.stroke();
   ctx.font=`600 ${fontSize}px Arial, sans-serif`;ctx.textAlign="center";ctx.textBaseline="middle";
   for(const d of dimensions)for(const label of [{text:d.text,label:d.label,font:fontSize},...d.ticks.map(t=>({...t,font:Math.max(10,Math.round(fontSize*.65))}))]){
     ctx.font=`600 ${label.font}px Arial, sans-serif`;

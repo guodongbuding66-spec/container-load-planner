@@ -46,3 +46,13 @@ describe("shipping mark artwork",()=>{
     expect(outsideMarkSafeArea({...e,angle:90},board)).toBe(true);
   });
 });
+
+it("renders every uploaded symbol with valid SVG attributes and retains barcode readable text",()=>{
+ for(const symbol of SHIPPING_MARK_SYMBOLS){
+  expect(symbol.paths).not.toMatch(/\s[\w-]+-symbol-clip-(?:path|rule)=/);
+  expect(symbol.paths).toContain('fill="currentColor"');
+ }
+ const svg=markBoardSvg({width:250,height:80,elements:[markElement("barcode","BED-205",150,35)]});
+ expect(svg).toContain('text-anchor="middle"');expect(svg).toContain('>BED-205</text>');
+ expect(SHIPPING_MARK_SYMBOLS[0].viewBox.split(" ").map(Number)[2]).toBeGreaterThan(400);
+});
