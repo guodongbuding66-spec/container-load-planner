@@ -2,6 +2,12 @@ import * as THREE from "three";
 
 export type SceneSize = [number, number, number];
 
+/** Screen-pixel caption rails; never changes the physical model dimensions. */
+export function annotationFitScale(viewport:{width:number;height:number},padding=0){
+ const inset=Math.min(Math.max(0,padding),Math.min(viewport.width,viewport.height)*.28);
+ return Math.max(viewport.width/Math.max(1,viewport.width-inset*2),viewport.height/Math.max(1,viewport.height-inset*2));
+}
+
 export type CameraView = "free" | "perspective" | "top" | "side" | "door" | "bottom" | "rear" | "left";
 export type CameraPresetView = Exclude<CameraView, "free">;
 export type CameraProjection = "perspective" | "orthographic";

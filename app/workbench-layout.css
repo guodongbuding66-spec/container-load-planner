@@ -71,3 +71,7 @@
 .cargo-workbench .cargo-order-link { border:0;padding:2px 0;background:transparent;color:var(--brand-primary);font:inherit;font-size:11px;text-decoration:underline;text-underline-offset:3px;white-space:nowrap;flex:none; }
 .cargo-workbench .cargo-order-link:disabled { color:var(--text-muted);cursor:default; }
 .cargo-workbench .cargo-row-reference .order-row-reference { margin:0; }
+
+.cargo-workbench .workspace-draft-notice { display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:var(--space-block);padding:12px 16px;background:var(--bg-subtle);border-bottom:1px solid var(--border-divider);color:var(--text-secondary);font-size:12px; }
+.cargo-workbench .workspace-draft-notice > div { flex:1 1 260px;min-width:0; }
+.cargo-workbench .workspace-draft-notice p { margin:4px 0 0;color:var(--text-muted);line-height:1.6; }

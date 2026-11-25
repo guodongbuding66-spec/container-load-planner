@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import {
+  annotationFitScale,
   calculateCameraDirectionFit,
   calculateCameraViewFit,
   type CameraFit,
@@ -23,6 +24,7 @@ export type SceneCameraRequest = {
   view: CameraView;
   projection: CameraProjection;
   focus?: { size: SceneSize; origin: SceneSize };
+  annotationPadding?: number;
 };
 
 /** One owner for camera pose and projection; OrbitControls owns subsequent user motion. */
@@ -35,8 +37,8 @@ export class SceneCameraController {
   private previous?: { key: string; boundsKey: string; camera: SceneCamera; controls: CameraControls };
 
   update(request: SceneCameraRequest, controls: CameraControls): boolean {
-    const { containerSize, sceneBounds, viewport, view, projection, focus } = request;
-    const boundsKey = JSON.stringify([containerSize, sceneBounds, viewport.width, viewport.height, projection, focus]);
+    const { containerSize, sceneBounds, viewport, view, projection, focus, annotationPadding=0 } = request;
+    const boundsKey = JSON.stringify([containerSize, sceneBounds, viewport.width, viewport.height, projection, focus,annotationPadding]);
     const key = JSON.stringify([boundsKey, view]);
     const previous = this.previous;
     const camera = this.cameras[projection];
@@ -52,7 +54,9 @@ export class SceneCameraController {
     }
 
     const envelope = focus ?? sceneBounds;
-    const size = envelope?.size ?? containerSize;
+    const originalSize = envelope?.size ?? containerSize;
+    const factor=annotationFitScale(viewport,annotationPadding);
+    const size=originalSize.map(n=>n*factor) as SceneSize;
     let fit: CameraFit;
     if (view === "free" && previous) {
       const direction = previous.camera.position.clone().sub(previous.controls.target).normalize();
@@ -60,11 +64,12 @@ export class SceneCameraController {
     } else {
       fit = calculateCameraViewFit(size, viewport, view === "free" ? "perspective" : view);
     }
-    if (envelope) {
+    if (envelope||factor!==1) {
+      const origin=[...(envelope?.origin??[0,0,0])] as SceneSize;origin[1]+=(originalSize[1]-size[1])/2;
       fit = {
         ...fit,
-        position: fit.position.map((n, i) => n + envelope.origin[i]) as SceneSize,
-        target: fit.target.map((n, i) => n + envelope.origin[i]) as SceneSize,
+        position: fit.position.map((n, i) => n + origin[i]) as SceneSize,
+        target: fit.target.map((n, i) => n + origin[i]) as SceneSize,
       };
     }
 

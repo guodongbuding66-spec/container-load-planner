@@ -1,6 +1,7 @@
 "use client";
 import {ExcelDataGrid} from "./ui/excel-data-grid";
 import {cargoEntryColumns,cargoEntryExportColumns,cargoEntryRows} from "./cargo-entry-columns";
+import {WorkspaceDraftNotice} from "./workspace-draft-notice";
 import {DEMO_PRODUCTS,DEMO_ACCESS,demoPalletBuild,isDemoOrder} from "../lib/packing/demo-order";
 import {CargoSpaceWarnings} from "./cargo-space-warnings";
 import {issueDeliveryIdentity} from "../lib/packing/delivery-identity";
@@ -445,6 +446,7 @@ export function PackingApp() {
   const restoreAttempt = useRef(0);
   const [dirty, setDirty] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [restoredLocalDraft,setRestoredLocalDraft] = useState(false);
   const [visibleProducts, setVisibleProducts] = useState<Set<string>>(new Set());
   const [customContainers, setCustomContainers] = useState<ContainerSpec[]>([]);
   const [showContainerSave, setShowContainerSave] = useState(false);
@@ -620,6 +622,7 @@ export function PackingApp() {
           if (typeof data.targetWeightPercent === "number") setTargetWeightPercent(clampInteger(data.targetWeightPercent, 90, 1, 100));
           if (isLengthUnit(data.lengthUnit)) setLengthUnit(data.lengthUnit);
           if (isWeightUnit(data.weightUnit)) setWeightUnit(data.weightUnit);
+          setRestoredLocalDraft(true);
           setMessage(tr("已恢复本机草稿"));
         }
       } catch {
@@ -1117,6 +1120,7 @@ export function PackingApp() {
   };
 
   const loadSample = () => {
+    setRestoredLocalDraft(false);
     clearActiveCalculation();
     setToolsOpen(false);
     setResultPane("view");
@@ -1149,7 +1153,14 @@ export function PackingApp() {
     scrollTo("workspace", true);
   };
 
+  const requestLoadSample=()=>{
+    restoreAttempt.current+=1;
+    setWorkspaceConfirmation({kind:"sample",apply:loadSample,
+      description:tr("示例会替换当前箱规、柜型、打托设置和计算结果。需要保留当前工作时，可先备份工作区。","The example replaces the carton data, container, pallet settings and plan. Back up the workspace first if you want to keep your current work.")});
+  };
+
   const loadDimensionTest = () => {
+    setRestoredLocalDraft(false);
     setPreparedPalletLayout(undefined);
     setWorkflowStep(1);modePackagingDrafts.current={};setPalletSetupSpec("primary");setFloorPallets(undefined);palletDraftRef.current=null;rulesDraftRef.current=null;
     clearNumericDraftErrors();
@@ -1170,6 +1181,7 @@ export function PackingApp() {
   };
 
   const loadTwoCartonSetTest = () => {
+    setRestoredLocalDraft(false);
     setWorkflowStep(1);modePackagingDrafts.current={};setPalletSetupSpec("primary");setFloorPallets(undefined);palletDraftRef.current=null;rulesDraftRef.current=null;
     clearNumericDraftErrors();
     setPreparedPalletLayout(undefined);
@@ -1191,6 +1203,7 @@ export function PackingApp() {
   };
 
   const loadMultiCartonSetTest = () => {
+    setRestoredLocalDraft(false);
     setWorkflowStep(1);modePackagingDrafts.current={};setPalletSetupSpec("primary");setFloorPallets(undefined);palletDraftRef.current=null;rulesDraftRef.current=null;
     clearNumericDraftErrors();
     setPreparedPalletLayout(undefined);
@@ -1212,6 +1225,7 @@ export function PackingApp() {
   };
 
   const loadRealA64M = () => {
+    setRestoredLocalDraft(false);
     setWorkflowStep(1);modePackagingDrafts.current={};setPalletSetupSpec("primary");setFloorPallets(undefined);palletDraftRef.current=null;rulesDraftRef.current=null;
     clearNumericDraftErrors();
     setMode("single");
@@ -1231,6 +1245,7 @@ export function PackingApp() {
   };
 
   const loadSuppliedRealRecord = (model: string) => {
+    setRestoredLocalDraft(false);
     setWorkflowStep(1);modePackagingDrafts.current={};setPalletSetupSpec("primary");setFloorPallets(undefined);palletDraftRef.current=null;rulesDraftRef.current=null;
     const record = HISTORICAL_LOADING_RECORDS.find((item) => item.models.includes(model));
     if (!record) return;
@@ -1574,6 +1589,7 @@ export function PackingApp() {
       const description=tt`恢复包含 ${restored.products.length} 个箱型的工作区？当前输入将被替换。${restoredPlan ? tr("已保存箱位通过当前规则校验，将一并恢复。") : tr("恢复输入后，请核对配置并重新计算。","After restoring the inputs, review the configuration and calculate again.")}`;
       const apply=()=>{
       if(revision!==inputRevisionRef.current||pendingDimensionChangesRef.current.size>0){setMessage(tr("当前输入已变化，请重新选择需要恢复的工作区。"), "error");return;}
+      setRestoredLocalDraft(false);
       clearActiveCalculation();
       clearNumericDraftErrors();
       palletDraftRef.current = null;
@@ -1819,7 +1835,7 @@ export function PackingApp() {
 
   const downloadExcelTemplate = async () => { setMessage(tr("正在生成 Excel 模板…")); try { const { createSpreadsheetTemplate } = await import("../lib/packing/spreadsheet"); const bytes=await createSpreadsheetTemplate(); const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));const a=document.createElement("a");a.href=url;a.download="CargoFit_products_template.xlsx";document.body.appendChild(a);a.click();a.remove();setMessage(tr("Excel 模板已生成。"), "done");setTimeout(()=>URL.revokeObjectURL(url),10000); } catch(e) {setMessage(e instanceof Error?e.message:tr("Excel 模板导出失败。","The Excel template could not be exported."), "error");} };
   const downloadPdf = async () => { if(!result?.validation.valid||resultAudit?.hasErrors||dirty||hasPendingDimensionChanges)return;setExportingPdf(true);try{const {downloadPdfGuide}=await import("../lib/packing/pdf-guide");await downloadPdfGuide(result,getAppLanguage(),activeProducts);}catch(e){setMessage(e instanceof Error?e.message:tr("PDF 导出失败。","The PDF could not be exported."), "error");}finally{setExportingPdf(false);} };
-  const loadIndustryCase = (example: IndustryCase) => {setToolsOpen(false);setPreparedPalletLayout(undefined);setWorkflowStep(1);modePackagingDrafts.current={};setPalletSetupSpec("primary");palletDraftRef.current=null;rulesDraftRef.current=null;clearNumericDraftErrors();setMode("mixed");setLoadingWorkflow("direct");setContainer({...example.container});setProducts(example.products.map(p=>({...p})));setFloorPallets(undefined);setLoadingRules({...DEFAULT_LOADING_RULES});setClearance(10);setProductPage(0);setAutoCalculate(false);setPracticalTargetPercent(recommendedPracticalTarget(example.container)*100);markDirty();scrollTo("workspace");};
+  const loadIndustryCase = (example: IndustryCase) => {setRestoredLocalDraft(false);setToolsOpen(false);setPreparedPalletLayout(undefined);setWorkflowStep(1);modePackagingDrafts.current={};setPalletSetupSpec("primary");palletDraftRef.current=null;rulesDraftRef.current=null;clearNumericDraftErrors();setMode("mixed");setLoadingWorkflow("direct");setContainer({...example.container});setProducts(example.products.map(p=>({...p})));setFloorPallets(undefined);setLoadingRules({...DEFAULT_LOADING_RULES});setClearance(10);setProductPage(0);setAutoCalculate(false);setPracticalTargetPercent(recommendedPracticalTarget(example.container)*100);markDirty();scrollTo("workspace");};
 
   const receivePalletDraft=useCallback((value:FloorPalletConfig|undefined,invalid:boolean)=>{
     const previous=palletDraftRef.current;
@@ -2018,13 +2034,7 @@ export function PackingApp() {
               onRestore={()=>workspaceInputRef.current?.click()}
               onPrint={printPlan}
               onExport={exportJson}
-              onSample={()=>{
-                restoreAttempt.current += 1;
-                setWorkspaceConfirmation({
-                  kind:"sample", apply:loadSample,
-                  description:tr("示例会替换当前箱规、柜型、打托设置和计算结果。需要保留当前工作时，可先备份工作区。","The example replaces the carton data, container, pallet settings and plan. Back up the workspace first if you want to keep your current work."),
-                });
-              }}
+              onSample={requestLoadSample}
             />
             <input ref={workspaceInputRef} type="file" accept=".json,application/json" aria-label={tr("选择工作区备份文件")} hidden onChange={(event) => {
               const file = event.currentTarget.files?.[0];
@@ -2067,6 +2077,7 @@ export function PackingApp() {
           <div className="wizard-page-heading">
             <div><h2>{tr("选柜型和装载方式","Choose a container and loading method")}</h2><p>{workflow==="pallet-only"?tr("只打托时可直接进入包装设置。","Continue to packaging selection for pallet-only work."):tr("请选择集装箱或车辆，并确认货物是否先打托。","Select a container or vehicle and choose how to prepare the cargo.")}</p></div>
           </div>
+          <WorkspaceDraftNotice visible={restoredLocalDraft&&!demoOrder} cartons={activeProducts.reduce((sum,p)=>sum+p.quantity,0)} demoCartons={DEMO_PRODUCTS.reduce((sum,p)=>sum+p.quantity,0)} disabled={hasPendingDimensionChanges||invalidNumericFields.size>0||status==="working"} onSample={requestLoadSample}/>
           <div className={`space-stage-grid${workflow==="pallet-only"?" is-pallet-only":""}`}>
             <div className="panel space-stage-form"><div id="vehicle-setup" className="vehicle-config" hidden={workflow==="pallet-only"}><article className="panel">
               <div className="panel-head"><h3>{tr("柜型或车辆","Container or vehicle")}</h3><button className="button small space-library-button" onClick={()=>setShowTransport(true)}><Container size={15}/>{tr("装载空间库","Space library")}</button></div>
