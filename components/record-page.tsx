@@ -8,6 +8,7 @@ const normalize=(text:string)=>text.normalize("NFKC").trim().toLowerCase();
 
 export function useRecordPage<T extends {search:string}>(records:T[],size=12,control?:{page:number;onPageChange:(page:number)=>void},resetKey?:string) {
   const [queryState,setQuery]=useState({key:resetKey,value:""});
+  if(queryState.key!==resetKey)setQuery({key:resetKey,value:""});
   const query=queryState.key===resetKey?queryState.value:"";
   const [localPage,setLocalPage]=useState(0);
   const page=control?.page??localPage,setPage=control?.onPageChange??setLocalPage;

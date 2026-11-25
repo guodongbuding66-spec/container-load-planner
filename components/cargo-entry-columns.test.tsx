@@ -15,8 +15,11 @@ it("exports all rows, precise selected units and off-screen rules as typed Excel
  expect(columns.find(c=>c.id==="weight")!.value(rows[0])).toBeCloseTo(42.5/.45359237,9);
  expect(columns.some(c=>c.id==="maxStackLayers")).toBe(true);expect(columns.some(c=>c.id==="mustLoad")).toBe(true);
  expect(gridTsv(headers,values).split("\n")).toHaveLength(rows.length+1);
- const book=new ExcelJS.Workbook();await book.xlsx.load(await gridWorkbook(headers,values) as never);
+ const book=new ExcelJS.Workbook();await book.xlsx.load(await gridWorkbook(headers,values,columns.map(c=>c.numberFormat)) as never);
  const sheet=book.worksheets[0],col=columns.findIndex(c=>c.id==="length")+1;
  expect(sheet.getCell(1,col).value).toContain("(in)");expect(sheet.getCell(2,col).value).toBeCloseTo(2200/25.4,9);expect(sheet.rowCount).toBe(rows.length+1);
+ expect(sheet.getCell(2,col).numFmt).toBe("0.###");
+ expect(sheet.getCell(2,columns.findIndex(c=>c.id==="cbm")+1).numFmt).toBe("0.0000##");
+ expect(sheet.getCell(2,columns.findIndex(c=>c.id==="quantity")+1).numFmt).toBe("0");
  expect(DEMO_PRODUCTS[0].length).toBe(2200);
 });

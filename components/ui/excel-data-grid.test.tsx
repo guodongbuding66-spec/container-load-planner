@@ -10,3 +10,10 @@ it("blocks all spreadsheet actions while a numeric draft is invalid or pending",
  const html=renderToStaticMarkup(<ExcelDataGrid rows={rows} columns={[{id:"quantity",header:"Cartons",value:r=>r.quantity}]} label="Cargo" exportDisabled/>);
  expect((html.match(/<button[^>]*disabled=""/g)??[]).length).toBeGreaterThanOrEqual(2);expect(html).toContain("完成有效输入后即可复制或导出。");
 });
+it("keeps invalid drafts reachable by disabling search and both paging directions",()=>{
+ const html=renderToStaticMarkup(<ExcelDataGrid rows={rows} columns={[{id:"quantity",header:"Cartons",value:r=>r.quantity}]} label="Cargo" pageSize={10} pageIndex={1} onPageChange={()=>{}} navigationDisabled/>);
+ expect(html).toMatch(/type="search" disabled=""/);
+ expect(html).toMatch(/aria-label="上一页" disabled=""/);
+ expect(html).toMatch(/aria-label="下一页" disabled=""/);
+ expect(html).toContain("11–20 / 30");
+});
