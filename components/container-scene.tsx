@@ -395,6 +395,7 @@ export function ContainerScene({
                 controller={cameraController}
                 containerSize={containerSize}
                 sceneBounds={sceneBounds}
+                annotationPadding={appearance.dimensions?appearance.dimensionFontSize*2+16:0}
                 view={cameraView}
                 projection={projectionMode}
                 focus={focus}

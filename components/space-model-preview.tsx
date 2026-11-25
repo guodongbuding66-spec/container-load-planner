@@ -96,7 +96,7 @@ export function SpaceModelPreview({ pallet, space, appearanceOnly = false, compa
           {model?<><PackagingLighting reduced={reduced} reflective={model.packaging?.material==="steel"}/><PalletStructures pallets={base} scale={scale} offset={offset} reduced={reduced} wireframe={wireframe}/></>:
             space&&<><hemisphereLight color="#edf5fa" groundColor="#8e8272" intensity={1.6}/><directionalLight position={[2,5,4]} intensity={2}/><TransportModel space={space} scale={scale} mode={appearance.mode} transparency={appearance.transparency} reduced={reduced}/></>}
           {showDimensions&&<SceneDimensions bounds={dimensionBounds} values={{L:length,W:width,H:height}} unit={appearance.dimensionUnit} fontSize={appearance.dimensionFontSize} style={appearance.dimensionStyle} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}
-          <SceneCameraRig controller={controller} containerSize={containerSize} sceneBounds={sceneBounds} view={view} projection={space?"orthographic":"perspective"} onInteraction={()=>setView("free")} enablePan={false}/>
+          <SceneCameraRig controller={controller} containerSize={containerSize} sceneBounds={sceneBounds} annotationPadding={showDimensions?appearance.dimensionFontSize*2+16:0} view={view} projection={space?"orthographic":"perspective"} onInteraction={()=>setView("free")} enablePan={false}/>
         </Canvas>
       </ViewportRenderer>
     </div>

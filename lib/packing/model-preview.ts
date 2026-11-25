@@ -1,17 +1,19 @@
 import * as THREE from "three";
-import { calculateCameraDirectionFit, type SceneSize } from "./camera-fit";
+import { annotationFitScale, calculateCameraDirectionFit, type SceneSize } from "./camera-fit";
 import { TRANSPORT_COLORS, type TransportPart } from "./transport-model";
 import { packagingFaceUV, type PackagingMaterial } from "./packaging-materials";
 
 /** CPU projection of the same exterior parts, used only when WebGL is unavailable. */
-export function projectModelPreview(parts: TransportPart[], bounds: { size: SceneSize; origin: SceneSize }, direction: SceneSize, width = 520, height = 260, material?: PackagingMaterial) {
+export function projectModelPreview(parts: TransportPart[], bounds: { size: SceneSize; origin: SceneSize }, direction: SceneSize, width = 520, height = 260, material?: PackagingMaterial, annotationPadding=0) {
   const unit = new THREE.Vector3(...direction).normalize();
   const up: SceneSize = Math.abs(unit.y) > .9999 ? [0, 0, -1] : [0, 1, 0];
-  const fit = calculateCameraDirectionFit(bounds.size, { width, height }, direction, up);
+  const factor=annotationFitScale({width,height},annotationPadding);
+  const size=bounds.size.map(n=>n*factor) as SceneSize,origin=new THREE.Vector3(...bounds.origin).add(new THREE.Vector3(0,(bounds.size[1]-size[1])/2,0));
+  const fit = calculateCameraDirectionFit(size, { width, height }, direction, up);
   const camera = new THREE.OrthographicCamera(-fit.orthographicHalfWidth, fit.orthographicHalfWidth, fit.orthographicHalfHeight, -fit.orthographicHalfHeight, fit.near, fit.far);
-  camera.position.fromArray(fit.position).add(new THREE.Vector3(...bounds.origin));
+  camera.position.fromArray(fit.position).add(origin);
   camera.up.fromArray(up);
-  camera.lookAt(new THREE.Vector3(...fit.target).add(new THREE.Vector3(...bounds.origin)));
+  camera.lookAt(new THREE.Vector3(...fit.target).add(origin));
   camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
   const project = (point: SceneSize) => { const p = new THREE.Vector3(...point).project(camera); return { x: (p.x + 1) * width / 2, y: (1 - p.y) * height / 2, depth: p.z }; };
   const faces: { id: string; points: string; color: string; depth: number; name: string; texture?: { end: boolean; transform: string } }[] = [];
