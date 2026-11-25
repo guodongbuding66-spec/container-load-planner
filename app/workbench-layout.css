@@ -75,3 +75,51 @@
 .cargo-workbench .workspace-draft-notice { display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:var(--space-block);padding:12px 16px;background:var(--bg-subtle);border-bottom:1px solid var(--border-divider);color:var(--text-secondary);font-size:12px; }
 .cargo-workbench .workspace-draft-notice > div { flex:1 1 260px;min-width:0; }
 .cargo-workbench .workspace-draft-notice p { margin:4px 0 0;color:var(--text-muted);line-height:1.6; }
+
+/* Packaging policies share one disclosure header, independent of body height. */
+.cargo-workbench .packaging-policy-grid { grid-template-columns:repeat(3,minmax(0,1fr));align-items:start; }
+.cargo-workbench .packaging-policy-grid > .packaging-policy { align-self:start; }
+.cargo-workbench .packaging-policy-grid > .packaging-policy > summary {
+ display:grid;grid-template-columns:16px minmax(0,1fr);align-content:start;align-items:start;gap:4px 6px;
+ min-height:88px;padding:12px;list-style:none;box-sizing:border-box;
+}
+.cargo-workbench .packaging-policy-grid > .packaging-policy > summary::-webkit-details-marker { display:none; }
+.cargo-workbench .packaging-policy-grid > .packaging-policy > summary > svg { grid-column:1;grid-row:1;margin-top:2px; }
+.cargo-workbench .packaging-policy-grid > .packaging-policy[open] > summary > svg { transform:rotate(90deg); }
+.cargo-workbench .packaging-policy-grid > .packaging-policy > summary > span { grid-column:2;min-width:0;min-height:2.9em;line-height:1.45; }
+.cargo-workbench .packaging-policy-grid > .packaging-policy > summary > small { grid-column:2;margin:0;line-height:1.45; }
+.cargo-workbench .packaging-policy-grid > .packaging-policy > summary:focus-visible { outline:2px solid var(--border-focus);outline-offset:2px; }
+
+/* A single tool surface; internal groups use spacing and divider rules. */
+.cargo-workbench .fleet-workspace :is(.fleet-pricing,.fleet-inventory,.tail-economic-preview) {
+ margin:var(--space-section) 0;padding:var(--space-section) 0 0;border:0;border-top:1px solid var(--border-divider);border-radius:0;background:transparent;box-shadow:none;
+}
+.cargo-workbench .fleet-workspace h3 { margin:0 0 12px;font-size:16px;font-weight:650; }
+.cargo-workbench .fleet-workspace .fleet-pricing > label { display:grid;grid-template-columns:minmax(0,180px);gap:6px;justify-content:start; }
+.cargo-workbench .fleet-workspace .fleet-pricing > label > select { width:180px;max-width:100%; }
+.cargo-workbench .fleet-workspace .fleet-packaging-quotes { margin:var(--space-block) 0;gap:var(--space-section); }
+.cargo-workbench .fleet-workspace .fleet-packaging-quotes > div {
+ padding:0;border:0;border-radius:0;background:transparent;gap:8px;
+}
+.cargo-workbench .fleet-workspace .fleet-pricing fieldset { border:0;border-radius:0;padding:0;margin:0; }
+.cargo-workbench .fleet-workspace .fleet-pricing fieldset > legend { padding:0;margin-bottom:6px;font-size:13px;color:var(--text-secondary); }
+.cargo-workbench .fleet-workspace .fleet-pricing .engineering-fields { margin-top:var(--space-block);padding-top:var(--space-block);border-top:1px solid var(--border-divider); }
+.cargo-workbench .fleet-workspace .fleet-pricing > details { border-top:1px solid var(--border-divider);padding-top:12px; }
+.cargo-workbench .fleet-workspace .fleet-pricing > details > summary { min-height:36px;cursor:pointer; }
+.cargo-workbench .fleet-workspace .fleet-container-section { margin:var(--space-section) 0;min-width:0; }
+.cargo-workbench .fleet-workspace .fleet-container-options { margin:0;gap:0 var(--space-section); }
+.cargo-workbench .fleet-workspace .fleet-container-options > div {
+ border:0;border-top:1px solid var(--border-divider);border-radius:0;padding:var(--space-block) 0;background:transparent;gap:12px;
+}
+.cargo-workbench .fleet-workspace .fleet-container-options > div > label:first-child { border:0;padding:0;min-height:24px; }
+.cargo-workbench .fleet-workspace :is(.fleet-optimization-rework,.tail-economic-preview .upgrade-rule-grid > div) { border:0;border-top:1px solid var(--border-divider);border-radius:0;background:transparent;padding:var(--space-block) 0; }
+.cargo-workbench .fleet-workspace .upgrade-body > details { border:0;border-top:1px solid var(--border-divider);border-radius:0;padding:var(--space-block) 0; }
+@media(max-width:900px) {
+ .cargo-workbench .packaging-policy-grid { grid-template-columns:minmax(0,1fr);gap:8px; }
+ .cargo-workbench .packaging-policy-grid > .packaging-policy > summary { min-height:64px; }
+ .cargo-workbench .packaging-policy-grid > .packaging-policy > summary > span { min-height:0; }
+}
+@media(max-width:760px) {
+ .cargo-workbench .fleet-workspace > .upgrade-body { padding:var(--space-block); }
+ .cargo-workbench .fleet-workspace .fleet-container-options { grid-template-columns:minmax(0,1fr); }
+}
