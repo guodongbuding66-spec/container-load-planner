@@ -36,6 +36,7 @@
 .cargo-workbench .cargo-entry-grid .product-table .cargo-rules-row > td { width:auto;padding:var(--space-block);background:var(--bg-subtle); }
 .cargo-workbench .cargo-rules-fields { display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;min-width:0; }
 .cargo-workbench .cargo-rules-fields > strong { grid-column:1 / -1;min-width:0;overflow-wrap:anywhere;font-size:12px;color:var(--text-secondary); }
+.cargo-workbench .set-ratio-list > span { min-width:0;max-width:100%;overflow-wrap:anywhere; }
 .cargo-workbench .cargo-rule-field { display:grid;align-content:start;gap:6px;min-width:0;color:var(--text-secondary);font-size:12px; }
 .cargo-workbench .cargo-rule-field select { width:100%;min-width:0;min-height:36px; }
 .cargo-workbench .cargo-rule-field .switch { min-height:36px; }
