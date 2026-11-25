@@ -154,6 +154,23 @@ describe("scene camera and real OrbitControls transitions", () => {
     orthographicControls.dispose();
   });
 
+  it("reserves caption rails without changing the physical target or resetting a free orbit",()=>{
+    for(const projection of ["perspective","orthographic"] as const){
+      const rig=new SceneCameraController(),camera=rig.cameras[projection],controls=new OrbitControls(camera),viewport={width:320,height:245};
+      const request:SceneCameraRequest={containerSize:size,viewport,view:"perspective",projection};
+      rig.update(request,controls);const distance=camera.position.distanceTo(controls.target),height=rig.cameras.orthographic.top-rig.cameras.orthographic.bottom;
+      rig.update({...request,annotationPadding:52},controls);
+      expect(controls.target.toArray()).toEqual([0,size[1]/2,0]);
+      if(projection==="perspective")expect(camera.position.distanceTo(controls.target)).toBeGreaterThan(distance);
+      else expect(rig.cameras.orthographic.top-rig.cameras.orthographic.bottom).toBeGreaterThan(height);
+      const pose=camera.position.clone();expect(rig.update({...request,annotationPadding:52,view:"free"},controls)).toBe(false);
+      expect(camera.position.distanceTo(pose)).toBeLessThan(1e-8);
+      const projected=[-size[0]/2,size[0]/2].flatMap(x=>[0,size[1]].flatMap(y=>[-size[2]/2,size[2]/2].map(z=>new THREE.Vector3(x,y,z).project(camera))));
+      const fill=Math.max(...projected.flatMap(p=>[Math.abs(p.x),Math.abs(p.y)]));
+      expect(fill).toBeGreaterThan(.3);expect(fill).toBeLessThan(.85);controls.dispose();
+    }
+  });
+
   it("clears residual orbit damping and old zoom when selecting a preset", () => {
     const rig = new SceneCameraController();
     const camera = rig.cameras.orthographic;
