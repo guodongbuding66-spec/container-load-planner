@@ -40,7 +40,10 @@
 .cargo-workbench .cargo-rule-field select { width:100%;min-width:0;min-height:36px; }
 .cargo-workbench .cargo-rule-field .switch { min-height:36px; }
 .cargo-workbench .cargo-rule-field .cell-meta { text-align:left;white-space:normal; }
-@media(max-width:1000px) { .cargo-workbench .cargo-rules-fields { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media(max-width:1000px) {
+ .cargo-workbench .wizard-steps { grid-template-columns:repeat(4,minmax(0,1fr)); }
+ .cargo-workbench .cargo-rules-fields { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
 @media(min-width:761px) and (max-width:1100px) { .cargo-workbench .cargo-entry-grid .product-table { min-width:960px; } }
 @media(max-width:760px) {
  .cargo-workbench .wizard-page-heading h2 { font-size:22px; }
