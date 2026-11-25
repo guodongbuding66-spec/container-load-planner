@@ -1027,6 +1027,8 @@ export function PackingApp() {
   }, [commitPendingDimensions]);
 
   const addProduct = () => {
+    if(hasPendingDimensionChanges||invalidNumericFields.size)return;
+    setProductPage(Math.floor(activeProducts.length/PRODUCT_PAGE_SIZE));
     setProducts((current) => [...current, createProduct(current.length)]);
     markDirty();
   };
@@ -2162,7 +2164,7 @@ export function PackingApp() {
             <div className="panel-actions">
               <input ref={fileInputRef} hidden type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importCsv(file); event.currentTarget.value = ""; }} />
                 <button className="button small" disabled={hasPendingDimensionChanges||invalidNumericFields.size>0} onClick={() => fileInputRef.current?.click()}><Upload size={15} />{tr("导入 CSV / Excel")}</button>
-              {mode === "mixed" && <button className="button small" onClick={addProduct}><Plus size={15} />{tr("添加 SKU")}</button>}
+              {mode === "mixed" && <button className="button small" disabled={hasPendingDimensionChanges||invalidNumericFields.size>0} onClick={addProduct}><Plus size={15} />{tr("添加 SKU")}</button>}
               <details className="product-files-menu" name="order-menus">
                 <summary className="button small"><FileSpreadsheet size={15}/>{tr("表格选项","Spreadsheet options")}</summary>
                 <div className="product-files-panel">
