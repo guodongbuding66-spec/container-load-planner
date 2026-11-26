@@ -1,4 +1,5 @@
 "use client";
+import {ChevronRight} from "lucide-react";
 import {UnitInput} from "./ui/unit-input";
 import {UnitStackingSettings} from "./unit-stacking-settings";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -17,6 +18,9 @@ import type {PalletLayerTemplate} from "../lib/packing/pallet-layer";
 import type { PackingRequest, PalletBuildOptions, PalletBuildSpecification, ProductInput } from "../lib/packing/types";
 import { NumericInput } from "./numeric-input";
 import { tr, useLanguage } from "./language";
+function PackagingPolicySummary({title,status}:{title:string;status:string}){
+  return <summary><ChevronRight size={16} aria-hidden="true"/><span>{title}</span><small>{status}</small></summary>;
+}
 const NO_PRODUCTS:readonly ProductInput[]=[];
 
 type Props={value:PalletBuildOptions;only:boolean;products?:readonly ProductInput[];request?:PackingRequest;
@@ -117,20 +121,20 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
       <summary>{tr("适用货物、混装与整托堆叠","Eligible cargo, loose cartons and stacking")}</summary>
       <div className="packaging-policy-grid">
         {products.length>0&&<details className="packaging-policy packaging-product-selection">
-          <summary>{tr("适用货物","Eligible products")} <small>{current.productIds?`${current.productIds.length} SKU`:tr("全部 SKU","All SKUs")}</small></summary>
+          <PackagingPolicySummary title={tr("适用货物","Eligible products")} status={current.productIds?`${current.productIds.length} SKU`:tr("全部 SKU","All SKUs")}/>
           <div className="packaging-policy-body">
             <label><input type="checkbox" checked={current.productIds===undefined} onChange={e=>update({productIds:e.target.checked?undefined:[products[0].id]})}/>{tr("允许全部货物","Allow all products")}</label>
             <div className="packaging-eligible-list">{products.map(p=><label key={p.id}><input type="checkbox" disabled={current.productIds===undefined} checked={current.productIds===undefined||current.productIds.includes(p.id)} onChange={e=>update({productIds:e.target.checked?[...current.productIds??[],p.id]:current.productIds?.filter(id=>id!==p.id)})}/><span>{p.sku}{p.setCode&&<small> · {p.setCode}</small>}</span></label>)}</div>
             <small>{tr("套装须同时选择全部组成 SKU，至少保留一个适用 SKU。","For kits, select every component SKU together. Select at least one eligible SKU.")}</small>
           </div>
         </details>}
-        {products.length>0&&<details className="packaging-policy loose-reservations"><summary>{tr("整托与散箱混装","Complete units and loose cartons")} <small>{Object.values(value.looseQuantities??{}).reduce((n,v)=>n+v,0)} {tr("箱","cartons")}</small></summary><div className="packaging-policy-body">
+        {products.length>0&&<details className="packaging-policy loose-reservations"><PackagingPolicySummary title={tr("整托与散箱混装","Complete units and loose cartons")} status={`${Object.values(value.looseQuantities??{}).reduce((n,v)=>n+v,0)} ${tr("箱","cartons")}`}/><div className="packaging-policy-body">
           <p>{tr("直接散装","Loose")} <strong>{Object.values(value.looseQuantities??{}).reduce((n,v)=>n+v,0)}</strong> {tr("箱","cartons")}</p>
           <small>{tr("在上一步「录入货物」按产品设置。当前预览只试排待打托货物，装柜时合并散箱。","Configure each product in the Cargo step. This preview arranges palletized cargo. Loose cartons are included when loading the vehicle.")}</small>
           {only&&value.looseQuantities&&<button type="button" className="button small" onClick={()=>onChange({...value,looseQuantities:undefined})}>{tr("清除散装预留","Clear loose reservations")}</button>}
         </div></details>}
         {!only&&<details className="packaging-policy saved-stacking-rules">
-          <summary>{tr("已采用规格的整托堆叠","Stacking for the saved specification")} <small>{current.config.unitStacking?.enabled||(!current.config.unitStacking&&current.stackLayers>1)?tr("已启用","Enabled"):tr("未启用","Off")}</small></summary>
+          <PackagingPolicySummary title={tr("已采用规格的整托堆叠","Stacking for the saved specification")} status={current.config.unitStacking?.enabled||(!current.config.unitStacking&&current.stackLayers>1)?tr("已启用","Enabled"):tr("未启用","Off")}/>
           <div className="packaging-policy-body">
             <UnitStackingSettings key={`${current.id}-${resetToken}`} value={current.config.unitStacking} onChange={unitStacking=>update({config:{...current.config,unitStacking}})} onValidityChange={valid=>fieldValidity("pallet-build:unit-stacking",valid)}/>
           </div>
