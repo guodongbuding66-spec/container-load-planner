@@ -1,14 +1,32 @@
 import { ENGLISH } from "./ui-language";
+import {
+  getLanguageMeta,
+  isUiLanguage,
+  SUPPORTED_LANGUAGES,
+  translateLocaleFromEnglish,
+  type LanguageOption,
+  type UiLanguage,
+} from "./ui-locales";
 
-export type UiLanguage = "zh" | "en";
+export { getLanguageMeta, isUiLanguage, SUPPORTED_LANGUAGES, type LanguageOption, type UiLanguage };
 
 export function translateUi(value: string, language: UiLanguage, english?: string): string {
-  if (language !== "en") return value;
-  if (english !== undefined) return english;
+  if (language === "zh") return value;
   const trimmed = value.trim();
-  const translated = ENGLISH[trimmed];
-  if (translated === undefined) return value;
-  return value.replace(trimmed, translated);
+  const englishResolved = english !== undefined ? english : ENGLISH[trimmed];
+  if (language === "en") {
+    if (english !== undefined) return english;
+    if (englishResolved === undefined) return value;
+    return value.replace(trimmed, englishResolved);
+  }
+  const canonicalEn = (englishResolved ?? trimmed).trim();
+  const localized = translateLocaleFromEnglish(canonicalEn, language);
+  if (localized !== undefined) {
+    return trimmed && value !== trimmed ? value.replace(trimmed, localized) : localized;
+  }
+  if (english !== undefined) return english;
+  if (englishResolved !== undefined) return value.replace(trimmed, englishResolved);
+  return value;
 }
 
 /** Translate the sentence, preserving interpolated numbers, SKUs and user data. */
@@ -35,12 +53,13 @@ const diagnosticPatterns = Object.entries(ENGLISH)
 export function translateDiagnostic(value: string, language: UiLanguage, depth = 0): string {
   if (language === "zh" && value === "Cargo exceeds its loose or palletized allocation / 箱数超过散装或打托分配") return "箱数超过散装或打托分配";
   const exact = translateUi(value, language);
-  if (language !== "en" || exact !== value || !/[\u3400-\u9fff]/.test(value) || depth > 3) return exact;
+  if (language === "zh" || exact !== value || !/[\u3400-\u9fff]/.test(value) || depth > 3) return exact;
   for (const { pattern, english, indices } of diagnosticPatterns) {
     const match = pattern.exec(value);
     if (!match) continue;
     const values = new Map(indices.map((index, i) => [index, translateDiagnostic(match[i + 1], language, depth + 1)]));
-    return english.replace(/\{(\d+)\}/g, (token, index: string) => values.get(Number(index)) ?? token);
+    const localizedTemplate = translateLocaleFromEnglish(english, language) ?? english;
+    return localizedTemplate.replace(/\{(\d+)\}/g, (token, index: string) => values.get(Number(index)) ?? token);
   }
   return value;
 }

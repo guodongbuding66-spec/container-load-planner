@@ -22,6 +22,9 @@ export const TRANSPORT_PRESETS: ContainerSpec[] = [
   spec("truck-9.6", "9.6 米货车", "truck", 9600, 2450, 2500, 18000),
   spec("truck-13", "13 米半挂车", "truck", 13000, 2500, 2500, 30000),
   spec("truck-17.5", "17.5 米平板车", "truck", 17500, 2500, 2500, 30000, "open"),
+  spec("us-53-dryvan", "北美 53 尺厢式挂车 (US 53' Dry Van)", "truck", 16002, 2489, 2743, 20400),
+  spec("eu-13.6-mega", "欧洲 13.6 米高容挂车 (EU Mega Trailer)", "truck", 13600, 2480, 3000, 24000),
+  spec("air-ld3-ake", "航空集装箱 LD3 (AKE)", "container", 1534, 1562, 1626, 1588),
   ...([ ["eur1", "EUR 1", 1200, 800], ["eur2", "EUR 2", 1200, 1000], ["gma", "GMA", 1219, 1016], ["asia", "亚洲托盘", 1100, 1100], ["iso", "ISO 托盘", 1067, 1067], ["au", "澳洲托盘", 1165, 1165], ["square", "方形托盘", 1200, 1200], ["half", "半托盘", 800, 600] ] as const).map(([id, name, l, w]) => spec(`pallet-${id}`, name, "pallet", l, w, id === "half" ? 1200 : 1800, 1500, "open", 144)),
   ...([ ["pag", "PAG 88 × 125", 3175, 2235], ["pmc", "PMC 96 × 125", 3175, 2438], ["pla", "PLA 60.4 × 125", 3175, 1534], ["88-108", "ULD 88 × 108", 2743, 2235], ["60-96", "ULD 60.4 × 96", 2438, 1534], ["47-60", "ULD 47 × 60.4", 1534, 1194] ] as const).map(([id, name, l, w]) => spec(`pallet-${id}`, name, "pallet", l, w, 1600, 3000, "open", 25)),
 ];

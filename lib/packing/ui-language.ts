@@ -650,7 +650,7 @@ export const ENGLISH: Record<string, string> = {
   "外贸报价 · 拼柜计划 · 三维复核": "Quotes · Mixed loads · 3D review",
   "草稿未能保存": "Draft could not be saved",
   "尺寸录入中 · 尚未提交": "Entering dimensions · Not submitted",
-  "草稿自动保存 · 待重算": "Draft saved · Recalculation pending",
+  "草稿自动保存 · 待重算": "Draft · Recalc",
   "文件与备份": "Files and backups",
   "导出当前方案": "Export current plan",
   "备份工作区": "Back up workspace",

@@ -1,3 +1,4 @@
+import {usableCargoLength} from "./site-exclusions";
 import {declaredUnitStacking,declaredStackLayers,declaredTopLoad,openUnitLayers} from "./unit-stacking";
 import {reviewPalletLowerBound,type PalletSearchSummary} from "./pallet-search";
 import {looseReservationErrors,looseOutsideUnit} from "./loose-cargo";
@@ -29,14 +30,14 @@ export function loadedPalletDirections(config: FloorPalletConfig, cargo: PlacedB
       ((!p.allowedOrientations && cargoShapeOf(p) === "box") || o.label === `${b.orientation[1]}${b.orientation[0]}${b.orientation[2]}`));
   });
   const directions: ("LWH" | "WLH")[] = canTurn ? ["LWH", "WLH"] : ["LWH"];
-  return directions.filter(code => config.layout === "auto" || code === (config.layout === "long" ? "LWH" : "WLH"));
+  return directions.filter(code => config.layout === "auto" || config.layout === "pinwheel" || code === (config.layout === "long" ? "LWH" : "WLH"));
 }
 
 export function loadedPalletFits(container: ContainerSpec, clearance: number, config: FloorPalletConfig, height: number, directions: ("LWH" | "WLH")[]) {
   return directions.some(code => {
     const [dx, dy] = code === "LWH" ? [config.length, config.width] : [config.width, config.length];
     const width = container.loadingAccess === "open" ? container.width : Math.min(container.width, container.doorWidth);
-    return dx <= container.length - 2 * clearance + .0001 && dy <= width - 2 * clearance + .0001 &&
+    return dx <= usableCargoLength(container,clearance) + .0001 && dy <= width - 2 * clearance + .0001 &&
       height <= palletCargoCeiling(container, clearance, {...config, maxCargoHeight: 0}) + .0001;
   });
 }

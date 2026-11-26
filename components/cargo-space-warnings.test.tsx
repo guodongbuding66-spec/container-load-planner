@@ -22,3 +22,14 @@ it("warns on impossible dimensions and single-carton mass while accepting a rota
  expect(html).toContain('role="status"');expect(html).toContain("单箱毛重超过整柜净载重");
  expect(cargoSpaceWarnings([bad],{...r.container,length:100000,width:100000,height:100000,maxWeight:100000,loadingAccess:"open"},0)).toEqual([]);
 });
+
+it("warns on door opening exceedance in both direct and palletized modes",()=>{
+ const r=oneLayerCrateFixture();
+ const hq={...r.container,length:12032,width:2350,height:2700,doorWidth:2340,doorHeight:2597,maxWeight:28600};
+ const wide={...r.products[0],length:1200,width:2345,height:2345,weight:100,quantity:1,rotationPolicy:"fixed" as const,allowedOrientations:undefined};
+ const warnings=cargoSpaceWarnings([wide],hq,0);
+ expect(warnings).toHaveLength(1);
+ expect(warnings[0]).toMatchObject({space:false,door:true,doorWidth:2340,doorHeight:2597});
+ const html=renderToStaticMarkup(<CargoSpaceWarnings products={[wide]} container={hq} clearance={0} palletBuild={DEFAULT_PALLET_BUILD} includeVehicleCheck/>);
+ expect(html).toContain("2340");
+});
