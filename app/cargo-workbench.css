@@ -701,6 +701,7 @@ body:has(.cargo-workbench) { background:#f4f6f8; }
 :root[data-theme="dark"] .cargo-workbench { background:var(--bg-canvas);color:var(--text-primary);--canvas:var(--bg-canvas);--line:var(--border-card);--surface:var(--bg-surface);--ink:var(--text-primary);--muted:var(--text-muted); }
 :root[data-theme="dark"] .cargo-workbench :is(.panel,.topbar,.metric-card,.stage-action-bar,.section-card,.feature-dialog) { background:var(--bg-surface);border-color:var(--border-card);color:var(--text-primary); }
 :root[data-theme="dark"] .cargo-workbench :is(input,select,textarea) { background:var(--bg-subtle);color:var(--text-primary);border-color:var(--border-card); }
+:root[data-theme="dark"] .cargo-workbench .unit-toolbar :is(strong,label,small) { color:var(--text-secondary); }
 :root[data-theme="dark"] .cargo-workbench .excel-data-grid tbody tr:nth-child(even) { background:var(--bg-subtle); }
 :root[data-theme="dark"] .cargo-workbench .section-card > header,
 :root[data-theme="dark"] .cargo-workbench .packaging-policy-grid > details > summary { background:var(--bg-subtle);border-color:var(--border-card); }
