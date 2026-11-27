@@ -1,5 +1,7 @@
 import type { ContainerSpec, PackingResult, ProductInput } from "./types";
 import {usableCargoLength} from "./site-exclusions";
+import {inspectCargoFit} from "./engine";
+import {normalizedSetCode, normalizedUnitsPerSet} from "./set-utils";
 
 /* ==================== M1: 一键凑满柜 (Gap-Fill Optimizer) ==================== */
 export interface GapFillOptions {
@@ -38,103 +40,89 @@ export function suggestGapFill(
   products: readonly ProductInput[],
   options: GapFillOptions,
 ): GapFillRecommendation {
-  const targetPct = Math.min(98, Math.max(50, options.targetUtilizationPct ?? 94));
-  const usableVolCbm =
-    ((plan.container.length - 2 * plan.clearance) *
-      (plan.container.width - 2 * plan.clearance) *
-      (plan.container.height - plan.clearance)) /
-    1e9;
-  const maxWeightKg = options.maxPayloadKg ?? plan.container.maxWeight;
+  const targetPct = Number.isFinite(options.targetUtilizationPct)
+    ? Math.min(98, Math.max(50, options.targetUtilizationPct!)) : 94;
+  // Use the selected plan's denominator, including reserved regions and pallet-only mode.
+  const usableVolCbm = plan.metrics.effectiveVolume / 1e9;
+  const maxWeightKg = Number.isFinite(options.maxPayloadKg)
+    ? Math.min(plan.container.maxWeight, Math.max(0, options.maxPayloadKg!)) : plan.container.maxWeight;
   const currentVolCbm = plan.metrics.loadedVolume / 1e9;
   const currentWeightKg = plan.metrics.grossWeight;
-
   const beforeVolumePct = usableVolCbm > 0 ? Number(((currentVolCbm / usableVolCbm) * 100).toFixed(1)) : 0;
   const beforeWeightPct = maxWeightKg > 0 ? Number(((currentWeightKg / maxWeightKg) * 100).toFixed(1)) : 0;
-
-  let remVolCbm = Math.max(0, usableVolCbm * (targetPct / 100) - currentVolCbm);
+  let remVolCbm = Math.max(0, usableVolCbm * targetPct / 100 - currentVolCbm);
   let remWeightKg = Math.max(0, maxWeightKg - currentWeightKg);
-
-  const candidates = products.filter(
-    (p) =>
-      p.length > 0 &&
-      p.width > 0 &&
-      p.height > 0 &&
-      (!options.candidateSkuIds || options.candidateSkuIds.length === 0 || options.candidateSkuIds.includes(p.id)),
-  );
-
-  if (!candidates.length || (remVolCbm <= 0.01 && remWeightKg <= 1)) {
-    const limitingFactor = remWeightKg <= 1 ? "weight" : remVolCbm <= 0.01 ? "volume" : "none";
-    return {
-      beforeVolumePct,
-      afterVolumePct: beforeVolumePct,
-      beforeWeightPct,
-      afterWeightPct: beforeWeightPct,
-      suggestions: [],
-      limitingFactor,
-      messageZh: "当前集装箱空间或载重已接近目标上限，无需继续补单。",
-      messageEn: "Container volume or payload is already near the target limit.",
-    };
+  const summaries = new Map(plan.summaries.map(row => [row.productId, row]));
+  const eligible = (p: ProductInput) => p.length > 0 && p.width > 0 && p.height > 0 &&
+    (!options.candidateSkuIds?.length || options.candidateSkuIds.includes(p.id)) &&
+    // Do not add another order before the existing demand has fitted.
+    summaries.get(p.id)?.loaded === p.quantity &&
+    inspectCargoFit(p, plan.container, plan.clearance, plan.strategy).reasons.length === 0;
+  const increment = (p: ProductInput) => {
+    const n = options.minAddIncrement?.[p.id];
+    return Number.isFinite(n) ? Math.max(1, Math.ceil(n!)) : 1;
+  };
+  const price = (p: ProductInput) => {
+    const n = options.skuUnitPrices?.[p.id];
+    return Number.isFinite(n) ? Math.max(0, n!) : 0;
+  };
+  const gcd = (a: number, b: number): number => b ? gcd(b, a % b) : a;
+  type Unit = {id: string; members: {p: ProductInput; units: number}[]; quantity: number; vol: number; weight: number; value: number; inc: number};
+  const groups = new Map<string, ProductInput[]>();
+  for (const p of products) {
+    const code = normalizedSetCode(p), key = code ? `kit:${code}` : `sku:${p.id}`;
+    groups.set(key, [...(groups.get(key) ?? []), p]);
   }
-
-  const ranked = [...candidates].sort((a, b) => {
-    const volA = (a.length * a.width * a.height) / 1e9;
-    const volB = (b.length * b.width * b.height) / 1e9;
-    if (options.strategy === "max_value") {
-      const valA = (options.skuUnitPrices?.[a.id] ?? 0) / Math.max(volA, 1e-6);
-      const valB = (options.skuUnitPrices?.[b.id] ?? 0) / Math.max(volB, 1e-6);
-      return valB - valA;
+  const units: Unit[] = [];
+  for (const [id, group] of groups) {
+    if (!group.every(eligible)) continue;
+    const members = group.map(p => ({p, units: normalizedSetCode(p) ? normalizedUnitsPerSet(p) : 1}));
+    const quantities = members.map(m => m.p.quantity / m.units);
+    if (!quantities.every(n => Number.isInteger(n) && n === quantities[0])) continue;
+    let inc = 1;
+    for (const m of members) {
+      const step = increment(m.p) / gcd(increment(m.p), m.units);
+      inc = inc / gcd(inc, step) * step;
     }
-    if (options.strategy === "balanced_ratio") {
-      return b.quantity - a.quantity;
-    }
-    // max_volume: pack smaller/flexible cartons last or higher-yield cartons first
-    return volB - volA;
-  });
-
+    if (!Number.isSafeInteger(inc)) continue;
+    units.push({id, members, quantity: quantities[0], inc,
+      vol: members.reduce((n,m) => n + m.p.length*m.p.width*m.p.height*m.units/1e9, 0),
+      weight: members.reduce((n,m) => n + m.p.weight*m.units, 0),
+      value: members.reduce((n,m) => n + price(m.p)*m.units, 0)});
+  }
+  units.sort((a,b) => options.strategy === "max_value" ? b.value/b.vol-a.value/a.vol :
+    options.strategy === "balanced_ratio" ? b.quantity-a.quantity : b.vol-a.vol);
   const addMap = new Map<string, number>();
   let limitingFactor: "volume" | "weight" | "none" = "none";
-
+  const assign = (u: Unit, count: number) => {
+    if (count <= 0) return;
+    for (const m of u.members) addMap.set(m.p.id, count*m.units);
+    remVolCbm = Math.max(0, remVolCbm-u.vol*count);
+    remWeightKg = Math.max(0, remWeightKg-u.weight*count);
+  };
   if (options.strategy === "balanced_ratio") {
-    const totalQty = ranked.reduce((s, p) => s + Math.max(1, p.quantity), 0);
-    const avgVol = ranked.reduce((s, p) => s + ((p.length * p.width * p.height) / 1e9) * (Math.max(1, p.quantity) / totalQty), 0);
-    const avgWt = ranked.reduce((s, p) => s + p.weight * (Math.max(1, p.quantity) / totalQty), 0);
-    const maxByVol = avgVol > 0 ? Math.floor((remVolCbm * 0.88) / avgVol) : 0;
-    const maxByWt = avgWt > 0 ? Math.floor(remWeightKg / avgWt) : maxByVol;
-    const totalAdd = Math.max(0, Math.min(maxByVol, maxByWt));
-    limitingFactor = maxByWt < maxByVol ? "weight" : "volume";
-
-    for (const p of ranked) {
-      const inc = Math.max(1, options.minAddIncrement?.[p.id] ?? 1);
-      const share = Math.floor((totalAdd * (Math.max(1, p.quantity) / totalQty)) / inc) * inc;
-      if (share > 0) {
-        const vol = ((p.length * p.width * p.height) / 1e9) * share;
-        const wt = p.weight * share;
-        if (vol <= remVolCbm && wt <= remWeightKg) {
-          addMap.set(p.id, share);
-          remVolCbm -= vol;
-          remWeightKg -= wt;
-        }
-      }
+    const totalQty = units.reduce((n,u) => n+Math.max(1,u.quantity),0);
+    const avgVol = units.reduce((n,u) => n+u.vol*Math.max(1,u.quantity)/totalQty,0);
+    const avgWt = units.reduce((n,u) => n+u.weight*Math.max(1,u.quantity)/totalQty,0);
+    const byVol = avgVol > 0 ? Math.floor(remVolCbm*.88/avgVol) : 0;
+    const byWt = avgWt > 0 ? Math.floor(remWeightKg/avgWt) : byVol;
+    const total = Math.min(byVol,byWt);
+    limitingFactor = byWt < byVol ? "weight" : "volume";
+    for (const u of units) {
+      const count = Math.floor(total*Math.max(1,u.quantity)/totalQty/u.inc)*u.inc;
+      if (u.vol*count <= remVolCbm && u.weight*count <= remWeightKg) assign(u,count);
     }
   } else {
-    for (const p of ranked) {
-      const unitVol = (p.length * p.width * p.height) / 1e9;
-      const inc = Math.max(1, options.minAddIncrement?.[p.id] ?? 1);
-      // Apply 0.88 practical packing efficiency factor on remaining void
-      const byVol = unitVol > 0 ? Math.floor((remVolCbm * 0.88) / unitVol) : 0;
-      const byWt = p.weight > 0 ? Math.floor(remWeightKg / p.weight) : byVol;
-      const rawMax = Math.min(byVol, byWt);
-      const addQty = Math.floor(rawMax / inc) * inc;
+    for (const u of units) {
+      // Advisory estimate; actual free-space geometry is checked when applied and recalculated.
+      const byVol = Math.floor(remVolCbm*.88/u.vol);
+      const byWt = u.weight > 0 ? Math.floor(remWeightKg/u.weight) : byVol;
       if (byWt < byVol) limitingFactor = "weight";
       else if (limitingFactor === "none") limitingFactor = "volume";
-      if (addQty > 0) {
-        addMap.set(p.id, addQty);
-        remVolCbm = Math.max(0, remVolCbm - unitVol * addQty);
-        remWeightKg = Math.max(0, remWeightKg - p.weight * addQty);
-      }
+      assign(u,Math.floor(Math.min(byVol,byWt)/u.inc)*u.inc);
     }
   }
-
+  const ranked = units.flatMap(u => u.members.map(m => m.p));
   const suggestions: GapFillSuggestion[] = [];
   let addedVolTotal = 0;
   let addedWtTotal = 0;
@@ -144,7 +132,7 @@ export function suggestGapFill(
     if (add <= 0) continue;
     const addedVolumeCbm = Number((((p.length * p.width * p.height) / 1e9) * add).toFixed(3));
     const addedWeightKg = Number((p.weight * add).toFixed(1));
-    const addedValueUsd = Number(((options.skuUnitPrices?.[p.id] ?? 0) * add).toFixed(2));
+    const addedValueUsd = Number((price(p) * add).toFixed(2));
     addedVolTotal += addedVolumeCbm;
     addedWtTotal += addedWeightKg;
     suggestions.push({

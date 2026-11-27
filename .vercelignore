@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+dist
+.sites-runtime
+.wrangler
+outputs
+work
+server-build
+# The Vite configuration is typechecked during the static build.
+!.openai
+!.openai/hosting.json
+!build
+!build/sites-vite-plugin.ts
