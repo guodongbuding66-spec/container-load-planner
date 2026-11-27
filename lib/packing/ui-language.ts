@@ -1,4 +1,8 @@
 export const ENGLISH: Record<string, string> = {
+  "北美 53 尺厢式挂车 (US 53' Dry Van)": "US 53' Dry Van",
+  "欧洲 13.6 米高容挂车 (EU Mega Trailer)": "EU 13.6 m Mega Trailer",
+  "航空集装箱 LD3 (AKE)": "Air cargo container LD3 (AKE)",
+  "其他": "Other",
   "请填写第 {0} 个托内支承件的新增自重，或确认零自重": "Enter the added tare for deck support {0}, or confirm zero tare",
   "固定案例运行完成。": "Fixed cases completed.",
   "线程异常，保留已完成案例。": "Worker failed; completed cases are retained.",

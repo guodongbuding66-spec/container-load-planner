@@ -2310,14 +2310,14 @@ export function PackingApp() {
             const totalKg = activeProducts.reduce((s, p) => s + p.weight * Math.max(0, p.quantity), 0);
             const capCbm = Math.max(0.1, (container.length * container.width * container.height) / 1e9);
             const capKg = Math.max(1, container.maxWeight);
-            const volPct = Math.min(140, (totalCbm / capCbm) * 100);
-            const wtPct = Math.min(140, (totalKg / capKg) * 100);
+            const volPct = (totalCbm / capCbm) * 100;
+            const wtPct = (totalKg / capKg) * 100;
             const over = totalCbm > capCbm || totalKg > capKg;
             const hint = over
               ? tr("预计超出单柜上限", "May exceed single container")
               : totalCbm <= 28
-                ? tr("体量适合 20GP", "Fits 20GP well")
-                : tr("体量适合 40HQ", "Fits 40HQ well");
+                ? tr("体积初筛 ≤ 28 CBM，待核对装载", "Volume screen ≤ 28 CBM; packing unverified")
+                : tr("体积与重量初筛未超限，待计算", "Volume / weight screen only; calculate to verify");
             return (
               <section className="live-capacity-bar" aria-label={tr("实时装柜预估", "Live capacity estimate")}>
                 <div className="live-cap-head">
@@ -2331,13 +2331,13 @@ export function PackingApp() {
                   </div>
                   <div className="live-cap-item">
                     <span>{tr("总体积", "Gross volume")} · {totalCbm.toFixed(2)} / {capCbm.toFixed(1)} CBM ({volPct.toFixed(0)}%)</span>
-                    <div className="live-cap-track" role="progressbar" aria-valuenow={Math.round(volPct)} aria-valuemin={0} aria-valuemax={100}>
+                    <div className="live-cap-track" role="progressbar" aria-valuenow={Math.min(100,Math.round(volPct))} aria-valuemin={0} aria-valuemax={100}>
                       <div className={`live-cap-fill${volPct > 95 ? " is-warn" : ""}`} style={{ width: `${Math.min(100, volPct)}%` }} />
                     </div>
                   </div>
                   <div className="live-cap-item">
                     <span>{tr("总毛重", "Gross weight")} · {totalKg.toFixed(1)} / {capKg.toLocaleString()} kg ({wtPct.toFixed(0)}%)</span>
-                    <div className="live-cap-track" role="progressbar" aria-valuenow={Math.round(wtPct)} aria-valuemin={0} aria-valuemax={100}>
+                    <div className="live-cap-track" role="progressbar" aria-valuenow={Math.min(100,Math.round(wtPct))} aria-valuemin={0} aria-valuemax={100}>
                       <div className={`live-cap-fill${wtPct > 95 ? " is-warn" : ""}`} style={{ width: `${Math.min(100, wtPct)}%` }} />
                     </div>
                   </div>
