@@ -148,7 +148,7 @@ export default function CrewViewPage() {
 
   if (!payload) {
     return (
-      <main style={{ maxWidth: 680, margin: "40px auto", padding: 20, fontFamily: "sans-serif" }}>
+      <main style={{ maxWidth: 680, width: "100%", minWidth: 0, boxSizing: "border-box", overflowWrap: "anywhere", margin: "40px auto", padding: 20, fontFamily: "sans-serif" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <h1>{tr("CargoFit 现场装柜指挥单", "CargoFit Crew Loading Sheet")}</h1>
           {langPicker}
@@ -164,7 +164,7 @@ export default function CrewViewPage() {
   const doneCount = payload.slices.filter((s) => checkedSlices[s.idx]).length;
 
   return (
-    <main style={{ maxWidth: 760, margin: "0 auto", padding: "20px 16px 64px", fontFamily: "sans-serif", color: "#0F172A" }}>
+    <main style={{ maxWidth: 760, width: "100%", minWidth: 0, boxSizing: "border-box", overflowWrap: "anywhere", margin: "0 auto", padding: "20px 16px 64px", fontFamily: "sans-serif", color: "#0F172A" }}>
       <header style={{ borderBottom: "2px solid #0F766E", paddingBottom: 14, marginBottom: 18 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <h1 style={{ margin: "0 0 6px", fontSize: 22 }}>
@@ -197,11 +197,11 @@ export default function CrewViewPage() {
               background: checkedSlices[s.idx] ? "#F0FDF4" : "#FFFFFF",
             }}
           >
-            <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, cursor: "pointer" }}>
+            <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", cursor: "pointer" }}>
               <strong style={{ fontSize: 16 }}>
                 #{s.idx} ({s.xFrom}–{s.xTo} mm)
               </strong>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, flexShrink: 0 }}>
                 <input
                   type="checkbox"
                   style={{ width: 20, height: 20 }}
@@ -227,36 +227,37 @@ export default function CrewViewPage() {
         <h2 style={{ fontSize: 17, margin: "0 0 10px" }}>
           {tr("二、装柜八宫格水印打卡（导出验货 PDF / ZIP）", "8-Photo Watermark Proof (Export Inspection PDF / ZIP)")}
         </h2>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-          <label style={{ fontSize: 13 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: 10, marginBottom: 14 }}>
+          <label style={{ fontSize: 13, minWidth: 0 }}>
             Container No.
             <input
               value={containerNo}
               onChange={(e) => { const value=e.target.value; updateDraft(prev => ({ ...prev, containerNo: value })); }}
               placeholder="MSCU1234567"
-              style={{ width: "100%", padding: "8px 10px", marginTop: 4, border: "1px solid #CBD5E1", borderRadius: 6 }}
+              style={{ width: "100%", minWidth: 0, boxSizing: "border-box", padding: "8px 10px", marginTop: 4, border: "1px solid #CBD5E1", borderRadius: 6 }}
             />
           </label>
-          <label style={{ fontSize: 13 }}>
+          <label style={{ fontSize: 13, minWidth: 0 }}>
             Seal No.
             <input
               value={sealNo}
               onChange={(e) => { const value=e.target.value; updateDraft(prev => ({ ...prev, sealNo: value })); }}
               placeholder="SL882910"
-              style={{ width: "100%", padding: "8px 10px", marginTop: 4, border: "1px solid #CBD5E1", borderRadius: 6 }}
+              style={{ width: "100%", minWidth: 0, boxSizing: "border-box", padding: "8px 10px", marginTop: 4, border: "1px solid #CBD5E1", borderRadius: 6 }}
             />
           </label>
         </div>
 
-        <div style={{ display: "grid", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 12 }}>
           {PHOTO_NODES.map((node) => (
-            <div key={node.id} style={{ border: "1px solid #E2E8F0", borderRadius: 8, padding: 12 }}>
+            <div key={node.id} style={{ minWidth: 0, border: "1px solid #E2E8F0", borderRadius: 8, padding: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <strong style={{ fontSize: 14 }}>{tr(node.zh, node.en)}</strong>
                 <input
                   type="file"
                   accept="image/*"
                   capture="environment"
+                  style={{ display: "block", maxWidth: "100%", minWidth: 0, width: "min(100%, 260px)", boxSizing: "border-box", fontSize: 13 }}
                   onChange={(e) => void handlePhoto(node.id, e.target.files?.[0])}
                 />
               </div>
