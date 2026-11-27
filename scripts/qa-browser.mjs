@@ -3,7 +3,7 @@ import {pathToFileURL} from 'node:url';
 const {chromium}=await import(process.env.QA_PLAYWRIGHT_ENTRY ? pathToFileURL(process.env.QA_PLAYWRIGHT_ENTRY).href : 'playwright');
 import {mkdir,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const base=process.env.QA_BASE_URL??'http://127.0.0.1:4173';
+const base=(process.env.QA_BASE_URL??'http://127.0.0.1:4173').replace(/\/+$/,'');
 const out=process.env.QA_OUTPUT_DIR??'outputs/browser-qa';
 await mkdir(out,{recursive:true});
 const results=[];const browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
