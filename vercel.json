@@ -3,6 +3,7 @@
   "framework": null,
   "buildCommand": "npm run build:pages",
   "outputDirectory": "out",
+  "cleanUrls": true,
   "installCommand": "npm ci",
   "rewrites": [
     {
