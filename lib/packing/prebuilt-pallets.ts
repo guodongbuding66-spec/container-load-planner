@@ -1,3 +1,4 @@
+import {usableCargoLength} from "./site-exclusions";
 import {declaredUnitStacking,declaredStackLayers,declaredTopLoad,openUnitLayers} from "./unit-stacking";
 import {parseLooseQuantities,looseReservationErrors,looseOutsideUnit,type LooseQuantities} from "./loose-cargo";
 import {palletLoadEnvelope} from "./unit-envelope";
@@ -94,7 +95,7 @@ export function validatePalletizedCargo(boxes: PlacedBox[], pallets: PlacedPalle
     const kit = value.oneKitPerPallet ? cargo.find(box=>box.setCode) : undefined;
     if(kit&&cargo.some(box=>box.setCode!==kit.setCode||box.setNumber!==kit.setNumber)) errors.push("一套一托仅允许同一整套货物 / A one-kit pallet must contain exactly one complete kit");
     const envelope=palletLoadEnvelope(p,cargo);
-    if(p.measuredEnvelope&&(envelope.x< -EPS||envelope.y< -EPS||envelope.x+envelope.dx>container.length-2*clearance+EPS||envelope.y+envelope.dy>container.width-2*clearance+EPS||envelope.z+envelope.dz>container.height-clearance+EPS||container.loadingAccess!=="open"&&(envelope.dy>container.doorWidth-2*clearance+EPS||envelope.dz>container.doorHeight-clearance+EPS)))errors.push("Measured unit envelope exceeds container or door / 实测整托包络超过柜内或门洞限制");
+    if(p.measuredEnvelope&&(envelope.x< -EPS||envelope.y< -EPS||envelope.x+envelope.dx>usableCargoLength(container,clearance)+EPS||envelope.y+envelope.dy>container.width-2*clearance+EPS||envelope.z+envelope.dz>container.height-clearance+EPS||container.loadingAccess!=="open"&&(envelope.dy>container.doorWidth-2*clearance+EPS||envelope.dz>container.doorHeight-clearance+EPS)))errors.push("Measured unit envelope exceeds container or door / 实测整托包络超过柜内或门洞限制");
     envelopes.push({ ...p, ...envelope, weight: p.weight + cargo.reduce((n, b) => n + b.weight, 0), productId: p.id, sku: p.id, color: "#997947", layer: 1, orientation: p.orientation });
   }
   if(value.selectionChoices){const groups=packagingPriorityGroups(products),groupKeys=groups.map(g=>packagingGroupKey(g[0]));

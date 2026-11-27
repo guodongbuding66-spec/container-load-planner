@@ -3,6 +3,8 @@ import {parseContainerAccessory,orderedAccessories} from "./container-accessorie
 export type SiteExclusion={id:string;name:string;kind:"obstacle"|"reserved";x:number;y:number;z:number;dx:number;dy:number;dz:number;accessory?:import("./container-accessories").ContainerAccessory};
 export const MAX_SITE_EXCLUSIONS=16;
 export const SITE_EXCLUSION_PREFIX="site-exclusion/";
+/** Longitudinal clearance is reserved only for rear-loading equipment. */
+export function usableCargoLength(c:ContainerSpec,clearance:number){return Math.max(0,c.length-2*Math.max(0,clearance)-(c.loadingAccess==="open"?0:Math.max(0,c.rearDoorClearanceMm??0)));}
 /** Input coordinates use the physical inner nose/left/floor origin, always mm. */
 export function parseSiteExclusions(value:unknown,c:Pick<ContainerSpec,"length"|"width"|"height">,draft=false):SiteExclusion[]|undefined{
  if(value===undefined)return undefined;
@@ -23,7 +25,7 @@ export function parseSiteExclusions(value:unknown,c:Pick<ContainerSpec,"length"|
 }
 /** Clip only the part intersecting the usable envelope; walls already consume the safety margin. */
 export function siteExclusionBoxes(c:ContainerSpec,clearance:number):PlacedBox[]{
- const length=c.length-2*clearance,width=c.width-2*clearance,height=c.height-clearance;
+ const length=usableCargoLength(c,clearance),width=c.width-2*clearance,height=c.height-clearance;
  return (parseSiteExclusions(c.exclusions,c)??[]).flatMap(v=>{
   const x=Math.max(0,v.x-clearance),y=Math.max(0,v.y-clearance),z=v.z,X=Math.min(length,v.x+v.dx-clearance),Y=Math.min(width,v.y+v.dy-clearance),Z=Math.min(height,v.z+v.dz);
   return X>x&&Y>y&&Z>z?[{id:`${SITE_EXCLUSION_PREFIX}${v.id}`,productId:`${SITE_EXCLUSION_PREFIX}${v.id}`,sku:v.name,name:v.name,color:v.accessory?.support?"#348566":v.kind==="obstacle"?"#bc5e38":"#8571b5",x,y,z,dx:X-x,dy:Y-y,dz:Z-z,weight:0,layer:1,orientation:"LWH" as const,supportOnly:true}]:[];
@@ -41,4 +43,4 @@ export function siteExcludedVolume(c:ContainerSpec,clearance:number){
   }total+=(xs[i]-xs[i-1])*area;
  }return total;
 }
-export function availablePackingVolume(c:ContainerSpec,clearance:number){return Math.max(0,(c.length-2*clearance)*(c.width-2*clearance)*(c.height-clearance)-siteExcludedVolume(c,clearance));}
+export function availablePackingVolume(c:ContainerSpec,clearance:number){return Math.max(0,usableCargoLength(c,clearance)*Math.max(0,c.width-2*clearance)*Math.max(0,c.height-clearance)-siteExcludedVolume(c,clearance));}

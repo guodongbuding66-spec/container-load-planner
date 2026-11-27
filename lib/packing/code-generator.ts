@@ -1,3 +1,4 @@
+import type { UiLanguage } from "./ui-locales";
 // Ported from guodongbuding66-spec/BoxStudio src/codeGeneratorV72.js.
 // Keep the encoder, physical quiet zones and moduleSize-density policy in sync.
 import * as bwip from "@bwip-js/generic";
@@ -21,7 +22,7 @@ const xml=(s:string)=>s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;
 export class CodeGenerationError extends Error{
  constructor(public zh:string,public en:string){super(`${zh} / ${en}`);this.name="CodeGenerationError";}
 }
-export function codeErrorMessage(error:unknown,language:"zh"|"en"){return error instanceof CodeGenerationError?error[language]:error instanceof Error?error.message:String(error);}
+export function codeErrorMessage(error:unknown,language:UiLanguage){return error instanceof CodeGenerationError?error[language==="zh"?"zh":"en"]:error instanceof Error?error.message:String(error);}
 function fail(zh:string,en:string):never{throw new CodeGenerationError(zh,en);}
 export const isCodeType=(type:unknown):type is CodeType=>CODE_TYPES.some(t=>t[0]===type);
 export const isMatrixCode=(type:CodeType)=>["qrcode","datamatrix","pdf417","azteccode"].includes(type);

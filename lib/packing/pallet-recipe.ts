@@ -1,3 +1,4 @@
+import {usableCargoLength} from "./site-exclusions";
 import { deckSupportHeight } from "./deck-support";
 import { containerAccessoryWeight } from "./container-accessories";
 import { getPracticalOrientations } from "./engine";
@@ -114,7 +115,7 @@ const roundedUp = (n: number) => Math.ceil((n - EPS) * 10) / 10;
 function floorPalletSlots(request:PackingRequest,length:number,width:number,gap:number,directions:readonly ("LWH"|"WLH")[]){
   if(request.workflow==="pallet-only")return 0;
   const {container,clearance}=request;
-  const l=container.length-2*clearance,w=container.width-2*clearance;
+  const l=usableCargoLength(container,clearance),w=container.width-2*clearance;
   const slots=(dx:number,dy:number)=>Math.floor((l+gap+EPS)/(dx+gap))*Math.floor((w+gap+EPS)/(dy+gap));
   return Math.max(0,...directions.map(code=>code==="LWH"?slots(length,width):slots(width,length)));
 }
@@ -123,7 +124,7 @@ function candidateSizes(input: PalletRecipeInput, group: ProductInput[], heightL
   const {request, spec: {config}, cartons} = input;
   const only = request.workflow === "pallet-only";
   const vehicle = request.container, margin = 2 * request.clearance;
-  const usableLength = only ? 100000 : vehicle.length - margin;
+  const usableLength = only ? 100000 : usableCargoLength(vehicle,request.clearance);
   const usableWidth = only ? 100000 : Math.min(vehicle.width, vehicle.loadingAccess === "open" ? vehicle.width : vehicle.doorWidth) - margin;
   const {inset, lid} = packagingInterior(config);
   const sizes = new Map<string, Size>();

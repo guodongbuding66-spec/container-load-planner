@@ -1,0 +1,78 @@
+name: Browser QA evidence
+on:
+  push:
+    branches: ["qa/cargofit-v1-neon-20261126"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:pages
+      - name: Install browser tooling outside application dependency graph
+        run: |
+          mkdir -p "$RUNNER_TEMP/cargofit-pw"
+          cd "$RUNNER_TEMP/cargofit-pw"
+          npm init -y
+          npm install --registry=https://registry.npmjs.org --no-audit --no-fund --save-exact playwright@1.56.1
+          ./node_modules/.bin/playwright install --with-deps chromium
+          echo "QA_PLAYWRIGHT_ENTRY=$RUNNER_TEMP/cargofit-pw/node_modules/playwright/index.mjs" >> "$GITHUB_ENV"
+      - name: Static export smoke and screenshot evidence
+        run: |
+          node scripts/qa-serve.mjs > /tmp/cargofit-qa-server.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:4173/ >/dev/null
+          QA_BASE_URL=http://127.0.0.1:4173 node scripts/qa-browser.mjs
+      - name: Upload screenshots and per-case results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargofit-browser-evidence
+          path: outputs/browser-qa/
+          if-no-files-found: warn
+          retention-days: 14
+  live-baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - site: cloudflare
+            url: https://container-load-planner.pages.dev/
+          - site: vercel
+            url: https://container-load-planner-gray.vercel.app/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install isolated Playwright
+        run: |
+          mkdir -p "$RUNNER_TEMP/cargofit-pw"
+          cd "$RUNNER_TEMP/cargofit-pw"
+          npm init -y
+          npm install --registry=https://registry.npmjs.org --no-audit --no-fund --save-exact playwright@1.56.1
+          ./node_modules/.bin/playwright install --with-deps chromium
+          echo "QA_PLAYWRIGHT_ENTRY=$RUNNER_TEMP/cargofit-pw/node_modules/playwright/index.mjs" >> "$GITHUB_ENV"
+      - name: Read-only live baseline, temporary browser context
+        env:
+          QA_LIVE_BASELINE: "1"
+          QA_BASE_URL: ${{ matrix.url }}
+        run: node scripts/qa-browser.mjs
+      - name: Upload baseline screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargofit-live-${{ matrix.site }}
+          path: outputs/browser-qa/
+          if-no-files-found: warn
+          retention-days: 14

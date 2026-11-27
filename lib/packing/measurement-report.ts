@@ -1,3 +1,4 @@
+import type { UiLanguage } from "./ui-locales";
 import {deliveryPlanSignature} from "./delivery-identity";
 import {SHAPE_LABELS} from "./cargo-shape";
 import {formatMeasure,type Point3} from "./inspection";
@@ -5,10 +6,10 @@ import {parseMeasurements,serializeMeasurements,savedMeasureCurrent,savedMeasure
 import type {DimensionUnit} from "./scene-dimensions";
 import type {PackingResult} from "./types";
 
-export type MeasurementReportOptions={language:"zh"|"en";unit:DimensionUnit;precision:number;generatedAt?:string};
+export type MeasurementReportOptions={language:UiLanguage;unit:DimensionUnit;precision:number;generatedAt?:string};
 export type ReportField={text:string;emphasis?:boolean};
 export type MeasurementReportEntry={record:SavedMeasurement;number:number;current:boolean;title:string;status:string;distance:string;value:ReturnType<typeof savedMeasureValue>;fields:ReportField[]};
-export type MeasurementReport={language:"zh"|"en";unit:DimensionUnit;precision:number;generatedAt:string;scope:string;context:string[];notes:string[];entries:MeasurementReportEntry[];currentCount:number;staleCount:number};
+export type MeasurementReport={language:UiLanguage;unit:DimensionUnit;precision:number;generatedAt:string;scope:string;context:string[];notes:string[];entries:MeasurementReportEntry[];currentCount:number;staleCount:number};
 /** Synchronous click-time snapshot. Subsequent edits, filters and language changes cannot alter it. */
 export function createMeasurementReport(plan:PackingResult,items:SavedMeasurement[],options:MeasurementReportOptions):MeasurementReport {
   if(!["zh","en"].includes(options.language)||!["mm","cm","m"].includes(options.unit)||!Number.isInteger(options.precision)||options.precision<0||options.precision>3)throw Error("Invalid measurement report options");

@@ -6,7 +6,7 @@ import {accessorySupportGeometry,assertAccessorySupportWorkflow,hasAccessorySupp
 import {containerAccessoryWeight,accessoryMassBoxes,accessoryProductErrors} from "./container-accessories";
 import {parseLongSupport,hasLongSupportLimits,inspectLongSupportPlacement,longSupportViolation} from "./long-support";
 import {parseHandlingTasks} from "./handling-sequence";
-import {parseSiteExclusions,siteExclusionBoxes,availablePackingVolume,SITE_EXCLUSION_PREFIX} from "./site-exclusions";
+import {parseSiteExclusions,siteExclusionBoxes,availablePackingVolume,usableCargoLength,SITE_EXCLUSION_PREFIX} from "./site-exclusions";
 import { packagingReservedVolume, packagingMassCenter } from "./packaging";
 import { parseLoadingWorkflow, parsePalletBuild } from "./loading-workflow";
 import { palletSpecifications, mixedInspectionContainer, independentPalletVolume, specificationForPallet, parsePalletCartonLimit } from "./pallet-specifications";
@@ -50,7 +50,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "0.95.5";
+export const ENGINE_VERSION = "1.0.0";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -118,6 +118,7 @@ export function validateContainerInput(container: ContainerSpec, clearance: numb
   if (!Number.isFinite(clearance) || clearance < 0) {
     return "安全间隙必须是大于或等于 0 的有限数字。";
   }
+  if (container.rearDoorClearanceMm !== undefined && (!Number.isFinite(container.rearDoorClearanceMm) || container.rearDoorClearanceMm < 0 || (container.loadingAccess !== "open" && usableCargoLength(container,clearance) <= 0))) return "尾门预留净空无效或占满柜长 / Invalid rear door clearance";
   if (
     clearance * 2 >= container.length ||
     clearance * 2 >= container.width ||
@@ -221,7 +222,7 @@ function compareRequired(a: ProductInput, b: ProductInput) {
 function effectiveContainer(container: ContainerSpec, clearance: number): EffectiveContainer {
   const gap = Math.max(0, clearance);
   return {
-    length: Math.max(1, container.length - gap * 2),
+    length: Math.max(1, usableCargoLength(container,gap)),
     width: Math.max(1, container.width - gap * 2),
     height: Math.max(1, container.height - gap),
     doorWidth: Math.max(1, (container.loadingAccess === "open" ? container.width : container.doorWidth) - gap * 2),

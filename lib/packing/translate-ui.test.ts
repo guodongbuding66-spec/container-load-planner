@@ -53,3 +53,24 @@ describe("English interface and solver diagnostics", () => {
     }
   });
 });
+
+describe("8-language international localization", () => {
+  it("translates core workflow labels into es, de, fr, ja, ko, and pt without Chinese leakage", () => {
+    const langs = ["es", "de", "fr", "ja", "ko", "pt"] as const;
+    const samples = [
+      ["装入重量", "Loaded weight"],
+      ["计算方案", "Calculate plan"],
+      ["体积利用率", "Volume utilization"],
+      ["智能粘贴", "Smart Paste & File Import (Excel / CSV / WeChat)"],
+    ] as const;
+    for (const lang of langs) {
+      for (const [zh, en] of samples) {
+        const out = translateUi(zh, lang, en);
+        expect(out, `${lang}:${en}`).not.toBe(en);
+        if (lang !== "ja") expect(out, `${lang}:${en}`).not.toMatch(/[\u3400-\u9fff]/); else expect(out).not.toBe(zh);
+      }
+      const diag = translateDiagnostic("底层托盘 25 个，自重 625 kg；货物 Z 坐标已包含托盘高度 144 mm，托盘单独记录，不计入货物箱数。", lang);
+      expect(diag, `${lang}:diag`).not.toMatch(/[\u3400-\u9fff]/);
+    }
+  });
+});
