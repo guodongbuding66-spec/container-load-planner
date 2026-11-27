@@ -148,11 +148,11 @@ describe("Multi-SKU large-scale mixed loading (3D Block & Wall-Building solver)"
       container: HQ40,
       clearance: 0,
       products,
-    }, 15_000);
+    });
 
     expect(result.validation.valid).toBe(true);
     const heavyLoaded = result.placements.filter((b) => b.productId === "heavy-bottom");
     expect(heavyLoaded.length).toBe(40);
     expect(heavyLoaded.every((b) => b.z === 0)).toBe(true);
-  });
+  }, 15_000);
 });
