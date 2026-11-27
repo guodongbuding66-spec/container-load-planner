@@ -39,6 +39,7 @@ export function compareFclVsLcl(
 
   const fits20gp = totalCbm <= 28 && totalWeightKg <= 28000;
   const fits40gp = totalCbm <= 58 && totalWeightKg <= 28500;
+  const fits40hq = totalCbm <= 68 && totalWeightKg <= 28600;
 
   let recommended: FclLclDecision["recommended"] = "LCL";
   let bestCost = lclTotal;
@@ -51,7 +52,7 @@ export function compareFclVsLcl(
     recommended = "40GP";
     bestCost = pricing.fcl40gpAllIn;
   }
-  if (!fits40gp && pricing.fcl40hqAllIn < bestCost) {
+  if (!fits40gp && fits40hq && pricing.fcl40hqAllIn < bestCost) {
     recommended = "40HQ";
     bestCost = pricing.fcl40hqAllIn;
   }
@@ -60,7 +61,7 @@ export function compareFclVsLcl(
     recommended = "40GP";
     bestCost = pricing.fcl40gpAllIn;
   }
-  if (pricing.fcl40hqAllIn < bestCost) {
+  if (fits40hq && pricing.fcl40hqAllIn < bestCost) {
     recommended = "40HQ";
     bestCost = pricing.fcl40hqAllIn;
   }
@@ -70,11 +71,11 @@ export function compareFclVsLcl(
 
   const reasonZh =
     recommended === "LCL"
-      ? `按计费重 ${wm} W/M 测算，走 LCL 拼箱总价约 ${cur} ${lclTotal}，低于 20GP 整柜（临界盈亏平衡点约 ${breakEvenCbm20gp} CBM）。`
+      ? `按计费重 ${wm} W/M 测算，走 LCL 拼箱总价约 ${cur} ${lclTotal}，${fits40hq ? "在可承载的参考柜型中未发现更低整柜报价" : "超过单个参考柜型容量，请比较多柜或拼箱方案"}（20GP 价格临界点约 ${breakEvenCbm20gp} CBM）。`
       : `推荐走 ${recommended} 整柜：比 LCL 拼箱直接节省约 ${cur} ${savingsVsLcl}，且避免目的港高额 CFS 拆箱费与货损风险（20GP 盈亏临界点约 ${breakEvenCbm20gp} CBM）。`;
   const reasonEn =
     recommended === "LCL"
-      ? `At ${wm} W/M, LCL (${cur} ${lclTotal}) is cheaper than a 20GP FCL (break-even ~${breakEvenCbm20gp} CBM).`
+      ? `At ${wm} W/M, LCL (${cur} ${lclTotal}) ${fits40hq ? "has no lower FCL quote among reference container types that fit" : "exceeds single-container reference capacity; compare multiple containers or LCL"} (20GP price break-even ~${breakEvenCbm20gp} CBM).`
       : `Recommend ${recommended} FCL: saves ~${cur} ${savingsVsLcl} vs. LCL while eliminating CFS deconsolidation delays and damage risk (20GP break-even ~${breakEvenCbm20gp} CBM).`;
 
   return {
