@@ -63,7 +63,7 @@ export function OrderCapacityTrial(props:Props){
       key={JSON.stringify([request,recipeSpec.id])} request={request} spec={recipeSpec}
       initialCartons={initialPalletRecipeCartons(request,recipeSpec)} disabled={props.disabled||task.running}
       applyLabel={tr("采用此打托并重新计算","Apply this pallet recipe and recalculate")}
-      onApply={patch=>{if(!props.disabled&&!task.running)props.onApplyBuild!(withPalletRecipe(request.palletBuild!,recipeSpec.id,patch));}}
+      onApply={patch=>{if(!props.disabled&&!task.running)props.onApplyBuild!(withPalletRecipe(request.palletBuild!,recipeSpec.id,patch,request.products));}}
       onFineTune={props.onDesignPallet?patch=>props.onDesignPallet!(recipeSpec.id,patch):undefined}/>}
     <div className="upgrade-actions">
       {props.onDesignPallet&&<button type="button" className="button" disabled={props.disabled||!!measured||!canApply||task.running} onClick={()=>props.onDesignPallet!(lowCeilings[0].id)}>{tr("修改打托配置","Edit pallet configuration")}</button>}

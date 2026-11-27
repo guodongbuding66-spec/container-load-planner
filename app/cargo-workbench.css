@@ -202,6 +202,11 @@ body:has(.cargo-workbench) {
 }
 .stage-action-bar .stage-context { flex: 1; min-width: 0; font-size: 13px; color: var(--muted); }
 .stage-action-bar .button.primary { min-height: 44px; padding-inline: 16px; }
+/* At high zoom, keep the action bar in document flow so it cannot cover
+   the heading and editable rows in a very short CSS viewport. */
+@media (max-height: 500px) {
+  .stage-action-bar { position: static; }
+}
 .stage-options,
 .package-options,
 .packaging-engineering {

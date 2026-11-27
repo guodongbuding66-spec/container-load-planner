@@ -63,7 +63,7 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
   ] as const;
   const recipe=request&&!preparedLayout&&<PalletRecipe key={`${current.id}/${resetToken}`} request={request} spec={current}
       disabled={(invalid&&issue!=="height")||draftInvalid}
-      onApply={patch=>{const next=withPalletRecipe(value,current.id,patch);onChange(next);const saved=palletSpecifications(next).find(s=>s.config===patch.config);if(saved)select(saved.id);}} onPendingChange={recipeValidity}/>;
+      onApply={patch=>{const next=withPalletRecipe(value,current.id,patch,products);onChange(next);const saved=palletSpecifications(next).find(s=>s.config===patch.config);if(saved)select(saved.id);}} onPendingChange={recipeValidity}/>;
   const spec=current.config.packaging??DEFAULT_PACKAGING;
   const basePreset=BASE_PRESETS.find(preset=>spec.base===preset.base&&
     (spec.bottomDeck??"runners")===(preset.bottomDeck??"runners")&&spec.topDeck===preset.topDeck&&

@@ -56,8 +56,14 @@ export function usePalletRecipe({request, spec, disabled, onApply, onPendingChan
   const groupKey = group ? packagingGroupKey(group[0]) : "";
   const canSuggest = canSuggestPalletSize(recipeSpec.config);
   const mode = fine ? "current" : method;
-  const needsNewSpec=!!spec.productIds&&!!group&&!group.every(p=>spec.productIds!.includes(p.id))&&!request.palletBuild?.additionalSpecs?.some(s=>s.productIds?.length===group.length&&group.every(p=>s.productIds!.includes(p.id)));
-  const archiveBlocked = (redesigned||needsNewSpec) && !canRedesign;
+  const savedSpecs=request.palletBuild?palletSpecifications(request.palletBuild):[spec];
+  const exactSpec=group&&savedSpecs.find(s=>s.productIds?.length===group.length&&group.every(p=>s.productIds!.includes(p.id)));
+  const sourceSpecForGroup=exactSpec??(group&&savedSpecs.find(s=>s.maxPallets>0&&s.productIds&&group.every(p=>s.productIds!.includes(p.id))))??spec;
+  const sourceIds=sourceSpecForGroup.productIds??request.products.map(p=>p.id);
+  const sourceCoversGroup=!!group&&group.every(p=>sourceIds.includes(p.id));
+  const needsNewSpec=!!group&&!exactSpec&&(!sourceCoversGroup||sourceIds.some(id=>!group.some(p=>p.id===id)));
+  const neededSlots=Number(needsNewSpec)+Number(redesigned&&sourceCoversGroup);
+  const archiveBlocked = savedSpecs.length+neededSlots>MAX_PACKAGING_SPECIFICATIONS;
   const parsed = parseNumericDraft(draft, {integer:true, min:1, max:MAX_CARTONS_PER_PALLET});
   const cartons = parsed.state === "valid" ? parsed.value : undefined;
   const pending = !!stackingDraft || quantityDirty || redesigned || !!fine || cartons !== spec.cartonLimit || draft.trim() !== "" && mode === "suggest" || parsed.state === "invalid";

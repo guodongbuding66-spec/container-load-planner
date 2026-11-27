@@ -2057,7 +2057,7 @@ export function PackingApp() {
     adoptionBlockedReason={hasManualPreparation?tr("当前使用人工托内布置。恢复自动打托后可采用试算结果。","The manual pallet layout is active. Return to automatic palletizing to adopt trial results."):undefined}
     onApply={applyCapacityStock} onApplyBuild={applyPalletBuildTrial} onRecalculateCurrent={()=>setManualRun(v=>v+1)} onDesignPallet={(specId,patch)=>{
     if(hasManualPreparation)return;
-    if(patch){const next=withPalletRecipe(palletBuild,specId,patch);setPalletBuild(next);persistDraft({palletBuild:next});markDirty();}
+    if(patch){const next=withPalletRecipe(palletBuild,specId,patch,activeProducts);setPalletBuild(next);persistDraft({palletBuild:next});markDirty();}
     setPalletSetupSpec(specId);
     goToStep(4,"pallet-recipe");
   }}/>:null;

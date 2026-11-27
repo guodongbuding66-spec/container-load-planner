@@ -73,10 +73,34 @@ export function initialPalletRecipeCartons(request: PackingRequest, spec: Pallet
 }
 
 /** Apply the displayed recipe to the selected specification in one transaction. */
-export function withPalletRecipe(build: PalletBuildOptions, id: string, patch: PalletRecipePatch): PalletBuildOptions {
+export function withPalletRecipe(build: PalletBuildOptions, id: string, patch: PalletRecipePatch, products?: readonly ProductInput[]): PalletBuildOptions {
   const specs = palletSpecifications(build);
   let spec = specs.find(s => s.id === id);
   const sameCargo = (ids:readonly string[]|undefined) => !!ids && !!patch.productIds && ids.length===patch.productIds.length && ids.every(id=>patch.productIds!.includes(id));
+  // A shared design must remain available to the other order rows. Split its
+  // eligibility before replacing it, rather than narrowing away their packaging.
+  if (patch.productIds?.length && products && spec) {
+    const exact = specs.find(s=>sameCargo(s.productIds));
+    const shared = specs.find(s=>s.maxPallets>0 && s.productIds && patch.productIds!.every(productId=>s.productIds!.includes(productId)));
+    if (exact || spec.productIds && !patch.productIds.every(productId=>spec!.productIds!.includes(productId)) && shared) {
+      spec = exact ?? shared!;
+      id = spec.id;
+    }
+    const eligible = spec.productIds ?? products.map(p=>p.id);
+    if (patch.productIds.every(productId=>eligible.includes(productId))) {
+      const remaining = eligible.filter(productId=>!patch.productIds!.includes(productId));
+      if (remaining.length) {
+        if (specs.length + 1 + (patch.redesigned ? 1 : 0) > MAX_PACKAGING_SPECIFICATIONS) throw new Error("包装规格已达上限，请先腾出位置保留其他货物包装 / Free a specification slot to retain the other cargo packaging");
+        let retainedId = `remaining-${id}`;
+        while (specs.some(s=>s.id===retainedId)) retainedId += "-old";
+        const retained = {...structuredClone(spec),id:retainedId,productIds:remaining};
+        const narrowed = id === "primary"
+          ? {...build,primaryRule:{...build.primaryRule,maxPallets:spec.maxPallets,cartonLimit:spec.cartonLimit,productIds:patch.productIds}}
+          : {...build,additionalSpecs:build.additionalSpecs?.map(s=>s.id===id?{...s,productIds:patch.productIds}:s)};
+        return withPalletRecipe({...narrowed,additionalSpecs:[...narrowed.additionalSpecs??[],retained]},id,patch);
+      }
+    }
+  }
   if(patch.productIds && spec?.productIds && !sameCargo(spec.productIds)) {
     const existing=specs.find(s=>sameCargo(s.productIds));
     if(existing){spec=existing;id=existing.id;}

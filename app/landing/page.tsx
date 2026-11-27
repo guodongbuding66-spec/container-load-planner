@@ -77,8 +77,8 @@ export default function LandingPage() {
           </h2>
           <p style={{ fontSize: 14, color: "#475569", lineHeight: 1.6 }}>
             {tr(
-              "免登录手机扫码打开大字逐排步进清单，内置空柜/半柜/满柜/封条五图水印打卡并一键打印验货报告。",
-              "Open large-print row slices on any phone without login, check off rows, stamp 5 inspection photos, and print the loading report.",
+              "免登录手机扫码打开大字逐排步进清单，内置空柜、装载进度、关门与封条八图水印打卡并一键打印验货报告。",
+              "Open large-print row slices on any phone without login, check off rows, stamp 8 inspection photos, and print the loading report.",
             )}
           </p>
         </div>
