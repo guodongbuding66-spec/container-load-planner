@@ -33,4 +33,14 @@ describe("V1 independent release regressions",()=>{
     expect(analyzeOogCargo(ct,[{...prod,rotationPolicy:"upright"}]).hasOogCargo).toBe(false);
     expect(analyzeOogCargo(ct,[prod]).hasOogCargo).toBe(true);
   });
+  it("retains original dimensions and prevents fictitious nested capacity",()=>{
+    const noBuf={...c,rearDoorClearanceMm:0};
+    for(const mode of ["mixed","single"] as const){
+      const plan=pack({container:noBuf,products:[{...p,nestingDeltaHeightMm:100}],clearance:0,strategy:"maximum",mode});
+      expect(plan.validation.valid).toBe(true);
+      expect(plan.placements).toHaveLength(48);
+      expect(plan.placements.every(b=>b.dz===300)).toBe(true);
+      expect(plan.metrics.volumeUtilization).toBeLessThanOrEqual(1);
+    }
+  });
 });

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
-import type { CrewSlicePayload } from "../../components/crew-share-panel";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { crewDraftKey, decodeCrewHash, isCrewPayload, type CrewSlicePayload } from "../../lib/packing/crew-payload";
 import { buildZipArchive, dataUrlToBytes } from "../../lib/packing/mini-zip";
 import { setAppLanguage, SUPPORTED_LANGUAGES, tr, useLanguage, type UiLanguage } from "../../components/language";
 
@@ -16,19 +16,32 @@ const PHOTO_NODES = [
   { id: "08_seal", zh: "⑧ 全关门 + 铅封特写", en: "8. Doors Closed & Seal Close-up" },
 ] as const;
 
-function decodePayload(hash: string): CrewSlicePayload | null {
+interface CrewDraftState {
+  checkedSlices: Record<number, boolean>;
+  containerNo: string;
+  sealNo: string;
+  photos: Record<string, string>;
+}
+const EMPTY_DRAFT: CrewDraftState = { checkedSlices: {}, containerNo: "", sealNo: "", photos: {} };
+function readDraft(key: string): CrewDraftState {
+  if (typeof window === "undefined") return EMPTY_DRAFT;
   try {
-    const match = hash.match(/plan=([A-Za-z0-9_-]+)/);
-    if (!match) return null;
-    const rawB64 = match[1].replace(/-/g, "+").replace(/_/g, "/");
-    const b64 = rawB64 + "=".repeat((4 - (rawB64.length % 4)) % 4);
-    const bin = atob(b64);
-    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-    const json = new TextDecoder().decode(bytes);
-    const parsed = JSON.parse(json) as CrewSlicePayload;
-    return parsed && parsed.v === 1 && Array.isArray(parsed.slices) ? parsed : null;
-  } catch {
-    return null;
+    const raw = localStorage.getItem(key);
+    if (!raw) return EMPTY_DRAFT;
+    const saved = JSON.parse(raw) as Partial<CrewDraftState>;
+    return {
+      checkedSlices: saved.checkedSlices && typeof saved.checkedSlices === "object" ? saved.checkedSlices : {},
+      containerNo: typeof saved.containerNo === "string" ? saved.containerNo : "",
+      sealNo: typeof saved.sealNo === "string" ? saved.sealNo : "",
+      photos: saved.photos && typeof saved.photos === "object" ? saved.photos : {},
+    };
+  } catch { return EMPTY_DRAFT; }
+}
+function writeDraft(key: string, draft: CrewDraftState): boolean {
+  try { localStorage.setItem(key, JSON.stringify(draft)); return true; }
+  catch {
+    try { localStorage.setItem(key, JSON.stringify({ ...draft, photos: {} })); } catch {}
+    return false;
   }
 }
 
@@ -59,32 +72,65 @@ async function stampWatermark(file: File, watermarkText: string): Promise<string
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 15px sans-serif";
   ctx.fillText(watermarkText, 14, canvas.height - 13);
-  return canvas.toDataURL("image/jpeg", 0.86);
+  return canvas.toDataURL("image/jpeg", 0.82);
 }
 
 export default function CrewViewPage() {
   const language = useLanguage();
   useEffect(() => { if (typeof navigator !== "undefined" && "serviceWorker" in navigator) { navigator.serviceWorker.register("/sw.js").catch(() => {}); } }, []);
-  const hash = useSyncExternalStore(
-    (onStoreChange) => {
-      window.addEventListener("hashchange", onStoreChange);
-      return () => window.removeEventListener("hashchange", onStoreChange);
+  const locationKey = useSyncExternalStore(
+    (notify) => {
+      window.addEventListener("hashchange", notify);
+      window.addEventListener("popstate", notify);
+      return () => { window.removeEventListener("hashchange", notify); window.removeEventListener("popstate", notify); };
     },
-    () => window.location.hash,
-    () => "",
+    () => window.location.search + "|" + window.location.hash,
+    () => "|",
   );
-  const payload = decodePayload(hash);
-  const [checkedSlices, setCheckedSlices] = useState<Record<number, boolean>>({});
-  const [containerNo, setContainerNo] = useState("");
-  const [sealNo, setSealNo] = useState("");
-  const [photos, setPhotos] = useState<Record<string, string>>({});
+  const [search, hash = ""] = locationKey.split("|");
+  const rawId = new URLSearchParams(search).get("id") || "";
+  const shortId = /^[a-z0-9]{6,16}$/i.test(rawId) ? rawId : "";
+  const hashPayload = useMemo(() => decodeCrewHash(hash), [hash]);
+  const [remoteResult, setRemoteResult] = useState<{ id: string; payload: CrewSlicePayload | null } | null>(null);
+  useEffect(() => {
+    if (hashPayload || !shortId) return;
+    let active = true;
+    const controller = new AbortController();
+    fetch("/api/crew-share?id=" + encodeURIComponent(shortId), { signal: controller.signal })
+      .then(res => res.ok ? res.json() : Promise.reject(new Error("Share unavailable")))
+      .then(data => { if (active) setRemoteResult({ id: shortId, payload: isCrewPayload(data) ? data : null }); })
+      .catch(() => { if (active) setRemoteResult({ id: shortId, payload: null }); });
+    return () => { active = false; controller.abort(); };
+  }, [hashPayload, shortId]);
+  const payload = hashPayload ?? (remoteResult?.id === shortId ? remoteResult.payload : null);
+  const remoteLoading = !hashPayload && Boolean(shortId) && remoteResult?.id !== shortId;
+  const storageKey = crewDraftKey(hashPayload ? hash : "", shortId);
+  const [draftOverrides, setDraftOverrides] = useState<Record<string, CrewDraftState>>({});
+  const draftRef = useRef<Record<string, CrewDraftState>>({});
+  const [quotaWarn, setQuotaWarn] = useState(false);
   const [receiptCopied, setReceiptCopied] = useState(false);
+  const draft = useMemo(() => draftOverrides[storageKey] ?? readDraft(storageKey), [draftOverrides, storageKey]);
+  const { checkedSlices, containerNo, sealNo, photos } = draft;
 
+  const updateDraft = (updater: (prev: CrewDraftState) => CrewDraftState) => {
+    const next = updater(draftRef.current[storageKey] ?? readDraft(storageKey));
+    draftRef.current[storageKey] = next;
+    setQuotaWarn(!writeDraft(storageKey, next));
+    setDraftOverrides(prev => ({ ...prev, [storageKey]: next }));
+  };
+  const clearLocalDraft = () => {
+    draftRef.current[storageKey] = EMPTY_DRAFT;
+    setQuotaWarn(false);
+    setDraftOverrides(prev => ({ ...prev, [storageKey]: EMPTY_DRAFT }));
+    try { localStorage.removeItem(storageKey); } catch {}
+  };
   const handlePhoto = async (nodeId: string, file?: File) => {
     if (!file) return;
-    const stamp = `CargoFit | ${containerNo || "CNTR-TBD"} | Seal: ${sealNo || "TBD"} | ${new Date().toLocaleString()}`;
-    const stamped = await stampWatermark(file, stamp);
-    setPhotos((prev) => ({ ...prev, [nodeId]: stamped }));
+    try {
+      const stamp = "CargoFit | " + (containerNo || "CNTR-TBD") + " | Seal: " + (sealNo || "TBD") + " | " + new Date().toLocaleString();
+      const stamped = await stampWatermark(file, stamp);
+      updateDraft(prev => ({ ...prev, photos: { ...prev.photos, [nodeId]: stamped } }));
+    } catch { window.alert(tr("照片读取失败，请重新选择。", "Could not read photo. Please select it again.")); }
   };
 
   const langPicker = (
@@ -107,7 +153,7 @@ export default function CrewViewPage() {
           <h1>{tr("CargoFit 现场装柜指挥单", "CargoFit Crew Loading Sheet")}</h1>
           {langPicker}
         </div>
-        <p>{tr("未检测到有效的装柜分享数据。请从装柜智算第 7 步点击“扫码分享给工厂 (Crew View)”生成二维码后打开。", "No valid shared loading plan detected. Generate a QR code from Step 7 in CargoFit first.")}</p>
+        <p>{remoteLoading ? tr("正在读取云端装柜方案…", "Loading shared plan…") : tr("未检测到有效的完整装柜分享数据，请重新生成链接。", "No valid complete loading plan. Generate a new link.")}</p>
         <Link href="/" style={{ color: "#0F766E", fontWeight: 600 }}>
           {tr("返回装柜智算工作台", "Back to CargoFit Workspace")} →
         </Link>
@@ -132,6 +178,8 @@ export default function CrewViewPage() {
         <p style={{ margin: "6px 0 0", fontSize: 14, fontWeight: 600, color: "#0F766E" }}>
           {tr("装柜进度", "Progress")}: {doneCount} / {payload.slices.length}
         </p>
+        <button type="button" onClick={clearLocalDraft}>{tr("清空本柜打卡缓存", "Clear local draft")}</button>
+        {quotaWarn && <p role="alert">{tr("本地存储空间不足，照片可能未保存，请及时导出 ZIP。", "Local storage limit reached; photos may not be saved. Export ZIP now.")}</p>}
       </header>
 
       <section style={{ marginBottom: 24 }}>
@@ -158,7 +206,7 @@ export default function CrewViewPage() {
                   type="checkbox"
                   style={{ width: 20, height: 20 }}
                   checked={Boolean(checkedSlices[s.idx])}
-                  onChange={(e) => setCheckedSlices((prev) => ({ ...prev, [s.idx]: e.target.checked }))}
+                  onChange={(e) => { const checked=e.target.checked; updateDraft(prev => ({ ...prev, checkedSlices: { ...prev.checkedSlices, [s.idx]: checked } })); }}
                 />
                 {tr("已装完", "Loaded")}
               </span>
@@ -184,7 +232,7 @@ export default function CrewViewPage() {
             Container No.
             <input
               value={containerNo}
-              onChange={(e) => setContainerNo(e.target.value)}
+              onChange={(e) => { const value=e.target.value; updateDraft(prev => ({ ...prev, containerNo: value })); }}
               placeholder="MSCU1234567"
               style={{ width: "100%", padding: "8px 10px", marginTop: 4, border: "1px solid #CBD5E1", borderRadius: 6 }}
             />
@@ -193,7 +241,7 @@ export default function CrewViewPage() {
             Seal No.
             <input
               value={sealNo}
-              onChange={(e) => setSealNo(e.target.value)}
+              onChange={(e) => { const value=e.target.value; updateDraft(prev => ({ ...prev, sealNo: value })); }}
               placeholder="SL882910"
               style={{ width: "100%", padding: "8px 10px", marginTop: 4, border: "1px solid #CBD5E1", borderRadius: 6 }}
             />

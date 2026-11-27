@@ -4,92 +4,58 @@ import { QrCode, Copy, Check, ExternalLink, X } from "lucide-react";
 import type { PackingResult } from "../lib/packing/types";
 import { tr, useLanguage } from "./language";
 
-export interface CrewSlicePayload {
-  v: 1;
-  c: string; // container name
-  L: number;
-  W: number;
-  H: number;
-  tot: number;
-  wt: number;
-  vol: number;
-  slices: Array<{
-    idx: number;
-    xFrom: number;
-    xTo: number;
-    items: Array<{ sku: string; qty: number; dx: number; dy: number; dz: number; col: string }>;
-  }>;
-}
+import { buildCrewSlicePayload, compactCrewPayloadForQr, encodeCrewPayload, isCrewPayload, type CrewSlicePayload } from "../lib/packing/crew-payload";
 
-export function buildCrewSlicePayload(plan: PackingResult): CrewSlicePayload {
-  const sorted = [...plan.placements].sort((a, b) => a.x - b.x || a.z - b.z || a.y - b.y);
-  const slices: CrewSlicePayload["slices"] = [];
-  const bandMm = 1200;
-
-  for (const box of sorted) {
-    const band = Math.floor(box.x / bandMm);
-    let slice = slices.find((s) => s.idx === band + 1);
-    if (!slice) {
-      slice = { idx: band + 1, xFrom: band * bandMm, xTo: (band + 1) * bandMm, items: [] };
-      slices.push(slice);
-    }
-    const existing = slice.items.find(
-      (it) => it.sku === box.sku && it.dx === Math.round(box.dx) && it.dy === Math.round(box.dy) && it.dz === Math.round(box.dz),
-    );
-    if (existing) existing.qty += 1;
-    else slice.items.push({ sku: box.sku, qty: 1, dx: Math.round(box.dx), dy: Math.round(box.dy), dz: Math.round(box.dz), col: box.color });
-  }
-
-  return {
-    v: 1,
-    c: plan.container.name,
-    L: Math.round(plan.container.length),
-    W: Math.round(plan.container.width),
-    H: Math.round(plan.container.height),
-    tot: plan.metrics.loadedCount,
-    wt: Math.round(plan.metrics.grossWeight),
-    vol: Number((plan.metrics.loadedVolume / 1e9).toFixed(2)),
-    slices,
-  };
-}
-
-function encodePayload(payload: CrewSlicePayload): string {
-  const json = JSON.stringify(payload);
-  const bytes = new TextEncoder().encode(json);
-  let bin = "";
-  bytes.forEach((b) => {
-    bin += String.fromCharCode(b);
-  });
-  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
+export { buildCrewSlicePayload, type CrewSlicePayload };
 
 export function CrewShareButton({ plan, disabled = false }: { plan: PackingResult; disabled?: boolean }) {
   useLanguage();
   const [open, setOpen] = useState(false);
-  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [qr, setQr] = useState<{ fullUrl: string; shortUrl: string; image: string | null } | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const shareUrl = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    const token = encodePayload(buildCrewSlicePayload(plan));
-    return `${window.location.origin}/crew#plan=${token}`;
-  }, [plan]);
+  const payload = useMemo(() => buildCrewSlicePayload(plan), [plan]);
+  const fullUrl = typeof window === "undefined" ? "" : window.location.origin + "/crew#plan=" + encodeCrewPayload(payload);
+  const currentQr = qr?.fullUrl === fullUrl ? qr : null;
+  const shareUrl = currentQr?.shortUrl || fullUrl;
+  const qrUrl = currentQr?.image;
 
   useEffect(() => {
-    if (!open || !shareUrl) return;
+    if (!open || !fullUrl) return;
     let active = true;
-    import("qrcode")
-      .then((QRCode) => QRCode.toDataURL(shareUrl, { width: 220, margin: 1 }))
-      .then((url) => {
-        if (active) setQrUrl(url);
-      })
-      .catch(() => {
-        if (active) setQrUrl(null);
-      });
-    return () => {
-      active = false;
+    const controller = new AbortController();
+    const render = async () => {
+      if (!isCrewPayload(payload)) { if (active) setQr({ fullUrl, shortUrl: "", image: null }); return; }
+      const compact = compactCrewPayloadForQr(payload, window.location.origin.length);
+      let shortUrl = "";
+      let target = fullUrl;
+      let fits = compact.fitsQr;
+      if (!fits) {
+        const timer = setTimeout(() => controller.abort(), 2500);
+        try {
+          const res = await fetch("/api/crew-share", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload), signal: controller.signal });
+          if (res.ok) {
+            const data = await res.json() as { id?: string };
+            if (typeof data.id === "string" && /^[a-z0-9]{6,16}$/i.test(data.id)) {
+              shortUrl = window.location.origin + "/crew?id=" + encodeURIComponent(data.id);
+              target = shortUrl;
+              fits = true;
+            }
+          }
+        } catch { /* fallback to complete hash link */ } finally { clearTimeout(timer); }
+      }
+      let image: string | null = null;
+      if (fits) {
+        try {
+          const QRCode = await import("qrcode");
+          image = await QRCode.toDataURL(target, { width: 320, margin: 4, errorCorrectionLevel: "L" });
+        } catch { /* show complete link instead */ }
+      }
+      if (active) setQr({ fullUrl, shortUrl, image });
     };
-  }, [open, shareUrl]);
+    void render();
+    return () => { active = false; controller.abort(); };
+  }, [open, fullUrl, payload]);
 
   const copyLink = async () => {
     if (!shareUrl) return;
@@ -102,7 +68,7 @@ export function CrewShareButton({ plan, disabled = false }: { plan: PackingResul
 
   if (!open) {
     return (
-      <button type="button" className="button" disabled={disabled} onClick={() => setOpen(true)}>
+      <button type="button" className="button" disabled={disabled || !isCrewPayload(payload)} onClick={() => { setQr(null); setOpen(true); }}>
         <QrCode size={16} />
         {tr("扫码分享给工厂 (Crew View)", "Share Crew View QR")}
       </button>
@@ -122,18 +88,18 @@ export function CrewShareButton({ plan, disabled = false }: { plan: PackingResul
           {qrUrl ? (
             <img src={qrUrl} alt="Crew View QR Code" width={200} height={200} style={{ borderRadius: 8, border: "1px solid var(--border-card)" }} />
           ) : (
-            <p className="helper-text">{tr("正在生成二维码…", "Generating QR code…")}</p>
+            <p className="helper-text">{currentQr ? tr("二维码容量不足或不可用。请复制完整链接，货物明细不会删减。", "QR unavailable or too long. Copy the complete link; no cargo data is removed.") : tr("正在生成二维码…", "Generating QR code…")}</p>
           )}
         </div>
         <div>
           <p className="helper-text">
             {tr(
-              "工厂装柜师傅无需登录账号，手机扫码即可查看“第 1 排 → 第 N 排”大字步进清单，并支持空柜/半柜/满柜/封条五图水印打卡导出验货报告。",
-              "Warehouse crews open this link on any phone without an account to follow slice-by-slice loading steps and capture watermarked 5-photo proof.",
+              "工厂装柜师傅无需登录账号，手机扫码即可查看“第 1 排 → 第 N 排”大字步进清单，并支持八宫格水印拍照、自动保存进度及导出 ZIP。",
+              "Warehouse crews open this link on any phone without an account to follow slice-by-slice loading steps and capture watermarked 8-photo proof, retain progress and export ZIP.",
             )}
           </p>
           <div className="v1-actions">
-            <button type="button" className="button primary small" onClick={() => void copyLink()}>
+            <button type="button" className="button primary small" disabled={!shareUrl || !isCrewPayload(payload)} onClick={() => void copyLink()}>
               {copied ? <Check size={14} /> : <Copy size={14} />}
               {copied ? tr("已复制链接", "Copied") : tr("复制免登录链接", "Copy Crew Link")}
             </button>
