@@ -1,4 +1,5 @@
 import type { ProductInput } from "./types";
+import {parseProductInput} from "./workspace-file";
 
 export interface SavedSkuItem {
   id: string;
@@ -12,6 +13,8 @@ export interface SavedSkuItem {
   hsCode?: string;
   clientTag?: string;
   updatedAt: string;
+  /** Full loading rules; absent only in legacy dimension-only library entries. */
+  product?: ProductInput;
 }
 
 const STORAGE_KEY = "cargofit-sku-library-v1";
@@ -33,17 +36,25 @@ export function loadSkuLibrary(): SavedSkuItem[] {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is SavedSkuItem => {
+      if (!item || typeof item !== "object" || typeof item.id !== "string" || typeof item.sku !== "string" || !item.sku.trim() || typeof item.name !== "string" || typeof item.updatedAt !== "string" ||
+        ![item.length,item.width,item.height].every(n => typeof n === "number" && Number.isFinite(n) && n > 0) ||
+        !Number.isFinite(item.weight) || item.weight < 0 || !Number.isInteger(item.defaultQty) || item.defaultQty < 0 ||
+        item.clientTag !== undefined && typeof item.clientTag !== "string") return false;
+      try { if (item.product) item.product = parseProductInput(item.product); return true; } catch { return false; }
+    });
   } catch {
     return [];
   }
 }
 
-export function saveSkuLibrary(items: SavedSkuItem[]): void {
-  if (typeof window === "undefined") return;
+export function saveSkuLibrary(items: SavedSkuItem[]): boolean {
+  if (typeof window === "undefined") return false;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  } catch {}
+    return true;
+  } catch { return false; }
 }
 
 export function mergeProductsIntoLibrary(
@@ -69,6 +80,7 @@ export function mergeProductsIntoLibrary(
       hsCode: prev?.hsCode,
       clientTag: clientTag?.trim() || prev?.clientTag,
       updatedAt: now,
+      product: structuredClone(p),
     });
   }
   return Array.from(bySku.values());
@@ -93,5 +105,6 @@ export function savedSkuToProduct(item: SavedSkuItem, index: number): ProductInp
     stackable: true,
     priority: 1,
     cargoType: "carton",
+    ...(item.product ? {...structuredClone(item.product), id:`sku-${Date.now()}-${index}-${Math.random().toString(36).slice(2,5)}`} : {}),
   };
 }

@@ -40,14 +40,15 @@ export function SkuLibraryDrawer({
   const saveCurrentToLibrary = () => {
     const next = mergeProductsIntoLibrary(items, currentProducts, clientTag);
     setItems(next);
-    saveSkuLibrary(next);
+    const saved = saveSkuLibrary(next);
+    if (!saved) { setNotice(tr("产品库未写入本机存储，请备份当前工作区。", "Product library could not be saved. Back up the current workspace.")); return; }
     setNotice(tr(`已将当前 ${currentProducts.length} 个 SKU 存入产品库。`, `Saved ${currentProducts.length} SKUs to library.`));
   };
 
   const removeItem = (id: string) => {
     const next = items.filter((i) => i.id !== id);
     setItems(next);
-    saveSkuLibrary(next);
+    if (!saveSkuLibrary(next)) setNotice(tr("产品库未写入本机存储，请备份当前工作区。", "Product library could not be saved. Back up the current workspace."));
   };
 
   const loadTemplate = (tplName: string) => {

@@ -1,6 +1,7 @@
 import { toKilograms, toMillimeters, type LengthUnit, type WeightUnit } from "./units";
 import type { ProductInput } from "./types";
 import { EMPTY_ORDER_LINE } from "./order-lines";
+import {parseCsvRecords, MAX_CSV_BYTES, MAX_CSV_ROWS} from "./csv";
 
 export interface SmartImportRow {
   rowIndex: number;
@@ -57,23 +58,16 @@ const HEADER_RULES: Array<{ key: FieldKey; pattern: RegExp }> = [
 ];
 
 export function parseCombinedDimensions(raw: string): { l: number; w: number; h: number; unit?: LengthUnit } | null {
-  const cleaned = raw.trim();
-  const m = cleaned.match(
-    /(\d+(?:\.\d+)?)\s*(?:mm|cm|m|in|"|″)?\s*[*x×X\/,]\s*(\d+(?:\.\d+)?)\s*(?:mm|cm|m|in|"|″)?\s*[*x×X\/,]\s*(\d+(?:\.\d+)?)\s*(mm|cm|m|in|"|″)?/i,
+  const m = raw.trim().match(
+    /^([+-]?\d+(?:\.\d+)?)\s*(mm|cm|m|in|"|″)?\s*[*x×X\/,]\s*([+-]?\d+(?:\.\d+)?)\s*(mm|cm|m|in|"|″)?\s*[*x×X\/,]\s*([+-]?\d+(?:\.\d+)?)\s*(mm|cm|m|in|"|″)?$/i,
   );
   if (!m) return null;
-  const l = Number(m[1]);
-  const w = Number(m[2]);
-  const h = Number(m[3]);
-  if (![l, w, h].every((v) => Number.isFinite(v) && v > 0)) return null;
-  const rawUnit = (m[4] ?? "").toLowerCase();
-  let unit: LengthUnit | undefined;
-  if (rawUnit === "mm") unit = "mm";
-  else if (rawUnit === "cm") unit = "cm";
-  else if (rawUnit === "m") unit = "m";
-  else if (rawUnit === "in" || rawUnit === '"' || rawUnit === "″") unit = "in";
-  else if (/["″]/.test(cleaned)) unit = "in";
-  return { l, w, h, unit };
+  const [l,w,h] = [m[1],m[3],m[5]].map(Number);
+  if (![l,w,h].every(v => Number.isFinite(v) && v > 0)) return null;
+  const explicit = [m[2],m[4],m[6]].filter(Boolean).map(v => /["″]/.test(v) ? "in" : v.toLowerCase());
+  // Mixed unit axes must be split into explicit columns rather than silently using the last suffix.
+  if (new Set(explicit).size > 1) return null;
+  return {l,w,h,unit:explicit[0] as LengthUnit | undefined};
 }
 
 function detectUnitFromHeaders(headers: string[]): { length: LengthUnit; weight: WeightUnit } {
@@ -145,7 +139,17 @@ export function parseSmartCargoText(
 
   const firstLine = rawLines[0];
   const delimiter = firstLine.includes("\t") ? "\t" : firstLine.includes("|") ? "|" : ",";
-  const firstCells = splitLine(firstLine, delimiter);
+  const invalidResult = (message: string): SmartImportResult => ({
+    rows:[{rowIndex:1,sku:"CSV",name:"CSV",lengthMm:0,widthMm:0,heightMm:0,weightKg:0,quantity:0,errors:[message]}],
+    detectedLengthUnit:overrideLengthUnit??"mm",detectedWeightUnit:overrideWeightUnit??"kg",headerMatched:false,validCount:0,errorCount:1,
+  });
+  if (new TextEncoder().encode(text).byteLength > MAX_CSV_BYTES) return invalidResult("导入文件超过 5 MB / Import exceeds 5 MB");
+  let records: string[][];
+  try { records = delimiter === "," ? parseCsvRecords(text) : rawLines.map(line => splitLine(line, delimiter)); }
+  catch { return invalidResult("CSV 引号或分隔格式无效 / Invalid CSV quotes or delimiters"); }
+  if (records.length > MAX_CSV_ROWS + 1) return invalidResult("订单行超过 10,000 行 / Order exceeds 10,000 rows");
+  const firstCells = records[0] ?? [];
+
 
   const colMap: Partial<Record<FieldKey, number>> = {};
   let matchedCount = 0;
@@ -165,13 +169,13 @@ export function parseSmartCargoText(
   const lengthUnit = overrideLengthUnit ?? headerUnits.length;
   const weightUnit = overrideWeightUnit ?? headerUnits.weight;
 
-  const dataLines = headerMatched ? rawLines.slice(1) : rawLines;
+  const dataRecords = headerMatched ? records.slice(1) : records;
   const rows: SmartImportRow[] = [];
   const rawDimSamples: number[] = [];
 
-  dataLines.forEach((line, idx) => {
-    const cells = splitLine(line, delimiter);
+  dataRecords.forEach((cells, idx) => {
     const errors: string[] = [];
+    if (headerMatched && cells.length > firstCells.length && cells.slice(firstCells.length).some(cell => cell.trim())) errors.push("数据列数超过表头 / Extra data columns");
 
     let sku = "";
     let name = "";
