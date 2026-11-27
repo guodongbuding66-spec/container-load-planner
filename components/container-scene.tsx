@@ -2,6 +2,7 @@
 import {palletLoadEnvelope} from "../lib/packing/unit-envelope";
 import type {MeasurementOverlay} from "../lib/packing/saved-measurements";
 import {siteExclusionBoxes} from "../lib/packing/site-exclusions";
+import {inspectReeferAirflow} from "../lib/packing/trade-compliance";
 
 import { cargoShapeOf } from "../lib/packing/cargo-shape";
 import { cargoShapeGeometry } from "../lib/packing/cargo-shape-geometry";
@@ -212,6 +213,33 @@ export function ContainerModel({ result, visibleProducts, visibleCount, reducedR
       {!isolated&&result.workflow !== "pallet-only" && <group position={[0,baseHeight*scale,0]}><TransportModel space={result.container} scale={scale} mode={modelMode} transparency={transparency} reduced={reducedRendering}/></group>}
       {!isolated&&baseHeight > 0 && (result.container.category !== "pallet" || modelMode === "wireframe") && <PalletStructures pallets={[{id:"space-base",presetId:result.container.id,name:result.container.name,x:0,y:0,z:-baseHeight,dx:effective.length,dy:effective.width,dz:baseHeight,weight:0,maxLoad:result.container.maxWeight,orientation:"LWH"}]} scale={scale} offset={offset}/>}
       {!isolated&&<SceneAnalysisOverlay regions={siteExclusionBoxes(result.container,result.clearance).flatMap(b=>{const clipped=sectionBox(b,result,section);return clipped?[clipped]:[];})} scale={scale} offset={offset}/>}
+      {!isolated && result.workflow !== "pallet-only" && (() => {
+        const rf = inspectReeferAirflow(result);
+        if (!rf.isReefer) return null;
+        const yPos = rf.redLineHeightMm * scale;
+        return (
+          <mesh position={[offset.x + (effective.length * scale) / 2, yPos, offset.z + (effective.width * scale) / 2]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[effective.length * scale, effective.width * scale]} />
+            <meshBasicMaterial color="#DC2626" transparent opacity={0.14} side={THREE.DoubleSide} depthWrite={false} />
+          </mesh>
+        );
+      })()}
+      {!isolated && result.delivery && (() => {
+        const stopMaxX = new Map<number, number>();
+        for (const b of result.placements) {
+          const st = result.delivery?.[b.productId]?.stop;
+          if (!st) continue;
+          stopMaxX.set(st, Math.max(stopMaxX.get(st) ?? 0, b.x + b.dx));
+        }
+        if (stopMaxX.size < 2) return null;
+        const dividers = [...stopMaxX.entries()].sort((a, b) => b[0] - a[0]).slice(0, -1);
+        return dividers.map(([stopId, xMm]) => (
+          <mesh key={`lifo-divider-${stopId}`} position={[offset.x + xMm * scale, (effective.height * scale) / 2, offset.z + (effective.width * scale) / 2]} rotation={[0, Math.PI / 2, 0]}>
+            <planeGeometry args={[effective.width * scale, effective.height * scale]} />
+            <meshBasicMaterial color="#0F766E" transparent opacity={0.16} side={THREE.DoubleSide} depthWrite={false} />
+          </mesh>
+        ));
+      })()}
       <PalletStructures pallets={pallets} scale={scale} offset={offset} reduced={reducedRendering} onSelect={palletPicking?p=>onSelect(palletAnchors([p])[0]):undefined}/>
       {groups.map((group) => (
         <InstancedBoxes key={group.productId} group={group} collisionProxy={appearance.collisionProxy} scale={scale} offset={offset} reducedRendering={reducedRendering} labels={labels} onSelect={onSelect} />

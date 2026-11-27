@@ -20,6 +20,8 @@ import { LongSupportSettings } from "./long-support-settings";
 import { CargoFitNotice } from "./cargo-fit-notice";
 import { ShippingMarkEditor } from "./shipping-mark-editor";
 import { parseShippingMark } from "../lib/packing/shipping-mark";
+import { nestedDeltaHeight, parseNestingDeltaHeight } from "../lib/packing/nesting";
+import { calcNestedStackHeight } from "../lib/packing/trade-compliance";
 import { tr, useLanguage } from "./language";
 
 export function CargoSettings({ product, mode, lengthUnit: initialLengthUnit, weightUnit, container, clearance = 0, strategy = "maximum", onClose, onSave }: { product: ProductInput; mode: PackingMode; lengthUnit: LengthUnit; weightUnit: WeightUnit; container?: ContainerSpec; clearance?: number; strategy?: PackingStrategy; onClose: () => void; onSave: (product: ProductInput) => void }) {
@@ -35,10 +37,14 @@ export function CargoSettings({ product, mode, lengthUnit: initialLengthUnit, we
   const [supportInputValid,setSupportInputValid]=useState(true);
   const [error,setError]=useState(""),[modelInputValid,setModelInputValid]=useState(true),[modelBusy,setModelBusy]=useState(false),[modelSession,setModelSession]=useState(0),[protection,setProtection]=useState(()=>String(fromMillimeters(product.protectionGap??0,lengthUnit)));
   const shape=cargoShapeOf(draft),profile=isRectilinearShape(draft),canSupport=shapeCanSupport(draft);
+  const [nestingInput,setNestingInput]=useState(()=>product.nestingDeltaHeightMm===undefined?"":String(product.nestingDeltaHeightMm));
   const geometry=useMemo(()=>{
     try{if(draft.solidModel){const model=parseSolidModel(draft.solidModel)!,[length,width,height]=buildSolidModel(model).size;return {size:{...draft,solidModel:model,length,width,height},valid:true};}return {size:resolveShapeSize(shape,sizes,sizeOptions,lengthUnit),valid:true};}
     catch{return {size:product,valid:false};}
   },[draft,shape,sizes,sizeOptions,lengthUnit,product]);
+  const nestingValue=nestingInput.trim()===""?undefined:Number(nestingInput);
+  const nestingInvalid=nestingValue!==undefined&&(!Number.isFinite(nestingValue)||nestingValue<0||nestingValue>geometry.size.height);
+  const activeNesting=nestingInvalid?0:nestedDeltaHeight({...draft,...geometry.size,nestingDeltaHeightMm:nestingValue});
   const changeLengthUnit=(next:LengthUnit)=>{
     if(!geometry.valid||!modelInputValid||modelBusy)return;
     setSizes(sizeDraftOf({...draft,...geometry.size},next,sizeOptions));
@@ -81,13 +87,14 @@ export function CargoSettings({ product, mode, lengthUnit: initialLengthUnit, we
     let fixtureWeight=0;
     if(draft.solidModel){const solidModel=parseSolidModel(draft.solidModel)!,built=buildSolidModel(solidModel);const [length,width,height]=built.size;fixtureWeight=built.fixtureWeight;size={cargoShape:shape,solidModel,length,width,height};}
     else size=resolveShapeSize(shape,sizes,sizeOptions,lengthUnit);
+    const nestingDeltaHeightMm=parseNestingDeltaHeight(nestingInput.trim()===""?undefined:Number(nestingInput),size.height);
     const gap=Number(protection);if(!protection.trim()||!Number.isFinite(gap)||gap<0||toMillimeters(gap,lengthUnit)>100000)throw new Error(tr("货物保护间隙须为 0–100000 mm。"));
     const base=draft.cargoType==="pallet"?toMillimeters(numeric("base",0),lengthUnit):undefined;
     if(base!==undefined&&base>=size.height)throw new Error(tr("托盘底座已包含在总高内，必须小于总高。","Pallet base is included in total height and must be smaller."));
     const layers=numeric("layers",0,true),quantity=numeric("quantity",0,true),weight=toKilograms(numeric("weight",0),weightUnit)+fixtureWeight;
     if(draft.solidModel&&draft.solidModel.parts.reduce((n,p)=>n+(p.weight??0),0)>weight)throw new Error(tr("部件和支架重量之和不能超过货物毛重。","Component and fixture weights cannot exceed gross cargo weight."));
     if(layers>99||quantity>1_000_000||!draft.sku.trim()||!Number.isFinite(weight))throw new Error(tr("请检查 SKU、层数和数量。","Check SKU, layer limit and quantity."));
-    onSave(withShapeSupport({...draft,shippingMark:parseShippingMark(draft.shippingMark),shapeAxis:undefined,shapeTopRatio:undefined,shapeWallRatio:undefined,shapeWallHeightRatio:undefined,shapeStepLengthRatio:undefined,shapeStepHeightRatio:undefined,solidModel:undefined,...size,declaredVolumeCbm:roundedCartonVolumeCbm(size),protectionGap:toMillimeters(gap,lengthUnit),weight,quantity,maxStackLayers:layers,allowedOrientations:parseOrientations(directions),palletBaseHeight:base}));onClose();
+    onSave(withShapeSupport({...draft,nestingDeltaHeightMm,shippingMark:parseShippingMark(draft.shippingMark),shapeAxis:undefined,shapeTopRatio:undefined,shapeWallRatio:undefined,shapeWallHeightRatio:undefined,shapeStepLengthRatio:undefined,shapeStepHeightRatio:undefined,solidModel:undefined,...size,declaredVolumeCbm:roundedCartonVolumeCbm(size),protectionGap:toMillimeters(gap,lengthUnit),weight,quantity,maxStackLayers:layers,allowedOrientations:parseOrientations(directions),palletBaseHeight:base}));onClose();
   }catch(e){setError(e instanceof Error?e.message:"Invalid input");}};
   const applyModel=(solidModel:SolidModel,record=true)=>{if(record&&draft.solidModel&&geometry.valid){setModelUndo(v=>[...v,draft.solidModel!].slice(-24));setModelRedo([]);}const main=solidModel.parts.filter(p=>!p.fixture);setDraft(v=>({...v,solidModel,cargoShape:main.length===1?main[0].kind:"compound",shapeAxis:undefined,shapeTopRatio:undefined,shapeWallRatio:undefined,shapeWallHeightRatio:undefined,shapeStepLengthRatio:undefined,shapeStepHeightRatio:undefined}));setError("");};
   const openModeling=()=>{try{if(!draft.solidModel)applyModel(legacySolidModel({...draft,...geometry.size,solidModel:undefined}));setModeling(true);}catch(e){setError(e instanceof Error?e.message:String(e));}};
@@ -113,6 +120,7 @@ export function CargoSettings({ product, mode, lengthUnit: initialLengthUnit, we
     </section>
     <div className="feature-form-grid cargo-meta-fields"><label>SKU<input aria-label="SKU" value={draft.sku} maxLength={80} onChange={e=>setDraft(v=>({...v,sku:e.target.value}))}/></label><label>{tr("品名","Name")}<input value={draft.name} maxLength={200} onChange={e=>setDraft(v=>({...v,name:e.target.value}))}/></label><label>{tr("颜色","Color")}<input type="color" value={draft.color} onChange={e=>setDraft(v=>({...v,color:e.target.value}))}/></label>
       <label>{draft.solidModel?tr("货物重量（不含支架）","Cargo weight (excluding fixtures)"):tr("重量")} ({weightUnit})<input inputMode="decimal" value={values.weight} onChange={e=>update("weight",e.target.value)}/></label>{mode==="mixed"&&<label>{tr("数量")}<input inputMode="numeric" value={values.quantity} onChange={e=>update("quantity",e.target.value)}/></label>}<label>{tr("层数上限")}<input inputMode="numeric" value={values.layers} onChange={e=>update("layers",e.target.value)}/><small>{tr("0 = 按空间自动计算","0 = determined by available space")}</small></label>
+      <label>{tr("垂直嵌套增量 ΔH (mm)","Vertical nesting ΔH (mm)")}<input inputMode="decimal" value={nestingInput} placeholder="0" aria-invalid={nestingInvalid} onChange={e=>{setNestingInput(e.target.value);setError("");}}/><small>{nestingInvalid?tr("增量必须为 0 至单件高度之间的有限数字。","Enter a finite increment between zero and the item height."):activeNesting>0?tr(`5层嵌套总高 ${calcNestedStackHeight(geometry.size.height,activeNesting,5)} mm（适用于允许竖直套叠的长方体）`,`5-layer nested height: ${calcNestedStackHeight(geometry.size.height,activeNesting,5)} mm (for eligible upright cuboids)`):tr("0 或等于单件高度时不套叠。当前仅支持可承托的长方体，其他外形或实体模型不启用套叠。","Zero or the nominal height disables nesting. Only stackable cuboids are supported; other shapes and solid models do not enable nesting.")}</small></label>
       {draft.cargoType==="pallet"&&<label>{tr("托盘底座高度","Pallet base height")} ({lengthUnit})<input inputMode="decimal" value={values.base} onChange={e=>update("base",e.target.value)}/><small>{tr("已包含在外箱总高内","Included in outer height")}</small></label>}
     </div>
     <div className="feature-toggle-row"><label><input type="checkbox" checked={canSupport&&draft.stackable} disabled={!canSupport} onChange={e=>setDraft(v=>({...v,stackable:e.target.checked}))}/>{tr("可承托")}</label><label><input type="checkbox" checked={draft.bottomOnly??false} onChange={e=>setDraft(v=>({...v,bottomOnly:e.target.checked}))}/>{tr("必须底置")}</label></div>

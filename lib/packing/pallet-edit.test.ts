@@ -91,8 +91,8 @@ describe("complete-plan pallet contents transactions",()=>{
     expect(()=>editPalletContents(next,products,p.id,{type:"add",productId:a.id,position:{x:0,y:0,z:0}})).not.toThrow();
   });
   it("uses crate interior clearance and refuses a candidate exceeding actual pallet load",()=>{
-    const crate=packLoadingWorkflow({...request,palletBuild:{...build,config:{...build.config,length:1000,width:800,packaging:{...DEFAULT_PACKAGING,enclosure:"panel",wallThickness:50}}}}),p=crate.pallets![0];
-    expect(()=>editPalletContents(crate,[product],p.id,{type:"add",productId:product.id,position:{x:0,y:0,z:0}})).toThrow(/净空/);
+    const crateProducts=[{...product,quantity:25}],crate=packLoadingWorkflow({...request,products:crateProducts,palletBuild:{...build,config:{...build.config,length:1000,width:800,packaging:{...DEFAULT_PACKAGING,enclosure:"panel",wallThickness:50}}}}),p=crate.pallets![0];
+    expect(()=>editPalletContents(crate,crateProducts,p.id,{type:"add",productId:product.id,position:{x:0,y:0,z:0}})).toThrow(/净空/);
     expect(validatePalletizedCargo([], [p], {...crate.container,height:200,doorHeight:200},0,{...crate.palletization!,only:false,editRevision:1},[product]).some(e=>e.includes("height"))).toBe(true);
     const low={...request,palletBuild:{...build,config:{...build.config,maxLoad:10}},products:[{...product,quantity:4}]},plan=packLoadingWorkflow(low),unit=plan.pallets![0];
     expect(()=>editPalletContents(plan,low.products,unit.id,{type:"add",productId:product.id,position:{x:400,y:0,z:0}})).toThrow();

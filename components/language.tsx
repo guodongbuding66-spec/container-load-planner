@@ -1,25 +1,58 @@
 "use client";
 import { useSyncExternalStore } from "react";
-import { interpolateUi, translateDiagnostic, translateUi } from "../lib/packing/translate-ui";
-type Language = "zh" | "en";
+import {
+  getLanguageMeta,
+  interpolateUi,
+  isUiLanguage,
+  SUPPORTED_LANGUAGES,
+  translateDiagnostic,
+  translateUi,
+  type UiLanguage,
+} from "../lib/packing/translate-ui";
+
+export { SUPPORTED_LANGUAGES, type UiLanguage };
+type Language = UiLanguage;
 const listeners = new Set<() => void>();
 let current: Language = "zh";
 let initialized = false;
 const notify = () => listeners.forEach(fn => fn());
+
+function applyHtmlLang(language: Language) {
+  if (typeof document !== "undefined" && document.documentElement) {
+    document.documentElement.lang = getLanguageMeta(language).htmlLang;
+  }
+}
+
 function initialize() {
   if (initialized || typeof window === "undefined") return;
   initialized = true;
-  try { current = localStorage.getItem("cargo-fit-language") === "en" ? "en" : "zh"; } catch {}
-  document.documentElement.lang = current === "en" ? "en" : "zh-CN";
-  window.addEventListener("storage", e => { if (e.key === "cargo-fit-language") { current = e.newValue === "en" ? "en" : "zh"; document.documentElement.lang = current === "en" ? "en" : "zh-CN"; notify(); } });
+  try {
+    const saved = localStorage.getItem("cargo-fit-language");
+    current = isUiLanguage(saved) ? saved : "zh";
+  } catch {}
+  applyHtmlLang(current);
+  window.addEventListener("storage", e => {
+    if (e.key === "cargo-fit-language") {
+      current = isUiLanguage(e.newValue) ? e.newValue : "zh";
+      applyHtmlLang(current);
+      notify();
+    }
+  });
 }
-export function getAppLanguage() { return current; }
-export function setAppLanguage(language: Language) { initialize(); current = language; document.documentElement.lang = language === "en" ? "en" : "zh-CN"; try { localStorage.setItem("cargo-fit-language", language); } catch {} notify(); }
+
+export function getAppLanguage(): Language { return current; }
+export function setAppLanguage(language: Language) {
+  initialize();
+  current = isUiLanguage(language) ? language : "zh";
+  applyHtmlLang(current);
+  try { localStorage.setItem("cargo-fit-language", current); } catch {}
+  notify();
+}
 const subscribe = (fn: () => void) => { listeners.add(fn); initialize(); return () => { listeners.delete(fn); }; };
 export const useLanguage = () => useSyncExternalStore(subscribe, getAppLanguage, () => "zh" as Language);
 export function AppLanguageTitle() {
   const language = useLanguage();
-  return <title>{language === "en" ? "CargoFit | Container Load Planner" : "外贸装柜智算"}</title>;
+  return <title>{getLanguageMeta(language).title}</title>;
 }
 export function tr(value: string, english?: string) { return translateUi(value, current, english); }
 export function tt(strings: TemplateStringsArray, ...values: unknown[]) { return interpolateUi(strings, values, current); }

@@ -3,7 +3,8 @@ import {planCrateStackReview} from "./crate-auto-stack";
 import {palletEnvelopeTop} from "./deck-support";
 import {containerAccessoryWeight,accessoryProductErrors} from "./container-accessories";
 import {bodiesOverlap} from "./cargo-body";
-import {availablePackingVolume,siteExclusionBoxes} from "./site-exclusions";
+import {availablePackingVolume,siteExclusionBoxes,usableCargoLength} from "./site-exclusions";
+import {findDirectNestedParent,nestedDeltaHeight} from "./nesting";
 import { planCrateUnits, crateEvidence } from "./crate-bearing";
 import { bodyVolumeRatio, validOrientationSigns } from "./cargo-body";
 import { bearingLimit } from "./bearing";
@@ -71,7 +72,7 @@ export function auditPackingResult(plan: PackingResult, products?: readonly Prod
   }
   add("products",products?(sourceValid?"pass":"fail"):"unverified",products?(sourceValid?"箱位与当前 SKU、单箱重量和外形资料一致。":"箱位或外形资料与当前产品不一致。"):"缺少原始产品资料，未核对 SKU 与外形来源。",products?(sourceValid?"Placements match the current SKUs, unit weights and shape definitions.":"Placements or shape metadata differ from the current products."):"Original product inputs were not provided; SKU and shape provenance are unverified.",stale);
 
-  const l=plan.container.length-plan.clearance*2,w=plan.container.width-plan.clearance*2,h=plan.container.height-plan.clearance;
+  const l=usableCargoLength(plan.container,plan.clearance),w=plan.container.width-plan.clearance*2,h=plan.container.height-plan.clearance;
   const outside:string[]=[];
   let excluded:ReturnType<typeof siteExclusionBoxes>=[];try{excluded=siteExclusionBoxes(plan.container,plan.clearance);}catch{outside.push("site-exclusions");}
   for(const b of boxes){
@@ -94,15 +95,38 @@ export function auditPackingResult(plan: PackingResult, products?: readonly Prod
   quantities&&=countErrors.length===0;
   add("quantities",!quantities?"fail":completeState,!quantities?"箱位、SKU 明细和方案总箱数不一致。":full?"箱位、已装、未装和订单总数一致。":"汇总数量一致；部分容量结果尚无完整箱位。",!quantities?"Placements, SKU summaries and total counts disagree.":full?"Placements, loaded, unmet and requested counts agree.":"Summary counts agree; some capacity results have no complete coordinate set.",countErrors);
 
+  // BUG-002: Independently verify vertical nesting chains from 3D coordinates so valid nested plans
+  // audit against true incremental occupied volume (first unit full height + nested children ΔH).
+  const expectedSkuVolume=new Map<string,number>();
+  if(products&&full){
+    const sortedByZ=[...boxes].sort((a,b)=>a.z-b.z);
+    const verifiedBoxes:typeof boxes=[];
+    for(const b of sortedByZ){
+      const p=productMap.get(b.productId);
+      const baseVol=volumes.get(b.productId)??NaN;
+      if(!p||!Number.isFinite(baseVol)){expectedSkuVolume.set(b.productId,NaN);continue;}
+      const dh=nestedDeltaHeight(p);
+      const parent=dh>0?findDirectNestedParent(b,verifiedBoxes,p):undefined;
+      const boxVol=parent?b.dx*b.dy*dh*bodyVolumeRatio(p):baseVol;
+      verifiedBoxes.push(b);
+      expectedSkuVolume.set(b.productId,(expectedSkuVolume.get(b.productId)??0)+boxVol);
+    }
+  }
+  const expectedVolumeForSummary=(s:PackingResult["summaries"][number])=>{
+    const p=productMap.get(s.productId);
+    if(!products||!p)return s.loadedVolume;
+    if(full)return expectedSkuVolume.get(s.productId)??0;
+    return s.loaded*(volumes.get(p.id)??NaN);
+  };
   let cargoWeight=0,cargoVolume=0;
-  for(const s of plan.summaries){const p=productMap.get(s.productId);cargoWeight+=products&&p?s.loaded*p.weight:s.loadedWeight;cargoVolume+=products&&p?s.loaded*(volumes.get(p.id)??NaN):s.loadedVolume;}
+  for(const s of plan.summaries){const p=productMap.get(s.productId);cargoWeight+=products&&p?s.loaded*p.weight:s.loadedWeight;cargoVolume+=expectedVolumeForSummary(s);}
   const tare=pallets.reduce((n,p)=>n+p.weight,0), recordedWeight=boxes.reduce((n,b)=>n+b.weight,0);
   const weight=near(totals.grossWeight,cargoWeight+tare+containerAccessoryWeight(plan.container))&&(!full||near(cargoWeight,recordedWeight))&&plan.summaries.every(s=>!products||near(s.loadedWeight,s.loaded*(productMap.get(s.productId)?.weight??NaN)));
   add("weight",weight?completeState:"fail",weight?"货物、包装自重与整柜附件计划重量分别核对，各计一次。":"货物重量、包装自重或总毛重不一致。",weight?"Cargo, packaging tare and container accessory planned mass agree; each is counted once.":"Cargo mass, packaging tare or total gross weight disagree.");
 
   let reserved=NaN;
   try{reserved=pallets.reduce((n,p)=>n+packagingReservedVolume(p),0);}catch{}
-  const volume=volumeValid&&near(totals.loadedVolume,cargoVolume+reserved)&&plan.summaries.every(s=>!products||near(s.loadedVolume,s.loaded*(volumes.get(s.productId)??NaN)));
+  const volume=volumeValid&&near(totals.loadedVolume,cargoVolume+reserved)&&plan.summaries.every(s=>!products||near(s.loadedVolume,expectedVolumeForSummary(s)));
   add("volume",volume?products?completeState:"unverified":"fail",volume?"占用体积与 SKU 体积、底座及围护预留体积一致。":"货物体积、包装预留或占用体积不一致。",volume?"Occupied volume agrees with SKU volume and reserved base/enclosure volume.":"Cargo volume, reserved packaging or total occupied volume disagree.");
 
   let expectedVolume=NaN;

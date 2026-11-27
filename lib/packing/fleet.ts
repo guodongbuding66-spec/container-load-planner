@@ -62,7 +62,78 @@ export function allocateFleet(request:PackingRequest,options:FleetOption[],maxCo
   const selected=candidates[0];loads.push(selected);counts.set(selected.plan.container.id,(counts.get(selected.plan.container.id)??0)+1);
   onProgress?.(finishFleet(request,loads,"正在分配后续柜",pricing,notes));
  }
- const result=finishFleet(request,loads,reason,pricing,notes),validation=validateFleet(request,result,options,maxContainers);if(!validation.valid)throw Error(validation.errors.join("; "));return result;
+ let result=finishFleet(request,loads,reason,pricing,notes);
+ // FLEET-001: In cost-priority mode with multiple container types, run a bounded multi-container beam search
+ // so 1 expensive container can be beaten by 2+ cheaper containers within maxContainers & stock limits.
+ if(objective==="cost"&&!restriction.vehicleId&&options.length>1&&maxContainers-prefix.length>=2){
+  const costOf=(r:FleetResult)=>r.costs?.total??(request.workflow==="palletized"?null:r.totalCost);
+  const isBetter=(cand:FleetResult,inc:FleetResult)=>{
+   if(cand.complete!==inc.complete)return cand.complete;
+   const del=compareDelivery(request,cand.loads,inc.loads);
+   if(del!==0)return del<0;
+   const cc=costOf(cand),ic=costOf(inc);
+   if(cc!==null&&ic!==null&&Math.abs(cc-ic)>1e-9)return cc<ic;
+   return cand.loads.length<inc.loads.length;
+  };
+  const maxDepth=Math.min(maxContainers-prefix.length,6);
+  const deadline=Date.now()+400;
+  const packCache=new Map<string,PackingResult|null>();
+  const remainingKey=(prods:readonly ProductInput[])=>prods.map(p=>`${p.id}:${p.quantity}`).join("|");
+  type BeamState={loads:FleetLoad[];counts:Map<string,number>;delivered:number;costSoFar:number};
+  let beam:BeamState[]=[{loads:[...prefix],counts:new Map(prefix.reduce((m,l)=>m.set(l.plan.container.id,(m.get(l.plan.container.id)??0)+1),new Map<string,number>())),delivered:0,costSoFar:0}];
+  const completed:FleetResult[]=[];
+  for(let depth=0;depth<maxDepth&&beam.length&&Date.now()<deadline;depth++){
+   const nextStates:BeamState[]=[];
+   const seen=new Set<string>();
+   for(const state of beam){
+    if(Date.now()>=deadline)break;
+    const pool=fleetPool(request,state.loads);
+    if(pool.products.every(p=>p.quantity===0))continue;
+    const rKey=remainingKey(pool.products);
+    for(const o of options){
+     if(Date.now()>=deadline)break;
+     const used=state.counts.get(o.container.id)??0;
+     if(used>=o.available)continue;
+     const cKey=`${rKey}@@${o.container.id}@@${restriction.unavailablePackaging??""}`;
+     let plan=packCache.get(cKey);
+     if(plan===undefined){
+      try{
+       const packed=packAvailableStock({...pool.request,container:o.container},restriction.unavailablePackaging);
+       plan=packed.validation.valid&&packed.metrics.loadedCount>0?packed:null;
+      }catch{plan=null;}
+      packCache.set(cKey,plan);
+     }
+     if(!plan)continue;
+     const clonedPlan:PackingResult={...plan,id:`fleet-opt-${state.loads.length+1}-${o.container.id}-${plan.id}`};
+     const nextLoads=[...state.loads,{plan:clonedPlan,cost:o.cost}];
+     const nextCounts=new Map(state.counts);
+     nextCounts.set(o.container.id,used+1);
+     const nextPool=fleetPool(request,nextLoads);
+     const nextRes=finishFleet(request,nextLoads,reason,pricing,notes);
+     if(nextPool.products.every(p=>p.quantity===0)){
+      completed.push(nextRes);
+      continue;
+     }
+     const sig=`${[...nextCounts.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>`${k}=${v}`).join(",")}@@${remainingKey(nextPool.products)}`;
+     if(seen.has(sig))continue;
+     seen.add(sig);
+     const nextCost=costOf(nextRes)??nextRes.totalCost;
+     nextStates.push({loads:nextLoads,counts:nextCounts,delivered:state.delivered+clonedPlan.metrics.loadedCount,costSoFar:nextCost});
+    }
+   }
+   const byUnitCost=[...nextStates].sort((a,b)=>(a.costSoFar/Math.max(1,a.delivered))-(b.costSoFar/Math.max(1,b.delivered))||a.costSoFar-b.costSoFar).slice(0,3);
+   const byDelivered=[...nextStates].sort((a,b)=>b.delivered-a.delivered||a.costSoFar-b.costSoFar).slice(0,3);
+   const merged:BeamState[]=[];
+   const picked=new Set<BeamState>();
+   for(const s of [...byUnitCost,...byDelivered]){if(!picked.has(s)){picked.add(s);merged.push(s);}}
+   beam=merged;
+  }
+  const evalCandidates=[...completed,...beam.map(s=>finishFleet(request,s.loads,reason,pricing,notes))];
+  for(const cand of evalCandidates){
+   if(isBetter(cand,result)&&validateFleet(request,cand,options,maxContainers).valid)result=cand;
+  }
+ }
+ const validation=validateFleet(request,result,options,maxContainers);if(!validation.valid)throw Error(validation.errors.join("; "));return result;
 }
 /** Replace only a tail; prefix cargo, packaging and reserved loose quotas stay committed. */
 export function optimizeFleetTail(request:PackingRequest,baseline:FleetResult,options:FleetOption[],objective:"count"|"cost",prices?:FleetPricing):FleetResult{
@@ -79,6 +150,38 @@ export function optimizeFleetTail(request:PackingRequest,baseline:FleetResult,op
     const better=Number(candidate.complete)>Number(best.complete)||(candidate.complete===best.complete&&(objective==="cost"?known!==null&&known!==undefined&&oldCost!==null&&known<oldCost:candidate.loads.length<best.loads.length||candidate.loads.length===best.loads.length&&known!==null&&known!==undefined&&oldCost!==null&&known<oldCost));
     if(better&&validateFleet(request,candidate,options).valid)best=candidate;
    }catch{continue;}
+  }
+  // FLEET-001: Also allow replacing 1 expensive tail container with 2 cheaper containers in cost mode.
+  if(size===1&&objective==="cost"){
+   const previous=deliveredVector(request,tail);
+   const previousCounts=new Map<string,number>();for(const l of tail)for(const b of l.plan.placements)previousCounts.set(b.productId,(previousCounts.get(b.productId)??0)+1);
+   for(const o1 of options){
+    const used1=prefix.filter(l=>l.plan.container.id===o1.container.id).length;
+    if(used1>=o1.available)continue;
+    try{
+     const p1=packLoadingWorkflow({...pool.request,container:o1.container});
+     if(!p1.validation.valid||!p1.metrics.loadedCount)continue;
+     const midLoads=[...prefix,{plan:p1,cost:o1.cost}];
+     const midPool=fleetPool(request,midLoads);
+     if(midPool.products.every(p=>p.quantity===0))continue;
+     for(const o2 of options){
+      const used2=midLoads.filter(l=>l.plan.container.id===o2.container.id).length;
+      if(used2>=o2.available)continue;
+      try{
+       const p2=packLoadingWorkflow({...midPool.request,container:o2.container});
+       if(!p2.validation.valid||!p2.metrics.loadedCount)continue;
+       const pair:FleetLoad[]=[{plan:p1,cost:o1.cost},{plan:p2,cost:o2.cost}];
+       const next=deliveredVector(request,pair);if(next.some((n,i)=>n<previous[i]))continue;
+       const nextCounts=new Map<string,number>();for(const l of pair)for(const b of l.plan.placements)nextCounts.set(b.productId,(nextCounts.get(b.productId)??0)+1);
+       if([...previousCounts.entries()].some(([pid,cnt])=>(nextCounts.get(pid)??0)<cnt))continue;
+       const candidate=finishFleet(request,[...prefix,...pair],"尾柜已复核，仍有余货",pricing);
+       const known=candidate.costs?.total,oldCost=best.costs?.total??(request.workflow==="palletized"?null:best.totalCost);
+       const better=Number(candidate.complete)>Number(best.complete)||(candidate.complete===best.complete&&known!==null&&known!==undefined&&oldCost!==null&&known<oldCost);
+       if(better&&validateFleet(request,candidate,options).valid)best=candidate;
+      }catch{continue;}
+     }
+    }catch{continue;}
+   }
   }
  }return best;
 }

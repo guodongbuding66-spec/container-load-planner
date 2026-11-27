@@ -22,7 +22,7 @@ export const PLACEMENT_CSV_HEADER = "序号,SKU,品名,套装编码,套号,套�
 
 const REQUIRED_PRODUCT_COLUMNS = ["sku", "name", "length", "width", "height", "weight", "quantity"];
 const VALID_COLOR = /^#[0-9a-f]{6}$/i;
-const FORMULA_PREFIX = /^[\t ]*[=+\-@]/;
+const FORMULA_PREFIX = /^[\t\r\n\v\f ]*[=+\-@]/;
 
 function decodeOrderId(value:string){const s=value.trim();if(s.startsWith('"')){try{const v=JSON.parse(s);if(typeof v==="string")return v;}catch{}}return s;}
 function sanitizeText(value: string, maxLength: number) {
@@ -153,11 +153,13 @@ export function parseCsvRecords(source: string) {
   const records: string[][] = [];
   let record: string[] = [];
   let value = "";
-  let quoted = false;
+  let state: "start" | "unquoted" | "quoted" | "after_quote" = "start";
+  let line = 1;
 
   const finishValue = () => {
     record.push(value);
     value = "";
+    state = "start";
   };
   const finishRecord = () => {
     finishValue();
@@ -167,29 +169,82 @@ export function parseCsvRecords(source: string) {
 
   for (let index = 0; index < source.length; index += 1) {
     const character = source[index];
-    if (character === '"') {
-      if (quoted && source[index + 1] === '"') {
-        value += '"';
-        index += 1;
-      } else {
-        quoted = !quoted;
+    if (state === "start") {
+      if (character === '"') {
+        state = "quoted";
+        continue;
       }
+      if (character === ",") {
+        finishValue();
+        continue;
+      }
+      if (character === "\n" || character === "\r") {
+        if (character === "\r" && source[index + 1] === "\n") index += 1;
+        finishRecord();
+        line += 1;
+        continue;
+      }
+      value += character;
+      state = "unquoted";
       continue;
     }
-    if (character === "," && !quoted) {
+    if (state === "unquoted") {
+      if (character === '"') {
+        throw new Error(`CSV 第 ${line} 行存在未转义的畸形引号，请用双引号包裹字段并双写内部引号。`);
+      }
+      if (character === ",") {
+        finishValue();
+        continue;
+      }
+      if (character === "\n" || character === "\r") {
+        if (character === "\r" && source[index + 1] === "\n") index += 1;
+        finishRecord();
+        line += 1;
+        continue;
+      }
+      value += character;
+      continue;
+    }
+    if (state === "quoted") {
+      if (character === '"') {
+        if (source[index + 1] === '"') {
+          value += '"';
+          index += 1;
+        } else {
+          state = "after_quote";
+        }
+        continue;
+      }
+      if (character === "\r" && source[index + 1] === "\n") {
+        value += "\r\n";
+        index += 1;
+        line += 1;
+        continue;
+      }
+      if (character === "\n" || character === "\r") {
+        value += character;
+        line += 1;
+        continue;
+      }
+      value += character;
+      continue;
+    }
+    // state === "after_quote"
+    if (character === ",") {
       finishValue();
       continue;
     }
-    if ((character === "\n" || character === "\r") && !quoted) {
+    if (character === "\n" || character === "\r") {
       if (character === "\r" && source[index + 1] === "\n") index += 1;
       finishRecord();
+      line += 1;
       continue;
     }
-    value += character;
+    throw new Error(`CSV 第 ${line} 行闭合引号后存在非法字符，请检查引号格式。`);
   }
 
-  if (quoted) throw new Error("CSV 存在未闭合的引号，请检查文件格式。");
-  if (value !== "" || record.length) finishRecord();
+  if (state === "quoted") throw new Error("CSV 存在未闭合的引号，请检查文件格式。");
+  if (state !== "start" || record.length) finishRecord();
   return records;
 }
 
@@ -211,6 +266,12 @@ export function parseProductsCsv(text: string, colors: readonly string[], now = 
   }
 
   const products = records.map((values, index) => {
+    if (values.length > headers.length) {
+      const extraNonEmpty = values.slice(headers.length).filter((cell) => cell.trim() !== "");
+      if (extraNonEmpty.length) {
+        throw new Error(`CSV 第 ${index + 2} 行包含 ${values.length} 列，超过表头的 ${headers.length} 列（多余字段：“${extraNonEmpty[0].trim().slice(0, 40)}”），请检查列错位或多余逗号；未导入任何行。`);
+      }
+    }
     const get = (key: string) => values[headers.indexOf(key)] ?? "";
     const invalid = (key: string) => new Error(`CSV 第 ${index + 2} 行的 ${key} 无效，请检查该字段；未导入任何行。`);
     const number = (key: string, min: number, max = Number.MAX_SAFE_INTEGER, fallback?: number, integer = false) => {

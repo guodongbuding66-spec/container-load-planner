@@ -1,5 +1,6 @@
 import type { PlacedBox, ProductInput } from "./types";
 import { bodyContactArea, bodyTopLevels } from "./cargo-body";
+import { findDirectNestedParent } from "./nesting";
 
 export function contactArea(a: PlacedBox, b: PlacedBox) {
   return Math.max(0, Math.min(a.x + a.dx, b.x + b.dx) - Math.max(a.x, b.x)) *
@@ -19,6 +20,11 @@ export function bearingLoads(boxes: PlacedBox[], products: ProductInput[] = []) 
     }
   }
   for (const b of sorted) {
+    const nestedParent = findDirectNestedParent(b, boxes, rules.get(b.productId));
+    if (nestedParent) {
+      loads.set(nestedParent.id, (loads.get(nestedParent.id) ?? 0) + b.weight + (loads.get(b.id) ?? 0));
+      continue;
+    }
     const below = (byTop.get(Math.round(b.z / 0.0001)) ?? []).filter(x => x.id !== b.id);
     const areas = below.map(x => bodyContactArea(b,x,rules.get(b.productId),rules.get(x.productId)));
     const totalArea = areas.reduce((a, c) => a + c, 0);
@@ -60,7 +66,7 @@ export function bearingErrors(boxes: PlacedBox[], products: ProductInput[]) {
     const limit = bearingLimit(b, p), actual = loads.get(b.id) ?? 0;
     if (limit !== undefined && actual > limit + 0.00001) errors.push(`${b.sku} 箱体 ${b.id} 上方累计 ${actual.toFixed(2)} kg，超过允许承重 ${limit} kg。`);
     if (p.allowedAboveSkus !== undefined) for (const upper of boxes) {
-      if (upper.id!==b.id && bodyContactArea(upper,b,rules.get(upper.productId),p) > 0 && !p.allowedAboveSkus.includes(upper.sku)) errors.push(`${b.sku} 不允许 ${upper.sku} 直接叠放于上方。`);
+      if (upper.id!==b.id && (findDirectNestedParent(upper,boxes,rules.get(upper.productId))?.id===b.id || bodyContactArea(upper,b,rules.get(upper.productId),p) > 0) && !p.allowedAboveSkus.includes(upper.sku)) errors.push(`${b.sku} 不允许 ${upper.sku} 直接叠放于上方。`);
     }
   }
   return errors;

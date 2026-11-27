@@ -53,7 +53,7 @@ export type FloorPalletConfig = {
   /** 0 fills the floor with the selected layout; otherwise a fixed count. */
   count: number;
   gap: number;
-  layout: "auto" | "long" | "cross";
+  layout: "auto" | "long" | "cross" | "pinwheel";
   allowFloorCargo: boolean;
   /** Maximum cargo height above the deck. Omit or use 0 for the vehicle/door limit. */
   maxCargoHeight?: number;
@@ -103,6 +103,8 @@ export type ContainerSpec = {
   doorWidth: number;
   doorHeight: number;
   maxWeight: number;
+  /** Optional rear-door working clearance reserved before closing doors (mm). */
+  rearDoorClearanceMm?: number;
 };
 
 export type ProductInput = {
@@ -114,6 +116,8 @@ export type ProductInput = {
   solidModel?: import("./solid-model").SolidModel;
   /** Required separation from other cargo, in canonical mm. */
   protectionGap?: number;
+  /** Vertical height increment per nested item when items telescope/nest (mm). */
+  nestingDeltaHeightMm?: number;
   cargoType?: CargoType;
   cargoShape?: CargoShape;
   /** Original axis of a cylindrical package, before its placement rotation. */
@@ -236,6 +240,8 @@ export type PlacedBox = {
   weight: number;
   orientation: string;
   layer: number;
+  /** 1-based depth within a physically nested vertical column (retaining full nominal dz). */
+  nestedDepth?: number;
   setCode?: string;
   setNumber?: number;
   setItemNumber?: number;

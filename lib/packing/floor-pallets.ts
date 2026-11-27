@@ -2,7 +2,7 @@ import {deckSupportMass,palletDeckSupportGeometry} from "./deck-support";
 import {parseUnitStacking} from "./unit-stacking";
 import {containerAccessoryWeight} from "./container-accessories";
 import {parseForkInterface} from "./fork-interface";
-import {availablePackingVolume,siteExclusionBoxes,SITE_EXCLUSION_PREFIX} from "./site-exclusions";
+import {availablePackingVolume,usableCargoLength,siteExclusionBoxes,SITE_EXCLUSION_PREFIX} from "./site-exclusions";
 import { parseCrateBearing } from "./crate-bearing";
 import type { ContainerSpec, FloorPalletConfig, PlacedBox, PlacedPallet, ProductInput } from "./types";
 
@@ -18,7 +18,7 @@ export function parseFloorPalletConfig(value: unknown, draft=false): FloorPallet
   if (["length","width","height"].some(k=>Number(v[k])<1)) throw new Error("托盘尺寸不能小于 1 mm。");
   for (const k of ["weight", "gap"]) if (typeof v[k] !== "number" || !Number.isFinite(v[k]) || Number(v[k]) < 0 || Number(v[k]) > 10000) throw new Error("托盘自重和间隙必须为有效非负数。");
   if (!Number.isInteger(v.count) || Number(v.count) < 0 || Number(v.count) > 200) throw new Error("底层托盘数量必须为 0–200 的整数。");
-  if (!["auto", "long", "cross"].includes(String(v.layout)) || typeof v.allowFloorCargo !== "boolean") throw new Error("托盘布局规则无效。");
+  if (!["auto", "long", "cross", "pinwheel"].includes(String(v.layout)) || typeof v.allowFloorCargo !== "boolean") throw new Error("托盘布局规则无效。");
   if (v.maxCargoHeight !== undefined && (typeof v.maxCargoHeight !== "number" || !Number.isFinite(v.maxCargoHeight) || v.maxCargoHeight < 0 || v.maxCargoHeight > 100000)) throw new Error("托盘货物限高必须为 0–100000 mm；0 表示按柜高及门洞自动限制。");
   const packaging=v.packaging===undefined?undefined:parsePackaging(v.packaging,draft);
   validateBaseMeasurements(Number(v.length),Number(v.width),Number(v.height),packaging);
@@ -62,13 +62,13 @@ export function arrangeFloorPallets(container: ContainerSpec, clearance: number,
   const p = parseFloorPalletConfig(input);
   if(p.packaging?.deckSupports?.length)throw Error("Deck supports require the prebuilt pallet workflow / 托内支承件请使用先打托或只打托模式");
   if(packagingInterior(p).crate)throw new Error("木箱请使用先打托后装柜模式 / Use the pallet-building workflow for crates");
-  const length = container.length - clearance * 2, width = container.width - clearance * 2;
+  const length = usableCargoLength(container,clearance), width = container.width - clearance * 2;
   const doorWidth = (container.loadingAccess === "open" ? container.width : container.doorWidth) - clearance * 2;
   const height = Math.min(container.height, container.loadingAccess === "open" ? container.height : container.doorHeight) - clearance;
   if (container.category === "pallet") throw new Error("请先选择集装箱或货车，再加入柜内底层托盘。");
   if (p.height >= height) throw new Error("底层托盘高度已占满柜内或门洞净空。");
   const variants = ([{ dx: p.length, dy: p.width, orientation: "LWH" }, { dx: p.width, dy: p.length, orientation: "WLH" }] as const)
-    .filter((v, i) => (p.layout === "auto" || (p.layout === "long" ? i === 0 : i === 1)) && v.dy <= doorWidth && v.dx <= length && v.dy <= width)
+    .filter((v, i) => (p.layout === "auto" || p.layout === "pinwheel" || (p.layout === "long" ? i === 0 : i === 1)) && v.dy <= doorWidth && v.dx <= length && v.dy <= width)
     .map(v => ({ ...v, columns: Math.floor((length + p.gap) / (v.dx + p.gap)) }));
   const make=(x:number,y:number,v:(typeof variants)[number],i:number):PlacedPallet=>({id:`floor-pallet-${i+1}`,presetId:p.presetId,name:p.name,x,y,z:0,dx:v.dx,dy:v.dy,dz:p.height,weight:p.weight,maxLoad:p.maxLoad,orientation:v.orientation,...(p.packaging?{packaging:p.packaging}:{})});
   const regions=siteExclusionBoxes(container,clearance).filter(z=>z.z<p.height-.0001);
@@ -108,8 +108,42 @@ export function arrangeFloorPallets(container: ContainerSpec, clearance: number,
     const count = na * a.columns + nb * (b?.columns ?? 0), occupied = used + nb * ((b?.dy ?? 0) + p.gap) - p.gap;
     if (count > bestCount || count === bestCount && occupied < bestWidth) { bestCount = count; bestWidth = occupied; best = [...Array(na).fill(a), ...Array(nb).fill(b)] as typeof variants; }
   }
+  // Pinwheel / mixed-column evaluation along container length when pinwheel is requested
+  let pinwheelPallets: PlacedPallet[] | null = null;
+  if (p.layout === "pinwheel" && a && b && a.dx !== b.dx) {
+    const colsA = Math.floor((width + p.gap) / (a.dy + p.gap));
+    const colsB = Math.floor((width + p.gap) / (b.dy + p.gap));
+    let pwBestCount = bestCount;
+    let pwBestPair: [number, number] | null = null;
+    const maxColsA = Math.floor((length + p.gap) / (a.dx + p.gap));
+    for (let ca = 0; ca <= maxColsA; ca++) {
+      const usedL = ca > 0 ? ca * (a.dx + p.gap) : 0;
+      const remL = length - usedL;
+      const cb = remL >= b.dx ? Math.floor((remL + p.gap) / (b.dx + p.gap)) : 0;
+      const total = ca * colsA + cb * colsB;
+      if (total > pwBestCount) { pwBestCount = total; pwBestPair = [ca, cb]; }
+    }
+    if (pwBestPair) {
+      const [ca, cb] = pwBestPair;
+      const built: PlacedPallet[] = [];
+      let cursorX = 0;
+      for (let c = 0; c < ca; c++) {
+        for (let r = 0; r < colsA; r++) built.push(make(cursorX, r * (a.dy + p.gap), a, built.length));
+        cursorX += a.dx + p.gap;
+      }
+      for (let c = 0; c < cb; c++) {
+        for (let r = 0; r < colsB; r++) built.push(make(cursorX, r * (b.dy + p.gap), b, built.length));
+        cursorX += b.dx + p.gap;
+      }
+      bestCount = pwBestCount;
+      pinwheelPallets = built;
+    }
+  }
   const limit = p.count || Math.min(200, bestCount);
   if (!bestCount || p.count > bestCount) throw new Error(`当前净空最多放置 ${bestCount} 个底层托盘，请调整尺寸、数量或方向。`);
+  if (pinwheelPallets) {
+    return pinwheelPallets.sort((x, y) => x.x - y.x || x.y - y.y).slice(0, limit).map((item, i) => ({ ...item, id: `floor-pallet-${i + 1}` }));
+  }
   const pallets: PlacedPallet[] = [];
   let y = 0;
   for (const row of best) { for (let i = 0; i < Math.min(row.columns, limit); i++) pallets.push(make(i*(row.dx+p.gap),y,row,pallets.length)); y += row.dy + p.gap; }

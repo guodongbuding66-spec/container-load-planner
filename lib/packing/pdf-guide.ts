@@ -1,3 +1,4 @@
+import type { UiLanguage } from "./ui-locales";
 import {reviewVehicleEngineering} from "./vehicle-engineering";
 import {bottomDeckText} from "./packaging";
 import {palletLoadEnvelope} from "./unit-envelope";
@@ -19,7 +20,7 @@ import { reviewPlan, REVIEW_STATES, REVIEW_TITLES } from "./plan-review";
 import type { PackingResult, ProductInput } from "./types";
 import {buildRasterPdf,type RasterPage} from "./pdf-raster";
 export {buildRasterPdf} from "./pdf-raster";
-export async function downloadPdfGuide(result: PackingResult, language: "zh" | "en" = "zh", products?:readonly ProductInput[]) {
+export async function downloadPdfGuide(result: PackingResult, language: UiLanguage = "zh", products?:readonly ProductInput[]) {
   if (!result.validation.valid) throw new Error("方案未通过校验，不能导出指导书。");
   if(result.dimensionScenario?.proxyProductIds.length)throw new Error("Irregular tolerance proxy is not a field instruction / 异型公差包络不能作为现场指导书");
   await document.fonts.ready;
