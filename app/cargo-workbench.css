@@ -997,3 +997,13 @@ body:has(.cargo-workbench) { background:#f4f6f8; }
 .cargo-workbench :is(.button,.quick-start-pill,.mode-switch-pill,.icon-button):active:not(:disabled) {
   transform: scale(0.98);
 }
+
+/* Mobile: keep the step actions in document flow, never over the cargo choices. */
+@media (max-width: 639px) {
+  .cargo-workbench .stage-action-bar { position: static; bottom: auto; z-index: auto; flex-wrap: wrap; padding: 8px; }
+  .cargo-workbench .stage-action-group { flex: 1 1 auto; min-width: 0; flex-wrap: wrap; justify-content: flex-end; }
+  .cargo-workbench .stage-action-bar .button { white-space: normal; min-width: 0; }
+  .cargo-workbench .stage-action-bar .button.primary { flex: 1 1 120px; }
+  .cargo-workbench .stage-action-bar .button.ghost { flex: 0 1 auto; }
+  .cargo-workbench { padding-bottom: env(safe-area-inset-bottom, 0px); }
+}

@@ -41,6 +41,7 @@ describe("V1 independent release regressions",()=>{
       expect(plan.placements).toHaveLength(48);
       expect(plan.placements.every(b=>b.dz===300)).toBe(true);
       expect(plan.metrics.volumeUtilization).toBeLessThanOrEqual(1);
+      expect(plan.metrics.loadedVolume).toBe(48*500*400*300);
     }
   });
 });
