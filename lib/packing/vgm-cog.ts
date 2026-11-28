@@ -22,40 +22,14 @@ export interface CenterOfGravityReport {
 }
 
 export function computeCenterOfGravity(plan: PackingResult): CenterOfGravityReport {
-  const L = Math.max(1, plan.container.length);
-  const W = Math.max(1, plan.container.width);
-  const H = Math.max(1, plan.container.height);
-
-  let totalW = 0;
-  let sumX = 0;
-  let sumY = 0;
-  let sumZ = 0;
-
-  for (const box of plan.placements) {
-    const w = Math.max(0, box.weight);
-    if (w <= 0) continue;
-    totalW += w;
-    sumX += w * (box.x + box.dx / 2);
-    sumY += w * (box.y + box.dy / 2);
-    sumZ += w * (box.z + box.dz / 2);
-  }
-
-  for (const pal of plan.pallets ?? []) {
-    const w = Math.max(0, pal.weight ?? 0);
-    if (w <= 0) continue;
-    totalW += w;
-    sumX += w * (pal.x + pal.dx / 2);
-    sumY += w * (pal.y + pal.dy / 2);
-    sumZ += w * (pal.z + (pal.dz ?? 144) / 2);
-  }
-
-  const cogXMm = totalW > 0 ? sumX / totalW : L / 2;
-  const cogYMm = totalW > 0 ? sumY / totalW : W / 2;
-  const cogZMm = totalW > 0 ? sumZ / totalW : 0;
-
-  const cogXPct = Math.max(0, Math.min(100, (cogXMm / L) * 100));
-  const cogYPct = Math.max(0, Math.min(100, (cogYMm / W) * 100));
-  const cogZPct = Math.max(0, Math.min(100, (cogZMm / H) * 100));
+  // The solver includes packaging geometry, solid mass centres and fixed accessories.
+  // Both result surfaces use this single, validated coordinate system (usable space).
+  const cg = plan.metrics.centerOfGravity;
+  const totalW = plan.metrics.grossWeight;
+  const cogXMm = cg.x, cogYMm = cg.y, cogZMm = cg.z;
+  const cogXPct = Math.max(0, Math.min(100, cg.longitudinalRatio * 100));
+  const cogYPct = Math.max(0, Math.min(100, cg.lateralRatio * 100));
+  const cogZPct = Math.max(0, Math.min(100, cg.heightRatio * 100));
 
   // Simple beam reaction model: nose (x=0) vs door (x=L)
   const rearAxlePct = cogXPct;
@@ -76,23 +50,18 @@ export function computeCenterOfGravity(plan: PackingResult): CenterOfGravityRepo
     warningsZh.push(`左右偏载 ${lateralOffsetPct.toFixed(1)}%（超过 10% 警戒线），建议左右对称调换重货。`);
     warningsEn.push(`Lateral imbalance ${lateralOffsetPct.toFixed(1)}% (>10% limit); rebalance heavy cartons left-to-right.`);
   }
-  if (longitudinalOffsetPct > 15) {
+  if (longitudinalOffsetPct > 10) {
     const sideZh = cogXPct < 50 ? "前端（车头/柜内深处）" : "后端（柜门侧）";
     const sideEn = cogXPct < 50 ? "nose/front" : "rear/door";
-    warningsZh.push(`纵向重心偏${sideZh} ${longitudinalOffsetPct.toFixed(1)}%（超过 15% 警戒线），美欧公路拖车可能触发桥轴超载。`);
-    warningsEn.push(`Longitudinal CoG shifted ${longitudinalOffsetPct.toFixed(1)}% toward ${sideEn} (>15%); check truck axle limits.`);
+    warningsZh.push(`纵向重心偏${sideZh} ${longitudinalOffsetPct.toFixed(1)}%（超过 10% 建议窗口），美欧公路拖车可能触发桥轴超载。`);
+    warningsEn.push(`Longitudinal CoG shifted ${longitudinalOffsetPct.toFixed(1)}% toward ${sideEn} (>10%); check truck axle limits.`);
   }
   if (cogZPct > 55 && totalW > 5000) {
     warningsZh.push(`重心高度偏高（${cogZPct.toFixed(1)}% 柜高），请确保重货置底、轻货置顶。`);
     warningsEn.push(`High center of gravity (${cogZPct.toFixed(1)}% of height); place heavier cargo on the floor.`);
   }
 
-  const status: CenterOfGravityReport["status"] =
-    lateralOffsetPct > 10 || longitudinalOffsetPct > 15
-      ? "imbalanced"
-      : lateralOffsetPct > 5 || longitudinalOffsetPct > 10
-        ? "caution"
-        : "balanced";
+  const status: CenterOfGravityReport["status"] = cg.balanced ? "balanced" : "imbalanced";
 
   return {
     totalWeightKg: Math.round(totalW * 10) / 10,

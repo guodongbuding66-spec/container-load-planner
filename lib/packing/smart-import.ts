@@ -114,6 +114,35 @@ function parseNumber(val: string | undefined): number {
   return Number(cleaned);
 }
 
+/** Labelled customer messages are deterministic inputs, not guessed table columns. */
+function parseCustomerMessage(text: string, lengthOverride?: LengthUnit, weightOverride?: WeightUnit): SmartImportResult | null {
+  const lines = text.split(/[\r\n；;]+/).map(s => s.trim()).filter(Boolean);
+  if (!lines.some(s => /(?:毛重|重量|weight)\s*[:：=]?\s*[+-]?\d/i.test(s) && /(?:长|宽|高|\d\s*[x×*]\s*\d|\blength\b)/i.test(s))) return null;
+  const rows: SmartImportRow[] = lines.slice(0,MAX_CSV_ROWS+1).map((original, idx) => {
+    const line = original.replace(/毫米/g,"mm").replace(/厘米|公分/g,"cm").replace(/英寸/g,"in").replace(/公斤|千克/g,"kg").replace(/磅/g,"lb");
+    const sku = line.match(/(?:货号|型号|SKU)\s*[:：=]?\s*([\w.-]+)/i)?.[1] ?? `TEXT-${idx + 1}`;
+    const number = "([+-]?\\d+(?:\\.\\d+)?)";
+    const axis = (labels: string) => line.match(new RegExp(`(?:${labels})\\s*[:：=]?\\s*${number}\\s*(mm|cm|in|m)?`,"i"));
+    const axes = [axis("外箱长|长度|长|length|\\bL"),axis("外箱宽|宽度|宽|width|\\bW"),axis("外箱高|高度|高|height|\\bH")];
+    const combined = line.match(/[+-]?\d+(?:\.\d+)?\s*(?:mm|cm|in|m)?\s*[x×*]\s*[+-]?\d+(?:\.\d+)?\s*(?:mm|cm|in|m)?\s*[x×*]\s*[+-]?\d+(?:\.\d+)?\s*(?:mm|cm|in|m)?/i);
+    const dims = combined ? parseCombinedDimensions(combined[0]) : null;
+    const dimension = (i: number) => axes[i] ? toMillimeters(Number(axes[i]![1]),lengthOverride ?? axes[i]![2]?.toLowerCase() as LengthUnit ?? "mm") : dims ? toMillimeters([dims.l,dims.w,dims.h][i],lengthOverride ?? dims.unit ?? "mm") : 0;
+    const weight = line.match(/(?:单箱毛重|毛重|重量|gross\s*weight|weight|g\.?w\.?)\s*[:：=]?\s*([+-]?\d+(?:\.\d+)?)\s*(kg|lbs?|kgs)?/i);
+    const qty = line.match(/(?:箱数|数量|qty|quantity)\s*[:：=]?\s*([+-]?\d+(?:\.\d+)?)/i) ?? line.match(/([+-]?\d+(?:\.\d+)?)\s*(?:箱|cartons?\b|ctns?\b)/i);
+    const lengthMm=dimension(0),widthMm=dimension(1),heightMm=dimension(2);
+    const weightKg=weight ? toKilograms(Number(weight[1]),weightOverride ?? (/^lb/i.test(weight[2] ?? "") ? "lb" : "kg")) : 0;
+    const quantity=qty ? Number(qty[1]) : 0;
+    const errors:string[]=[];
+    if (lines.length > MAX_CSV_ROWS) errors.push("订单行超过 10,000 行 / Order exceeds 10,000 rows");
+    if (![lengthMm,widthMm,heightMm].every(n=>Number.isFinite(n)&&n>0)) errors.push("请补全正数长宽高及单位 / Enter positive dimensions and units");
+    if (!weight || !Number.isFinite(weightKg) || weightKg<0) errors.push("请补全单箱毛重 / Enter carton gross weight");
+    if (!qty || !Number.isInteger(quantity) || quantity<0) errors.push("请补全整数箱数 / Enter a whole carton quantity");
+    return {rowIndex:idx+1,sku,name:original.match(/(?:品名|名称)\s*[:：=]?\s*([^，,;；]+)/)?.[1]?.trim()??sku,lengthMm,widthMm,heightMm,weightKg,quantity,errors};
+  });
+  const validCount=rows.filter(r=>!r.errors.length).length;
+  return {rows,detectedLengthUnit:lengthOverride??"mm",detectedWeightUnit:weightOverride??"kg",headerMatched:false,validCount,errorCount:rows.length-validCount};
+}
+
 export function parseSmartCargoText(
   text: string,
   overrideLengthUnit?: LengthUnit,
@@ -144,6 +173,8 @@ export function parseSmartCargoText(
     detectedLengthUnit:overrideLengthUnit??"mm",detectedWeightUnit:overrideWeightUnit??"kg",headerMatched:false,validCount:0,errorCount:1,
   });
   if (new TextEncoder().encode(text).byteLength > MAX_CSV_BYTES) return invalidResult("导入文件超过 5 MB / Import exceeds 5 MB");
+  const message = parseCustomerMessage(text, overrideLengthUnit, overrideWeightUnit);
+  if (message) return message;
   let records: string[][];
   try { records = delimiter === "," ? parseCsvRecords(text) : rawLines.map(line => splitLine(line, delimiter)); }
   catch { return invalidResult("CSV 引号或分隔格式无效 / Invalid CSV quotes or delimiters"); }

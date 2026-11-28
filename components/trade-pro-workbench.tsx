@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Sparkles, Ruler, Ship, ShieldCheck, Copy, Check, FileSpreadsheet, Scale, Printer } from "lucide-react";
-import { buildShippingMarksHtml, buildVgmDeclarationHtml, computeCenterOfGravity, rebalanceProductsForCoG } from "../lib/packing/vgm-cog";
+import { Sparkles, Ruler, Ship, ShieldCheck, Copy, Check, FileSpreadsheet, Scale } from "lucide-react";
+import { buildShippingMarksHtml, buildVgmDeclarationHtml, computeCenterOfGravity } from "../lib/packing/vgm-cog";
 import { computeLandedCostBreakdown } from "../lib/packing/landed-cost";
 import { analyzeOogCargo } from "../lib/packing/oog-calculator";
 import { SUPPORTED_LANGUAGES, type UiLanguage } from "./language";
@@ -31,6 +31,9 @@ import {
   type HazmatClass,
 } from "../lib/packing/trade-advisory";
 import { tr, useLanguage } from "./language";
+import { CenterOfGravityMap } from "./center-of-gravity-map";
+import { rebalancePackingPlan } from "../lib/packing/rebalance-plan";
+import { UnitInput } from "./ui/unit-input";
 
 type TabId = "gapfill" | "carton" | "freight" | "compliance" | "advisory" | "vgm";
 
@@ -39,13 +42,15 @@ export function TradeProWorkbench({
   products,
   onApplyQuantities,
   onApplyPayloadLimit,
-  onApplyProducts,
+  onAdoptPlan,
+  disabled = false,
 }: {
   plan: PackingResult;
   products: readonly ProductInput[];
   onApplyQuantities?: (updates: Record<string, number>) => void;
   onApplyPayloadLimit?: (maxWeightKg: number) => void;
-  onApplyProducts?: (next: ProductInput[]) => void;
+  onAdoptPlan?: (next: PackingResult) => void;
+  disabled?: boolean;
 }) {
   useLanguage();
   const [tab, setTab] = useState<TabId>("gapfill");
@@ -80,7 +85,11 @@ export function TradeProWorkbench({
   const [emailLang, setEmailLang] = useState<UiLanguage>("en");
   const [copiedMail, setCopiedMail] = useState(false);
   const [deliveryUnit, setDeliveryUnit] = useState<"metric" | "imperial">("metric");
-  const [rebalancedNotice, setRebalancedNotice] = useState(false);
+  const [rebalancedNotice, setRebalancedNotice] = useState("");
+  const [rebalancing,setRebalancing] = useState(false);
+  const [exportNotice,setExportNotice] = useState("");
+  const [exportingSheet,setExportingSheet] = useState(false);
+  const [vgmTareValid,setVgmTareValid] = useState(true);
   const [vgmBookingNo, setVgmBookingNo] = useState("");
   const [vgmContainerNo, setVgmContainerNo] = useState("");
   const [vgmSealNo, setVgmSealNo] = useState("");
@@ -125,6 +134,11 @@ export function TradeProWorkbench({
     setTimeout(() => URL.revokeObjectURL(url), 15000);
   };
   const [exportingBundle, setExportingBundle] = useState(false);
+  const downloadSheet = async (html:string, filename:string) => {
+    setExportingSheet(true);setExportNotice("");
+    try {const {downloadTradeSheetPdf}=await import("../lib/packing/trade-sheet-pdf");await downloadTradeSheetPdf(html,filename);setExportNotice(tr("PDF 已生成并下载。","PDF generated and downloaded."));}
+    catch(e){setExportNotice(e instanceof Error?e.message:String(e));}finally{setExportingSheet(false);}
+  };
 
   const gapFill = useMemo(
     () =>
@@ -240,7 +254,7 @@ export function TradeProWorkbench({
   };
 
   return (
-    <section className="v1-panel" aria-label={tr("外贸增效工具箱", "Foreign-Trade Pro Workbench")}>
+    <section className="v1-panel trade-pro-workbench" aria-label={tr("外贸增效工具箱", "Foreign-Trade Pro Workbench")}>
       <div className="v1-panel-head">
         <h3>{tr("外贸实战增效工具箱（凑满柜 · 改箱/彩盒反推 · 多客户运费分摊 · 合规与耗材 BOM）", "Foreign-Trade Pro Suite (Gap-Fill · Carton Fit · Freight Split · Compliance BOM)")}</h3>
         <div className="v1-actions" style={{ marginTop: 0 }}>
@@ -742,9 +756,11 @@ export function TradeProWorkbench({
 
       {tab === "vgm" && (
         <div style={{ display: "grid", gap: 16 }}>
+          {exportingSheet && <p role="status">{tr("正在生成 PDF…", "Generating PDF…")}</p>}
+          {exportNotice && <p role="status">{exportNotice}</p>}
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-              <h4 style={{ margin: 0, fontSize: 14 }}>{tr("3D 重心分布与桥轴偏载预警（防止美欧拖车偏载罚款）", "3D Center of Gravity & Axle Load Balance")}</h4>
+              <h4 style={{ margin: 0, fontSize: 14 }}>{tr("重心分布与配重调整", "Center of Gravity & Weight Distribution")}</h4>
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                 <span className={`status-badge ${cogReport.status === "balanced" ? "status-badge-success" : "status-badge-warning"}`}>
                   {cogReport.status === "balanced" ? tr("重心均衡 · 通过", "Balanced · Pass") : cogReport.status === "caution" ? tr("轻度偏移 · 关注", "Minor Shift · Caution") : tr("偏载预警 · 需调整", "Imbalance Alert")}
@@ -752,34 +768,32 @@ export function TradeProWorkbench({
                 <button
                   type="button"
                   className="button small"
-                  onClick={() => {
-                    const bias = cogReport.cogXPct < 48 ? "front-heavy" : cogReport.cogXPct > 52 ? "rear-heavy" : "balanced";
-                    const next = rebalanceProductsForCoG(products, bias);
-                    onApplyProducts?.(next);
-                    setRebalancedNotice(true);
-                    setTimeout(() => setRebalancedNotice(false), 3000);
+                  disabled={disabled || !onAdoptPlan || rebalancing}
+                  onClick={async () => {
+                    setRebalancing(true);
+                    try {
+                      const outcome=rebalancePackingPlan(plan,products);
+                      if(outcome.changed){
+                        onAdoptPlan?.(outcome.plan);
+                        setRebalancedNotice(tr(`已调整实际箱位并通过校验：重心偏移 ${outcome.before.toFixed(1)}% → ${outcome.after.toFixed(1)}%。数量与重量不变，无需再重算。`,`Validated positions updated: CG deviation ${outcome.before.toFixed(1)}% → ${outcome.after.toFixed(1)}%. Count and weight preserved; no recalculation needed.`));
+                      }else setRebalancedNotice(outcome.reason==="centered"?tr("当前重心已居中，未改变箱位。","Already centered; positions unchanged."):tr("当前锁定、边界、承托或装卸约束下未找到更好的整体移位，未改变箱位。","No better valid translation under the current locks, boundaries, support or access constraints; positions unchanged."));
+                    }catch(e){setRebalancedNotice(e instanceof Error?e.message:String(e));}
+                    finally{setRebalancing(false);}
                   }}
                 >
-                  {rebalancedNotice ? tr("✓ 已重排配重，请重算", "✓ Rebalanced") : tr("一键平衡配重重排", "Auto-Rebalance CoG")}
+                  {rebalancing ? tr("正在校验箱位…", "Validating positions…") : tr("一键平衡配重重排", "Auto-Rebalance CoG")}
                 </button>
               </div>
             </div>
             <div className="v1-kpi-row">
-              <div className="v1-kpi"><small>{tr("前桥 / 车头承重", "Front / Nose Axle")}</small><strong>{cogReport.frontAxlePct}% ({cogReport.frontAxleKg.toLocaleString()} kg)</strong></div>
-              <div className="v1-kpi"><small>{tr("后桥 / 柜门承重", "Rear / Door Axle")}</small><strong>{cogReport.rearAxlePct}% ({cogReport.rearAxleKg.toLocaleString()} kg)</strong></div>
+              <div className="v1-kpi"><small>{tr("柜头端等效分配", "Equivalent nose reaction")}</small><strong>{cogReport.frontAxlePct}% ({cogReport.frontAxleKg.toLocaleString()} kg)</strong></div>
+              <div className="v1-kpi"><small>{tr("柜门端等效分配", "Equivalent door reaction")}</small><strong>{cogReport.rearAxlePct}% ({cogReport.rearAxleKg.toLocaleString()} kg)</strong></div>
               <div className="v1-kpi"><small>{tr("左右平衡 (左 / 右)", "Lateral (L / R)")}</small><strong>{cogReport.leftPct}% / {cogReport.rightPct}%</strong></div>
               <div className="v1-kpi"><small>{tr("重心高度占比", "CoG Height")}</small><strong>{cogReport.cogZPct}% ({cogReport.cogZMm} mm)</strong></div>
             </div>
-            <svg viewBox="0 0 600 130" role="img" aria-label={tr("集装箱俯视重心分布图", "Top-down container center of gravity diagram")} style={{ width: "100%", maxWidth: 600, height: "auto", display: "block", border: "1px solid var(--border-card)", borderRadius: 8, background: "var(--bg-subtle)" }}>
-              <rect x="30" y="20" width="540" height="84" rx="4" fill="none" stroke="var(--border-card)" strokeWidth="2" />
-              <rect x="219" y="53.6" width="162" height="16.8" fill="var(--teal-soft)" stroke="var(--brand-primary)" strokeDasharray="4 3" strokeWidth="1" />
-              <line x1="300" y1="20" x2="300" y2="104" stroke="var(--border-divider)" strokeDasharray="3 3" />
-              <line x1="30" y1="62" x2="570" y2="62" stroke="var(--border-divider)" strokeDasharray="3 3" />
-              <circle cx={30 + (cogReport.cogXPct / 100) * 540} cy={20 + (cogReport.cogYPct / 100) * 84} r="7" fill={cogReport.status === "balanced" ? "#0F766E" : "#D97706"} />
-              <text x="34" y="14" fontSize="10" fill="var(--text-muted)">{tr("车头 / 柜内深处 (0%)", "Front / Nose (0%)")}</text>
-              <text x="480" y="14" fontSize="10" fill="var(--text-muted)">{tr("柜门侧 (100%)", "Rear Door (100%)")}</text>
-              <text x="34" y="120" fontSize="10" fill="var(--text-secondary)">CoG: X={cogReport.cogXMm}mm ({cogReport.cogXPct}%), Y={cogReport.cogYMm}mm ({cogReport.cogYPct}%), Z={cogReport.cogZMm}mm ({cogReport.cogZPct}%)</text>
-            </svg>
+            {rebalancedNotice && <p className="rebalance-notice" role="status">{rebalancedNotice}</p>}
+            <CenterOfGravityMap report={cogReport}/>
+            <p className="helper-text">{tr("以下为柜内两端的等效静载分配，不代表车辆实际桥轴载荷；真实轴荷请在车辆工程复核中录入支点与空载反力。","These are equivalent end reactions, not actual truck axle loads. Enter support positions and empty reactions in Vehicle Engineering for axle checks.")}</p>
             {cogReport.warningsZh.length > 0 && (
               <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--status-warn-fg)" }}>
                 {cogReport.warningsZh.map((w, i) => <li key={i}>{tr(w, cogReport.warningsEn[i])}</li>)}
@@ -787,14 +801,14 @@ export function TradeProWorkbench({
             )}
           </div>
 
-          <div className="v1-grid-2" style={{ paddingTop: 12, borderTop: "1px solid var(--border-divider)" }}>
-            <div>
+          <div className="trade-document-grid">
+            <div className="trade-form-card">
               <h4 style={{ margin: "0 0 8px", fontSize: 14 }}>{tr("SOLAS VGM 集装箱核实总重申报单", "SOLAS VGM Declaration")}</h4>
-              <div className="v1-grid-2" style={{ marginBottom: 8 }}>
+              <div className="trade-form-grid">
                 <label>{tr("订舱号 / 提单号", "Booking / B/L No.")}<input placeholder="BK-2026-001" value={vgmBookingNo} onChange={(e) => setVgmBookingNo(e.target.value)} /></label>
                 <label>{tr("柜号", "Container No.")}<input placeholder="MSCU1234567" value={vgmContainerNo} onChange={(e) => setVgmContainerNo(e.target.value)} /></label>
                 <label>{tr("封条号", "Seal No.")}<input placeholder="SL882910" value={vgmSealNo} onChange={(e) => setVgmSealNo(e.target.value)} /></label>
-                <label>{tr("空箱皮重 (kg，CSC 铭牌)", "Container Tare (kg, CSC)")}<input type="number" min={1} value={vgmTareKg} onChange={(e) => { const n = Number(e.target.value); setVgmTareKg(Number.isFinite(n) ? n : 0); }} /></label>
+                <label>{tr("空箱皮重 (kg，CSC 铭牌)", "Container Tare (kg, CSC)")}<UnitInput unit="kg" ariaLabel={tr("空箱皮重", "Container tare weight")} value={vgmTareKg} onValueChange={setVgmTareKg} onValidityChange={setVgmTareValid} min={1} showError/></label>
                 <label>{tr("发货人", "Shipper")}<input placeholder="Shipper Legal Name" value={vgmShipper} onChange={(e) => setVgmShipper(e.target.value)} /></label>
               </div>
               {Number.isFinite(vgmTareKg) && vgmTareKg > 0 ? (
@@ -806,21 +820,18 @@ export function TradeProWorkbench({
                   {tr("空箱皮重必须大于 0 kg（请按集装箱 CSC 铭牌实填），否则不可导出 VGM。", "Container tare weight must be > 0 kg (per CSC plate) before exporting VGM.")}
                 </p>
               )}
-              <button type="button" className="button primary small" disabled={!Number.isFinite(vgmTareKg) || vgmTareKg <= 0} onClick={() => openHtmlSheet(buildVgmDeclarationHtml(plan, { containerNo: vgmContainerNo, sealNo: vgmSealNo, bookingNo: vgmBookingNo, shipper: vgmShipper, tareWeightKg: vgmTareKg, method: "Method 2" }), `VGM_${vgmContainerNo.trim() || "DRAFT"}.html`)}>
-                <Printer size={14} aria-hidden="true" />{tr("打印 / 导出 SOLAS VGM 申报单", "Print / Export VGM Declaration")}
-              </button>
+              <div className="trade-document-actions"><button type="button" className="button primary small" disabled={exportingSheet || !vgmTareValid || !Number.isFinite(vgmTareKg) || vgmTareKg <= 0} onClick={() => void downloadSheet(buildVgmDeclarationHtml(plan, {containerNo:vgmContainerNo,sealNo:vgmSealNo,bookingNo:vgmBookingNo,shipper:vgmShipper,tareWeightKg:vgmTareKg,method:"Method 2"}),`VGM_${vgmContainerNo.trim()||"DRAFT"}.pdf`)}>{tr("下载 VGM 申报单 PDF", "Download VGM PDF")}</button>
+              <button type="button" className="button small" disabled={!vgmTareValid || vgmTareKg<=0} onClick={() => openHtmlSheet(buildVgmDeclarationHtml(plan,{containerNo:vgmContainerNo,sealNo:vgmSealNo,bookingNo:vgmBookingNo,shipper:vgmShipper,tareWeightKg:vgmTareKg,method:"Method 2"}),"VGM_preview.html")}>{tr("打印预览", "Print preview")}</button></div>
             </div>
 
-            <div>
+            <div className="trade-form-card">
               <h4 style={{ margin: "0 0 8px", fontSize: 14 }}>{tr("外箱正唛 / 侧唛批量 PDF 生成（自动连号）", "Batch Shipping Marks PDF (Sequential C/NO.)")}</h4>
-              <div className="v1-grid-2" style={{ marginBottom: 8 }}>
+              <div className="trade-form-grid">
                 <label>{tr("收货人 / 唛头", "Consignee")}<input value={markConsignee} onChange={(e) => setMarkConsignee(e.target.value)} /></label>
                 <label>{tr("目的港", "Destination")}<input value={markDest} onChange={(e) => setMarkDest(e.target.value)} /></label>
                 <label>{tr("订单号 PO", "PO No.")}<input value={markPo} onChange={(e) => setMarkPo(e.target.value)} /></label>
               </div>
-              <button type="button" className="button primary small" onClick={() => openHtmlSheet(buildShippingMarksHtml(plan, products, { consignee: markConsignee, destination: markDest, poNo: markPo, origin: "MADE IN CHINA" }), `Shipping_Marks_${markPo}.html`)}>
-                <Printer size={14} aria-hidden="true" />{tr("一键生成批量箱唛 PDF", "Generate Batch Shipping Marks PDF")}
-              </button>
+              <div className="trade-document-actions"><button type="button" className="button primary small" disabled={exportingSheet} onClick={() => void downloadSheet(buildShippingMarksHtml(plan,products,{consignee:markConsignee,destination:markDest,poNo:markPo,origin:"MADE IN CHINA"}),`Shipping_Marks_${markPo}.pdf`)}>{tr("下载批量箱唛 PDF", "Download shipping marks PDF")}</button><button type="button" className="button small" onClick={() => openHtmlSheet(buildShippingMarksHtml(plan,products,{consignee:markConsignee,destination:markDest,poNo:markPo,origin:"MADE IN CHINA"}),"Shipping_Marks_preview.html")}>{tr("打印预览", "Print preview")}</button></div>
             </div>
           </div>
         </div>

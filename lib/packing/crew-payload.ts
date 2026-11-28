@@ -1,4 +1,5 @@
 import type { PackingResult } from "./types";
+import { deflateSync, inflateSync } from "fflate";
 
 export interface CrewSlicePayload {
   v: 1;
@@ -18,7 +19,8 @@ export interface CrewSlicePayload {
   }>;
 }
 
-export const QR_SAFE_URL_LIMIT = 2100;
+export const QR_SAFE_URL_LIMIT = 750;
+const MAX_CREW_BYTES = 512_000;
 
 export function buildCrewSlicePayload(plan: PackingResult): CrewSlicePayload {
   const sorted = [...plan.placements].sort((a, b) => a.x - b.x || a.z - b.z || a.y - b.y);
@@ -76,6 +78,14 @@ export function encodeCrewPayload(payload: CrewSlicePayload): string {
     bin += String.fromCharCode(b);
   });
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/** Lossless URL format: preserves every row and SKU; old uncompressed links remain readable. */
+export function encodeCompactCrewPayload(payload: CrewSlicePayload): string {
+  const bytes = deflateSync(new TextEncoder().encode(JSON.stringify(payload)), { level: 9 });
+  let bin = "";
+  bytes.forEach(b => { bin += String.fromCharCode(b); });
+  return "z1_" + btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 /** Shared strict validation for URL tokens and KV payloads; rejects corrupt or out-of-bounds instructions. */
@@ -150,11 +160,15 @@ export function isCrewPayload(value: unknown): value is CrewSlicePayload {
 
 export function decodeCrewPayload(rawToken: string): CrewSlicePayload | null {
   try {
-    const rawB64 = rawToken.replace(/-/g, "+").replace(/_/g, "/");
+    if (rawToken.length > MAX_CREW_BYTES * 2) return null;
+    const compressed = rawToken.startsWith("z1_");
+    const rawB64 = (compressed ? rawToken.slice(3) : rawToken).replace(/-/g, "+").replace(/_/g, "/");
     const b64 = rawB64 + "=".repeat((4 - (rawB64.length % 4)) % 4);
     const bin = atob(b64);
-    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    const source = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+    const bytes = compressed ? inflateSync(source, { out: new Uint8Array(MAX_CREW_BYTES + 1) }) : source;
+    if (bytes.length > MAX_CREW_BYTES) return null;
+    const parsed: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
     return isCrewPayload(parsed) ? parsed : null;
   } catch {
     return null;
@@ -172,7 +186,7 @@ export function compactCrewPayloadForQr(
   originLength = 40,
   maxUrlLen = QR_SAFE_URL_LIMIT,
 ): { payload: CrewSlicePayload; token: string; compacted: boolean; fitsQr: boolean } {
-  const token = encodeCrewPayload(payload);
+  const token = encodeCompactCrewPayload(payload);
   return { payload, token, compacted: false, fitsQr: originLength + 12 + token.length <= maxUrlLen };
 }
 

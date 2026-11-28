@@ -10,7 +10,7 @@ import {
 import { onRequestGet, onRequestOptions, onRequestPost } from "../../functions/api/crew-share";
 
 describe("Crew View QR compaction & Cloudflare KV short-link hardening", () => {
-  it("preserves all 60 SKUs and falls back to a full URL when QR capacity is exceeded", () => {
+  it("preserves all 60 SKUs in compressed QR links and honors a smaller capacity budget", () => {
     const mega: CrewSlicePayload = {
       v: 1,
       c: "40HQ High Cube Container",
@@ -40,8 +40,9 @@ describe("Crew View QR compaction & Cloudflare KV short-link hardening", () => {
 
     const compacted = compactCrewPayloadForQr(mega, 42);
     expect(compacted.compacted).toBe(false);
-    expect(compacted.fitsQr).toBe(false);
-    expect(42 + 12 + compacted.token.length).toBeGreaterThan(QR_SAFE_URL_LIMIT);
+    expect(compacted.fitsQr).toBe(true);
+    expect(compactCrewPayloadForQr(mega,42,100).fitsQr).toBe(false);
+    expect(42 + 12 + compacted.token.length).toBeLessThanOrEqual(QR_SAFE_URL_LIMIT);
 
     const decoded = decodeCrewPayload(compacted.token);
     expect(decoded).not.toBeNull();

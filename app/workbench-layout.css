@@ -1,7 +1,7 @@
-/* Configuration forms and inspection canvases use separate width roles. */
+/* Every workflow step aligns with the same responsive header and navigation. */
 .cargo-workbench .wizard-page { width:100%; }
-.cargo-workbench:is([data-workflow-step="1"],[data-workflow-step="2"],[data-workflow-step="3"],[data-workflow-step="5"],[data-workflow-step="6"]) :is(.wizard-page,.stage-action-bar) { max-width:1200px;margin-inline:auto; }
-.cargo-workbench:is([data-workflow-step="4"],[data-workflow-step="7"]) .app-main { max-width:none; }
+.cargo-workbench :is(.wizard-page,.stage-action-bar) { width:100%;max-width:none;margin-inline:0; }
+.cargo-workbench .app-main { max-width:none; }
 .cargo-workbench .wizard-page-heading h2 { font-size:28px; }
 .cargo-workbench .wizard-page :is(.panel,.viewer-column) { border-radius:var(--radius-card); }
 .cargo-workbench .wizard-page .panel .panel { padding:0;border:0;border-radius:0;background:transparent;box-shadow:none; }
@@ -123,3 +123,25 @@
  .cargo-workbench .fleet-workspace > .upgrade-body { padding:var(--space-block); }
  .cargo-workbench .fleet-workspace .fleet-container-options { grid-template-columns:minmax(0,1fr); }
 }
+
+/* Export actions keep their control height when the share details open. */
+.cargo-workbench .result-export-pane .feature-action-bar { align-items:center; }
+.cargo-workbench .crew-share-panel { flex:1 0 100%;width:100%;min-width:0;margin-top:12px;box-sizing:border-box; }
+.crew-share-layout { display:grid;grid-template-columns:minmax(220px,360px) minmax(0,1fr);align-items:center;gap:24px; }
+.crew-share-qr { display:block;width:100%;max-width:360px;height:auto;image-rendering:pixelated;background:white; }
+.crew-share-link { display:grid;gap:6px;min-width:0;margin:12px 0;font-size:12px;color:var(--text-secondary); }
+.cargo-workbench .crew-share-link input { width:100%;min-width:0;border:1px solid var(--border-card);background:var(--bg-subtle);color:var(--text-primary);padding:10px;border-radius:var(--radius-control); }
+.trade-pro-workbench .trade-document-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;padding-top:20px;border-top:1px solid var(--border-divider); }
+.trade-pro-workbench .trade-form-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0; }
+.trade-pro-workbench .trade-form-grid label { display:grid;gap:6px;font-size:13px;color:var(--text-secondary);min-width:0; }
+.cargo-workbench .trade-pro-workbench .trade-form-grid input { display:block;width:100%;min-width:0;min-height:42px;padding:10px 12px;border:1px solid #9aadb9;border-radius:var(--radius-control);background:var(--bg-surface);color:var(--text-primary);font:inherit;box-sizing:border-box; }
+.trade-pro-workbench .trade-form-grid input:focus-visible { outline:2px solid var(--border-focus);outline-offset:2px; }
+.trade-pro-workbench .trade-form-card { padding:18px;border:1px solid var(--border-card);border-radius:var(--radius-card);background:var(--bg-subtle);min-width:0; }
+.trade-pro-workbench .trade-document-actions { display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px; }
+.trade-pro-workbench .rebalance-notice { padding:12px 16px;background:var(--bg-subtle);border:1px solid var(--border-card);border-radius:var(--radius-control);line-height:1.6; }
+.smart-import-entry { display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0; }
+.smart-import-entry p { margin:0;color:var(--text-secondary);font-size:13px; }
+@media(max-width:900px) { .trade-pro-workbench .trade-document-grid { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:600px) { .crew-share-layout { grid-template-columns:minmax(0,1fr);gap:16px; }.crew-share-qr { margin-inline:auto; }.trade-pro-workbench .trade-form-grid { grid-template-columns:minmax(0,1fr); } }
+.cargo-workbench .trade-pro-workbench :is(input,select):not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]) { min-height:38px;max-width:100%;border:1px solid #9aadb9;border-radius:var(--radius-control);padding:8px 10px;background:var(--bg-surface);color:var(--text-primary); }
+.trade-pro-workbench .v1-grid-2 > label:has(input:not([type=checkbox]),select) { display:grid;gap:6px;min-width:0; }

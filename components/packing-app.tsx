@@ -1,4 +1,6 @@
 "use client";
+import { CenterOfGravityMap } from "./center-of-gravity-map";
+import { computeCenterOfGravity } from "../lib/packing/vgm-cog";
 import {ExcelDataGrid} from "./ui/excel-data-grid";
 import {cargoEntryColumns,cargoEntryExportColumns,cargoEntryRows} from "./cargo-entry-columns";
 import {WorkspaceDraftNotice} from "./workspace-draft-notice";
@@ -2907,10 +2909,7 @@ export function PackingApp() {
                     <Crosshair size={17} />
                     <div><strong>{tr("重心分布")}</strong><span>{tr("长向 ")}{(result.metrics.centerOfGravity.longitudinalRatio * 100).toFixed(1)}{tr("% · 横向 ")}{(result.metrics.centerOfGravity.lateralRatio * 100).toFixed(1)}{tr("% · 高度 ")}{(result.metrics.centerOfGravity.heightRatio * 100).toFixed(1)}%</span></div>
                   </div>
-                  <div className="balance-map" aria-label={tr("集装箱重心俯视位置")}>
-                    <span className="balance-zone" />
-                    <i style={{ left: `${Math.min(100, Math.max(0, result.metrics.centerOfGravity.longitudinalRatio * 100))}%`, top: `${Math.min(100, Math.max(0, result.metrics.centerOfGravity.lateralRatio * 100))}%` }} />
-                  </div>
+                  <CenterOfGravityMap report={computeCenterOfGravity(result)}/>
                   <b>{result.metrics.centerOfGravity.balanced ? tr("重心位于建议区间") : tr("重心偏离建议区间，请复核配重")}</b>
                 </div>
                 <div className={`validation-box ${result.metrics.loadedCount === 0 ? "incomplete" : result.validation.valid ? "valid" : "invalid"}`}>
@@ -2939,7 +2938,7 @@ export function PackingApp() {
             </div>
             <div className="workbench-pane result-export-pane" hidden={resultPane!=="exports"}>
             <div className="feature-action-bar">{result&&<PalletOrderConsolidationButton plan={result} products={activeProducts} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors} onAdopt={adoptManualPlan}/>}<button className="button" disabled={!canExport} onClick={()=>setShowViewer(true)}><Layers3 size={16}/>{tr("方案查看器","Plan viewer")}</button><button className="button" disabled={!canExport||exportingPdf} onClick={()=>void downloadPdf()}><Download size={16}/>{tr("下载 PDF")}</button><button className="button primary" disabled={!canExport} onClick={()=>void downloadPackingListExcel()}><FileSpreadsheet size={16}/>{tr("导出外贸装箱单 (PL)","Export Packing List")}</button>{result && <CrewShareButton plan={result} disabled={!canExport} />}</div>
-            {result && <TradeProWorkbench plan={result} products={activeProducts} onApplyQuantities={(updates) => {
+            {result && <TradeProWorkbench plan={result} products={activeProducts} disabled={!canExport} onAdoptPlan={adoptManualPlan} onApplyQuantities={(updates) => {
               const next = products.map((p) => updates[p.id] !== undefined ? { ...p, quantity: updates[p.id] } : p);
               replaceProductInputs(next);
               setMessage(tr("已应用补单数量，请重新计算装柜方案以做 3D 终验。", "Applied gap-fill quantities; recalculate to verify in 3D."), "done");

@@ -61,15 +61,15 @@ export function SmartPasteImporter({
 
   if (!open) {
     return (
-      <button
+      <div className="smart-import-entry"><button
         type="button"
-        className="button ghost small"
+        className="button primary"
         disabled={disabled}
         onClick={() => setOpen(true)}
       >
         <ClipboardPaste size={15} />
-        {tr("粘贴 / 拖拽导入 Excel", "Smart Paste / Drop Excel")}
-      </button>
+        {tr("智能识别文字 / 表格", "Recognize text / spreadsheet")}
+      </button><p>{tr("粘贴客户发来的尺寸、毛重、箱数，自动识别并预览填表；也支持 Excel / CSV。", "Paste customer dimensions, gross weight and quantity to preview and fill rows. Excel / CSV supported.")}</p></div>
     );
   }
 
@@ -93,7 +93,7 @@ export function SmartPasteImporter({
   return (
     <section className="v1-panel" aria-label={tr("智能剪贴板粘贴与拖拽导入", "Smart clipboard paste and drag-drop importer")}>
       <div className="v1-panel-head">
-        <h3>{tr("智能粘贴 / 拖拽导入 Excel & CSV（支持合并尺寸如 60x40x35cm）", "Smart Paste / Drop Excel & CSV (supports 60x40x35cm)")}</h3>
+        <h3>{tr("粘贴一段文字或表格，自动识别填表", "Recognize customer text or spreadsheet rows")}</h3>
         <button type="button" className="icon-button" aria-label={tr("关闭", "Close")} onClick={() => setOpen(false)}>
           <X size={16} />
         </button>
@@ -139,9 +139,10 @@ export function SmartPasteImporter({
 
       <textarea
         className="v1-textarea"
+        aria-label={tr("粘贴客户文字或表格", "Paste customer text or spreadsheet")}
         placeholder={tr(
-          "示例：\n货号\t品名\t外箱尺寸\t毛重(kg)\t箱数\t客户\t卸货顺序\nSKU-01\t折叠椅\t60x40x35cm\t12.5\t80\tBuyer A\t1",
-          "Example:\nSKU\tName\tSize\tGross(kg)\tQty\tCustomer\tStop\nSKU-01\tChair\t60x40x35cm\t12.5\t80\tBuyer A\t1",
+          "文字示例：货号 SHED-101，长220cm，宽62cm，高18cm，毛重42.5kg，数量30箱。\n\n也支持表格：\n货号\t品名\t外箱尺寸\t毛重(kg)\t箱数\t客户\t卸货顺序\nSKU-01\t折叠椅\t60x40x35cm\t12.5\t80\tBuyer A\t1",
+          "Text example: SKU SHED-101, length 220cm, width 62cm, height 18cm, weight 42.5kg, qty 30.\n\nSpreadsheet:\nSKU\tName\tSize\tGross(kg)\tQty\tCustomer\tStop\nSKU-01\tChair\t60x40x35cm\t12.5\t80\tBuyer A\t1",
         )}
         value={rawText}
         onChange={(e) => setRawText(e.target.value)}

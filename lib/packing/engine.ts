@@ -54,7 +54,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "1.0.0";
+export const ENGINE_VERSION = "1.0.1";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);

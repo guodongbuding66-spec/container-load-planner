@@ -27,7 +27,7 @@ Use the existing sans-serif stack for inputs, headings and data. Align numeric c
 
 ## Layout
 
-Keep data-entry pages centered and let model inspection use the available width. Keep narrow-screen controls reachable and preserve document reading order when columns collapse. Use one primary module level; separate its internal sections with spacing and rules.
+Align every step to the same fluid content width as the header and navigation; use internal column layouts to control readable form widths. Keep narrow-screen controls reachable and preserve document reading order when columns collapse. Use one primary module level; separate its internal sections with spacing and rules.
 
 ## Components
 
