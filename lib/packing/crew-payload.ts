@@ -103,8 +103,8 @@ export function isCrewPayload(value: unknown): value is CrewSlicePayload {
     !positive(value.W) ||
     !positive(value.H) ||
     value.L > 50_000 ||
-    value.W > 10_000 ||
-    value.H > 10_000 ||
+    value.W > 25_000 ||
+    value.H > 20_000 ||
     !integer(value.tot) ||
     !finite(value.wt) ||
     !finite(value.vol) ||

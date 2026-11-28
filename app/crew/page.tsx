@@ -3,6 +3,14 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { crewDraftKey, decodeCrewHash, isCrewPayload, type CrewSlicePayload } from "../../lib/packing/crew-payload";
 import { buildZipArchive, dataUrlToBytes } from "../../lib/packing/mini-zip";
+import {
+  aggregatePlannedSkus,
+  applyCrewScan,
+  buildCrewAuditCsv,
+  DISCREPANCY_LABELS,
+  type CrewDiscrepancy,
+  type DiscrepancyKind,
+} from "../../lib/packing/crew-scanner";
 import { setAppLanguage, SUPPORTED_LANGUAGES, tr, useLanguage, type UiLanguage } from "../../components/language";
 
 const PHOTO_NODES = [
@@ -21,6 +29,9 @@ interface CrewDraftState {
   containerNo: string;
   sealNo: string;
   photos: Record<string, string>;
+  scanCounts: Record<string, number>;
+  scanHistory: string[];
+  discrepancies: CrewDiscrepancy[];
 }
 
 const EMPTY_DRAFT: CrewDraftState = {
@@ -28,6 +39,9 @@ const EMPTY_DRAFT: CrewDraftState = {
   containerNo: "",
   sealNo: "",
   photos: {},
+  scanCounts: {},
+  scanHistory: [],
+  discrepancies: [],
 };
 
 function readDraft(storageKey: string): CrewDraftState {
@@ -41,6 +55,9 @@ function readDraft(storageKey: string): CrewDraftState {
       containerNo: typeof saved.containerNo === "string" ? saved.containerNo : "",
       sealNo: typeof saved.sealNo === "string" ? saved.sealNo : "",
       photos: saved.photos && typeof saved.photos === "object" ? saved.photos : {},
+      scanCounts: saved.scanCounts && typeof saved.scanCounts === "object" ? saved.scanCounts : {},
+      scanHistory: Array.isArray(saved.scanHistory) ? saved.scanHistory.filter((x): x is string => typeof x === "string") : [],
+      discrepancies: Array.isArray(saved.discrepancies) ? saved.discrepancies : [],
     };
   } catch {
     return EMPTY_DRAFT;
@@ -154,6 +171,12 @@ export default function CrewViewPage() {
 
   const [draftOverrides, setDraftOverrides] = useState<Record<string, CrewDraftState>>({});
   const [quotaWarn, setQuotaWarn] = useState(false);
+  const [scanInput, setScanInput] = useState("");
+  const [scanFeedback, setScanFeedback] = useState<{ tone: "ok" | "warn" | "err"; text: string } | null>(null);
+  const [discSku, setDiscSku] = useState("");
+  const [discKind, setDiscKind] = useState<DiscrepancyKind>("damaged");
+  const [discDelta, setDiscDelta] = useState("-1");
+  const [discNote, setDiscNote] = useState("");
   const [receiptCopied, setReceiptCopied] = useState(false);
 
   const draft = useMemo(
@@ -230,7 +253,76 @@ export default function CrewViewPage() {
     );
   }
 
-  const { checkedSlices, containerNo, sealNo, photos } = draft;
+  const { checkedSlices, containerNo, sealNo, photos, scanCounts, scanHistory, discrepancies } = draft;
+  const plannedSkuMap = aggregatePlannedSkus(payload);
+  const plannedSkuList = Object.keys(plannedSkuMap);
+  const totalScanned = Object.values(scanCounts).reduce((s, n) => s + n, 0);
+  const effectiveDiscSku = discSku && plannedSkuMap[discSku] !== undefined ? discSku : (plannedSkuList[0] ?? "");
+
+  const submitScan = (rawValue: string) => {
+    const res = applyCrewScan(scanCounts, plannedSkuMap, rawValue);
+    if (res.ok && res.matchedSku) {
+      updateDraft((prev) => ({
+        ...prev,
+        scanCounts: res.nextCounts,
+        scanHistory: [...prev.scanHistory, res.matchedSku!],
+      }));
+      setScanFeedback({
+        tone: "ok",
+        text: tr(
+          `✓ 已核销 ${res.matchedSku}（${res.scannedCount} / ${res.plannedCount}）`,
+          `✓ Scanned ${res.matchedSku} (${res.scannedCount} / ${res.plannedCount})`,
+        ),
+      });
+      setScanInput("");
+    } else if (res.status === "over-scan" && res.matchedSku) {
+      setScanFeedback({
+        tone: "err",
+        text: tr(
+          `⚠ 超扫拦截：${res.matchedSku} 已达计划数 ${res.plannedCount} 箱，请核对是否重复扫码。`,
+          `⚠ Over-scan blocked: ${res.matchedSku} already reached planned qty (${res.plannedCount}).`,
+        ),
+      });
+      setScanInput("");
+    } else {
+      setScanFeedback({
+        tone: "warn",
+        text: tr(`未在当前装柜清单中找到 SKU「${rawValue.trim()}」。`, `SKU "${rawValue.trim()}" not found in this loading plan.`),
+      });
+    }
+  };
+
+  const undoLastScan = () => {
+    if (!scanHistory.length) return;
+    const lastSku = scanHistory[scanHistory.length - 1];
+    updateDraft((prev) => {
+      const nextCount = Math.max(0, (prev.scanCounts[lastSku] ?? 0) - 1);
+      return {
+        ...prev,
+        scanCounts: { ...prev.scanCounts, [lastSku]: nextCount },
+        scanHistory: prev.scanHistory.slice(0, -1),
+      };
+    });
+    setScanFeedback({
+      tone: "warn",
+      text: tr(`已撤销最近一次扫码：${lastSku}`, `Undid last scan: ${lastSku}`),
+    });
+  };
+
+  const addDiscrepancy = () => {
+    if (!effectiveDiscSku) return;
+    const delta = Number.parseInt(discDelta, 10);
+    const entry: CrewDiscrepancy = {
+      id: `disc-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      sku: effectiveDiscSku,
+      kind: discKind,
+      qtyDelta: Number.isFinite(delta) ? delta : 0,
+      note: discNote.trim() || tr(...DISCREPANCY_LABELS[discKind]),
+    };
+    updateDraft((prev) => ({ ...prev, discrepancies: [entry, ...prev.discrepancies] }));
+    setDiscNote("");
+  };
   const doneCount = payload.slices.filter((s) => checkedSlices[s.idx]).length;
 
   return (
@@ -313,7 +405,155 @@ export default function CrewViewPage() {
         ))}
       </section>
 
-      <section style={{ borderTop: "1px solid #E2E8F0", paddingTop: 18 }}>
+      <section aria-label={tr("现场扫码核销与异常登记", "Barcode Scan Verification & Discrepancy Log")} style={{ borderTop: "1px solid #E2E8F0", paddingTop: 18, marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+          <h2 style={{ fontSize: 17, margin: 0 }}>
+            {tr("扫码枪实时核销与四账对账明细", "Barcode Scan Verification & 4-Way Reconciliation")}
+          </h2>
+          <span style={{ fontSize: 13, fontWeight: 600, color: totalScanned >= payload.tot ? "#0F766E" : "#334155" }}>
+            {tr("已扫码核销", "Scanned")}: {totalScanned} / {payload.tot} · {tr("异常件数", "Exceptions")}: {discrepancies.length} · {tr("预计净发", "Net Ship")}: {Math.max(0, totalScanned - discrepancies.length)}
+          </span>
+        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (scanInput.trim()) submitScan(scanInput);
+          }}
+          style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}
+        >
+          <input
+            type="text"
+            value={scanInput}
+            onChange={(e) => setScanInput(e.target.value)}
+            aria-label={tr("扫描或输入 SKU 条码", "Scan or enter SKU barcode")}
+            placeholder={tr("扫描或输入 SKU 条码后按 Enter（兼容蓝牙扫码枪）", "Scan or type SKU barcode and press Enter")}
+            style={{ flex: "1 1 220px", minWidth: 0, padding: "9px 11px", border: "1px solid #94A3B8", borderRadius: 8, fontSize: 14 }}
+          />
+          <button type="submit" style={{ padding: "9px 14px", background: "#0F766E", color: "#FFFFFF", border: 0, borderRadius: 8, fontWeight: 600, cursor: "pointer" }}>
+            {tr("核销 +1", "Verify +1")}
+          </button>
+          <button
+            type="button"
+            disabled={!scanHistory.length}
+            onClick={undoLastScan}
+            style={{ padding: "9px 12px", background: "#FFFFFF", color: "#334155", border: "1px solid #CBD5E1", borderRadius: 8, cursor: scanHistory.length ? "pointer" : "not-allowed", opacity: scanHistory.length ? 1 : 0.5 }}
+          >
+            {tr("撤销上次", "Undo")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const csv = buildCrewAuditCsv(payload, containerNo, sealNo, scanCounts, discrepancies);
+              const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `CargoFit_ScanAudit_${(containerNo || "CNTR").replace(/[^A-Za-z0-9_-]/g, "")}.csv`;
+              a.click();
+              setTimeout(() => URL.revokeObjectURL(url), 5000);
+            }}
+            style={{ padding: "9px 12px", background: "#F8FAFC", color: "#0F172A", border: "1px solid #CBD5E1", borderRadius: 8, cursor: "pointer" }}
+          >
+            {tr("导出核验 CSV", "Export Audit CSV")}
+          </button>
+        </form>
+        {scanFeedback && (
+          <p
+            role="status"
+            style={{
+              margin: "0 0 10px",
+              padding: "8px 10px",
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 600,
+              background: scanFeedback.tone === "ok" ? "#ECFDF5" : scanFeedback.tone === "err" ? "#FEF2F2" : "#FFFBEB",
+              color: scanFeedback.tone === "ok" ? "#065F46" : scanFeedback.tone === "err" ? "#B91C1C" : "#92400E",
+            }}
+          >
+            {scanFeedback.text}
+          </p>
+        )}
+        <div style={{ display: "grid", gap: 6, marginBottom: 14 }}>
+          {plannedSkuList.map((sku) => {
+            const planned = plannedSkuMap[sku] ?? 0;
+            const scanned = scanCounts[sku] ?? 0;
+            const pct = planned > 0 ? Math.min(100, Math.round((scanned / planned) * 100)) : 0;
+            return (
+              <div key={sku} style={{ border: "1px solid #E2E8F0", borderRadius: 8, padding: "8px 10px", background: scanned >= planned ? "#F0FDF4" : "#FFFFFF" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: 13 }}>
+                  <strong>{sku}</strong>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <span>{scanned} / {planned} ({pct}%)</span>
+                    <button
+                      type="button"
+                      disabled={scanned >= planned}
+                      onClick={() => submitScan(sku)}
+                      style={{ padding: "2px 8px", fontSize: 12, borderRadius: 6, border: "1px solid #0F766E", background: scanned >= planned ? "#E2E8F0" : "#FFFFFF", color: "#0F766E", cursor: scanned >= planned ? "not-allowed" : "pointer" }}
+                    >
+                      +1
+                    </button>
+                  </div>
+                </div>
+                <div style={{ height: 6, borderRadius: 999, background: "#E2E8F0", marginTop: 6, overflow: "hidden" }}>
+                  <div style={{ width: `${pct}%`, height: "100%", background: scanned >= planned ? "#10B981" : "#0F766E" }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ border: "1px solid #E2E8F0", borderRadius: 10, padding: 12, background: "#F8FAFC" }}>
+          <strong style={{ fontSize: 14, display: "block", marginBottom: 8 }}>{tr("现场异常差异登记（破损 / 短装 / 换位）", "On-Site Discrepancy Log (Damage / Shortage / Relocate)")}</strong>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <select aria-label={tr("异常 SKU", "Discrepancy SKU")} value={effectiveDiscSku} onChange={(e) => setDiscSku(e.target.value)} style={{ padding: "7px 8px", border: "1px solid #CBD5E1", borderRadius: 6, fontSize: 13 }}>
+              {plannedSkuList.map((sku) => (
+                <option key={sku} value={sku}>{sku}</option>
+              ))}
+            </select>
+            <select aria-label={tr("异常类型", "Discrepancy type")} value={discKind} onChange={(e) => setDiscKind(e.target.value as DiscrepancyKind)} style={{ padding: "7px 8px", border: "1px solid #CBD5E1", borderRadius: 6, fontSize: 13 }}>
+              {(Object.keys(DISCREPANCY_LABELS) as DiscrepancyKind[]).map((k) => (
+                <option key={k} value={k}>{tr(...DISCREPANCY_LABELS[k])}</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              aria-label={tr("数量偏差", "Qty delta")}
+              value={discDelta}
+              onChange={(e) => setDiscDelta(e.target.value)}
+              style={{ width: 72, padding: "7px 8px", border: "1px solid #CBD5E1", borderRadius: 6, fontSize: 13 }}
+            />
+            <input
+              type="text"
+              aria-label={tr("异常备注", "Discrepancy note")}
+              value={discNote}
+              onChange={(e) => setDiscNote(e.target.value)}
+              placeholder={tr("备注说明（如：叉车碰伤外箱边角）", "Note (e.g., carton corner damaged)")}
+              style={{ flex: "1 1 180px", minWidth: 0, padding: "7px 8px", border: "1px solid #CBD5E1", borderRadius: 6, fontSize: 13 }}
+            />
+            <button type="button" onClick={addDiscrepancy} style={{ padding: "7px 12px", background: "#B45309", color: "#FFFFFF", border: 0, borderRadius: 6, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+              {tr("登记异常", "Log Issue")}
+            </button>
+          </div>
+          {discrepancies.length > 0 && (
+            <ul style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: 13, color: "#7C2D12" }}>
+              {discrepancies.map((d) => (
+                <li key={d.id} style={{ marginBottom: 4 }}>
+                  <strong>{d.sku}</strong> · {tr(...DISCREPANCY_LABELS[d.kind])} ({d.qtyDelta > 0 ? `+${d.qtyDelta}` : d.qtyDelta}) · {d.note}
+                  <button
+                    type="button"
+                    onClick={() => updateDraft((prev) => ({ ...prev, discrepancies: prev.discrepancies.filter((x) => x.id !== d.id) }))}
+                    style={{ marginLeft: 8, fontSize: 11, color: "#64748B", background: "transparent", border: 0, cursor: "pointer", textDecoration: "underline" }}
+                  >
+                    {tr("移除", "Remove")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+            <section style={{ borderTop: "1px solid #E2E8F0", paddingTop: 18 }}>
         <h2 style={{ fontSize: 17, margin: "0 0 10px" }}>
           {tr("二、装柜八宫格水印打卡（导出验货 PDF / ZIP）", "8-Photo Watermark Proof (Export Inspection PDF / ZIP)")}
         </h2>
@@ -363,6 +603,30 @@ export default function CrewViewPage() {
           ))}
         </div>
 
+        <div style={{ marginTop: 16, padding: 12, borderRadius: 10, border: "1px dashed #64748B", background: "#F8FAFC" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <strong style={{ fontSize: 13 }}>{tr("热敏箱托条码标签预览 (100×150 mm)", "Thermal Pallet / Carton Label Preview (100×150 mm)")}</strong>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              style={{ padding: "6px 12px", background: "#1E293B", color: "#FFFFFF", border: 0, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            >
+              {tr("打印热敏标签", "Print Thermal Label")}
+            </button>
+          </div>
+          <div style={{ marginTop: 8, padding: 10, background: "#FFFFFF", border: "1px solid #CBD5E1", borderRadius: 6, maxWidth: 320, fontFamily: "monospace", fontSize: 11 }}>
+            <div style={{ fontWeight: 700, fontSize: 13 }}>CARGOFIT DISPATCH LABEL</div>
+            <div>CNTR: {containerNo || "PENDING"} | SEAL: {sealNo || "PENDING"}</div>
+            <div>EQUIP: {payload.c} | PLAN: {payload.tot} CTNS / {payload.wt} KG</div>
+            <div>SCANNED: {Object.values(scanCounts).reduce((a, b) => a + b, 0)} | EXCEP: {discrepancies.length}</div>
+            <svg viewBox="0 0 240 34" width="100%" height="34" aria-label="Barcode" style={{ marginTop: 6 }}>
+              {[4,10,14,22,26,34,40,46,52,58,66,72,78,86,92,98,106,114,120,128,136,142,150,158,166,174,182,190,198,206,214,224].map((x, idx) => (
+                <rect key={x} x={x} y={2} width={idx % 3 === 0 ? 4 : 2} height={28} fill="#0F172A" />
+              ))}
+            </svg>
+          </div>
+        </div>
+
         <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
           <button
             type="button"
@@ -400,6 +664,10 @@ export default function CrewViewPage() {
                 `Photos Included: ${entries.length} / 8`,
               ].join("\n");
               entries.push({ name: "loading-receipt.txt", data: new TextEncoder().encode(summary) });
+              entries.push({ name: "scan-audit.csv", data: new TextEncoder().encode(buildCrewAuditCsv(payload, containerNo, sealNo, scanCounts, discrepancies)) });
+              if (discrepancies.length > 0) {
+                entries.push({ name: "discrepancies.json", data: new TextEncoder().encode(JSON.stringify(discrepancies, null, 2)) });
+              }
               const zipBytes = buildZipArchive(entries);
               const blob = new Blob([zipBytes.buffer as ArrayBuffer], { type: "application/zip" });
               const url = URL.createObjectURL(blob);

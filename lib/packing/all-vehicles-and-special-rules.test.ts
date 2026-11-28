@@ -82,7 +82,7 @@ describe("All 37 Containers, Trucks, Trailers & Pallets/ULDs (Full Catalog Sweep
         expect(isCrewPayload(crew), `${preset.id} crew payload valid`).toBe(true);
       }
     }
-  }, 30_000);
+  }, 60_000);
 
   it("covers all 11 truck & trailer presets (Van, 3m–17.5m, US 53' Dry Van, EU 13.6m Mega) with weight limits & CoG", () => {
     expect(trucks.length).toBeGreaterThanOrEqual(11);

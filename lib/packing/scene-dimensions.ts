@@ -140,10 +140,13 @@ export function projectDimensions(bounds: DimensionBounds, values: { L: number; 
   if(options.style==="ruler")for(const d of result){
     const index=Number(d.edgeId.split(":")[1]),[start,end]=axisEdges[d.axis][index],value=values[d.axis];
     const length=Math.hypot(d.measuredEdge[1].x-d.measuredEdge[0].x,d.measuredEdge[1].y-d.measuredEdge[0].y);
-    const raw=value/Math.max(1,Math.floor(length/70)),power=10**Math.floor(Math.log10(raw));
+    const maxIntervals=Math.floor(length/55);
+    if(maxIntervals<2)continue;
+    const raw=value/maxIntervals,power=10**Math.floor(Math.log10(raw));
     const step=[1,2,5,10].map(n=>n*power).find(n=>n>=raw)??power*10;
+    if(step>=value)continue;
     const tickFont=Math.max(10,Math.round(font*.65)),nx=d.normal.x,ny=d.normal.y;
-    for(let v=0;v<value;v+=step){
+    for(let v=step;v<value;v+=step){
       const t=v/value,p=project(start.map((n,i)=>n+(end[i]-n)*t) as SceneSize);
       d.segments.push([{x:p.x+nx*(gap-3),y:p.y+ny*(gap-3),depth:0},{x:p.x+nx*(gap+4),y:p.y+ny*(gap+4),depth:0}]);
       const text=formatDimension(v,unit).split(" ")[0],width=text.length*tickFont*.6+4,height=tickFont+4;

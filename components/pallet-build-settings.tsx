@@ -74,7 +74,7 @@ export function PalletBuildSettings({value,only,products=NO_PRODUCTS,request,pre
     <div className="packaging-specifications">
       <div className="package-spec-head">
         <div><h2>{chooseOnly?tr("包装类型","Packaging type"):tr("包装尺寸","Packaging dimensions")}</h2>
-        <p>{current.config.name} · {current.config.length} × {current.config.width} mm</p></div>
+        <p>{current.config.name.trim() === `${current.config.length} × ${current.config.width}` ? `${current.config.length} × ${current.config.width} mm` : `${current.config.name} · ${current.config.length} × ${current.config.width} mm`}</p></div>
         {specifications.length>1&&<label>{tr("当前规格","Current specification")}<select aria-label={tr("当前包装规格","Current packaging specification")} value={current.id} disabled={draftInvalid} onChange={e=>select(e.target.value)}>
           {specifications.map(s=><option key={s.id} value={s.id}>{s.config.name} · {s.maxPallets} {tr("个可用","available")}</option>)}
         </select></label>}

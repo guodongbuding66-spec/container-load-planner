@@ -1,11 +1,12 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Sparkles, Ruler, Ship, ShieldCheck, Copy, Check, FileSpreadsheet, Scale } from "lucide-react";
+import { Activity, Sparkles, Ruler, Ship, ShieldCheck, Copy, Check, FileSpreadsheet, Scale } from "lucide-react";
+import { EngineeringAnalyticsPanel } from "./engineering-analytics-panel";
 import { buildShippingMarksHtml, buildVgmDeclarationHtml, computeCenterOfGravity } from "../lib/packing/vgm-cog";
 import { computeLandedCostBreakdown } from "../lib/packing/landed-cost";
 import { analyzeOogCargo } from "../lib/packing/oog-calculator";
 import { SUPPORTED_LANGUAGES, type UiLanguage } from "./language";
-import type { PackingResult, ProductInput } from "../lib/packing/types";
+import type { ContainerSpec, PackingResult, ProductInput } from "../lib/packing/types";
 import {
   analyzePinwheelPallets,
   calculateConsigneeFreightSplit,
@@ -35,7 +36,7 @@ import { CenterOfGravityMap } from "./center-of-gravity-map";
 import { rebalancePackingPlan } from "../lib/packing/rebalance-plan";
 import { UnitInput } from "./ui/unit-input";
 
-type TabId = "gapfill" | "carton" | "freight" | "compliance" | "advisory" | "vgm";
+type TabId = "gapfill" | "carton" | "freight" | "compliance" | "advisory" | "vgm" | "analytics";
 
 export function TradeProWorkbench({
   plan,
@@ -43,6 +44,8 @@ export function TradeProWorkbench({
   onApplyQuantities,
   onApplyPayloadLimit,
   onAdoptPlan,
+  onReplaceProducts,
+  onSelectContainerPreset,
   disabled = false,
 }: {
   plan: PackingResult;
@@ -50,6 +53,8 @@ export function TradeProWorkbench({
   onApplyQuantities?: (updates: Record<string, number>) => void;
   onApplyPayloadLimit?: (maxWeightKg: number) => void;
   onAdoptPlan?: (next: PackingResult) => void;
+  onReplaceProducts?: (next: ProductInput[], note?: string) => void;
+  onSelectContainerPreset?: (spec: ContainerSpec) => void;
   disabled?: boolean;
 }) {
   useLanguage();
@@ -122,7 +127,7 @@ export function TradeProWorkbench({
       ),
     [plan, products, freightCurrency, freightTotal, truckingFee, portCustomsFee, insuranceFee, dutyRatePct, splitMethod],
   );
-  const openHtmlSheet = (html: string, filename: string) => {
+  const openHtmlSheet = (html: string, _filename: string) => { void _filename;
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     // noopener window.open returns null even when opening succeeds; do not
@@ -275,6 +280,9 @@ export function TradeProWorkbench({
           </button>
           <button type="button" className={`button small ${tab === "vgm" ? "primary" : "ghost"}`} onClick={() => setTab("vgm")}>
             <Scale size={14} aria-hidden="true" />{tr("重心偏载 · VGM · 批量箱唛", "CoG · VGM & Marks")}
+          </button>
+          <button type="button" className={`button small ${tab === "analytics" ? "primary" : "ghost"}`} onClick={() => setTab("analytics")}>
+            <Activity size={14} aria-hidden="true" />{tr("热力图 · 多目标 & ROI", "Heatmaps · Multi-Obj & ROI")}
           </button>
         </div>
       </div>
@@ -835,6 +843,7 @@ export function TradeProWorkbench({
           </div>
         </div>
       )}
+      {tab === "analytics" && <EngineeringAnalyticsPanel plan={plan} products={products} onAdoptPlan={onAdoptPlan} onApplyQuantities={onApplyQuantities} onReplaceProducts={onReplaceProducts} onSelectContainerPreset={onSelectContainerPreset} />}
     </section>
   );
 }

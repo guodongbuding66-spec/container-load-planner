@@ -186,10 +186,12 @@ body:has(.cargo-workbench) {
 .workspace-confirm-file { margin: 0 0 8px; font-weight: 650; overflow-wrap: anywhere; }
 .workspace-confirm-description { margin: 0; }
 
+.cargo-workbench .wizard-page { padding-bottom: 24px; }
 .stage-action-bar {
   position: sticky;
   z-index: 20;
   bottom: 10px;
+  margin-top: 16px;
   display: flex;
   gap: 10px;
   align-items: center;
@@ -693,7 +695,7 @@ body:has(.cargo-workbench) { background:#f4f6f8; }
 .cargo-workbench tr.is-zero-qty { opacity:0.68; }
 .cargo-workbench tr.is-zero-qty td { background:var(--bg-subtle); }
 .pallet-manifest .excel-data-grid th { white-space:nowrap;line-height:1.35; }
-.pallet-build-settings select { min-width:185px; }
+.pallet-build-settings select { min-width:0; width:100%; max-width:100%; }
 
 /* Dark mode surface overrides */
 :root[data-theme="dark"] body:has(.cargo-workbench),
@@ -702,6 +704,8 @@ body:has(.cargo-workbench) { background:#f4f6f8; }
 :root[data-theme="dark"] .cargo-workbench :is(input,select,textarea) { background:var(--bg-subtle);color:var(--text-primary);border-color:var(--border-card); }
 :root[data-theme="dark"] .cargo-workbench .unit-toolbar :is(strong,label,small) { color:var(--text-secondary); }
 :root[data-theme="dark"] .cargo-workbench .excel-data-grid tbody tr:nth-child(even) { background:var(--bg-subtle); }
+:root[data-theme="dark"] .cargo-workbench .packaging-picker .space-model-section { background: var(--bg-subtle); }
+:root[data-theme="dark"] .cargo-workbench .stage-action-bar { box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.45); }
 :root[data-theme="dark"] .cargo-workbench .section-card > header,
 :root[data-theme="dark"] .cargo-workbench .packaging-policy-grid > details > summary { background:var(--bg-subtle);border-color:var(--border-card); }
 :root[data-theme="dark"] .cargo-space-warnings { background:var(--status-warn-bg);border-color:var(--status-warn-fg);color:var(--status-warn-fg); }
@@ -1080,5 +1084,614 @@ body:has(.cargo-workbench) { background:#f4f6f8; }
   }
   .wizard-page select {
     width: 100%;
+  }
+}
+
+/* === QA Round 8 Fixes: Full Dark Mode Contrast, Mobile Topbar Collapse, Action Bar & Unified Transitions === */
+
+/* 1. Complete Dark Mode Surface & Contrast Overrides */
+:root[data-theme="dark"] .cargo-workbench .metric-card strong,
+:root[data-theme="dark"] .cargo-workbench .result-overview .metric-card strong {
+  color: var(--text-primary);
+}
+:root[data-theme="dark"] .cargo-workbench .metric-card span,
+:root[data-theme="dark"] .cargo-workbench .metric-card small,
+:root[data-theme="dark"] .cargo-workbench .result-overview .metric-card span,
+:root[data-theme="dark"] .cargo-workbench .result-overview .metric-card small {
+  color: var(--text-secondary);
+}
+:root[data-theme="dark"] .cargo-workbench .result-strategy-switch {
+  background: var(--bg-subtle);
+  border-color: var(--border-card);
+}
+:root[data-theme="dark"] .cargo-workbench .result-strategy-switch button {
+  color: var(--text-secondary);
+  background: transparent;
+}
+:root[data-theme="dark"] .cargo-workbench .result-strategy-switch button.selected {
+  background: var(--teal-soft);
+  border-color: #2DD4BF;
+  color: #5EEAD4;
+}
+:root[data-theme="dark"] .cargo-workbench .result-strategy-switch button.selected small {
+  color: #CBD5E1;
+}
+:root[data-theme="dark"] .cargo-workbench :is(.viewer-column,.viewer-head,.plan-view-bar,.plan-view-switch,.viewer-projections,.projection-card,.transport-model-controls,.dimension-controls,.packaging-appearance-controls,.space-model-preview,.model-fallback-preview,.transport-option,.transport-preview,.pallet-layout-preview,.no-pallet-note,.wizard-advanced,.inline-loading-rules .feature-choice) {
+  background: var(--bg-surface);
+  border-color: var(--border-card);
+  color: var(--text-primary);
+}
+:root[data-theme="dark"] .cargo-workbench .model-fallback-preview {
+  background: #111827;
+}
+:root[data-theme="dark"] .cargo-workbench .model-preview-reset {
+  background: var(--bg-subtle);
+  border-color: var(--border-card);
+  color: var(--text-primary);
+}
+:root[data-theme="dark"] .cargo-workbench .model-fallback-note,
+:root[data-theme="dark"] .cargo-workbench .model-preview-hint,
+:root[data-theme="dark"] .cargo-workbench .projection-space-note,
+:root[data-theme="dark"] .cargo-workbench .projection-card header span,
+:root[data-theme="dark"] .cargo-workbench .projection-card footer {
+  color: var(--text-secondary);
+}
+:root[data-theme="dark"] .cargo-workbench .viewer-head h2,
+:root[data-theme="dark"] .cargo-workbench .viewer-head h3,
+:root[data-theme="dark"] .cargo-workbench .projection-card header strong,
+:root[data-theme="dark"] .cargo-workbench .transport-preview h3 {
+  color: var(--text-primary);
+}
+:root[data-theme="dark"] .cargo-workbench .plan-view-switch button,
+:root[data-theme="dark"] .cargo-workbench .transport-model-modes button,
+:root[data-theme="dark"] .cargo-workbench .dimension-controls button {
+  background: var(--bg-subtle);
+  border-color: var(--border-card);
+  color: var(--text-secondary);
+}
+:root[data-theme="dark"] .cargo-workbench .plan-view-switch button[aria-pressed="true"],
+:root[data-theme="dark"] .cargo-workbench .transport-model-modes button[aria-pressed="true"],
+:root[data-theme="dark"] .cargo-workbench .dimension-controls button[aria-pressed="true"],
+:root[data-theme="dark"] .cargo-workbench .transport-option.selected {
+  background: var(--teal-soft);
+  border-color: #2DD4BF;
+  color: #5EEAD4;
+}
+:root[data-theme="dark"] .cargo-workbench .projection-card canvas {
+  background: #0f172a;
+  border-radius: 6px;
+}
+
+/* 2. Unified Tactile Transitions Across All Interactive Buttons */
+.cargo-workbench :is(.loading-workflow-options button,.wizard-steps button,.model-preview-reset,.transport-model-modes button,.dimension-controls button,.result-strategy-switch button,.plan-view-switch button,.transport-option,.packaging-preset-grid button) {
+  transition: transform 140ms ease-out, border-color 140ms ease-out, background-color 140ms ease-out, color 140ms ease-out;
+}
+.cargo-workbench :is(.loading-workflow-options button,.wizard-steps button,.model-preview-reset,.transport-model-modes button,.dimension-controls button,.result-strategy-switch button,.plan-view-switch button):active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+/* 3. Dimension Controls Color Pickers Inline Alignment */
+.cargo-workbench .dimension-controls {
+  align-items: center;
+  row-gap: 6px;
+}
+
+/* 4. Mobile Topbar Collapsible Menu (<= 767px) & Balanced Mobile Bottom Action Bar (<= 639px) */
+.cargo-workbench .mobile-topbar-toggle {
+  display: none;
+}
+@media (max-width: 767px) {
+  .cargo-workbench .topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .cargo-workbench .mobile-topbar-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .cargo-workbench .topbar .top-actions {
+    display: none;
+    width: 100%;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-divider);
+  }
+  .cargo-workbench .topbar .top-actions.is-mobile-open {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+@media (max-width: 639px) {
+  .cargo-workbench .stage-action-bar {
+    gap: 8px;
+    padding: 8px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  .cargo-workbench .stage-action-group {
+    flex: 1 1 auto;
+    display: flex;
+    gap: 8px;
+  }
+  .cargo-workbench .stage-action-group .button.primary {
+    flex: 1 1 auto;
+    width: 100%;
+    justify-content: center;
+  }
+  .cargo-workbench .stage-action-bar > .button.primary {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+/* Dark Mode Specificity Polish: Active Pills & Projection Card Headers */
+:root[data-theme="dark"] .cargo-workbench .result-strategy-switch button.selected,
+:root[data-theme="dark"] .cargo-workbench .plan-view-switch button[aria-pressed="true"],
+:root[data-theme="dark"] .cargo-workbench .transport-model-modes button[aria-pressed="true"],
+:root[data-theme="dark"] .cargo-workbench .dimension-controls button[aria-pressed="true"] {
+  background: #132E2C !important;
+  border-color: #2DD4BF !important;
+  color: #5EEAD4 !important;
+}
+:root[data-theme="dark"] .cargo-workbench .result-strategy-switch button.selected small {
+  color: #CBD5E1 !important;
+}
+:root[data-theme="dark"] .cargo-workbench .projection-card > header,
+:root[data-theme="dark"] .cargo-workbench .projection-card > footer {
+  background: #161B22 !important;
+  border-color: var(--border-card) !important;
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .projection-card-meta b {
+  background: #132E2C !important;
+  color: #5EEAD4 !important;
+  border: 1px solid #1F4D4A !important;
+}
+
+/* === CargoFit v1.2.0: Command Palette (Ctrl+K) & Order Data Audit Banner === */
+.command-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(3px);
+  display: grid;
+  place-items: start center;
+  padding: 10vh 16px 16px;
+}
+.command-palette-dialog {
+  width: 100%;
+  max-width: 560px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-card);
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+.command-palette-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-divider);
+}
+.command-palette-head input {
+  flex: 1;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+}
+.command-palette-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+}
+.command-palette-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 120ms ease-out;
+}
+.command-palette-item.is-active,
+.command-palette-item:hover {
+  background: var(--teal-soft);
+  color: var(--brand-primary);
+}
+.command-palette-group {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.command-palette-label {
+  flex: 1;
+  font-weight: 500;
+}
+.command-palette-empty {
+  padding: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+.command-palette-foot {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border-divider);
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+}
+.order-audit-banner {
+  margin: 10px 0 12px;
+  padding: 10px 14px;
+  border: 1px solid #f59e0b;
+  border-radius: 10px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 13px;
+}
+.order-audit-banner summary {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.order-audit-banner ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+.order-audit-banner li.is-error {
+  color: #b91c1c;
+  font-weight: 600;
+}
+:root[data-theme="dark"] .order-audit-banner {
+  background: #2b2111;
+  border-color: #d97706;
+  color: #fde68a;
+}
+:root[data-theme="dark"] .order-audit-banner li.is-error {
+  color: #fca5a5;
+}
+
+.role-workbench-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0 0 10px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-divider);
+  border-radius: 10px;
+  background: var(--bg-panel);
+}
+.role-workbench-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.role-workbench-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.role-workbench-pill {
+  border: 1px solid var(--border-divider);
+  background: var(--bg-subtle);
+  color: var(--text-main);
+  border-radius: 999px;
+  padding: 4px 11px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+.role-workbench-pill:hover {
+  border-color: #0f766e;
+}
+.role-workbench-pill.is-active {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #ffffff;
+  font-weight: 600;
+}
+:root[data-theme="dark"] .role-workbench-pill.is-active {
+  background: #14b8a6;
+  border-color: #14b8a6;
+  color: #042f2e;
+}
+.public-benchmark-box {
+  margin: 0 0 18px;
+  padding: 14px;
+  border: 1px solid var(--border-divider);
+  border-radius: 10px;
+  background: var(--bg-subtle);
+}
+.public-benchmark-box h4 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  color: var(--text-main);
+}
+.public-benchmark-strategy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.public-benchmark-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+.public-benchmark-kpis > div {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-divider);
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.public-benchmark-kpis span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.public-benchmark-kpis strong {
+  font-size: 15px;
+  color: var(--text-main);
+}
+
+.lifo-ok-text { color: #0f766e; }
+.lifo-conflict-text { color: #b91c1c; }
+:root[data-theme="dark"] .lifo-ok-text { color: #2dd4bf; }
+:root[data-theme="dark"] .lifo-conflict-text { color: #fca5a5; }
+
+
+/* === QA v3.2.2 Dark Mode Comprehensive Surface, Contrast & Search Input Fixes === */
+:root[data-theme="dark"] .cargo-workbench .planning-upgrades {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-card) !important;
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .workflow-heading h2 {
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .workflow-heading p {
+  color: var(--text-secondary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .workflow-switcher button {
+  color: var(--text-secondary) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+:root[data-theme="dark"] .cargo-workbench .workflow-switcher button:hover {
+  background: var(--bg-subtle) !important;
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .workflow-switcher button[aria-pressed="true"] {
+  background: #132E2C !important;
+  border-color: #2DD4BF !important;
+  color: #5EEAD4 !important;
+}
+:root[data-theme="dark"] .cargo-workbench .workflow-switcher button strong {
+  color: inherit !important;
+}
+
+/* Result main tabs (装柜预览 / 装载明细与复核 / 清单与导出) */
+:root[data-theme="dark"] .cargo-workbench .workbench-tabs {
+  border-color: var(--border-card) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .workbench-tabs button {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border-color: transparent !important;
+}
+:root[data-theme="dark"] .cargo-workbench .workbench-tabs button:hover {
+  background: var(--bg-subtle) !important;
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .workbench-tabs button[aria-pressed="true"] {
+  background: #132E2C !important;
+  color: #5EEAD4 !important;
+  border-bottom-color: #2DD4BF !important;
+}
+
+/* Validation chip & 3D Scene toolbar/dock active buttons & fallback canvas */
+:root[data-theme="dark"] .cargo-workbench .validation-chip {
+  background: #132E2C !important;
+  border-color: #1F4D4A !important;
+  color: #5EEAD4 !important;
+}
+:root[data-theme="dark"] .cargo-workbench :is(
+  .scene-view-toolbar button[aria-pressed="true"],
+  .scene-dock-toolbar button[aria-pressed="true"],
+  .scene-dock-toggles button[aria-pressed="true"],
+  .scene-selection-tools button[aria-pressed="true"],
+  .scene-inspector-dock button[aria-pressed="true"],
+  .scene-inspector-dock button[aria-selected="true"],
+  .scene-tools button[aria-pressed="true"]
+) {
+  background: #132E2C !important;
+  border-color: #2DD4BF !important;
+  color: #5EEAD4 !important;
+}
+:root[data-theme="dark"] .cargo-workbench :is(
+  .scene-workbench-container,
+  .scene-dock-toolbar,
+  .scene-cargo-dock,
+  .scene-inspector-dock,
+  .scene-cargo-pages
+) {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-card) !important;
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench :is(.scene-fallback, .fallback-model-stage) {
+  background: #0f172a !important;
+  color: var(--text-secondary) !important;
+}
+
+/* Step 3 Cargo Entry: search wrapper, example notice banner & data grid cells */
+:root[data-theme="dark"] .cargo-workbench :is(.record-search, .scene-cargo-search) {
+  background: var(--bg-subtle) !important;
+  border-color: var(--border-card) !important;
+  color: var(--text-secondary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench :is(.record-search, .scene-cargo-search) input {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--text-primary) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .cargo-workbench .example-order-note {
+  background: #132E2C !important;
+  border-color: #1F4D4A !important;
+  color: #CCFBF1 !important;
+}
+:root[data-theme="dark"] .cargo-workbench :is(.excel-data-grid, .product-table-wrap, .product-table) {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-card) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .product-table th,
+:root[data-theme="dark"] .cargo-workbench .excel-data-grid th {
+  background: var(--bg-subtle) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border-card) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .product-table td,
+:root[data-theme="dark"] .cargo-workbench .excel-data-grid td {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-card) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .product-table tbody tr:nth-child(even) td,
+:root[data-theme="dark"] .cargo-workbench .excel-data-grid tbody tr:nth-child(even) td {
+  background: var(--bg-subtle) !important;
+}
+
+/* Playback bar, legend row & remaining capacity dark mode */
+:root[data-theme="dark"] .cargo-workbench :is(.packing-timeline, .timeline-current, .legend-row, .scene-progress, .remaining-capacity) {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-card) !important;
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .packing-timeline button,
+:root[data-theme="dark"] .cargo-workbench .legend-row > span,
+:root[data-theme="dark"] .cargo-workbench .legend-row > button,
+:root[data-theme="dark"] .cargo-workbench .legend-chip {
+  background: var(--bg-subtle) !important;
+  border-color: var(--border-card) !important;
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .timeline-current > span {
+  background: #132E2C !important;
+  color: #5EEAD4 !important;
+  border-color: #1F4D4A !important;
+}
+:root[data-theme="dark"] .cargo-workbench .timeline-current b,
+:root[data-theme="dark"] .cargo-workbench .remaining-capacity-heading > span,
+:root[data-theme="dark"] .cargo-workbench .remaining-capacity-grid article > span {
+  color: var(--text-secondary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .remaining-capacity-grid article > strong {
+  color: #5EEAD4 !important;
+}
+
+
+/* === QA v3.2.3 Fixes: Step 4 Dark Mode Surfaces & Compact Mobile Action Bar === */
+:root[data-theme="dark"] .cargo-workbench .kit-pallet-rule {
+  background: #132E2C !important;
+  border-color: #1F4D4A !important;
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .kit-pallet-rule strong {
+  color: #5EEAD4 !important;
+}
+:root[data-theme="dark"] .cargo-workbench .kit-pallet-rule small {
+  color: #CBD5E1 !important;
+}
+:root[data-theme="dark"] .cargo-workbench .live-preview-metrics,
+:root[data-theme="dark"] .cargo-workbench .live-preview-metrics > div {
+  background: var(--bg-subtle) !important;
+  border-color: var(--border-card) !important;
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .live-preview-metrics dt {
+  color: var(--text-secondary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .live-preview-metrics dd {
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .live-preview-metrics small {
+  color: var(--text-muted) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .packaging-engineering,
+:root[data-theme="dark"] .cargo-workbench .packaging-engineering > summary,
+:root[data-theme="dark"] .cargo-workbench .package-options > summary,
+:root[data-theme="dark"] .cargo-workbench .packaging-structure-options > summary,
+:root[data-theme="dark"] .cargo-workbench .pallet-preview-contents li,
+:root[data-theme="dark"] .cargo-workbench .packaging-dimension-summary,
+:root[data-theme="dark"] .cargo-workbench .packaging-dimension-summary > div {
+  background: var(--bg-subtle) !important;
+  border-color: var(--border-card) !important;
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .packaging-engineering > summary:hover,
+:root[data-theme="dark"] .cargo-workbench .package-options > summary:hover {
+  background: var(--bg-surface) !important;
+}
+:root[data-theme="dark"] .cargo-workbench .crate-bearing-settings,
+:root[data-theme="dark"] .cargo-workbench .crate-bearing-settings :is(input:not([type=checkbox]),textarea,select) {
+  background: var(--bg-subtle) !important;
+  border-color: var(--border-card) !important;
+  color: var(--text-primary) !important;
+}
+
+@media (max-width: 480px) {
+  .cargo-workbench .stage-action-bar {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  .cargo-workbench .stage-action-bar .stage-action-group {
+    display: contents !important;
+  }
+  .cargo-workbench .stage-action-bar .button {
+    min-height: 36px;
+    padding: 6px 10px;
+    justify-content: center;
+    width: 100%;
+  }
+  .cargo-workbench .stage-action-bar .button.primary {
+    grid-column: 1 / -1;
+    min-height: 40px;
   }
 }

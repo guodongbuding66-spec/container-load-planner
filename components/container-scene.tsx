@@ -7,7 +7,19 @@ import {inspectReeferAirflow} from "../lib/packing/trade-compliance";
 import { cargoShapeOf } from "../lib/packing/cargo-shape";
 import { cargoShapeGeometry } from "../lib/packing/cargo-shape-geometry";
 import { Canvas, useThree } from "@react-three/fiber";
-import { useEffect, useLayoutEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useImperativeHandle, useMemo, useRef, useState, useSyncExternalStore } from "react";
+function subscribeDarkTheme(cb: () => void) {
+  if (typeof document === "undefined") return () => {};
+  const obs = new MutationObserver(cb);
+  obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  return () => obs.disconnect();
+}
+function getDarkThemeSnapshot() {
+  return typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "dark";
+}
+function useIsDarkTheme() {
+  return useSyncExternalStore(subscribeDarkTheme, getDarkThemeSnapshot, () => false);
+}
 import * as THREE from "three";
 import type { RefObject } from "react";
 import { markFaceForAxis } from "../lib/packing/shipping-mark-artwork";
@@ -370,6 +382,7 @@ export function ContainerScene({
   const [captureError,setCaptureError] = useState("");
   const saveImage=async()=>{ try { const blob=await captureRef.current?.();if(!blob)throw new Error(tr("图形尚未准备完成。", "Scene is not ready."));const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download="CargoFit_3D.png";link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);setCaptureError(""); } catch(e) {setCaptureError(e instanceof Error?e.message:"Image export failed");}};
   const webglSupported = useWebGLSupport();
+  const isDarkTheme = useIsDarkTheme();
   const reducedRendering = webglSupported === true && detectRuntimePolicy().reducedRendering;
   const containerSize = useMemo<SceneSize>(() => (result ? normalizedSceneSize(result) : [5.6, 1.25, 1.1]), [result]);
   const sceneBounds = useMemo(() => result ? transportSceneBounds(result.container,5.6/Math.max(result.container.length-result.clearance*2,result.container.width-result.clearance*2,result.container.height-result.clearance+(result.container.baseHeight??0)),appearance.mode) : undefined,[result,appearance.mode]);
@@ -412,7 +425,7 @@ export function ContainerScene({
               dpr={reducedRendering ? [1, 1.1] : [1, 1.6]}
               gl={{ antialias: !reducedRendering, alpha: true, powerPreference: reducedRendering ? "low-power" : "high-performance" }}
             >
-              <color attach="background" args={["#eef4f5"]} />
+              <color attach="background" args={[isDarkTheme ? "#111820" : "#eef4f5"]} />
               <ambientLight intensity={.8} />
               <hemisphereLight args={["#ffffff", "#61747a", .8]} />
               <directionalLight castShadow={!reducedRendering} position={[5, 9, 4]} intensity={2.1} shadow-mapSize-width={reducedRendering ? 256 : 1024} shadow-mapSize-height={reducedRendering ? 256 : 1024} />

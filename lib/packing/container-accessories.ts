@@ -37,7 +37,7 @@ export function parseContainerAccessory(value:unknown,kind:SiteExclusion["kind"]
   }
   return {type:v.type,quantity:v.quantity,unitWeightKg:v.unitWeightKg,phase:v.phase,relatedProductIds:[...v.relatedProductIds],afterAccessoryIds:[...v.afterAccessoryIds],source:v.source.trim(),revision:v.revision.trim(),note:v.note.trim(),...(v.support?{support:{version:1 as const,surface:"solid-rectangle" as const,maxLoadKg:v.support.maxLoadKg}}:{})};
 }
-export function accessoryRegions(c:Pick<ContainerSpec,"exclusions">){return (c.exclusions??[]).filter((z):z is SiteExclusion&{accessory:ContainerAccessory}=>!!z.accessory);}
+export function accessoryRegions(c?:Pick<ContainerSpec,"exclusions">){return (c?.exclusions??[]).filter((z):z is SiteExclusion&{accessory:ContainerAccessory}=>!!z.accessory);}
 /** Dependencies refer only to other accessory rows, never to anonymous obstacles. */
 export function orderedAccessories(zones:readonly SiteExclusion[]){
   const rows=accessoryRegions({exclusions:[...zones]}),byId=new Map(rows.map(z=>[z.id,z])),done=new Set<string>(),active=new Set<string>(),out:typeof rows=[];

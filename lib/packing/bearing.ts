@@ -25,7 +25,7 @@ export function bearingLoads(boxes: PlacedBox[], products: ProductInput[] = []) 
       loads.set(nestedParent.id, (loads.get(nestedParent.id) ?? 0) + b.weight + (loads.get(b.id) ?? 0));
       continue;
     }
-    const below = (byTop.get(Math.round(b.z / 0.0001)) ?? []).filter(x => x.id !== b.id);
+    const below = (byTop.get(Math.round(b.z / 0.0001)) ?? []).filter(x => x.id !== b.id && x.x + x.dx > b.x + 1e-4 && b.x + b.dx > x.x + 1e-4 && x.y + x.dy > b.y + 1e-4 && b.y + b.dy > x.y + 1e-4);
     const areas = below.map(x => bodyContactArea(b,x,rules.get(b.productId),rules.get(x.productId)));
     const totalArea = areas.reduce((a, c) => a + c, 0);
     if (!totalArea) continue;

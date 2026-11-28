@@ -8,6 +8,7 @@ import { boxCell,orientFaces,planesOf,dot,type V3,type SolidCell } from './solid
 import { defaultModelPart,parseSolidModel,buildSolidModel,type SolidModel,type ModelPart } from './solid-model';
 import type { LengthUnit } from './units';
 import { isLengthUnit,toMillimeters } from './units';
+import { parseCadMeshFile } from './cad-mesh-import';
 export type ModelImportOptions={unit:LengthUnit;up:'X'|'Y'|'Z';separate:boolean;targetTriangles:number};
 export type ModelImportResult={model:SolidModel;trianglesBefore:number;trianglesAfter:number;parts:number;closed:boolean;simplified:boolean;proxy:'convex-hull'|'bounding-box';size:V3};
 function trianglesFrom(mesh:THREE.Mesh,options:ModelImportOptions,instance?:THREE.Matrix4){
@@ -37,23 +38,33 @@ function simplify(vertices:V3[],faces:number[][],target:number){
 export async function importCargoModel(files:File[],options:ModelImportOptions):Promise<ModelImportResult>{
  if(!isLengthUnit(options.unit)||!['X','Y','Z'].includes(options.up)||typeof options.separate!=='boolean')throw Error('模型单位或朝上轴无效。');
  if(!files.length||files.length>80||files.reduce((n,f)=>n+f.size,0)>50*1024*1024)throw Error('模型和依赖文件合计不能超过 50 MB。');
- const primary=files.filter(f=>/\.(glb|gltf)$/i.test(f.name));if(primary.length!==1)throw Error('请选择一个 GLB／glTF 主文件及其本地依赖文件。');
+ const primary=files.filter(f=>/\.(glb|gltf|stl|obj|dxf)$/i.test(f.name));if(primary.length!==1)throw Error('请选择一个 GLB／glTF／STL／OBJ／DXF 主文件及其本地依赖文件。');
  if(primary[0].size>25*1024*1024||!Number.isInteger(options.targetTriangles)||options.targetTriangles<100||options.targetTriangles>12000)throw Error('主模型须小于 25 MB，目标面数须为 100–12000。');
  const byName=new Map<string,File>();for(const file of files){if(byName.has(file.name))throw Error('模型依赖文件不能有重复名称。');byName.set(file.name,file);}
- const urls=new Map<string,string>(),manager=new THREE.LoadingManager();manager.setURLModifier(url=>{
-  if(/^data:application\/(octet-stream|gltf-buffer);base64,/i.test(url))return url;
-  if(/^blob:/.test(url)&&[...urls.values()].includes(url))return url;
-  let name:string;try{name=decodeURIComponent(url).replaceAll('\\','/').split('/').at(-1)!;}catch{throw Error('模型依赖路径无效。');}
-  const file=byName.get(name);if(!file||/^[a-z]+:\/\//i.test(url))throw Error(`请选择模型的本地依赖文件：${name}`);
-  let blob=urls.get(name);if(!blob){blob=URL.createObjectURL(file);urls.set(name,blob);}return blob;
- });
- const draco=new DRACOLoader();draco.setDecoderPath('/model-codecs/draco/');const loader=new GLTFLoader(manager).setDRACOLoader(draco).setMeshoptDecoder(MeshoptDecoder);
- loader.register(parser=>({name:"CARGOFIT_static_geometry",beforeRoot:()=>{parser.json.animations=[];parser.json.materials=(parser.json.materials??[]).map((m:{name?:string;doubleSided?:boolean})=>({name:m.name,doubleSided:m.doubleSided,pbrMetallicRoughness:{baseColorFactor:[1,1,1,1],metallicFactor:0,roughnessFactor:1}}));return null;}}));
+ const isCadMesh=/\.(stl|obj|dxf)$/i.test(primary[0].name);
+ const urls=new Map<string,string>();
+ let draco:DRACOLoader|undefined;
  let root:THREE.Object3D|undefined;
  try{
-  const bytes=await primary[0].arrayBuffer(),gltf=await loader.parseAsync(/\.gltf$/i.test(primary[0].name)?new TextDecoder().decode(bytes):bytes,'');root=gltf.scene;root.updateMatrixWorld(true);
   const chunks:Array<{vertices:V3[];faces:number[][];name:string}>=[];let trianglesBefore=0;
-  root.traverse(node=>{const mesh=node as THREE.Mesh;if(!mesh.isMesh||!mesh.geometry)return;if((mesh as THREE.SkinnedMesh).isSkinnedMesh)(mesh as THREE.SkinnedMesh).skeleton.update();const count=(mesh as THREE.InstancedMesh).isInstancedMesh?(mesh as THREE.InstancedMesh).count:1;for(let i=0;i<count;i++){const instance=(mesh as THREE.InstancedMesh).isInstancedMesh?new THREE.Matrix4():undefined;if(instance)(mesh as THREE.InstancedMesh).getMatrixAt(i,instance);const data=trianglesFrom(mesh,options,instance);if(!data.faces.length)continue;trianglesBefore+=data.faces.length;if(trianglesBefore>200000)throw Error('输入超过 200000 个三角面，请先在建模软件中减面。');chunks.push({...data,name:mesh.name||primary[0].name});}});
+  const bytes=await primary[0].arrayBuffer();
+  if(isCadMesh){
+   const parsed=parseCadMeshFile(primary[0].name,bytes,{unit:options.unit,up:options.up});
+   trianglesBefore=parsed.triangleCount;
+   for(const c of parsed.chunks)chunks.push({name:c.name,vertices:c.vertices,faces:c.faces});
+  }else{
+   const manager=new THREE.LoadingManager();manager.setURLModifier(url=>{
+    if(/^data:application\/(octet-stream|gltf-buffer);base64,/i.test(url))return url;
+    if(/^blob:/.test(url)&&[...urls.values()].includes(url))return url;
+    let name:string;try{name=decodeURIComponent(url).replaceAll('\\','/').split('/').at(-1)!;}catch{throw Error('模型依赖路径无效。');}
+    const file=byName.get(name);if(!file||/^[a-z]+:\/\//i.test(url))throw Error(`请选择模型的本地依赖文件：${name}`);
+    let blob=urls.get(name);if(!blob){blob=URL.createObjectURL(file);urls.set(name,blob);}return blob;
+   });
+   draco=new DRACOLoader();draco.setDecoderPath('/model-codecs/draco/');const loader=new GLTFLoader(manager).setDRACOLoader(draco).setMeshoptDecoder(MeshoptDecoder);
+   loader.register(parser=>({name:"CARGOFIT_static_geometry",beforeRoot:()=>{parser.json.animations=[];parser.json.materials=(parser.json.materials??[]).map((m:{name?:string;doubleSided?:boolean})=>({name:m.name,doubleSided:m.doubleSided,pbrMetallicRoughness:{baseColorFactor:[1,1,1,1],metallicFactor:0,roughnessFactor:1}}));return null;}}));
+   const gltf=await loader.parseAsync(/\.gltf$/i.test(primary[0].name)?new TextDecoder().decode(bytes):bytes,'');root=gltf.scene;root.updateMatrixWorld(true);
+   root.traverse(node=>{const mesh=node as THREE.Mesh;if(!mesh.isMesh||!mesh.geometry)return;if((mesh as THREE.SkinnedMesh).isSkinnedMesh)(mesh as THREE.SkinnedMesh).skeleton.update();const count=(mesh as THREE.InstancedMesh).isInstancedMesh?(mesh as THREE.InstancedMesh).count:1;for(let i=0;i<count;i++){const instance=(mesh as THREE.InstancedMesh).isInstancedMesh?new THREE.Matrix4():undefined;if(instance)(mesh as THREE.InstancedMesh).getMatrixAt(i,instance);const data=trianglesFrom(mesh,options,instance);if(!data.faces.length)continue;trianglesBefore+=data.faces.length;if(trianglesBefore>200000)throw Error('输入超过 200000 个三角面，请先在建模软件中减面。');chunks.push({...data,name:mesh.name||primary[0].name});}});
+  }
   if(!chunks.length)throw Error('文件没有可装载的三角网格。');
   const origin:V3=[Infinity,Infinity,Infinity];for(const c of chunks)for(const v of c.vertices)for(let i=0;i<3;i++)origin[i]=Math.min(origin[i],v[i]);for(const c of chunks)c.vertices=c.vertices.map(v=>v.map((n,i)=>n-origin[i]) as V3);
   let groups=chunks;if(!options.separate){const vertices:V3[]=[],faces:number[][]=[];for(const c of chunks){const offset=vertices.length;vertices.push(...c.vertices);faces.push(...c.faces.map(f=>f.map(i=>i+offset)));}groups=[{vertices,faces,name:primary[0].name}];}
@@ -65,7 +76,7 @@ export async function importCargoModel(files:File[],options:ModelImportOptions):
   const model=parseSolidModel({version:1,parts,restFaces:['L-','L+','W-','W+','H-','H+'],loadFaces:['L-','L+','W-','W+','H-','H+'],antiRoll:false})!,size=buildSolidModel(model).size;
   return {model,size,trianglesBefore,trianglesAfter,parts:parts.length,closed,simplified,proxy:coarse?'bounding-box':'convex-hull'};
  }finally{
-  draco.dispose();for(const url of urls.values())URL.revokeObjectURL(url);
+  draco?.dispose();for(const url of urls.values())URL.revokeObjectURL(url);
   root?.traverse(node=>{const mesh=node as THREE.Mesh;if(!mesh.isMesh)return;mesh.geometry?.dispose();for(const material of Array.isArray(mesh.material)?mesh.material:[mesh.material]){if(!material)continue;for(const value of Object.values(material))if(value instanceof THREE.Texture){const image=value.image as {close?:()=>void};image?.close?.();value.dispose();}material.dispose();}});
  }
 }

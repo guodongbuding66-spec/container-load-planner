@@ -7,7 +7,7 @@ export default function LandingPage() {
   return (
     <main style={{ minHeight: "100dvh", background: "#FFFFFF", color: "#0F172A", fontFamily: "sans-serif" }}>
       <header style={{ maxWidth: 1120, margin: "0 auto", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", borderBottom: "1px solid #E2E8F0" }}>
-        <strong style={{ fontSize: 20, color: "#0F766E" }}>CargoFit v1.0</strong>
+        <strong style={{ fontSize: 20, color: "#0F766E" }}>CargoFit v3.2</strong>
         <nav style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
           <select
             aria-label="Language"

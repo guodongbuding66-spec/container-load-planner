@@ -54,7 +54,7 @@ import {
 import { estimateQuoteLoading } from "./quote-estimator";
 import { roundedCartonVolumeCbm } from "./volume";
 
-export const ENGINE_VERSION = "1.0.1";
+export const ENGINE_VERSION = "3.2.3";
 
 function fixedPlanSupportGeometry(container:ContainerSpec,clearance:number,pallets:PlacedPallet[]=[]){
  const a=accessorySupportGeometry(container,clearance),b=palletDeckSupportGeometry(pallets);
@@ -508,6 +508,7 @@ function supportAreaDetails(
   const contacts:import("./model-body").PolygonSurface[]=[];
   let layer = 1;
   for (const box of supporters) {
+    if (box.x + box.dx <= candidate.x + EPS || candidate.x + candidate.dx <= box.x + EPS || box.y + box.dy <= candidate.y + EPS || candidate.y + candidate.dy <= box.y + EPS) continue;
     const overlap = bodyContactArea(candidate,box,products.get(candidate.productId),products.get(box.productId));
     if (overlap > EPS) {
       // A carton touching a forbidden support still loads it, even if other
@@ -809,6 +810,7 @@ function orderForLoading(placements: PlacedBox[], products: ProductInput[] = [])
     const lowerCandidates = supportingLevels.get(Math.round(upper.z / EPS)) ?? [];
     for (const lowerIndex of lowerCandidates) {
       const lower = placements[lowerIndex];
+      if (lower.x + lower.dx <= upper.x + EPS || upper.x + upper.dx <= lower.x + EPS || lower.y + lower.dy <= upper.y + EPS || upper.y + upper.dy <= lower.y + EPS) continue;
       if (bodyContactArea(upper,lower,shapeRules.get(upper.productId),shapeRules.get(lower.productId)) <= EPS) continue;
       dependents[lowerIndex].push(upperIndex);
       remainingDependencies[upperIndex] += 1;
@@ -2391,7 +2393,7 @@ export function validatePacking(
       orientations.add(`${box.dx}:${box.dy}:${box.dz}`);
       orientationsByProduct.set(box.productId, orientations);
     }
-    const nestedParent = !isPallet ? findDirectNestedParent(box, placements.slice(0, index), product) : undefined;
+    const nestedParent = !isPallet && nestedDeltaHeight(product) > 0 ? findDirectNestedParent(box, placements.slice(0, index), product) : undefined;
     const support = nestedParent
       ? { ratio: 1, layer: nestedParent.layer + 1, longSupportError: undefined }
       : supportDetails(box, topLevels, productMap);
@@ -2665,7 +2667,8 @@ export function pack(request: PackingRequest): PackingResult {
   const palletUnitVolume = normalized.products.reduce((n,p)=>n+p.length*p.width*(nestedDeltaHeight(p)||p.height)*bodyVolumeRatio(p)*(setCode(p)?unitsPerSet(p):1),0);
   const palletUnitWeight = normalized.products.reduce((n,p)=>n+p.weight*(setCode(p)?unitsPerSet(p):1),0);
   const palletUnitCount = normalized.products.reduce((n,p)=>n+(setCode(p)?unitsPerSet(p):1),0);
-  const palletUnitLimit = Math.max(0, Math.floor(Math.min((effectiveVolume-pallets.reduce((n,p)=>n+packagingReservedVolume(p),0))/palletUnitVolume, (MAX_VISIBLE_PLACEMENTS-pallets.length)/palletUnitCount, (normalized.singleCartonLimit??MAX_VISIBLE_PLACEMENTS)/palletUnitCount, palletUnitWeight>0?(normalized.container.maxWeight-palletWeight-containerAccessoryWeight(normalized.container))/palletUnitWeight:Infinity)));
+  const singleMixedCap = Math.min(4000, MAX_VISIBLE_PLACEMENTS - pallets.length);
+  const palletUnitLimit = Math.max(0, Math.floor(Math.min((effectiveVolume-pallets.reduce((n,p)=>n+packagingReservedVolume(p),0))/palletUnitVolume, singleMixedCap/palletUnitCount, (normalized.singleCartonLimit??singleMixedCap)/palletUnitCount, palletUnitWeight>0?(normalized.container.maxWeight-palletWeight-containerAccessoryWeight(normalized.container))/palletUnitWeight:Infinity)));
   const palletRequest: PackingRequest = {...normalized, products: [...normalized.products.map(p=>normalized.mode==="single"?{...p,quantity:palletUnitLimit*(setCode(p)?unitsPerSet(p):1)}:p), ...palletSupportProducts(pallets).map(p=>({...p,quantity:0}))]};
   let certifiedGrid:{placements:PlacedBox[];warnings:string[]}|undefined;
   if(!normalized.container.exclusions?.length&&!normalized.container.engineering&&!pallets.length&&normalized.mode==='single'&&normalized.products.length===1&&normalized.products[0].solidModel&&!setCode(normalized.products[0])){

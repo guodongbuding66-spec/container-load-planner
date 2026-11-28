@@ -1,6 +1,18 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore } from "react";
+function subscribeDarkTheme(cb: () => void) {
+  if (typeof document === "undefined") return () => {};
+  const obs = new MutationObserver(cb);
+  obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  return () => obs.disconnect();
+}
+function getDarkThemeSnapshot() {
+  return typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "dark";
+}
+function useIsDarkTheme() {
+  return useSyncExternalStore(subscribeDarkTheme, getDarkThemeSnapshot, () => false);
+}
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import { Environment, Lightformer } from "@react-three/drei";
@@ -67,6 +79,7 @@ export function SpaceModelPreview({ pallet, space, appearanceOnly = false, compa
   const dimensionBounds=useMemo<DimensionBounds>(()=>({min:[-length*scale/2,0,-width*scale/2],max:[length*scale/2,height*scale,width*scale/2]}),[length,width,height,scale]);
   const containerSize=useMemo<SceneSize>(()=>[length*scale,height*scale,width*scale],[length,height,width,scale]);
   const sceneBounds=useMemo(()=>space?transportSceneBounds(space,scale,appearance.mode,0):undefined,[space,scale,appearance.mode]);
+  const isDarkTheme = useIsDarkTheme();
   const showDimensions = appearance.dimensions && !appearanceOnly;
   const updateFinish=(patch:Partial<NonNullable<FloorPalletConfig["packaging"]>>)=>{if(pallet)onPalletChange?.({...pallet,packaging:{...DEFAULT_PACKAGING,...pallet.packaging,...patch}});};
   if (![length,width,height].every(v=>Number.isFinite(v)&&v>0)) return <div className="space-model-preview model-invalid"><p>{tr("填写有效的长、宽、高后显示尺寸模型。")}</p></div>;
@@ -92,7 +105,7 @@ export function SpaceModelPreview({ pallet, space, appearanceOnly = false, compa
     <div className={`space-model-preview${touchActive?" touch-active":""}`}>
       <ViewportRenderer resetKey={`${length}-${width}-${height}`} fallback={fallback}>
         <Canvas dpr={reduced?1:[1,1.5]} gl={{antialias:!reduced,powerPreference:reduced?"low-power":"high-performance"}} shadows={!!model&&!reduced}>
-          <color attach="background" args={["#f2f5f6"]}/>
+          <color attach="background" args={[isDarkTheme ? "#131b24" : "#f2f5f6"]}/>
           {model?<><PackagingLighting reduced={reduced} reflective={model.packaging?.material==="steel"}/><PalletStructures pallets={base} scale={scale} offset={offset} reduced={reduced} wireframe={wireframe}/></>:
             space&&<><hemisphereLight color="#edf5fa" groundColor="#8e8272" intensity={1.6}/><directionalLight position={[2,5,4]} intensity={2}/><TransportModel space={space} scale={scale} mode={appearance.mode} transparency={appearance.transparency} reduced={reduced}/></>}
           {showDimensions&&<SceneDimensions bounds={dimensionBounds} values={{L:length,W:width,H:height}} unit={appearance.dimensionUnit} fontSize={appearance.dimensionFontSize} style={appearance.dimensionStyle} lineColor={appearance.dimensionLineColor} textColor={appearance.dimensionTextColor}/>}

@@ -1,5 +1,7 @@
 "use client";
 import { CenterOfGravityMap } from "./center-of-gravity-map";
+import { CommandPalette, type CommandItem } from "./command-palette";
+import { auditOrderInputs } from "../lib/packing/order-data-auditor";
 import { computeCenterOfGravity } from "../lib/packing/vgm-cog";
 import {ExcelDataGrid} from "./ui/excel-data-grid";
 import {cargoEntryColumns,cargoEntryExportColumns,cargoEntryRows} from "./cargo-entry-columns";
@@ -46,6 +48,7 @@ import {
   FileSpreadsheet,
   Gauge,
   Layers3,
+  Menu,
   Moon,
   Sun,
   LoaderCircle,
@@ -54,6 +57,7 @@ import {
   Pause,
   Play,
   Plus,
+  Search,
   Printer,
   Save,
   ShieldCheck,
@@ -451,8 +455,29 @@ export function PackingApp() {
   const [products, setProducts] = useState<ProductInput[]>(() => structuredClone(DEMO_PRODUCTS));
   const [palletLayerTemplates,setPalletLayerTemplates]=useState<PalletLayerTemplate[]>([]);
   const [autoCalculate, setAutoCalculate] = useState(false);
-  const [workflowStep,setWorkflowStep]=useState<WorkflowStep>(1);
+  const [workflowStep, setWorkflowStepRaw] = useState<WorkflowStep>(1);
+  const [maxReachedStep, setMaxReachedStep] = useState<WorkflowStep>(1);
+  const setWorkflowStep = useCallback((next: WorkflowStep | ((prev: WorkflowStep) => WorkflowStep)) => {
+    setWorkflowStepRaw((prev) => {
+      const resolved = typeof next === "function" ? next(prev) : next;
+      setMaxReachedStep((m) => (resolved > m ? resolved : m));
+      return resolved;
+    });
+  }, []);
   const [simpleMode,setSimpleMode]=useState(false);
+  const [rolePreset,setRolePreset]=useState<"quick"|"pro"|"packaging"|"field"|"enterprise"|"developer">("pro");
+  const [mobileMenuOpen,setMobileMenuOpen]=useState(false);
+  const [commandOpen,setCommandOpen]=useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCommandOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const [bulgePresetPct,setBulgePresetPct]=useState<0|1.5|3>(0);
   const [manualRun,setManualRun]=useState(0);
   const [setupInvalid,setSetupInvalid]=useState(false);
@@ -1926,9 +1951,11 @@ export function PackingApp() {
     setMode(next==="single-capacity"?"single":"mixed");
     markDirty();
   };
+  const maxUnlockedStep = Math.max(workflowStep, maxReachedStep, result ? 7 : 1) as WorkflowStep;
   const goToStep=(step:WorkflowStep,anchor?:string,focusDestination=false)=>{
     setToolsOpen(false);
-    if(step>workflowStep+1){
+    const maxAllowedStep = Math.max(maxUnlockedStep, simpleMode && workflowStep === 1 ? 3 : workflowStep + 1);
+    if(step>maxAllowedStep){
       setMessage(tr("请按顺序完成当前步骤。","Complete the steps in order."));
       return false;
     }
@@ -2017,6 +2044,43 @@ export function PackingApp() {
     setResultPane("view");setWorkflowStep(7);setAutoCalculate(false);setManualRun(v=>v+1);
     window.requestAnimationFrame(()=>document.querySelector('.wizard-steps')?.scrollIntoView({behavior:"smooth",block:"start"}));
   };
+  const applyRoleWorkbench=(role:"quick"|"pro"|"packaging"|"field"|"enterprise"|"developer")=>{
+    setRolePreset(role);
+    setToolsOpen(false);
+    if(role==="quick"){
+      setSimpleMode(true);
+      selectWorkflow("direct");
+      setWorkflowStep(1);
+    }else if(role==="pro"){
+      setSimpleMode(false);
+      selectWorkflow("palletized");
+      setWorkflowStep(1);
+    }else if(role==="packaging"){
+      setSimpleMode(false);
+      selectWorkflow("palletized");
+      setWorkflowStep(2);
+    }else if(role==="field"){
+      setSimpleMode(false);
+      if(result){
+        setWorkflowStep(7);
+        setResultPane("review");
+      }else{
+        startExpressCalculation();
+      }
+    }else if(role==="enterprise"){
+      setSimpleMode(false);
+      if(result){
+        setWorkflowStep(7);
+        setResultPane("review");
+      }else{
+        startExpressCalculation();
+      }
+    }else if(role==="developer"){
+      setSimpleMode(false);
+      setToolsOpen(true);
+      setToolsVisited(true);
+    }
+  };
   const quickStartScenario=(presetId:string,nextWorkflow:"direct"|"palletized",targetStep:WorkflowStep)=>{
     const preset=TRANSPORT_PRESETS.find(item=>item.id===presetId);
     if(preset){selectPreset(preset.id);}
@@ -2090,7 +2154,11 @@ export function PackingApp() {
           <div className="workspace-brand"><span className="brand-mark"><Container size={22} aria-hidden="true"/></span>
             <h1>{tr("装柜智算")}</h1>
           </div>
-          <div className="top-actions">
+          <button type="button" className="button ghost mobile-topbar-toggle" aria-expanded={mobileMenuOpen} aria-label={tr("展开或收起顶部菜单","Toggle topbar menu")} onClick={()=>setMobileMenuOpen(v=>!v)}>
+            {mobileMenuOpen ? <X size={16} aria-hidden="true"/> : <Menu size={16} aria-hidden="true"/>}
+            <span>{mobileMenuOpen ? tr("收起","Close") : tr("菜单","Menu")}</span>
+          </button>
+          <div className={`top-actions${mobileMenuOpen ? " is-mobile-open" : ""}`}>
             <span className={`save-state ${dirty || hasPendingDimensionChanges ? "is-dirty" : ""} ${storageState === "error" ? "is-error" : ""}`} title={storageState === "error" ? tr("草稿未能保存","Draft could not be saved") : hasPendingDimensionChanges ? tr("尺寸录入中 · 尚未提交","Dimensions pending commit") : dirty ? tr("草稿自动保存 · 待重算","Draft saved · Recalculation pending") : tr("本机草稿已保存","Draft saved locally")}><Save size={15} />{storageState === "error" ? tr("草稿未能保存") : hasPendingDimensionChanges ? tr("尺寸录入中 · 尚未提交") : dirty ? tr("草稿自动保存 · 待重算") : tr("本机草稿已保存")}</span>
             <WorkspaceFileMenu menuRef={fileMenu}
               backupBlocked={hasPendingDimensionChanges || invalidNumericFields.size > 0}
@@ -2110,6 +2178,7 @@ export function PackingApp() {
             <CloudAccount buttonRef={accountButton} backup={workspaceBackup} disabled={upgradesDisabled} onRestore={payload => {
               void restoreWorkspace(new File([payload], "CargoFit-cloud-workspace.json", { type: "application/json" }));
             }}/>
+            <button type="button" className="button ghost topbar-cmd-btn" aria-label={tr("打开命令搜索 (Ctrl+K)","Open command palette (Ctrl+K)")} title="Ctrl+K / ⌘K" onClick={()=>setCommandOpen(true)}><Search size={14} aria-hidden="true"/><span>⌘K</span></button>
             <button type="button" className="button ghost workspace-tools-entry" aria-expanded={toolsOpen} onClick={()=>{
               setToolsOpen(!toolsOpen);
               if(!toolsOpen){setToolsVisited(true);scrollTo("workflow-tools");}
@@ -2126,6 +2195,27 @@ export function PackingApp() {
         </header>
 
 
+        <CommandPalette open={commandOpen} onClose={()=>setCommandOpen(false)} items={[
+          { id: "cmd-role-quick", group: tr("角色工作台","Workbench"), label: tr("切换角色：快速测算（极简 3 步 + 散箱）","Role: Quick Estimate (Simple 3-Step)"), keywords: "role quick simple fast 角色 快速", run: ()=>applyRoleWorkbench("quick") },
+          { id: "cmd-role-pro", group: tr("角色工作台","Workbench"), label: tr("切换角色：专业装柜（专家 7 步 + 托盘）","Role: Pro Loading (Expert 7-Step)"), keywords: "role pro expert pallet 角色 专业", run: ()=>applyRoleWorkbench("pro") },
+          { id: "cmd-role-packaging", group: tr("角色工作台","Workbench"), label: tr("切换角色：包装工程（直达包装与打托）","Role: Packaging Engineering (Step 2)"), keywords: "role packaging carton 角色 包装", run: ()=>applyRoleWorkbench("packaging") },
+          { id: "cmd-role-field", group: tr("角色工作台","Workbench"), label: tr("切换角色：现场执行（装柜指导与交付）","Role: Field Execution (Step 7 Guide)"), keywords: "role field warehouse guide 角色 现场", run: ()=>applyRoleWorkbench("field") },
+          { id: "cmd-role-enterprise", group: tr("角色工作台","Workbench"), label: tr("切换角色：企业管理（成本 ROI 与历史交付审计）","Role: Enterprise Mgmt (ROI & Cost Audit)"), keywords: "role enterprise cost roi manager 角色 企业 管理", run: ()=>applyRoleWorkbench("enterprise") },
+          { id: "cmd-role-developer", group: tr("角色工作台","Workbench"), label: tr("切换角色：开发者中心（API / MCP / 自动化集成）","Role: Developer Center (API / MCP / Integration)"), keywords: "role developer api mcp integration 角色 开发", run: ()=>applyRoleWorkbench("developer") },
+          { id: "cmd-demo", group: tr("快捷操作","Quick"), label: tr("一键示例出 3D 图","1-Click Demo 3D Plan"), keywords: "demo 3d example", run: startExpressCalculation },
+          { id: "cmd-step1", group: tr("向导步骤","Steps"), label: tr("前往步骤 1：选柜型","Go to Step 1: Container"), keywords: "container step 1", run: ()=>goToStep(1) },
+          { id: "cmd-step2", group: tr("向导步骤","Steps"), label: tr("前往步骤 2：选包装","Go to Step 2: Packaging"), keywords: "packaging pallet step 2", disabled: maxUnlockedStep < 2, run: ()=>goToStep(2) },
+          { id: "cmd-step3", group: tr("向导步骤","Steps"), label: tr("前往步骤 3：录入货物","Go to Step 3: Cargo"), keywords: "cargo sku step 3", disabled: maxUnlockedStep < 3, run: ()=>goToStep(3) },
+          { id: "cmd-step7", group: tr("向导步骤","Steps"), label: tr("前往步骤 7：查看方案","Go to Step 7: Results"), keywords: "results plan step 7", disabled: !result, run: ()=>goToStep(7) },
+          { id: "cmd-space", group: tr("工具与设置","Tools"), label: tr("打开装载空间库","Open Space Library"), keywords: "space library 40hq 20gp", run: ()=>setShowTransport(true) },
+          { id: "cmd-tools", group: tr("工具与设置","Tools"), label: tr("打开方案工具与算法基准","Open Plan Tools & Benchmarks"), keywords: "tools benchmark", run: ()=>{ setToolsOpen(true); setToolsVisited(true); } },
+          { id: "cmd-theme", group: tr("工具与设置","Tools"), label: theme==="dark"?tr("切换浅色模式","Switch to Light Mode"):tr("切换深色模式","Switch to Dark Mode"), keywords: "theme dark light", run: toggleTheme },
+          { id: "cmd-simple", group: tr("工具与设置","Tools"), label: simpleMode?tr("切换至专家 7 步模式","Switch to Expert 7-Step"):tr("切换至极简 3 步模式","Switch to Simple 3-Step"), keywords: "simple expert mode", run: ()=>setSimpleMode(v=>!v) },
+          { id: "cmd-mm", group: tr("全局单位制","Units"), label: tr("切换单位为 mm / kg","Set Units: mm / kg"), keywords: "unit mm kg", run: ()=>applyGlobalUnitPreset("mm_kg") },
+          { id: "cmd-cm", group: tr("全局单位制","Units"), label: tr("切换单位为 cm / kg","Set Units: cm / kg"), keywords: "unit cm kg", run: ()=>applyGlobalUnitPreset("cm_kg") },
+          { id: "cmd-in", group: tr("全局单位制","Units"), label: tr("切换单位为 in / lb（英制）","Set Units: in / lb (Imperial)"), keywords: "unit imperial in lb", run: ()=>applyGlobalUnitPreset("imperial") },
+          { id: "cmd-export", group: tr("文件与导出","Export"), label: tr("导出方案 JSON","Export Plan JSON"), keywords: "export json", disabled: !result, run: exportJson },
+        ] as CommandItem[]} />
         {showTransport && <TransportPicker selected={container} customContainers={customContainers} onCustomChange={spaces=>{setCustomContainers(spaces);persistDraft({customContainers:spaces});}} onSelect={space=>{persistDraft({container:space,practicalTargetPercent:recommendedPracticalTarget(space)*100});clearNumericDraftErrors();setContainer(space);setPracticalTargetPercent(recommendedPracticalTarget(space)*100);markDirty();}} onClose={()=>setShowTransport(false)}/>}
         {showFloorPallets && <FloorPalletSettings config={floorPallets} container={container} clearance={clearance} customSpaces={customContainers} onClose={()=>setShowFloorPallets(false)} onSave={next=>{persistDraft({floorPallets:next});setFloorPallets(next);markDirty();}}/>}
         {showRules && <LoadingRuleSettings rules={loadingRules} products={products} onSave={(rules,next)=>{persistDraft({loadingRules:rules,products:next});setLoadingRules(rules);setProducts(next);markDirty();}} onClose={()=>setShowRules(false)}/>}
@@ -2137,6 +2227,7 @@ export function PackingApp() {
         <WorkflowSteps
           workflow={workflow}
           current={workflowStep}
+          maxUnlocked={maxUnlockedStep}
           onSelect={goToStep}
           simpleMode={simpleMode}
           onToggleSimpleMode={()=>{
@@ -2148,7 +2239,31 @@ export function PackingApp() {
           }}
         />
 
-        {!toolsOpen && workStatus}
+        <div className="role-workbench-bar" role="region" aria-label={tr("角色工作台快捷切换","Role workbench presets")}>
+          <span className="role-workbench-label">{tr("角色工作台","Workbench")}</span>
+          <div className="role-workbench-pills" role="group" aria-label={tr("选择工作角色","Select role")}>
+            {([
+              ["quick", "快速测算", "Quick Estimate"],
+              ["pro", "专业装柜", "Pro Loading"],
+              ["packaging", "包装工程", "Packaging Eng"],
+              ["field", "现场执行", "Field Execution"],
+              ["enterprise", "企业管理", "Enterprise"],
+              ["developer", "开发者中心", "Developer"],
+            ] as const).map(([id, zh, en]) => (
+              <button
+                key={id}
+                type="button"
+                className={`role-workbench-pill${rolePreset === id ? " is-active" : ""}`}
+                aria-pressed={rolePreset === id}
+                onClick={() => applyRoleWorkbench(id)}
+              >
+                {tr(zh, en)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+                {!toolsOpen && workStatus}
 
         {result ? (
           <header className="print-report-title">
@@ -2192,21 +2307,21 @@ export function PackingApp() {
               <details className="stage-options">
                 <summary>{tr("柜内尺寸、门洞与净载重","Interior, door and payload")}</summary>
               <div className="field-grid three">
-                <Field label={tr("内长")} unit="mm"><NumericInput showError min={1} resetToken={numericResetVersion} ariaLabel={tr("柜体内长")} value={container.length} precision={1} onValueChange={(value) => updateContainer("length", value)} onValidityChange={(valid) => setNumericFieldValidity("container:length", valid)} /></Field>
-                <Field label={tr("内宽")} unit="mm"><NumericInput showError min={1} resetToken={numericResetVersion} ariaLabel={tr("柜体内宽")} value={container.width} precision={1} onValueChange={(value) => updateContainer("width", value)} onValidityChange={(valid) => setNumericFieldValidity("container:width", valid)} /></Field>
-                <Field label={tr("内高")} unit="mm"><NumericInput showError min={1} resetToken={numericResetVersion} ariaLabel={tr("柜体内高")} value={container.height} precision={1} onValueChange={(value) => updateContainer("height", value)} onValidityChange={(valid) => setNumericFieldValidity("container:height", valid)} /></Field>
-                <Field label={tr("门宽")} unit="mm"><NumericInput showError min={1} resetToken={numericResetVersion} ariaLabel={tr("柜门宽度")} value={container.doorWidth} precision={1} onValueChange={(value) => updateContainer("doorWidth", value)} onValidityChange={(valid) => setNumericFieldValidity("container:doorWidth", valid)} /></Field>
-                <Field label={tr("门高")} unit="mm"><NumericInput showError min={1} resetToken={numericResetVersion} ariaLabel={tr("柜门高度")} value={container.doorHeight} precision={1} onValueChange={(value) => updateContainer("doorHeight", value)} onValidityChange={(valid) => setNumericFieldValidity("container:doorHeight", valid)} /></Field>
-                <Field label={tr("最大净载重","Maximum payload")} unit="kg"><NumericInput showError min={1} resetToken={numericResetVersion} ariaLabel={tr("柜体最大载重")} value={container.maxWeight} precision={2} onValueChange={(value) => updateContainer("maxWeight", value)} onValidityChange={(valid) => setNumericFieldValidity("container:maxWeight", valid)} /></Field>
+                <Field label={tr("内长")} unit={lengthUnit}><NumericInput key={`c-len-${lengthUnit}`} showError min={0.01} resetToken={numericResetVersion} ariaLabel={tr("柜体内长")} value={Number(fromMillimeters(container.length, lengthUnit).toFixed(lengthUnitPrecision(lengthUnit)))} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => updateContainer("length", Math.round(toMillimeters(value, lengthUnit) * 10) / 10)} onValidityChange={(valid) => setNumericFieldValidity("container:length", valid)} /></Field>
+                <Field label={tr("内宽")} unit={lengthUnit}><NumericInput key={`c-wid-${lengthUnit}`} showError min={0.01} resetToken={numericResetVersion} ariaLabel={tr("柜体内宽")} value={Number(fromMillimeters(container.width, lengthUnit).toFixed(lengthUnitPrecision(lengthUnit)))} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => updateContainer("width", Math.round(toMillimeters(value, lengthUnit) * 10) / 10)} onValidityChange={(valid) => setNumericFieldValidity("container:width", valid)} /></Field>
+                <Field label={tr("内高")} unit={lengthUnit}><NumericInput key={`c-hei-${lengthUnit}`} showError min={0.01} resetToken={numericResetVersion} ariaLabel={tr("柜体内高")} value={Number(fromMillimeters(container.height, lengthUnit).toFixed(lengthUnitPrecision(lengthUnit)))} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => updateContainer("height", Math.round(toMillimeters(value, lengthUnit) * 10) / 10)} onValidityChange={(valid) => setNumericFieldValidity("container:height", valid)} /></Field>
+                <Field label={tr("门宽")} unit={lengthUnit}><NumericInput key={`c-dw-${lengthUnit}`} showError min={0.01} resetToken={numericResetVersion} ariaLabel={tr("柜门宽度")} value={Number(fromMillimeters(container.doorWidth, lengthUnit).toFixed(lengthUnitPrecision(lengthUnit)))} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => updateContainer("doorWidth", Math.round(toMillimeters(value, lengthUnit) * 10) / 10)} onValidityChange={(valid) => setNumericFieldValidity("container:doorWidth", valid)} /></Field>
+                <Field label={tr("门高")} unit={lengthUnit}><NumericInput key={`c-dh-${lengthUnit}`} showError min={0.01} resetToken={numericResetVersion} ariaLabel={tr("柜门高度")} value={Number(fromMillimeters(container.doorHeight, lengthUnit).toFixed(lengthUnitPrecision(lengthUnit)))} precision={lengthUnitPrecision(lengthUnit)} onValueChange={(value) => updateContainer("doorHeight", Math.round(toMillimeters(value, lengthUnit) * 10) / 10)} onValidityChange={(valid) => setNumericFieldValidity("container:doorHeight", valid)} /></Field>
+                <Field label={tr("最大净载重","Maximum payload")} unit={weightUnit}><NumericInput key={`c-mw-${weightUnit}`} showError min={0.1} resetToken={numericResetVersion} ariaLabel={tr("柜体最大载重")} value={Number(fromKilograms(container.maxWeight, weightUnit).toFixed(weightUnit === "lb" ? 1 : 2))} precision={weightUnit === "lb" ? 1 : 2} onValueChange={(value) => updateContainer("maxWeight", Math.round(toKilograms(value, weightUnit) * 100) / 100)} onValidityChange={(valid) => setNumericFieldValidity("container:maxWeight", valid)} /></Field>
               </div>
               <p className="payload-note">{tr("净载重为柜内货物、包装与附件合计。预设为参考值，装运时按实际铭牌与线路限重核对。","Payload covers cargo, packaging and accessories in the container. Verify the equipment plate and route limits for the shipment.")}</p>
               <div className="clearance-row">
                 <div><strong>{tr("安全间隙")}</strong><span>{tr("自动从有效柜内空间扣除")}</span></div>
-                <div className="range-control"><input aria-label={tr("安全间隙")} type="range" min="0" max="50" step="5" value={clearance} onChange={(event) => { setClearance(numberValue(event.target.value)); markDirty(); }} /><output>{clearance} mm</output></div>
+                <div className="range-control"><input aria-label={tr("安全间隙")} type="range" min="0" max="50" step="5" value={clearance} onChange={(event) => { setClearance(numberValue(event.target.value)); markDirty(); }} /><output>{formatNumber(fromMillimeters(clearance, lengthUnit), lengthUnit === "mm" ? 0 : 2)} {lengthUnit}</output></div>
               </div>
               <div className="clearance-row">
                 <div><strong>{tr("尾门预留净空","Rear door clearance")}</strong><span>{tr("用于绑带与顺利关门","Buffer for lashing & doors")}</span></div>
-                <div className="range-control"><input aria-label={tr("尾门预留净空","Rear door clearance")} type="range" min="0" max="300" step="25" value={container.rearDoorClearanceMm ?? 0} onChange={(event) => { setContainer(c => ({ ...c, rearDoorClearanceMm: numberValue(event.target.value) })); markDirty(); }} /><output>{container.rearDoorClearanceMm ?? 0} mm</output></div>
+                <div className="range-control"><input aria-label={tr("尾门预留净空","Rear door clearance")} type="range" min="0" max="300" step="25" value={container.rearDoorClearanceMm ?? 0} onChange={(event) => { setContainer(c => ({ ...c, rearDoorClearanceMm: numberValue(event.target.value) })); markDirty(); }} /><output>{formatNumber(fromMillimeters(container.rearDoorClearanceMm ?? 0, lengthUnit), lengthUnit === "mm" ? 0 : 2)} {lengthUnit}</output></div>
               </div>
               <div className="clearance-row">
                 <div><strong>{tr("目的地公路限重一键套用","Destination road payload preset")}</strong><span>{tr("美国 IPI / 欧盟 40T 合规限重","US IPI / EU 40T compliance")}</span></div>
@@ -2242,7 +2357,7 @@ export function PackingApp() {
           </article>
             </div>
             <div className="panel space-stage-preview" hidden={workflow==="pallet-only"}>
-              <div className="space-overview"><strong>{tr(container.name)}</strong><span>{container.length} × {container.width} × {container.height} mm</span><span>{formatNumber(container.maxWeight,1)} kg {tr("最大净载重","max. payload")}</span></div>
+              <div className="space-overview"><strong>{tr(container.name)}</strong><span>{formatNumber(fromMillimeters(container.length, lengthUnit), lengthUnit === "mm" ? 0 : 1)} × {formatNumber(fromMillimeters(container.width, lengthUnit), lengthUnit === "mm" ? 0 : 1)} × {formatNumber(fromMillimeters(container.height, lengthUnit), lengthUnit === "mm" ? 0 : 1)} {lengthUnit}</span><span>{formatNumber(fromKilograms(container.maxWeight, weightUnit), 1)} {weightUnit} {tr("最大净载重","max. payload")}</span></div>
               <SpaceModelPreview space={container} compactDimensions/>
             </div>
           </div>
@@ -2306,6 +2421,25 @@ export function PackingApp() {
           </div>
           {demoOrder&&<p className="helper-text">{tr("此演示使用 1200 × 2300 mm 宽托、1800 mm 货物限高及有限装卸路径搜索。承重资料和运输固定仍须现场核验。","This demo uses 1200 × 2300 mm pallets, 1800 mm cargo ceilings and bounded access search. Bearing evidence and transport securing still require on-site verification.")}</p>}
           {exampleOrder&&<p className="example-order-note">{tr("当前显示示例订单。可编辑下表，或用 Excel / CSV 导入自己的订单。","This is a sample order. Edit the rows or import your own order with Excel or CSV.")}</p>}
+          {(() => {
+            const orderAudit = auditOrderInputs(activeProducts, container, clearance);
+            if (orderAudit.healthy) return null;
+            return (
+              <details className="order-audit-banner" open={orderAudit.errorCount > 0}>
+                <summary>
+                  <strong>{tr(`订单数据健康体检：发现 ${orderAudit.issues.length} 项待核对异常`, `Order Data Audit: ${orderAudit.issues.length} issue(s) detected`)}</strong>
+                  <span>{orderAudit.errorCount > 0 ? tr(`${orderAudit.errorCount} 项错误 · ${orderAudit.warnCount} 项提醒`, `${orderAudit.errorCount} error(s) · ${orderAudit.warnCount} warning(s)`) : tr(`${orderAudit.warnCount} 项提醒`, `${orderAudit.warnCount} warning(s)`)}</span>
+                </summary>
+                <ul>
+                  {orderAudit.issues.map((iss) => (
+                    <li key={iss.id} className={iss.severity === "error" ? "is-error" : "is-warn"}>
+                      {tr(iss.messageZh, iss.messageEn)}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            );
+          })()}
           {(() => {
             const totalCartons = activeProducts.reduce((s, p) => s + Math.max(0, p.quantity), 0);
             const totalCbm = activeProducts.reduce((s, p) => s + (p.length * p.width * p.height * Math.max(0, p.quantity)) / 1e9, 0);
@@ -2623,7 +2757,7 @@ export function PackingApp() {
           <div className="workflow-review-grid">
             <article className="panel"><h3>{tr("柜型与装载方式","Container and method")}</h3>
               <strong>{workflow==="pallet-only"?tr("只打托","Palletize only"):tr(container.name)}</strong>
-              {workflow!=="pallet-only"&&<p>{container.length} × {container.width} × {container.height} mm · {formatNumber(container.maxWeight)} kg</p>}
+              {workflow!=="pallet-only"&&<p>{formatNumber(fromMillimeters(container.length, lengthUnit), lengthUnit === "mm" ? 0 : 1)} × {formatNumber(fromMillimeters(container.width, lengthUnit), lengthUnit === "mm" ? 0 : 1)} × {formatNumber(fromMillimeters(container.height, lengthUnit), lengthUnit === "mm" ? 0 : 1)} {lengthUnit} · {formatNumber(fromKilograms(container.maxWeight, weightUnit), weightUnit === "lb" ? 1 : 0)} {weightUnit}</p>}
               <button type="button" className="button small" onClick={()=>goToStep(1)}>{tr("修改柜型","Edit container")}</button></article>
             <article className="panel"><h3>{tr("包装与托内布置","Packaging and layout")}</h3>
               {isPalletWorkflow?<ul className="review-packaging-specs">{palletSpecifications(palletBuild).filter(s=>s.maxPallets>0).map(s=><li key={s.id}><strong>{s.config.name}</strong><small>{s.config.length} × {s.config.width} mm · {tr("可用","Available")} {s.maxPallets} {tr("托","units")}</small></li>)}</ul>:<strong>{floorPallets?.name??tr("散箱直接装柜","Loose cartons")}</strong>}
@@ -2945,6 +3079,15 @@ export function PackingApp() {
             }} onApplyPayloadLimit={(limitKg) => {
               updateContainer("maxWeight", limitKg);
               setMessage(tr(`已套用公路限重 ${limitKg} kg，请重新计算装柜。`, `Applied ${limitKg} kg road payload limit; recalculate to verify.`), "done");
+            }} onReplaceProducts={(next, note) => {
+              replaceProductInputs(next);
+              setMessage(note ?? tr("已更新货物列表，请重新计算装柜方案。", "Updated order lines; recalculate to verify in 3D."), "done");
+            }} onSelectContainerPreset={(spec) => {
+              clearNumericDraftErrors();
+              setContainer({ ...spec });
+              setPracticalTargetPercent(recommendedPracticalTarget(spec) * 100);
+              markDirty();
+              setMessage(tr(`已切换装载空间为「${spec.name}」，请重新计算装柜。`, `Switched load space to ${spec.name}; recalculate to verify.`), "done");
             }} />}
             <ContainerAccessoryManifest result={result} products={activeProducts} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors}/>
             <PalletManifest anchor="loaded-pallets" printing={renderPrintViews} layerTemplates={palletLayerTemplates} onLayerTemplatesChange={setPalletLayerTemplates} result={result} products={activeProducts} disabled={upgradesDisabled||dirty||!!resultAudit?.hasErrors} onAdopt={adoptManualPlan}/>
@@ -2962,7 +3105,7 @@ export function PackingApp() {
         </section>}
 
         {workflowStep<7&&<div className="stage-action-bar">
-          {workflowStep>1&&<button type="button" className="button ghost" onClick={()=>goToStep((workflowStep-1) as WorkflowStep)}><ChevronLeft size={17}/>{tr("上一步","Back")}</button>}
+          {workflowStep>1&&<button type="button" className="button ghost" onClick={()=>goToStep((simpleMode&&workflowStep===3?1:workflowStep-1) as WorkflowStep)}><ChevronLeft size={17}/>{tr("上一步","Back")}</button>}
           <span className="stage-context">{workflow==="pallet-only"?tr("只打托","Palletize only"):tr(container.name)}
             {workflowStep===3&&` · ${formatNumber(activeProducts.length)} ${tr("个箱型","carton types")}`}</span>
           {workflowStep===6?
@@ -2970,18 +3113,22 @@ export function PackingApp() {
               {workflow==="pallet-only"?tr("计算打托","Calculate pallets"):tr("计算装柜","Calculate loading")}<ChevronRight size={17}/>
             </button>:
             <div className="stage-action-group">
-            {workflowStep>=3&&workflowStep<=5&&<button type="button" className="button ghost" disabled={setupInvalid||invalidNumericFields.size>0||hasPendingDimensionChanges||palletRecipePending||status==="working"} onClick={startExpressCalculation}>
+            {!simpleMode&&workflowStep>=3&&workflowStep<=5&&<button type="button" className="button ghost" disabled={setupInvalid||invalidNumericFields.size>0||hasPendingDimensionChanges||palletRecipePending||status==="working"} onClick={startExpressCalculation}>
               <Play size={15} aria-hidden="true"/>{tr("快捷直算","Quick calculate")}
             </button>}
-            <button type="button" className="button primary" disabled={workflowStep===4&&isPalletWorkflow&&(!palletPreviewReady||palletRecipePending)}
+            <button type="button" className="button primary" disabled={(workflowStep===4&&isPalletWorkflow&&(!palletPreviewReady||palletRecipePending))||(simpleMode&&workflowStep===3&&(setupInvalid||invalidNumericFields.size>0||hasPendingDimensionChanges||status==="working"))}
               onClick={()=>{ if(simpleMode&&workflowStep===1){ goToStep(3); } else if(simpleMode&&workflowStep===3){ startExpressCalculation(); } else { goToStep((workflowStep+1) as WorkflowStep); } }}>
-              {[
-                isPalletWorkflow?tr("下一步 · 选包装","Next · Packaging"):tr("下一步 · 底托选项","Next · Floor options"),
-                tr("下一步 · 录入货物","Next · Cargo"),
-                isPalletWorkflow?tr("下一步 · 布置预览","Next · Layout"):tr("下一步 · 散箱布置","Next · Loose layout"),
-                tr("下一步 · 装载规则","Next · Rules"),
-                tr("下一步 · 核对计算","Next · Review"),
-              ][workflowStep-1]}<ChevronRight size={17}/>
+              {simpleMode&&workflowStep===1
+                ? tr("下一步 · 录入货物","Next · Cargo")
+                : simpleMode&&workflowStep===3
+                  ? tr("下一步 · 计算方案","Next · Calculate")
+                  : [
+                      isPalletWorkflow?tr("下一步 · 选包装","Next · Packaging"):tr("下一步 · 底托选项","Next · Floor options"),
+                      tr("下一步 · 录入货物","Next · Cargo"),
+                      isPalletWorkflow?tr("下一步 · 布置预览","Next · Layout"):tr("下一步 · 散箱布置","Next · Loose layout"),
+                      tr("下一步 · 装载规则","Next · Rules"),
+                      tr("下一步 · 核对计算","Next · Review"),
+                    ][workflowStep-1]}<ChevronRight size={17}/>
             </button></div>}
         </div>}
         </div>

@@ -25,6 +25,7 @@ const simpleSteps = [
 
 export function WorkflowSteps({
   current,
+  maxUnlocked,
   onSelect,
   workflow = "palletized",
   simpleMode = false,
@@ -32,10 +33,12 @@ export function WorkflowSteps({
 }: {
   workflow?: LoadingWorkflow;
   current: WorkflowStep;
+  maxUnlocked?: WorkflowStep;
   onSelect: (step: WorkflowStep) => void;
   simpleMode?: boolean;
   onToggleSimpleMode?: () => void;
 }) {
+  const unlockedStep = Math.max(current, maxUnlocked ?? current);
   useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -75,8 +78,8 @@ export function WorkflowSteps({
                 type="button"
                 key={id}
                 role="menuitem"
-                className={current === id ? "current" : id < current ? "complete" : ""}
-                disabled={id > current}
+                className={current === id ? "current" : id < current || id <= unlockedStep ? "complete" : ""}
+                disabled={id > unlockedStep}
                 onClick={() => {
                   onSelect(id);
                   setMobileOpen(false);
@@ -99,8 +102,8 @@ export function WorkflowSteps({
               type="button"
               key={id}
               aria-current={current === id ? "step" : undefined}
-              className={current === id ? "current" : id < current ? "complete" : ""}
-              disabled={id > current}
+              className={current === id ? "current" : id < current || id <= unlockedStep ? "complete" : ""}
+              disabled={id > unlockedStep}
               onClick={() => onSelect(id)}
             >
               <span className="wizard-step-number" aria-hidden="true">

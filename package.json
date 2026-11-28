@@ -1,6 +1,6 @@
 {
   "name": "container-load-planner",
-  "version": "0.1.0",
+  "version": "3.2.3",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -18,7 +18,9 @@
     "validate:artifact": "bash scripts/validate-artifact.sh",
     "lint": "bash scripts/sites-env.sh -- eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern server-build",
     "cloud:migrate": "node --experimental-transform-types scripts/migrate-cloud.mts",
-    "build:cloud": "esbuild lib/cloud/entry.ts --bundle --packages=external --platform=node --target=node22 --format=esm --outfile=server-build/cargo.mjs && node scripts/verify-cloud-bundle.mjs"
+    "build:cloud": "esbuild lib/cloud/entry.ts --bundle --packages=external --platform=node --target=node22 --format=esm --outfile=server-build/cargo.mjs && node scripts/verify-cloud-bundle.mjs",
+    "build:mcp": "esbuild scripts/cargofit-mcp-server.ts --bundle --packages=external --platform=node --target=node22 --format=esm --outfile=server-build/cargofit-mcp.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@bwip-js/generic": "4.11.4",
@@ -27,6 +29,7 @@
     "better-auth": "1.7.18",
     "drizzle-orm": "0.45.2",
     "exceljs": "^4.4.0",
+    "fflate": "0.8.3",
     "lucide-react": "^1.31.0",
     "next": "16.3.3",
     "pg": "8.23.1",
@@ -34,14 +37,14 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "stripe": "23.1.0",
-    "three": "^0.185.1",
-    "fflate": "0.8.3"
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.54.2",
     "@cloudflare/workers-types": "5.20260830.1",
     "@electric-sql/pglite": "0.5.15",
     "@electric-sql/pglite-socket": "0.2.18",
+    "@playwright/test": "1.65.1",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
     "@types/pg": "8.23.1",
@@ -63,5 +66,5 @@
     "wrangler": "4.127.1"
   },
   "type": "module",
-  "displayName": "\u5916\u8d38\u88c5\u67dc\u667a\u7b97"
+  "displayName": "外贸装柜智算"
 }
