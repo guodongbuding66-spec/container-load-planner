@@ -85,9 +85,10 @@ export function TradeProWorkbench({
   const [emailLang, setEmailLang] = useState<UiLanguage>("en");
   const [copiedMail, setCopiedMail] = useState(false);
   const [deliveryUnit, setDeliveryUnit] = useState<"metric" | "imperial">("metric");
-  const [rebalancedNotice, setRebalancedNotice] = useState("");
+  const [rebalancedNotice, setRebalancedNotice] = useState<{planId:string;before:number;after:number;reason:"improved"|"centered"|"constrained"}|null>(null);
+  const [rebalanceError,setRebalanceError] = useState("");
   const [rebalancing,setRebalancing] = useState(false);
-  const [exportNotice,setExportNotice] = useState("");
+  const [exportNotice,setExportNotice] = useState<"downloaded"|"preview"|{error:string}|null>(null);
   const [exportingSheet,setExportingSheet] = useState(false);
   const [vgmTareValid,setVgmTareValid] = useState(true);
   const [vgmBookingNo, setVgmBookingNo] = useState("");
@@ -129,14 +130,14 @@ export function TradeProWorkbench({
     const a = document.createElement("a");
     a.href = url;a.target = "_blank";a.rel = "noopener noreferrer";
     document.body.appendChild(a);a.click();a.remove();
-    setExportNotice(tr("已打开打印预览；也可直接点击 PDF 下载按钮保存文件。", "Print preview opened. Use the PDF download button to save a file directly."));
+    setExportNotice("preview");
     setTimeout(() => URL.revokeObjectURL(url), 15000);
   };
   const [exportingBundle, setExportingBundle] = useState(false);
   const downloadSheet = async (html:string, filename:string) => {
-    setExportingSheet(true);setExportNotice("");
-    try {const {downloadTradeSheetPdf}=await import("../lib/packing/trade-sheet-pdf");await downloadTradeSheetPdf(html,filename);setExportNotice(tr("PDF 已生成并下载。","PDF generated and downloaded."));}
-    catch(e){setExportNotice(e instanceof Error?e.message:String(e));}finally{setExportingSheet(false);}
+    setExportingSheet(true);setExportNotice(null);
+    try {const {downloadTradeSheetPdf}=await import("../lib/packing/trade-sheet-pdf");await downloadTradeSheetPdf(html,filename);setExportNotice("downloaded");}
+    catch(e){setExportNotice({error:e instanceof Error?e.message:String(e)});}finally{setExportingSheet(false);}
   };
 
   const gapFill = useMemo(
@@ -756,7 +757,7 @@ export function TradeProWorkbench({
       {tab === "vgm" && (
         <div style={{ display: "grid", gap: 16 }}>
           {exportingSheet && <p role="status">{tr("正在生成 PDF…", "Generating PDF…")}</p>}
-          {exportNotice && <p role="status">{exportNotice}</p>}
+          {exportNotice && <p role="status">{exportNotice==="downloaded"?tr("PDF 已生成并下载。","PDF generated and downloaded."):exportNotice==="preview"?tr("已打开打印预览；也可直接点击 PDF 下载按钮保存文件。","Print preview opened. Use the PDF download button to save a file directly."):exportNotice.error}</p>}
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
               <h4 style={{ margin: 0, fontSize: 14 }}>{tr("重心分布与配重调整", "Center of Gravity & Weight Distribution")}</h4>
@@ -769,14 +770,12 @@ export function TradeProWorkbench({
                   className="button small"
                   disabled={disabled || !onAdoptPlan || rebalancing}
                   onClick={async () => {
-                    setRebalancing(true);
+                    setRebalancing(true);setRebalanceError("");
                     try {
                       const outcome=rebalancePackingPlan(plan,products);
-                      if(outcome.changed){
-                        onAdoptPlan?.(outcome.plan);
-                        setRebalancedNotice(tr(`已调整实际箱位并通过校验：重心偏移 ${outcome.before.toFixed(1)}% → ${outcome.after.toFixed(1)}%。数量与重量不变，无需再重算。`,`Validated positions updated: CG deviation ${outcome.before.toFixed(1)}% → ${outcome.after.toFixed(1)}%. Count and weight preserved; no recalculation needed.`));
-                      }else setRebalancedNotice(outcome.reason==="centered"?tr("当前重心已居中，未改变箱位。","Already centered; positions unchanged."):tr("当前锁定、边界、承托或装卸约束下未找到更好的整体移位，未改变箱位。","No better valid translation under the current locks, boundaries, support or access constraints; positions unchanged."));
-                    }catch(e){setRebalancedNotice(e instanceof Error?e.message:String(e));}
+                      if(outcome.changed) onAdoptPlan?.(outcome.plan);
+                      setRebalancedNotice({planId:outcome.plan.id,before:outcome.before,after:outcome.after,reason:outcome.reason});
+                    }catch(e){setRebalanceError(e instanceof Error?e.message:String(e));}
                     finally{setRebalancing(false);}
                   }}
                 >
@@ -790,7 +789,8 @@ export function TradeProWorkbench({
               <div className="v1-kpi"><small>{tr("左右平衡 (左 / 右)", "Lateral (L / R)")}</small><strong>{cogReport.leftPct}% / {cogReport.rightPct}%</strong></div>
               <div className="v1-kpi"><small>{tr("重心高度占比", "CoG Height")}</small><strong>{cogReport.cogZPct}% ({cogReport.cogZMm} mm)</strong></div>
             </div>
-            {rebalancedNotice && <p className="rebalance-notice" role="status">{rebalancedNotice}</p>}
+            {rebalancedNotice?.planId===plan.id && <p className="rebalance-notice" role="status">{rebalancedNotice.reason==="improved"?tr(`已调整实际箱位并通过校验：重心偏移 ${rebalancedNotice.before.toFixed(1)}% → ${rebalancedNotice.after.toFixed(1)}%。数量与重量不变，无需再重算。`,`Validated positions updated: CG deviation ${rebalancedNotice.before.toFixed(1)}% → ${rebalancedNotice.after.toFixed(1)}%. Count and weight preserved; no recalculation needed.`):rebalancedNotice.reason==="centered"?tr("当前重心已居中，未改变箱位。","Already centered; positions unchanged."):tr("当前锁定、边界、承托或装卸约束下未找到更好的整体移位，未改变箱位。","No better valid translation under the current locks, boundaries, support or access constraints; positions unchanged.")}</p>}
+            {rebalanceError && <p role="alert">{rebalanceError}</p>}
             <CenterOfGravityMap report={cogReport}/>
             <p className="helper-text">{tr("以下为柜内两端的等效静载分配，不代表车辆实际桥轴载荷；真实轴荷请在车辆工程复核中录入支点与空载反力。","These are equivalent end reactions, not actual truck axle loads. Enter support positions and empty reactions in Vehicle Engineering for axle checks.")}</p>
             {cogReport.warningsZh.length > 0 && (
