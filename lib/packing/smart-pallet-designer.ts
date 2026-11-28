@@ -197,18 +197,32 @@ export function designEconomicalPallet(
   if (![product.length,product.width,product.height,maxPalletHeightMm].every(v => Number.isFinite(v) && v > 0) || !Number.isFinite(product.weight) || product.weight < 0 || !Number.isFinite(product.quantity) || product.quantity < 0 || !Number.isFinite(maxOverhangMm) || maxOverhangMm < 0 || product.solidModel || (product.cargoShape && product.cargoShape !== "box")) return empty();
 
   for (const pal of STANDARD_PALLET_CATALOG) {
-    const effL = pal.lengthMm + maxOverhangMm * 2;
-    const effW = pal.widthMm + maxOverhangMm * 2;
     const allowRotation = product.rotationPolicy !== "fixed";
-    if (!(product.length <= effL && product.width <= effW) && !(allowRotation && product.width <= effL && product.length <= effW)) continue;
-    // Bound the explicit SVG layout so tiny loose-part dimensions cannot freeze the page.
-    if (Math.floor(effL * effW / (product.length * product.width)) > 10000) continue;
-    const pat = evaluateLayerPatterns(product.length, product.width, effL, effW, allowRotation);
-    if (pat.count <= 0) continue;
+    const requiredSupport = product.minimumSupportRatio ?? 1;
+    if (!Number.isFinite(requiredSupport) || requiredSupport <= 0 || requiredSupport > 1) continue;
+    let pat: ReturnType<typeof evaluateLayerPatterns> | null = null;
+    for (const allowedOverhang of maxOverhangMm > 0 ? [0,maxOverhangMm] : [0]) {
+      const effL = pal.lengthMm + allowedOverhang * 2, effW = pal.widthMm + allowedOverhang * 2;
+      if (!(product.length <= effL && product.width <= effW) && !(allowRotation && product.width <= effL && product.length <= effW)) continue;
+      if (Math.floor(effL * effW / (product.length * product.width)) > 10000) continue;
+      const candidate = evaluateLayerPatterns(product.length, product.width, effL, effW, allowRotation);
+      if (candidate.count < 1) continue;
+      const spanL = Math.max(...candidate.layout.map(b => b.x+b.dx)), spanW = Math.max(...candidate.layout.map(b => b.y+b.dy));
+      const offsetX = (pal.lengthMm-spanL)/2, offsetY = (pal.widthMm-spanW)/2;
+      const layout = candidate.layout.map(b => ({...b,x:b.x+offsetX,y:b.y+offsetY})).filter(b => {
+        const overlapL = Math.max(0,Math.min(b.x+b.dx,pal.lengthMm)-Math.max(b.x,0));
+        const overlapW = Math.max(0,Math.min(b.y+b.dy,pal.widthMm)-Math.max(b.y,0));
+        return overlapL*overlapW/(b.dx*b.dy)+1e-9 >= requiredSupport;
+      });
+      if (layout.length > (pat?.count ?? 0)) pat = {...candidate,count:layout.length,layout};
+    }
+    if (!pat || pat.count < 1) continue;
     const maxCartonsByWeight = product.weight > 0 ? Math.floor(pal.dynamicRatingKg / product.weight) : Infinity;
-    const cartonsPerLayer = Math.min(pat.count, maxCartonsByWeight);
+    const cartonsPerLayer = Math.min(pat.count,maxCartonsByWeight);
     if (cartonsPerLayer < 1) continue;
-    const layerLayout = pat.layout.slice(0, cartonsPerLayer).map(box => ({...box,x:box.x-maxOverhangMm,y:box.y-maxOverhangMm}));
+    const layerLayout = pat.layout.slice(0,cartonsPerLayer);
+    const footprintL = Math.max(pal.lengthMm,...layerLayout.map(b=>b.x+b.dx))-Math.min(0,...layerLayout.map(b=>b.x));
+    const footprintW = Math.max(pal.widthMm,...layerLayout.map(b=>b.y+b.dy))-Math.min(0,...layerLayout.map(b=>b.y));
     const usableH = Math.max(0, maxPalletHeightMm - pal.deckHeightMm);
     const maxLayersByHeight = Math.floor(usableH / product.height);
     const maxLayersByRule = product.maxStackLayers > 0 ? Math.min(maxLayersByHeight, product.maxStackLayers) : maxLayersByHeight;
@@ -226,8 +240,8 @@ export function designEconomicalPallet(
 
     const palletsNeededForOrder = Math.ceil(product.quantity / cartonsPerPallet);
     // Floor fit inside 40HQ (12032 x 2352 mm)
-    const p40Long = Math.floor(12032 / effL) * Math.floor(2350 / effW);
-    const p40Cross = Math.floor(12032 / effW) * Math.floor(2350 / effL);
+    const p40Long = Math.floor(12032 / footprintL) * Math.floor(2350 / footprintW);
+    const p40Cross = Math.floor(12032 / footprintW) * Math.floor(2350 / footprintL);
     const palletsPer40Hq = totalPalletHeightMm <= 2597 ? Math.max(0, p40Long, p40Cross) : 0;
 
     const totalPalletCostUsd = Number((palletsNeededForOrder * pal.unitCostUsd).toFixed(2));
