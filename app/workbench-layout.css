@@ -1,7 +1,7 @@
 /* Every workflow step aligns with the same responsive header and navigation. */
 .cargo-workbench .wizard-page { width:100%; }
 .cargo-workbench :is(.wizard-page,.stage-action-bar) { width:100%;max-width:none;margin-inline:0; }
-.cargo-workbench .app-main { max-width:none; }
+.cargo-workbench[data-workflow-step] .app-main { max-width:none; }
 .cargo-workbench .wizard-page-heading h2 { font-size:28px; }
 .cargo-workbench .wizard-page :is(.panel,.viewer-column) { border-radius:var(--radius-card); }
 .cargo-workbench .wizard-page .panel .panel { padding:0;border:0;border-radius:0;background:transparent;box-shadow:none; }
