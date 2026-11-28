@@ -124,13 +124,12 @@ export function TradeProWorkbench({
   const openHtmlSheet = (html: string, filename: string) => {
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank", "noopener");
-    if (!w) {
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-    }
+    // noopener window.open returns null even when opening succeeds; do not
+    // interpret that as a blocked popup and start a second HTML download.
+    const a = document.createElement("a");
+    a.href = url;a.target = "_blank";a.rel = "noopener noreferrer";
+    document.body.appendChild(a);a.click();a.remove();
+    setExportNotice(tr("已打开打印预览；也可直接点击 PDF 下载按钮保存文件。", "Print preview opened. Use the PDF download button to save a file directly."));
     setTimeout(() => URL.revokeObjectURL(url), 15000);
   };
   const [exportingBundle, setExportingBundle] = useState(false);
