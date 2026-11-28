@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "npm run build:pages",
+  "buildCommand": "npm run build:cloud && CF_PAGES=1 next build --webpack",
   "outputDirectory": "out",
   "cleanUrls": true,
   "installCommand": "npm ci",
