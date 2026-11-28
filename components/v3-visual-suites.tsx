@@ -1038,7 +1038,7 @@ export function V3VisualSuites({
       )}
 
       {/* D07: 智能托盘与木箱设计系统（真实交错/风车 2D 码垛坐标 SVG + 5 种托盘切换对比表 + 木箱 1–8 号零件 BOM） */}
-      {showAll && smartPallet && activePalletOption && crateBom && (
+      {showAll && smartPallet && crateBom && (
         <section className="analytics-card" aria-label={tr("智能托盘与木箱工程设计系统", "Smart Pallet & Wooden Crate Design System")}>
           <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <h4 style={{ margin: 0 }}>{tr("智能托盘经济性设计与木箱结构 BOM 系统", "Smart Pallet & Wooden Crate BOM Designer")}</h4>
@@ -1066,6 +1066,8 @@ export function V3VisualSuites({
             </div>
           </header>
 
+          <p className="helper-text">{tr("目录承重与价格为参考值；纸箱承压和运输固定仍须核验。40HQ托位为平面包络估算，须在主装柜方案复核。", "Catalog ratings and prices are references. Verify carton compression and securing. 40HQ floor slots are envelope estimates; recheck in the main load plan.")}</p>
+          {activePalletOption ? <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, marginTop: 10 }}>
             {/* Authentic 2D Top-Down Pallet Layer Pattern SVG driven by exact layerLayout coordinates */}
             <div>
@@ -1084,12 +1086,13 @@ export function V3VisualSuites({
                   const oy = 14 + (144 - drawH) / 2;
                   return (
                     <>
-                      <rect x={ox} y={oy} width={drawW} height={drawH} fill="#fef3c7" stroke="#b45309" strokeWidth="2" rx="3" />
+                      {palletOverhang > 0 && <rect x={ox} y={oy} width={drawW} height={drawH} fill="none" stroke="#94a3b8" strokeDasharray="3 2" />}
+                      <rect x={ox+palletOverhang*scale} y={oy+palletOverhang*scale} width={pal.lengthMm*scale} height={pal.widthMm*scale} fill="#fef3c7" stroke="#b45309" strokeWidth="2" rx="3" />
                       {activePalletOption.layerLayout.map((box, idx) => (
                         <rect
                           key={idx}
-                          x={ox + box.x * scale + 1}
-                          y={oy + box.y * scale + 1}
+                          x={ox + (box.x+palletOverhang) * scale + 1}
+                          y={oy + (box.y+palletOverhang) * scale + 1}
                           width={Math.max(3, box.dx * scale - 2)}
                           height={Math.max(3, box.dy * scale - 2)}
                           fill={box.rotated ? "#0d9488" : "#22c55e"}
@@ -1152,6 +1155,7 @@ export function V3VisualSuites({
               </table>
             </div>
           </div>
+          </> : <p role="status">{tr("当前箱规、方向、限高或承重条件下没有可用方案；请调整上方参数。异形模型及单层超过10000箱的规格请在主装柜流程核验。", "No feasible option under the current dimensions, orientation, height or load limits. Adjust the inputs above. Use the main planner for shaped models or layers exceeding 10,000 cartons.")}</p>}
         </section>
       )}
 

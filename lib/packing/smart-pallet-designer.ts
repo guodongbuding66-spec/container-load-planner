@@ -94,6 +94,7 @@ function evaluateLayerPatterns(
   boxW: number,
   palL: number,
   palW: number,
+  allowRotation = true,
 ): { pattern: PalletLayerPattern; count: number; zh: string; en: string; layout: PalletLayerBox[] } {
   // 1. Block (all same orientation)
   const c0 = Math.floor(palL / boxL);
@@ -104,14 +105,16 @@ function evaluateLayerPatterns(
   const block90 = c90 * r90;
   let best: { pattern: PalletLayerPattern; count: number; zh: string; en: string; layout: PalletLayerBox[] } = {
     pattern: "block",
-    count: Math.max(block0, block90),
+    count: allowRotation ? Math.max(block0, block90) : block0,
     zh: "规则齐排 (Block)",
     en: "Block Pattern",
     layout:
-      block90 > block0
+      allowRotation && block90 > block0
         ? buildGridBoxes(0, 0, c90, r90, boxW, boxL, true)
         : buildGridBoxes(0, 0, c0, r0, boxL, boxW, false),
   };
+
+  if (!allowRotation) return best;
 
   // 2. Brick / Interlocking (split length into k strips of boxL + remaining strips of boxW)
   let bestBrick = 0;
@@ -190,44 +193,54 @@ export function designEconomicalPallet(
   maxOverhangMm = 0,
 ): SmartPalletDesignReport {
   const options: SmartPalletDesignOption[] = [];
+  const empty = (): SmartPalletDesignReport => ({sku:product.sku,orderQuantity:product.quantity,maxPalletHeightMm,maxOverhangMm,recommended:null,options:[]});
+  if (![product.length,product.width,product.height,maxPalletHeightMm].every(v => Number.isFinite(v) && v > 0) || !Number.isFinite(product.weight) || product.weight < 0 || !Number.isFinite(product.quantity) || product.quantity < 0 || !Number.isFinite(maxOverhangMm) || maxOverhangMm < 0 || product.solidModel || (product.cargoShape && product.cargoShape !== "box")) return empty();
 
   for (const pal of STANDARD_PALLET_CATALOG) {
     const effL = pal.lengthMm + maxOverhangMm * 2;
     const effW = pal.widthMm + maxOverhangMm * 2;
-    const pat = evaluateLayerPatterns(product.length, product.width, effL, effW);
+    const allowRotation = product.rotationPolicy !== "fixed";
+    if (!(product.length <= effL && product.width <= effW) && !(allowRotation && product.width <= effL && product.length <= effW)) continue;
+    // Bound the explicit SVG layout so tiny loose-part dimensions cannot freeze the page.
+    if (Math.floor(effL * effW / (product.length * product.width)) > 10000) continue;
+    const pat = evaluateLayerPatterns(product.length, product.width, effL, effW, allowRotation);
     if (pat.count <= 0) continue;
-
+    const maxCartonsByWeight = product.weight > 0 ? Math.floor(pal.dynamicRatingKg / product.weight) : Infinity;
+    const cartonsPerLayer = Math.min(pat.count, maxCartonsByWeight);
+    if (cartonsPerLayer < 1) continue;
+    const layerLayout = pat.layout.slice(0, cartonsPerLayer).map(box => ({...box,x:box.x-maxOverhangMm,y:box.y-maxOverhangMm}));
     const usableH = Math.max(0, maxPalletHeightMm - pal.deckHeightMm);
-    const maxLayersByHeight = Math.floor(usableH / Math.max(1, product.height));
+    const maxLayersByHeight = Math.floor(usableH / product.height);
     const maxLayersByRule = product.maxStackLayers > 0 ? Math.min(maxLayersByHeight, product.maxStackLayers) : maxLayersByHeight;
-    const maxLayersByWeight = Math.floor(pal.dynamicRatingKg / Math.max(0.01, pat.count * product.weight));
-    const layers = Math.max(1, Math.min(maxLayersByRule, Math.max(1, maxLayersByWeight)));
-
-    const cartonsPerPallet = pat.count * layers;
+    const maxLayersByWeight = Math.floor(maxCartonsByWeight / cartonsPerLayer);
+    const maxLayersByBearing = product.maxTopLoadKg !== undefined && product.weight > 0 ? Math.floor(Math.max(0, product.maxTopLoadKg) / product.weight) + 1 : Infinity;
+    const layers = Math.min(maxLayersByRule, maxLayersByWeight, maxLayersByBearing, product.stackable === false ? 1 : Infinity);
+    if (!Number.isFinite(layers) || layers < 1) continue;
+    const cartonsPerPallet = cartonsPerLayer * layers;
     const cargoWeightPerPalletKg = Number((cartonsPerPallet * product.weight).toFixed(1));
     const grossPalletWeightKg = Number((cargoWeightPerPalletKg + pal.tareKg).toFixed(1));
     const totalPalletHeightMm = pal.deckHeightMm + layers * product.height;
     const areaUtilPct = Number(
-      Math.min(100, ((pat.count * product.length * product.width) / (pal.lengthMm * pal.widthMm)) * 100).toFixed(1),
+      Math.min(100, ((cartonsPerLayer * product.length * product.width) / (pal.lengthMm * pal.widthMm)) * 100).toFixed(1),
     );
 
-    const palletsNeededForOrder = Math.ceil(Math.max(1, product.quantity) / Math.max(1, cartonsPerPallet));
+    const palletsNeededForOrder = Math.ceil(product.quantity / cartonsPerPallet);
     // Floor fit inside 40HQ (12032 x 2352 mm)
-    const p40Long = Math.floor(12032 / pal.lengthMm) * Math.floor(2352 / pal.widthMm);
-    const p40Cross = Math.floor(12032 / pal.widthMm) * Math.floor(2352 / pal.lengthMm);
-    const palletsPer40Hq = Math.max(1, p40Long, p40Cross);
+    const p40Long = Math.floor(12032 / effL) * Math.floor(2350 / effW);
+    const p40Cross = Math.floor(12032 / effW) * Math.floor(2350 / effL);
+    const palletsPer40Hq = totalPalletHeightMm <= 2597 ? Math.max(0, p40Long, p40Cross) : 0;
 
     const totalPalletCostUsd = Number((palletsNeededForOrder * pal.unitCostUsd).toFixed(2));
     const totalTimberM3 = Number((palletsNeededForOrder * pal.timberVolumeM3).toFixed(3));
-    const costPerCartonUsd = Number((pal.unitCostUsd / Math.max(1, cartonsPerPallet)).toFixed(3));
+    const costPerCartonUsd = product.quantity > 0 ? Number((totalPalletCostUsd / product.quantity).toFixed(3)) : 0;
 
     options.push({
       pallet: pal,
       bestPattern: pat.pattern,
       patternLabelZh: pat.zh,
       patternLabelEn: pat.en,
-      cartonsPerLayer: pat.count,
-      layerLayout: pat.layout,
+      cartonsPerLayer,
+      layerLayout,
       layers,
       cartonsPerPallet,
       totalPalletHeightMm,

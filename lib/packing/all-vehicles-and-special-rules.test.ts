@@ -48,17 +48,16 @@ describe("All 37 Containers, Trucks, Trailers & Pallets/ULDs (Full Catalog Sweep
   const trucks = TRANSPORT_PRESETS.filter((p) => p.category === "truck");
   const pallets = TRANSPORT_PRESETS.filter((p) => p.category === "pallet");
 
-  it("covers all 12 container presets (20GP/40GP/40HQ/45HQ/Reefers/OT/FR/Air LD3) in single & mixed, practical & maximum", () => {
-    expect(containers.length).toBeGreaterThanOrEqual(12);
-
-    for (const preset of containers) {
+  it("retains all containers catalog entries", () => expect(containers.length).toBeGreaterThanOrEqual(12));
+  for (const preset of containers) {
+    for (const strategy of ["practical", "maximum"] as const) {
+      it(`${preset.id} single & mixed / ${strategy}`, () => {
       const boxL = Math.min(500, Math.floor(preset.length / 3));
       const boxW = Math.min(400, Math.floor(preset.width / 3));
       const boxH = Math.min(350, Math.floor(preset.height / 3));
       const p1 = makeProduct("c1", boxL, boxW, boxH, 12, 80);
       const p2 = makeProduct("c2", Math.max(150, Math.floor(boxL * 0.8)), Math.max(150, Math.floor(boxW * 0.8)), Math.max(150, Math.floor(boxH * 0.8)), 8, 60);
 
-      for (const strategy of ["practical", "maximum"] as const) {
         const single = pack({ mode: "single", strategy, container: preset, clearance: 0, products: [p1] });
         expect(single.validation.valid, `${preset.id} single/${strategy}`).toBe(true);
         expect(single.placements.length, `${preset.id} single/${strategy} count`).toBeGreaterThan(0);
@@ -80,18 +79,17 @@ describe("All 37 Containers, Trucks, Trailers & Pallets/ULDs (Full Catalog Sweep
 
         const crew = buildCrewSlicePayload(mixed);
         expect(isCrewPayload(crew), `${preset.id} crew payload valid`).toBe(true);
-      }
+      }, 15_000);
     }
-  }, 60_000);
+  }
 
-  it("covers all 11 truck & trailer presets (Van, 3m–17.5m, US 53' Dry Van, EU 13.6m Mega) with weight limits & CoG", () => {
-    expect(trucks.length).toBeGreaterThanOrEqual(11);
-
-    for (const truck of trucks) {
+  it("retains all trucks catalog entries", () => expect(trucks.length).toBeGreaterThanOrEqual(11));
+  for (const truck of trucks) {
+    for (const strategy of ["practical", "maximum"] as const) {
+      it(`${truck.id} single & mixed / ${strategy}`, () => {
       const p1 = makeProduct("t1", 600, 400, 400, 18, 90);
       const p2 = makeProduct("t2", 450, 350, 300, 10, 80);
 
-      for (const strategy of ["practical", "maximum"] as const) {
         const single = pack({ mode: "single", strategy, container: truck, clearance: 0, products: [p1] });
         expect(single.validation.valid, `${truck.id} single/${strategy}`).toBe(true);
         expect(single.placements.length, `${truck.id} single/${strategy} count`).toBeGreaterThan(0);
@@ -110,14 +108,13 @@ describe("All 37 Containers, Trucks, Trailers & Pallets/ULDs (Full Catalog Sweep
         // Crew payload must validate even for 17.5m flatbed & 16m US 53' Dry Van
         const crew = buildCrewSlicePayload(mixed);
         expect(isCrewPayload(crew), `${truck.id} crew payload valid`).toBe(true);
-      }
+      }, 15_000);
     }
-  }, 30_000);
+  }
 
-  it("covers all 14 standard pallet & air cargo ULD pallet presets", () => {
-    expect(pallets.length).toBeGreaterThanOrEqual(14);
-
-    for (const pallet of pallets) {
+  it("retains all pallet catalog entries", () => expect(pallets.length).toBeGreaterThanOrEqual(14));
+  for (const pallet of pallets) {
+    it(`${pallet.id} maximum payload and placement`, () => {
       const p1 = makeProduct("pl1", 300, 200, 200, 5, 40);
       const p2 = makeProduct("pl2", 250, 200, 200, 4, 30);
 
@@ -125,8 +122,8 @@ describe("All 37 Containers, Trucks, Trailers & Pallets/ULDs (Full Catalog Sweep
       expect(res.validation.valid, `${pallet.id} mixed/maximum`).toBe(true);
       expect(res.placements.length, `${pallet.id} count`).toBeGreaterThan(0);
       expect(res.metrics.grossWeight).toBeLessThanOrEqual(pallet.maxWeight + 1e-3);
-    }
-  });
+    });
+  }
 
   it("enforces strict payload weight cap on light trucks (1,000 kg Van & 1,500 kg 3m Truck)", () => {
     const van = trucks.find((t) => t.id === "truck-van")!;
