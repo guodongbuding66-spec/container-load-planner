@@ -1,5 +1,18 @@
 import {buildRasterPdf,type RasterPage} from "./pdf-raster";
 
+/** Keep ordinary words intact; split only tokens wider than a full PDF line. */
+export function wrapTradePdfText(value:string,maxWidth:number,measure:(text:string)=>number):string[] {
+ const rows:string[]=[];let current="";
+ const flush=()=>{if(current.trim())rows.push(current.trimEnd());current="";};
+ for(const token of value.match(/\s+|\S+/gu)??[]){
+  if(/^\s+$/u.test(token)){if(current&&!current.endsWith(" "))current+=" ";continue;}
+  if(current&&measure(current+token)>maxWidth)flush();
+  if(measure(token)<=maxWidth){current+=token;continue;}
+  for(const char of token){if(current&&measure(current+char)>maxWidth)flush();current+=char;}
+ }
+ flush();return rows.length?rows:[""];
+}
+
 /** Render our own document HTML into real, paginated PDF bytes (including Unicode). */
 export async function downloadTradeSheetPdf(html:string,filename:string) {
  await document.fonts.ready;
@@ -10,9 +23,8 @@ export async function downloadTradeSheetPdf(html:string,filename:string) {
  const clean=(s:string|null|undefined)=>s?.replace(/\s+/g," ").trim()??"";
  const line=(value:string,x:number,y:number,maxWidth:number,size=25,bold=false)=>{
   ctx.font=`${bold?700:400} ${size}px 'Noto Sans SC','Microsoft YaHei',Arial,sans-serif`;ctx.fillStyle="#0f172a";
-  let text="",row=0;
-  for(const char of value){if(ctx.measureText(text+char).width>maxWidth&&text){ctx.fillText(text,x,y+row*38);text="";row++;}text+=char;}
-  ctx.fillText(text,x,y+row*38);return y+(row+1)*38;
+  const rows=wrapTradePdfText(value,maxWidth,text=>ctx.measureText(text).width);
+  rows.forEach((text,row)=>ctx.fillText(text,x,y+row*38));return y+rows.length*38;
  };
  const start=(title:string)=>{ctx.fillStyle="white";ctx.fillRect(0,0,width,height);line(title,margin,105,width-2*margin,32,true);ctx.strokeStyle="#cbd5e1";ctx.beginPath();ctx.moveTo(margin,130);ctx.lineTo(width-margin,130);ctx.stroke();};
  const finish=async()=>{const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error("PDF image failed")),"image/jpeg",.94));pages.push({jpeg:new Uint8Array(await blob.arrayBuffer()),width,height});};
